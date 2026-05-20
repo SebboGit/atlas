@@ -1,0 +1,19 @@
+From: confirmations@airline.example
+To: traveler@example.org
+Subject: Boarding pass — BA287
+Date: Mon, 01 Jun 2026 10:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<!DOCTYPE html><html><head>
+<style>body{font-family:Arial;color:#333;}.hidden{display:none}</style>
+<!--[if mso]><style>.outlook{}</style><![endif]-->
+</head><body>
+<table><tr><td><h1>Your boarding pass</h1></td></tr>
+<tr><td>Flight: BA287</td></tr>
+<tr><td>From: London Heathrow (LHR) &rarr; San Francisco (SFO)</td></tr>
+<tr><td>Date: 2026-06-01</td></tr>
+<tr><td>Passenger: Jane Doe</td></tr></table>
+<script>tracking()</script>
+</body></html>

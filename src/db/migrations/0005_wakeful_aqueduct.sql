@@ -1,0 +1,1 @@
+ALTER TABLE "segments" ADD COLUMN "needs_review" boolean DEFAULT false NOT NULL;

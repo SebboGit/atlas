@@ -1,0 +1,275 @@
+@import 'tailwindcss';
+
+/*
+ * Atlas — warm sand / paper palette.
+ *
+ * Hues sit in 32–42 (warm beige), with terracotta as the single accent.
+ * Light only by design: a homelab travel companion that reads like
+ * paper, not a dashboard at 2am.
+ */
+@theme {
+  /* Surfaces */
+  --color-background: hsl(38 32% 90%);
+  --color-foreground: hsl(28 22% 14%);
+  --color-card: hsl(42 50% 95%);
+  --color-card-foreground: hsl(28 22% 14%);
+  --color-popover: hsl(42 50% 96%);
+  --color-popover-foreground: hsl(28 22% 14%);
+
+  /* Quiet tones */
+  --color-muted: hsl(38 26% 84%);
+  --color-muted-foreground: hsl(28 14% 38%);
+  --color-border: hsl(34 22% 74%);
+  --color-input: hsl(34 22% 74%);
+
+  /* Brand — terracotta ink */
+  --color-primary: hsl(18 52% 36%);
+  --color-primary-foreground: hsl(42 50% 96%);
+
+  /* Quiet support — sage olive */
+  --color-accent: hsl(82 18% 38%);
+  --color-accent-foreground: hsl(42 50% 96%);
+
+  /* Warning ink — a darker rust than primary, used only for destructive paths */
+  --color-destructive: hsl(4 56% 38%);
+  --color-destructive-foreground: hsl(42 50% 96%);
+
+  --color-ring: hsl(18 52% 36%);
+
+  /* Type stack — wired by next/font in layout.tsx */
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-mono: var(--font-mono-ibm), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius: 0.875rem;
+}
+
+/*
+ * Base layer — typography, paper texture, atmospheric background.
+ */
+html,
+body {
+  @apply text-foreground antialiased;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-feature-settings: 'ss01', 'cv11';
+  letter-spacing: -0.005em;
+}
+
+body {
+  /* Layered warm light: a soft top wash, a low warm pool, and a
+   * paper-grain noise overlay. The grain is barely perceptible but
+   * kills the "flat AI gradient" look. */
+  background-color: hsl(38 32% 90%);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 18% 0%, hsl(42 55% 94% / 0.9), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, hsl(22 40% 80% / 0.55), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 110%, hsl(36 30% 78% / 0.4), transparent 70%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0 0.08  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-attachment: fixed, fixed, fixed, fixed;
+  background-size:
+    auto,
+    auto,
+    auto,
+    220px 220px;
+}
+
+/* Soft scrollbar that matches the warm palette */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(34 22% 60%) transparent;
+}
+
+/* Selection: terracotta ink on cream */
+::selection {
+  background: hsl(18 52% 36% / 0.18);
+  color: hsl(28 22% 14%);
+}
+
+/* Display utility for the Fraunces wordmark — used sparingly. */
+.font-display {
+  font-family: var(--font-display);
+  font-feature-settings:
+    'ss01',
+    'ss03',
+    'opsz' on;
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'ss03';
+}
+
+/*
+ * One-shot entrance animation for landing surfaces.
+ * Staggered via `style={{ animationDelay }}` at the call site.
+ */
+@keyframes atlas-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.atlas-rise {
+  animation: atlas-rise 700ms cubic-bezier(0.2, 0.7, 0, 1) both;
+}
+
+/*
+ * Decorative hairline — a paired-rule used as a section divider.
+ * Suggests engraved book plates without going full editorial.
+ */
+.atlas-rule {
+  background-image: linear-gradient(
+    to right,
+    transparent,
+    hsl(28 22% 14% / 0.35) 20%,
+    hsl(28 22% 14% / 0.35) 80%,
+    transparent
+  );
+  height: 1px;
+}
+
+.atlas-rule-double {
+  border-top: 1px solid hsl(28 22% 14% / 0.3);
+  border-bottom: 1px solid hsl(28 22% 14% / 0.3);
+  height: 4px;
+}
+
+/*
+ * Dialog / overlay choreography — keyframes driven by Radix's
+ * data-state attribute. No tailwindcss-animate dependency.
+ */
+@keyframes atlas-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes atlas-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes atlas-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes atlas-sheet-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+/*
+ * Note: don't animate `transform` here. Tailwind 4 uses the modern
+ * `translate` CSS property for `-translate-x-1/2 -translate-y-1/2`, and
+ * setting `transform: translate(...)` in a keyframe stacks ON TOP of
+ * that, double-translating the dialog off-screen. Animate `scale`
+ * (also a modern individual property) instead.
+ */
+@keyframes atlas-card-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes atlas-card-out {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+.atlas-overlay[data-state='open'] {
+  animation: atlas-overlay-in 180ms cubic-bezier(0.2, 0.7, 0, 1) both;
+}
+.atlas-overlay[data-state='closed'] {
+  animation: atlas-overlay-out 140ms ease-in both;
+}
+
+/* Mobile sheet animation (default). */
+.atlas-sheet[data-state='open'] {
+  animation: atlas-sheet-in 280ms cubic-bezier(0.2, 0.7, 0, 1) both;
+}
+.atlas-sheet[data-state='closed'] {
+  animation: atlas-sheet-out 200ms ease-in both;
+}
+
+/* Centered card animation (sm: and up). */
+@media (min-width: 640px) {
+  .atlas-sheet[data-state='open'] {
+    animation: atlas-card-in 220ms cubic-bezier(0.2, 0.7, 0, 1) both;
+  }
+  .atlas-sheet[data-state='closed'] {
+    animation: atlas-card-out 160ms ease-in both;
+  }
+}
+
+@keyframes atlas-popover-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes atlas-popover-out {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+.atlas-popover {
+  transform-origin: var(--radix-popover-content-transform-origin);
+}
+.atlas-popover[data-state='open'] {
+  animation: atlas-popover-in 180ms cubic-bezier(0.2, 0.7, 0, 1) both;
+}
+.atlas-popover[data-state='closed'] {
+  animation: atlas-popover-out 140ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-rise,
+  .atlas-overlay,
+  .atlas-sheet,
+  .atlas-popover {
+    animation: none !important;
+  }
+}

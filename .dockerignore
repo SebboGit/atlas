@@ -1,0 +1,41 @@
+# --- Dependencies + build outputs (regenerated in the image) -----------------
+node_modules
+.next
+out
+dist
+build
+*.tsbuildinfo
+
+# --- Runtime data (bind-mounted by docker-compose, never baked) -------------
+data
+
+# --- Version control --------------------------------------------------------
+.git
+.gitignore
+
+# --- Secrets — never bake env files into images ------------------------------
+.env
+.env.*
+!.env.example
+
+# --- Test + lint artifacts --------------------------------------------------
+coverage
+playwright-report
+test-results
+.eslintcache
+
+# --- IDE / OS junk ----------------------------------------------------------
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# --- Logs -------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Claude / agent scratch -------------------------------------------------
+.claude

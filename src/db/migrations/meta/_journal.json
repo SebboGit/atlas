@@ -1,0 +1,97 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1778703787744,
+      "tag": "0000_puzzling_redwing",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778798463379,
+      "tag": "0001_purple_hawkeye",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778843546429,
+      "tag": "0002_sweet_champions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778849218619,
+      "tag": "0003_burly_forge",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778869037061,
+      "tag": "0004_yummy_spencer_smythe",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778871393552,
+      "tag": "0005_wakeful_aqueduct",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778879692300,
+      "tag": "0006_bumpy_songbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778946739332,
+      "tag": "0007_graceful_mandrill",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778969439907,
+      "tag": "0008_lowly_sasquatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779019661349,
+      "tag": "0009_harsh_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779297899878,
+      "tag": "0010_global_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779302033626,
+      "tag": "0011_documents_filename_tokenization",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779303615660,
+      "tag": "0012_segments_camelcase_split",
+      "breakpoints": true
+    }
+  ]
+}

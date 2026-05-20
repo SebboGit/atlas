@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/SebboGit/atlas/tree/main/docs
+    about: Setup, deployment, and architecture docs live in /docs.

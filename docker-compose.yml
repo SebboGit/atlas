@@ -1,0 +1,181 @@
+# =============================================================================
+# Atlas — Local Development Stack
+#
+# Usage:
+#   docker compose up -d                        # app + postgres
+#   docker compose --profile backup up -d       # also start scheduled DB backups
+#   docker compose logs -f app                  # tail app logs
+#   docker compose down                         # stop services (data persists)
+#   docker compose down -v                      # stop and wipe DB volume (DESTRUCTIVE)
+#                                               # NOTE: data/ is a bind mount and
+#                                               # is NOT affected by `down -v`.
+#
+# For production, layer docker-compose.prod.yml on top:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile backup up -d
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: atlas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: atlas
+      POSTGRES_DB: atlas
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      # Postgres 18+ stores data in a major-version subdirectory under
+      # /var/lib/postgresql (e.g. /var/lib/postgresql/18/docker/). Mounting
+      # at the parent — NOT at .../data as PG<18 conventionally used — is
+      # what the official image expects in 18+. See
+      # https://github.com/docker-library/postgres/pull/1259.
+      - postgres-data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - '127.0.0.1:5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U atlas -d atlas']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - atlas
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: atlas-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://atlas:atlas@postgres:5432/atlas
+      STORAGE_DIR: /app/data/documents
+      TILES_DIR: /app/data/tiles
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - /app/node_modules
+      - /app/.next
+      # Documents bind mount — survives container rebuilds and is part of host backups
+      - ./data/documents:/app/data/documents
+      # PMTiles basemap bind mount — read-only; populated once by `pmtiles extract`
+      # per ADR-0011. Regenerable, so excluded from host backups.
+      - ./data/tiles:/app/data/tiles:ro
+    ports:
+      - '127.0.0.1:3000:3000'
+    networks:
+      - atlas
+
+  # ---------------------------------------------------------------------------
+  # In-stack scheduler: nightly DB prune (today), upcoming-flight ntfy
+  # reminders (later). Uses the same image as `app` but with the
+  # `pnpm cron` entrypoint. No Docker socket required — fits hosts
+  # like managed homelab orchestrators that restrict socket access.
+  #
+  # Schedule + timezone are env-overridable so a deploy can shift the
+  # run window without rebuilding. Defaults assume UTC.
+  # ---------------------------------------------------------------------------
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: atlas-cron
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://atlas:atlas@postgres:5432/atlas
+      # Defaults match src/lib/scheduler/index.ts. Override in .env if you
+      # need a different run window or non-UTC schedules.
+      CRON_PRUNE_SCHEDULE: ${CRON_PRUNE_SCHEDULE:-0 40 3 * * *}
+      CRON_TZ: ${CRON_TZ:-UTC}
+    # The scheduler only needs the source tree and node_modules, no
+    # bind mount writes. Mounting the same source as `app` keeps
+    # hot-reload-during-dev coherent: edit src/lib/scheduler and the
+    # cron container picks it up on restart.
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - /app/node_modules
+    command: ['pnpm', 'cron']
+    networks:
+      - atlas
+
+  # ---------------------------------------------------------------------------
+  # Scheduled Postgres backups via nfrastack/container-db-backup
+  # Opt-in via `--profile backup`. Always activated in production.
+  # Docs: https://github.com/nfrastack/container-db-backup
+  # ---------------------------------------------------------------------------
+  db-backup:
+    image: docker.io/tiredofit/db-backup:latest
+    container_name: atlas-db-backup
+    restart: unless-stopped
+    profiles: ['backup']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # --- Defaults applied to every job ---
+      DEFAULT_BACKUP_LOCATION: FILESYSTEM
+      DEFAULT_COMPRESSION: ZSTD
+      DEFAULT_COMPRESSION_LEVEL: '3'
+      DEFAULT_CHECKSUM: SHA1
+      DEFAULT_CREATE_LATEST_SYMLINK: 'TRUE'
+
+      # --- Job 01: Atlas Postgres ---
+      DB01_TYPE: pgsql
+      DB01_HOST: postgres
+      DB01_NAME: atlas
+      DB01_USER: atlas
+      DB01_PASS: atlas
+      DB01_PORT: '5432'
+      # Daily at 03:30 (HHMM). Use a cron expression for finer control.
+      DB01_BACKUP_BEGIN: '0330'
+      # Retention (minutes): delete dumps older than 30 days
+      DB01_CLEANUP_TIME: '43200'
+      # Archive (move to subdir) after 7 days — useful when paired with offsite sync
+      DB01_ARCHIVE_TIME: '10080'
+
+      # --- Optional failure notifications ---
+      # ENABLE_NOTIFICATIONS: "TRUE"
+      # NOTIFICATION_TYPE: "MATRIX"           # or EMAIL / MATTERMOST / ROCKETCHAT / CUSTOM
+      # MATRIX_HOST: "${MATRIX_HOST}"
+      # MATRIX_ROOM: "${MATRIX_ROOM}"
+      # MATRIX_ACCESS_TOKEN: "${MATRIX_ACCESS_TOKEN}"
+    volumes:
+      - ./data/backups/db:/backup
+    networks:
+      - atlas
+
+  # OPTIONAL: Local Ollama for self-hosted extraction.
+  # Uncomment if you want to run extraction entirely on-prem.
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: atlas-ollama
+  #   restart: unless-stopped
+  #   profiles: ["llm"]
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #   ports:
+  #     - "127.0.0.1:11434:11434"
+  #   networks:
+  #     - atlas
+
+volumes:
+  postgres-data:
+  # ollama-data:
+
+networks:
+  atlas:
+    driver: bridge

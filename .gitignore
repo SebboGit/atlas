@@ -1,0 +1,117 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Production builds
+.vercel/
+.netlify/
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Environment / secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.crt
+secrets/
+.secrets/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE / editor
+.vscode/*
+!.vscode/settings.json.example
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Drizzle
+drizzle/.snapshots/
+
+# Runtime data — keep folders, ignore contents
+/data/documents/*
+!/data/documents/.gitkeep
+/data/backups/db/*
+!/data/backups/db/.gitkeep
+/data/backups/documents/*
+!/data/backups/documents/.gitkeep
+
+# SQLite (if ever used for tests)
+*.sqlite
+*.sqlite3
+*.db
+
+# Docker volumes
+docker/postgres/data/
+docker/.volumes/
+
+# Standalone backup archives (legacy / one-off)
+*.dump
+*.sql.gz
+*.tar.gz
+
+# OCR / model caches
+.ocr-cache/
+.models/
+tesseract-cache/
+
+# PMTiles (often huge — fetched at deploy)
+*.pmtiles
+public/tiles/
+
+# Misc
+.cache/
+.turbo/
+.eslintcache
+.stylelintcache
+
+# Scratch space — local screenshots, fixtures, throwaway artefacts
+tmp/
+
+# Claude Code
+.claude/settings.local.json
+.claude/projects/
+
+# Tool integrations (regeneratable from upstream agency-agents)
+.cursor/rules/
+.windsurfrules
+CONVENTIONS.md

@@ -1,0 +1,1 @@
+ALTER TABLE "documents" ADD COLUMN "extraction_started_at" timestamp with time zone;

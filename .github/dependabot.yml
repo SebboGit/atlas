@@ -1,0 +1,63 @@
+# Dependabot configuration
+# Dependabot itself runs on GitHub-managed infrastructure and does NOT consume
+# Actions minutes. Only the CI workflow that runs on Dependabot's PRs counts.
+# Docs: https://docs.github.com/en/code-security/dependabot
+
+version: 2
+updates:
+  # JavaScript / TypeScript packages
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/Berlin'
+    open-pull-requests-limit: 5
+    groups:
+      # Group minor + patch updates into one PR per ecosystem to save CI minutes
+      production-minor:
+        dependency-type: 'production'
+        update-types:
+          - 'minor'
+          - 'patch'
+      development-minor:
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+    ignore:
+      # Pin Node 24 LTS line. Bump deliberately.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # next-auth v5 is pinned to an exact beta. Bump deliberately after
+      # reading the release notes — beta tags ship breaking changes silently.
+      - dependency-name: 'next-auth'
+
+  # Docker base images (Dockerfile + docker-compose.yml)
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/Berlin'
+    open-pull-requests-limit: 3
+    ignore:
+      # Pin the Node LTS major line — bump deliberately on LTS transitions
+      # (Active LTS → Maintenance is the trigger, not whatever's newest).
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
+      # Pin the Postgres major. Major upgrades require coordinated
+      # backup/restore and a re-init of pg_data — never silent.
+      - dependency-name: 'postgres'
+        update-types: ['version-update:semver-major']
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+      time: '06:00'
+      timezone: 'Europe/Berlin'
+    open-pull-requests-limit: 3

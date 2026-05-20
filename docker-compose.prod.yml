@@ -1,0 +1,57 @@
+# =============================================================================
+# Atlas — Production Overlay
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile backup up -d
+#
+# The `--profile backup` flag activates the db-backup service. In dev it's
+# opt-in; in prod you almost always want it on.
+#
+# Assumes:
+#  - You provide a real .env (NOT the .example one)
+#  - TLS terminated upstream (Caddy, Traefik, nginx, or behind Tailscale)
+#  - data/ is on storage you actually trust and back up (rsync to your offsite target)
+# =============================================================================
+
+services:
+  postgres:
+    # Don't expose Postgres on the host in prod
+    ports: []
+    command:
+      - 'postgres'
+      - '-c'
+      - 'shared_buffers=256MB'
+      - '-c'
+      - 'max_connections=50'
+
+  db-backup:
+    environment:
+      # Longer retention in prod: 90 days
+      DB01_CLEANUP_TIME: '129600'
+      # Archive after 30 days
+      DB01_ARCHIVE_TIME: '43200'
+
+  app:
+    build:
+      target: prod
+    # Remove source mounts — use the baked image. Keep the data bind
+    # mounts (documents = user-private; tiles = self-hosted basemap
+    # per ADR-0011, regenerable so :ro and excluded from backups).
+    volumes:
+      - ./data/documents:/app/data/documents
+      - ./data/tiles:/app/data/tiles:ro
+    restart: always
+    environment:
+      NODE_ENV: production
+
+  cron:
+    # The cron service deliberately stays on the `dev` target — the prod
+    # Next.js standalone image strips out tsx and our source tree, which
+    # the scheduler entrypoint needs at runtime. Image footprint is a
+    # non-issue for a single-instance background process.
+    restart: always
+    # Use the baked image, not the host source mounts the dev compose
+    # uses. Same data isolation rule as `app` above.
+    volumes: []
+    environment:
+      NODE_ENV: production

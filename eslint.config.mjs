@@ -1,0 +1,102 @@
+// @ts-check
+import next from 'eslint-config-next/core-web-vitals';
+
+const config = [
+  {
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
+      'src/db/migrations/**',
+      'next-env.d.ts',
+    ],
+  },
+
+  ...next,
+
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    rules: {
+      // Enforce the "no leaking the auth provider" guardrail.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'next-auth',
+              message:
+                'Import from @/lib/auth/* instead. See CLAUDE.md → Architectural Guardrails.',
+            },
+            {
+              name: 'next-auth/providers/oidc',
+              message: 'Provider config lives in @/lib/auth/providers/.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@/lib/storage/fs', '@/lib/storage/fs.*'],
+              message:
+                'Import the Storage interface from @/lib/storage instead of the fs implementation directly.',
+            },
+            {
+              group: ['@/db/*'],
+              message:
+                'Components must not import @/db/* directly. Go through a feature repo or server action.',
+            },
+          ],
+        },
+      ],
+
+      // Tighten any-usage. Allow it only when annotated with a justification.
+      '@typescript-eslint/no-explicit-any': 'error',
+
+      // Unused vars: allow _-prefixed.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
+  },
+
+  // Storage implementation may import its own fs.ts.
+  {
+    files: ['src/lib/storage/**/*.ts'],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
+
+  // Auth lib may import next-auth.
+  {
+    files: ['src/lib/auth/**/*.ts'],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
+
+  // Server-side repos and actions may import @/db/*.
+  // Test files may also reach into @/db/* for fixture setup and assertions.
+  {
+    files: [
+      'src/db/**/*.ts',
+      'src/lib/**/repo.ts',
+      'src/lib/**/actions.ts',
+      'src/lib/auth/**/*.ts',
+      'src/lib/extraction/flight-cache.ts',
+      'src/lib/geocoding/cache.ts',
+      // Maintenance owns cross-table cleanup (sessions, tokens, geocode
+      // cache). Shared by `pnpm db:prune` and the in-stack scheduler.
+      'src/lib/maintenance/prune.ts',
+      'src/app/api/**/*.ts',
+      'scripts/**/*.ts',
+      '**/*.test.ts',
+    ],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
+];
+
+export default config;

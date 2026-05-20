@@ -1,0 +1,47 @@
+# atlas-extract — derived Ollama model for document extraction.
+#
+# See docs/adr/0006-ollama-only-llm-extraction.md and the README in this
+# directory for how to build and register it.
+#
+# This file does NOT fine-tune weights. It derives a new model tag from
+# qwen2.5:7b with three specialisations baked in:
+#
+#   1. Context window large enough for our 8000-char input cap. Without
+#      this, Ollama's default (often 2048 tokens) silently truncates the
+#      document *after* `prompts.ts` deliberately truncates — leaving the
+#      model with no input by the time it sees the schema.
+#   2. Deterministic sampling. The same boarding pass must produce the
+#      same JSON across calls.
+#   3. A short SYSTEM prompt that reinforces the JSON-only contract.
+#      Per-document schemas still come from the user prompt because they
+#      vary by DocKindHint.
+
+FROM qwen2.5:7b
+
+SYSTEM """You extract structured data from travel documents — boarding passes, hotel confirmations, tickets, itineraries.
+
+Rules, always:
+- Respond with a single valid JSON object. No markdown fences. No prose before or after.
+- Use null for any field whose value is not present in the source text. Never guess, never invent, never infer beyond what the text states.
+- Preserve codes verbatim. IATA airport and carrier codes are upper-case ASCII. Dates are ISO 8601 (YYYY-MM-DD for dates, full ISO with timezone offset for times).
+- `confidence` is your certainty about the values you returned, not your understanding of the task. Lower it when fields are ambiguous, partially legible, or inferred from layout rather than explicit labels.
+- The user message defines the exact JSON shape for this call. Match it exactly — same field names, same types, no extra fields."""
+
+# --- Sampling -----------------------------------------------------------------
+# Deterministic. Extraction is not a creative task.
+PARAMETER temperature 0
+PARAMETER top_p 0.1
+PARAMETER top_k 1
+PARAMETER repeat_penalty 1.0
+
+# --- Context window -----------------------------------------------------------
+# prompts.ts caps the input at 8000 chars ≈ 2000 tokens. Add schema, system
+# prompt, and headroom for the response → 8192 is the conservative floor.
+# Raising this costs RAM/VRAM on the Ollama host but not per-request latency
+# until the prompt actually grows.
+PARAMETER num_ctx 8192
+
+# --- Response budget ----------------------------------------------------------
+# Our largest payload (hotel confirmation, fully populated) is well under
+# 1KB. 1024 tokens leaves comfortable headroom without inviting run-ons.
+PARAMETER num_predict 1024

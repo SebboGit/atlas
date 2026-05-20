@@ -1,0 +1,25 @@
+From: noreply@booking.example
+To: traveler@example.org
+Subject: Your hotel reservation is confirmed
+Date: Mon, 01 Jun 2026 10:00:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="boundary42"
+
+--boundary42
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+PLAIN-MARKER: Booking confirmed at Hotel California.
+Check-in: 2026-06-01
+Check-out: 2026-06-05
+Confirmation: CONF-9
+Address: 1 Sunset Blvd, Los Angeles, CA
+
+--boundary42
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<html><head><style>body{font-family:Arial}</style></head>
+<body><h1>HTML-MARKER</h1><p>Hotel California — confirmed.</p></body></html>
+
+--boundary42--

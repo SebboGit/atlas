@@ -1,0 +1,220 @@
+import { describe, expect, it } from 'vitest';
+
+import { segmentCreateInput } from './validators';
+
+// Minimal flight payload used as a base for happy-path assertions.
+const FLIGHT_BASE = {
+  type: 'flight' as const,
+  data: { originAirport: 'LHR', destinationAirport: 'HND' },
+};
+
+describe('segmentCreateInput — dateInput timezone parsing', () => {
+  it("'yyyy-mm-dd' parses to local-midnight (not UTC midnight)", () => {
+    // Regression for the TZ inconsistency fix: `new Date('2026-06-12')`
+    // is UTC midnight which becomes the previous day's evening in
+    // UTC-12 timezones. We parse explicitly with the local-Date
+    // constructor so the wall-clock day matches what the user picked.
+    const result = segmentCreateInput.safeParse({ ...FLIGHT_BASE, startsAt: '2026-06-12' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    const d = result.data.startsAt!;
+    expect(d).toBeInstanceOf(Date);
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(5); // June (zero-indexed)
+    expect(d.getDate()).toBe(12);
+    expect(d.getHours()).toBe(0);
+    expect(d.getMinutes()).toBe(0);
+    expect(d.getSeconds()).toBe(0);
+  });
+
+  it("'yyyy-mm-ddThh:mm' parses to the wall-clock time (local)", () => {
+    const result = segmentCreateInput.safeParse({
+      ...FLIGHT_BASE,
+      startsAt: '2026-06-12T10:40',
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    const d = result.data.startsAt!;
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(5);
+    expect(d.getDate()).toBe(12);
+    expect(d.getHours()).toBe(10);
+    expect(d.getMinutes()).toBe(40);
+  });
+
+  it('empty string and null both normalise to null', () => {
+    const empty = segmentCreateInput.safeParse({ ...FLIGHT_BASE, startsAt: '' });
+    const nul = segmentCreateInput.safeParse({ ...FLIGHT_BASE, startsAt: null });
+    expect(empty.success).toBe(true);
+    expect(nul.success).toBe(true);
+    if (empty.success) expect(empty.data.startsAt).toBeNull();
+    if (nul.success) expect(nul.data.startsAt).toBeNull();
+  });
+
+  it('malformed strings normalise to null without throwing', () => {
+    const result = segmentCreateInput.safeParse({
+      ...FLIGHT_BASE,
+      startsAt: 'definitely-not-a-date',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.startsAt).toBeNull();
+  });
+
+  it('accepts a Date instance as-is', () => {
+    const d = new Date(2026, 5, 12, 10, 40);
+    const result = segmentCreateInput.safeParse({ ...FLIGHT_BASE, startsAt: d });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.startsAt?.getTime()).toBe(d.getTime());
+  });
+});
+
+describe('segmentCreateInput — note variant geography stripping', () => {
+  // Regression for the note country-leak bug: switching flight → note
+  // in the form preserved countryCode in form state. Without
+  // per-variant trimming, that countryCode would survive into the
+  // DB and surface in the country-filter chip row for a note.
+  it('strips countryCode from note input', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'note',
+      data: { body: 'remember the passport' },
+      countryCode: 'JP', // sneaks in from a prior flight pick
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    // The note variant is built from commonFields only, so Zod's
+    // default strip behaviour drops the country.
+    expect('countryCode' in result.data).toBe(false);
+  });
+
+  it('strips originCountryCode + locationName from note input', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'note',
+      data: { body: 'remember the passport' },
+      originCountryCode: 'GB',
+      locationName: 'Heathrow',
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect('originCountryCode' in result.data).toBe(false);
+    expect('locationName' in result.data).toBe(false);
+  });
+
+  it('strips originCountryCode from non-flight (hotel) input', () => {
+    // Only flights carry originCountryCode. A stray value on a hotel
+    // — same form-preservation mechanism — must not reach the DB.
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'Park Hyatt' },
+      originCountryCode: 'GB',
+      countryCode: 'JP',
+    });
+    expect(result.success).toBe(true);
+    if (!result.success || result.data.type !== 'hotel') return;
+    expect('originCountryCode' in result.data).toBe(false);
+    expect(result.data.countryCode).toBe('JP'); // kept
+  });
+
+  it('retains countryCode + originCountryCode on flight', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'flight',
+      data: { originAirport: 'LHR', destinationAirport: 'HND' },
+      countryCode: 'JP',
+      originCountryCode: 'GB',
+    });
+    expect(result.success).toBe(true);
+    if (!result.success || result.data.type !== 'flight') return;
+    expect(result.data.countryCode).toBe('JP');
+    expect(result.data.originCountryCode).toBe('GB');
+  });
+});
+
+describe('segmentCreateInput — countryCode normalisation', () => {
+  it('empty string round-trips to null', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'x' },
+      countryCode: '',
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'hotel') {
+      expect(result.data.countryCode).toBeNull();
+    }
+  });
+
+  it('lowercase code is uppercased', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'x' },
+      countryCode: 'jp',
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'hotel') {
+      expect(result.data.countryCode).toBe('JP');
+    }
+  });
+
+  it('whitespace is trimmed', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'x' },
+      countryCode: '  jp  ',
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'hotel') {
+      expect(result.data.countryCode).toBe('JP');
+    }
+  });
+
+  it('three-letter code is rejected', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'x' },
+      countryCode: 'JPX',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('null is accepted (explicit "not set")', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'x' },
+      countryCode: null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'hotel') {
+      expect(result.data.countryCode).toBeNull();
+    }
+  });
+});
+
+describe('segmentCreateInput — discriminated-union safety', () => {
+  it('rejects wrong-type data shape (note body on flight)', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'flight',
+      data: { body: 'this is a note' }, // not a flight shape
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects unknown keys inside data (strict per type)', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'flight',
+      data: { originAirport: 'LHR', destinationAirport: 'HND', evil: 'sneak' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('hotel requires propertyName', () => {
+    const result = segmentCreateInput.safeParse({ type: 'hotel', data: {} });
+    expect(result.success).toBe(false);
+  });
+
+  it('activity with no date is valid (wishlist state)', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'activity',
+      data: { title: 'TeamLab Planets' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.startsAt).toBeNull();
+  });
+});
