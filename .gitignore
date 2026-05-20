@@ -110,6 +110,7 @@ tmp/
 # Claude Code
 .claude/settings.local.json
 .claude/projects/
+.claude/worktrees/
 
 # Tool integrations (regeneratable from upstream agency-agents)
 .cursor/rules/

@@ -22,34 +22,34 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 
 ## Tech Stack
 
-| Layer            | Choice                                            | Why                                                               |
-| ---------------- | ------------------------------------------------- | ----------------------------------------------------------------- |
-| Framework        | **Next.js 15** (App Router, RSC)                  | Full-stack TS, mature ecosystem, server actions                   |
-| Language         | **TypeScript** (strict mode)                      | Type safety end-to-end                                            |
-| Styling          | **Tailwind CSS** + **shadcn/ui**                  | Sophisticated default, zero lock-in, fully owned components       |
-| Database         | **PostgreSQL 18**                                 | JSONB, native UUIDv7, async I/O, FTS, PostGIS-ready               |
-| ORM              | **Drizzle ORM** + `drizzle-kit`                   | SQL-first, lightweight, great TS inference                        |
-| File storage     | **Local filesystem** (bind-mounted volume)        | Single-user homelab — see ADR-0001. Behind a `Storage` interface. |
-| DB backups       | **nfrastack/container-db-backup**                 | Scheduled, compressed, retention-managed — see "Backups" section  |
-| Maps             | **MapLibre GL JS** + **Protomaps PMTiles**        | Fully self-hostable, no tile server, no licensing concerns        |
-| Geocoding        | **Nominatim** (public OSM) + DB cache             | Pin non-flight segments on maps — see ADR-0010                    |
-| Auth             | **Auth.js + PocketID** (OIDC, passkeys)           | Passwordless, phishing-resistant; see ADR-0002 and "Auth" section |
-| Data fetching    | **TanStack Query** (client) + RSC (server)        | Use RSC by default, Query for interactive client state            |
-| Validation       | **Zod**                                           | Schema-first input validation, shared client/server               |
-| Forms            | **react-hook-form** + Zod resolver                | Performant, type-safe                                             |
-| PDF parsing      | `pdf-parse` / `pdfjs-dist`                        | Most hotel/flight confirmations are text PDFs                     |
-| OCR fallback     | **Tesseract.js** (Node) or PaddleOCR sidecar      | Only when PDF text extraction fails                               |
-| Structuring      | **Ollama** (local LLM, e.g. Qwen)                 | Extract structured data from raw OCR/text — see ADR-0006          |
-| Airline lookup   | **Static IATA→name table** (OpenFlights snapshot) | Friendly carrier names without an external API — see ADR-0009     |
-| Airport lookup   | **Static IATA→airport table** (OurAirports)       | Coords + timezone for flight pins/times, no runtime API call      |
-| Jobs             | **In-process `Jobs` interface** (`InlineJobs`)    | Background work without a queue today; BullMQ swap when needed    |
-| Notifications    | **ntfy** (self-hosted)                            | Push reminders for upcoming segments, extraction events, errors   |
-| Testing          | **Vitest** (unit) + **Playwright** (e2e)          | Fast unit, real-browser e2e                                       |
-| Lint / Format    | **ESLint** (flat config) + **Prettier**           | Standard                                                          |
-| Git hooks        | **Husky** + **lint-staged**                       | Enforce gates before commit                                       |
-| CI               | **GitHub Actions** (private repo, free 2k min/mo) | Lint, typecheck, test, build on PR/main                           |
-| Dep updates      | **Dependabot** (grouped, weekly)                  | Free, no Actions minutes for itself                               |
-| Containerization | **Docker** + Docker Compose                       | Single-host self-hosting                                          |
+| Layer            | Choice                                            | Why                                                                        |
+| ---------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| Framework        | **Next.js 15** (App Router, RSC)                  | Full-stack TS, mature ecosystem, server actions                            |
+| Language         | **TypeScript** (strict mode)                      | Type safety end-to-end                                                     |
+| Styling          | **Tailwind CSS** + **shadcn/ui**                  | Sophisticated default, zero lock-in, fully owned components                |
+| Database         | **PostgreSQL 18**                                 | JSONB, native UUIDv7, async I/O, FTS, PostGIS-ready                        |
+| ORM              | **Drizzle ORM** + `drizzle-kit`                   | SQL-first, lightweight, great TS inference                                 |
+| File storage     | **Local filesystem** (bind-mounted volume)        | Single-user homelab — see ADR-0001. Behind a `Storage` interface.          |
+| DB backups       | **nfrastack/container-db-backup**                 | Scheduled, compressed, retention-managed — see `atlas-backups` skill       |
+| Maps             | **MapLibre GL JS** + **Protomaps PMTiles**        | Fully self-hostable, no tile server, no licensing concerns                 |
+| Geocoding        | **Nominatim** (public OSM) + DB cache             | Pin non-flight segments on maps — see ADR-0010                             |
+| Auth             | **Auth.js + PocketID** (OIDC, passkeys)           | Passwordless, phishing-resistant; see ADR-0002 and "Auth" section          |
+| Data fetching    | **TanStack Query** (client) + RSC (server)        | Use RSC by default, Query for interactive client state                     |
+| Validation       | **Zod**                                           | Schema-first input validation, shared client/server                        |
+| Forms            | **react-hook-form** + Zod resolver                | Performant, type-safe                                                      |
+| PDF parsing      | `pdf-parse` / `pdfjs-dist`                        | Most hotel/flight confirmations are text PDFs                              |
+| OCR fallback     | **Tesseract.js** (Node) or PaddleOCR sidecar      | Only when PDF text extraction fails                                        |
+| Structuring      | **Ollama** (local LLM, e.g. Qwen)                 | Extract structured data from raw OCR/text — see ADR-0006                   |
+| Airline lookup   | **Static IATA→name table** (OpenFlights snapshot) | Friendly carrier names without an external API — see ADR-0009              |
+| Airport lookup   | **Static IATA→airport table** (OurAirports)       | Coords + timezone for flight pins/times, no runtime API call               |
+| Jobs             | **In-process `Jobs` interface** (`InlineJobs`)    | Background work without a queue today; pg-boss swap when needed (ADR-0012) |
+| Notifications    | **ntfy** (self-hosted)                            | Push reminders for upcoming segments, extraction events, errors            |
+| Testing          | **Vitest** (unit) + **Playwright** (e2e)          | Fast unit, real-browser e2e                                                |
+| Lint / Format    | **ESLint** (flat config) + **Prettier**           | Standard                                                                   |
+| Git hooks        | **Husky** + **lint-staged**                       | Enforce gates before commit                                                |
+| CI               | **GitHub Actions** (private repo, free 2k min/mo) | Lint, typecheck, test, build on PR/main                                    |
+| Dep updates      | **Dependabot** (grouped, weekly)                  | Free, no Actions minutes for itself                                        |
+| Containerization | **Docker** + Docker Compose                       | Single-host self-hosting                                                   |
 
 ---
 
@@ -107,10 +107,11 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── countries/       # Reference data — country names + ISO codes
 │   │   ├── ocr/             # PDF text extraction + OCR fallback
 │   │   ├── extraction/      # Ollama-backed structuring
-│   │   ├── jobs/            # In-process Jobs interface (`InlineJobs`) — swap door for BullMQ
+│   │   ├── jobs/            # In-process Jobs interface (`InlineJobs`) — swap door for pg-boss (ADR-0012)
 │   │   ├── notifications/   # ntfy client (planned — directory not yet present)
 │   │   ├── maintenance/     # Reusable housekeeping (prune queries) — shared by CLI + scheduler
 │   │   ├── scheduler/       # In-stack cron (croner). Runs in the `cron` compose service.
+│   │   ├── search/          # Cmd+K palette over Postgres FTS + pg_trgm (ADR-0013)
 │   │   ├── validators/      # Shared Zod schemas
 │   │   ├── format/          # Shared formatters (dates, money, durations)
 │   │   └── log.ts           # Structured logger entrypoint
@@ -204,50 +205,6 @@ interface Storage {
 
 ---
 
-## Backups
-
-Two layers, captured into the same snapshot tree so a single offsite sync covers both.
-
-### 1. Postgres → `nfrastack/container-db-backup`
-
-Runs as the `db-backup` service in compose.
-
-- **Schedule:** daily at 03:30 (configurable via `DB01_BACKUP_BEGIN`).
-- **Compression:** ZSTD level 3 (good ratio, fast).
-- **Checksums:** SHA1 alongside each dump.
-- **Retention:** 30 days in dev, 90 in prod (configurable via `DB01_CLEANUP_TIME`).
-- **Archive:** older dumps move to an `archive/` subdir for offsite-friendly handling.
-- **Output:** `./data/backups/db/` on the host.
-- **Profile:** opt-in (`--profile backup`) in dev; activated in prod via the same flag.
-- **Restores:** enter the container and run `restore` for an interactive wizard. Document any restoration drills in `docs/OPERATIONS.md` when it's written.
-
-### 2. Documents → `scripts/backup-documents.sh`
-
-The DB-backup container only knows about Postgres. The documents directory is host-side, captured by a small rsync-based script.
-
-- **Schedule:** suggested cron entry on the host at 03:35 (just after the DB dump).
-- **Output:** `./data/backups/documents/<UTC-timestamp>/`.
-- **Retention:** 30 days by default (env-tunable).
-
-### 3. Offsite (operator's responsibility)
-
-`./data/backups/` is the only directory you need to rsync offsite. One target captures both DB and documents.
-
-When adding a second stateful service later, route its backups into `./data/backups/<service>/` so the offsite story stays "one directory."
-
-### 4. Nightly DB prune (in-stack)
-
-Auth.js doesn't reap its own expired `sessions` / `verificationTokens`, and the geocode cache (`src/db/schema/geocode-cache.ts`) treats past-expiry rows as cache misses on read but never deletes them. The `cron` compose service sweeps all three nightly.
-
-- **How it runs:** the `cron` service in `docker-compose.yml` reuses the Atlas image with the `pnpm cron` entrypoint (`scripts/cron.ts`). Inside, `src/lib/scheduler/` uses `croner` to register jobs. Today there's one job — `prune` — but new scheduled work (e.g. upcoming-flight ntfy reminders) registers in the same place.
-- **Default schedule:** 03:40 daily, UTC. Override with `CRON_PRUNE_SCHEDULE` (six-field cron expression, `sec min hour day month weekday`) and `CRON_TZ` (IANA zone) in `.env`.
-- **Behaviour:** the cron job calls into `src/lib/maintenance/prune.ts`, the same module the CLI uses. They never diverge. Concurrent runs are blocked (`protect: true` in `Cron`), so a stuck DB won't pile up parallel attempts.
-- **Manual run (anytime):** `pnpm db:prune` (dry-run) or `pnpm db:prune --apply`.
-- **No host cron required.** This works out of the box on plain Docker Compose or any single-host orchestrator that can run a second container.
-- Pruning is purely housekeeping — the read paths already ignore expired rows, so this only reclaims storage, it doesn't change behaviour.
-
----
-
 ## External Integrations
 
 Atlas talks to a small, deliberate set of outside services. Every one of them sits behind an interface so the choice is a config swap, never a feature rewrite.
@@ -338,39 +295,6 @@ Atlas pushes short, user-facing notifications to a self-hosted **ntfy** server: 
 
 ---
 
-## CI / GitHub Actions
-
-The repo runs on GitHub Actions under the free 2,000-minute private-repo allowance. Defaults are chosen to stay well inside that budget.
-
-### What runs
-
-`.github/workflows/ci.yml` runs on every push to `main` and every PR targeting it:
-
-1. Set up pnpm + Node (version pinned by `.nvmrc`)
-2. `pnpm install --frozen-lockfile` (cached by pnpm-lock hash)
-3. `pnpm db:migrate` against a Postgres service container
-4. `pnpm typecheck` · `pnpm lint` · `pnpm test --run` · `pnpm build`
-
-### Cost discipline
-
-- **Linux runners only** (1x multiplier). No macOS or Windows.
-- `concurrency` group cancels superseded runs on the same branch.
-- pnpm cache enabled via `actions/setup-node`.
-- `timeout-minutes: 15` per job — fail fast on a stuck pipeline.
-- Dependabot groups minor/patch updates, so one PR triggers one CI run, not ten.
-
-Rough budget at 4 minutes/run: ~500 runs/month before exhausting the free tier. Track usage at _Settings → Billing → Plans and usage_.
-
-### Adding workflows
-
-Be careful about adding workflows that burn minutes. Heavy candidates to defer or gate:
-
-- Docker image builds → push to GHCR. Only on tag, not every push.
-- E2E (Playwright) → only on PRs, not push to main, or only when changed paths include `src/app/`.
-- Security scans → fine, usually fast.
-
----
-
 ## Security & Privacy (DevSecOps mindset)
 
 This is a personal app but contains travel documents (passports, boarding passes, addresses). Treat it accordingly.
@@ -387,7 +311,7 @@ This is a personal app but contains travel documents (passports, boarding passes
   - The download route MUST set `Content-Disposition` and `X-Content-Type-Options: nosniff`.
 - **Path safety:** The storage adapter resolves all paths relative to `STORAGE_DIR` and rejects any key containing `..`, absolute paths, or null bytes. Test this.
 - **Logging:** Structured JSON logs. **Never** log document contents, full PNRs, passport numbers, or auth tokens. Redact at the logger boundary.
-- **Backups:** see "Backups" section. Test restore from a real snapshot at least once per quarter.
+- **Backups:** see the `atlas-backups` skill. Test restore from a real snapshot at least once per quarter.
 - **Dependencies:** Dependabot handles updates. `pnpm audit` in CI as a soft signal.
 - **Threat model:** A one-pager lives in `docs/THREAT_MODEL.md` (to be written). Update when adding features that touch auth, file uploads, or external services.
 
@@ -492,121 +416,20 @@ When working in this repo, Claude Code is expected to:
 1. **Read before writing.** Skim `CLAUDE.md`, `docs/ARCHITECTURE.md`, `docs/DOMAIN_MODEL.md`, and the closest existing feature before adding code.
 2. **Match existing patterns.** If a feature already does X a certain way, follow it. If you want to deviate, propose an ADR first.
 3. **Plan, then code.** For any non-trivial change (>1 file, schema change, new feature), produce a brief plan first. Wait for confirmation on architectural moves.
-4. **Schema changes go through migrations.** Edit the Drizzle schema, run `pnpm db:generate`, review the SQL, commit both.
-5. **Run gates before declaring done:**
-   - `pnpm typecheck`
-   - `pnpm lint`
-   - `pnpm test`
-   - Build the app (`pnpm build`) if you touched routing, RSC boundaries, or config.
-6. **Keep CLAUDE.md current.** If you change conventions, structure, or major tech choices, update this file in the same PR.
-7. **Use the agents.** See below.
+4. **Keep CLAUDE.md current.** If you change conventions, structure, or major tech choices, update this file in the same PR.
+5. **Feature-sized work uses a worktree and a PR; trivial fixes go directly to `main`.** Feature work happens in a sibling-directory worktree (`../<repo>-<branch>`) and lands via PR. Typo fixes, doc tweaks, and one-line changes can commit straight to `main` — no worktree, no PR. Once the repo is public, CodeRabbit reviews every PR automatically.
 
----
+### Procedural skills
 
-## Agents
+Detailed procedures live as auto-loaded skills under `.claude/skills/`. Reach for these when the trigger applies — they aren't loaded into every session, so they don't clog this file:
 
-Sub-agents are installed at the **user scope** (`~/.claude/agents/`), shared across all projects on this machine. There is no project-scoped `.claude/agents/` directory in this repo — if a future need calls for a truly Atlas-specific agent, add `.claude/agents/<name>.md` and document it here.
-
-**Recommended agents for this project:**
-
-| Agent                 | When to invoke                                                     |
-| --------------------- | ------------------------------------------------------------------ |
-| Frontend Developer    | React/Next.js component work, UI features                          |
-| Backend Architect     | API design, server actions, data flow design                       |
-| Database Optimizer    | Schema design, indexing, query tuning                              |
-| Software Architect    | New module/aggregate, cross-cutting design, ADR drafting           |
-| Security Engineer     | Auth changes, file upload paths, anything touching secrets/PII     |
-| Code Reviewer         | Pre-merge review on any non-trivial PR                             |
-| Technical Writer      | Updating docs/, ADRs, README                                       |
-| Git Workflow Master   | Branching strategy, commit hygiene, history cleanup                |
-| Reality Checker       | "Is this actually production-ready?" gate before tagging a release |
-| Accessibility Auditor | New UI surfaces, before considering a feature complete             |
-
-**Invocation:** Reference the agent by name in a Claude Code session:
-
-> "Use the Backend Architect agent to design the segment import flow."
-> "Have the Security Engineer review this file upload code."
-> "Run the Reality Checker before I tag v0.1."
-
----
-
-## Environment Variables
-
-See `.env.example` for the full documented list. At minimum:
-
-- `DATABASE_URL` — Postgres connection string
-- `AUTH_SECRET` — random 32+ byte secret for Auth.js
-- `AUTH_URL` — canonical app URL
-- `OIDC_ISSUER_URL` — PocketID base URL (e.g. `https://id.example.com`)
-- `OIDC_CLIENT_ID` — from PocketID admin UI
-- `OIDC_CLIENT_SECRET` — from PocketID admin UI
-- `STORAGE_DIR` — document storage root. Default `./data/documents` (project-relative — works for `pnpm dev`). docker-compose overrides to the absolute container path `/app/data/documents` and bind-mounts the host directory onto it.
-- `STORAGE_MAX_BYTES` — per-upload size cap, default `20971520` (20MB)
-- `STORAGE_ALLOWED_MIMES` — comma-separated MIME allowlist enforced server-side after magic-byte detection
-- `TILES_DIR` — directory holding Protomaps PMTiles served by `/api/tiles` (default `./data/tiles`)
-- `PROTOMAPS_PMTILES_URL` — URL the client loads the basemap from (default `/api/tiles/world.pmtiles`)
-- `OCR_ENGINE` — `tesseract` (default, in-process) or `paddle` (sidecar via `PADDLEOCR_URL`)
-- `PADDLEOCR_URL` — base URL of the PaddleOCR sidecar (only when `OCR_ENGINE=paddle`)
-- `OLLAMA_URL` — base URL of the Ollama instance used for extraction (default `http://localhost:11434`)
-- `OLLAMA_MODEL` — model tag to use (e.g. `qwen2.5:7b`)
-- `NOMINATIM_CONTACT_EMAIL` — contact email sent in the Nominatim `User-Agent` (required per Nominatim usage policy)
-- `NTFY_URL` — base URL of the self-hosted ntfy server (e.g. `https://ntfy.example.com`)
-- `NTFY_TOKEN` — optional access token when the ntfy server requires auth
-- `CRON_PRUNE_SCHEDULE` — six-field cron expression for the nightly prune (default `0 40 3 * * *`)
-- `CRON_TZ` — IANA timezone for scheduler jobs (default `UTC`)
-- `ATLAS_DEV_ORIGINS` — comma-separated origins allowed for cross-origin RSC/HMR in `pnpm dev` (homelab LAN access). No effect in prod.
-- `NEXT_PUBLIC_ATLAS_DATE_FORMAT` — client-side date display format (default `iso`)
-- `LOG_LEVEL` — pino log level (`trace` | `debug` | `info` | `warn` | `error`), default `info`
-- `LOG_PRETTY` — `true` to pretty-print logs in dev; leave `false` in prod for JSON
-
----
-
-## Common Commands
-
-```bash
-# First-time setup (one-time)
-pnpm install
-cp .env.example .env       # then edit .env — set AUTH_SECRET and (for sign-in) OIDC_*
-
-# The one-shot dev command — every iteration after first-time setup
-pnpm dev:up                # docker compose up -d --wait postgres → migrate → seed → next dev
-
-# Individual pieces (when dev:up is overkill)
-pnpm dev                   # just next dev (requires postgres running + DB migrated)
-pnpm db:setup              # migrate + seed
-pnpm db:reset              # nuke postgres volume, bring up fresh, migrate + seed
-pnpm db:generate           # generate a migration from schema changes
-pnpm db:migrate            # apply pending migrations only
-pnpm db:seed               # seed dev data only
-pnpm db:studio             # Drizzle Studio (browse DB)
-
-# Full compose stack (app container, not just postgres)
-docker compose up -d                      # app + postgres
-docker compose --profile backup up -d     # also activate scheduled DB backups
-
-# Quality gates (what CI runs)
-pnpm typecheck
-pnpm lint
-pnpm test                  # Vitest
-pnpm test:e2e              # Playwright (local only — not in CI yet)
-pnpm build                 # Production build
-
-# Backups
-./scripts/backup-documents.sh                  # docs snapshot (DB handled by the container)
-docker compose exec db-backup backup-now       # trigger an ad-hoc DB dump
-docker compose exec -it db-backup restore      # interactive restore wizard
-
-# Maintenance
-pnpm docs:cleanup-orphans                      # list documents with no trip/segment links (dry-run)
-pnpm docs:cleanup-orphans --apply              # delete the orphan rows + files
-pnpm db:prune                                  # list expired sessions/tokens/geocode rows (dry-run)
-pnpm db:prune --apply                          # delete expired rows from all three tables
-pnpm db:prune --sessions --apply               # scope to a single table (also --tokens, --geocode)
-
-# Scheduler (runs automatically in the `cron` compose service)
-pnpm cron                                      # boot the scheduler locally (foreground, SIGINT to stop)
-docker compose logs -f cron                    # tail the in-stack scheduler running in Docker
-```
+- **`atlas-quality-gates`** — pre-merge checklist (typecheck / lint / test / build + responsive verify at 360 × 640 and 1440 × 900)
+- **`atlas-migrations`** — Drizzle schema → `pnpm db:generate` → review SQL → commit-both workflow
+- **`atlas-commands`** — full reference for `pnpm dev:up`, db tasks, backup commands, scheduler, maintenance
+- **`atlas-env-vars`** — every documented environment variable and what it controls
+- **`atlas-backups`** — DB dumps via the `db-backup` service, documents rsync, restore wizard, nightly DB prune
+- **`atlas-ci`** — what CI runs, the 2k-minute budget, and rules for adding workflows safely
+- **`atlas-agents`** — when to invoke which sub-agent (Frontend Developer, Backend Architect, etc.)
 
 ---
 
@@ -614,13 +437,12 @@ docker compose logs -f cron                    # tail the in-stack scheduler run
 
 The following are deliberately stubbed but not yet built. Keep them in mind so today's decisions don't paint them into a corner:
 
-- **Multi-user / household sharing.** Atlas is built for ~2 users via separate PocketID identities, not SaaS-scale tenancy. Schema has `userId` everywhere from day one; add an `ownerships` join table for shared trips when household-sharing UX is designed.
+- **Household sharing visibility.** Atlas is built for ~2 users via separate PocketID identities, not SaaS-scale tenancy. The chosen model is **full household sharing by default**: `userId` columns mean `createdBy` provenance, not ownership. If per-trip privacy is ever needed, the only acceptable extension is a `trips.visibility` enum on the existing schema — not an `ownerships` join table.
 - **Mobile companion.** Backend is API-first via server actions + a small `/api` surface. A future Expo/React Native app can consume it.
-- **Cost tracking.** Per-segment and per-trip expense aggregation. Money is already integer-minor-units, so this is additive — add a `expenses` table and a trip-level rollup view; no schema rewrites needed.
 - **ntfy notifications.** Push reminders for upcoming flights / hotel check-ins, plus extraction success/failure. Self-hosted ntfy server, per-user topic. See "External Integrations → Push notifications".
 - **Calendar sync.** ICS export of confirmed segments; CalDAV later.
 - **Storage backend swap.** If usage ever justifies it, replace `src/lib/storage/fs.ts` with `s3.ts`. The `Storage` interface stays the same.
-- **Job queue.** A small `Jobs` interface lives at `src/lib/jobs/` with an in-process floating-promise implementation (`InlineJobs`). Use it for any background work that would otherwise block a server action — extraction is the first consumer. When in-process stops being enough (multi-process, restart-survivability, retry policies, scheduled work), swap the implementation for BullMQ + Redis behind the same interface and write an ADR.
+- **Job queue (pg-boss).** A small `Jobs` interface lives at `src/lib/jobs/` with an in-process floating-promise implementation (`InlineJobs`). Use it for any background work that would otherwise block a server action — extraction is the first consumer. When in-process stops being enough (multi-process, restart-survivability, retry policies, scheduled work), swap the implementation for **pg-boss** behind the same interface — Postgres-only, no Redis. See ADR-0012 (proposed).
 
 ---
 
@@ -658,6 +480,7 @@ These were considered and **deliberately dropped** — not just deferred. Don't 
 
 Deferred until v1.0 ships (not actively planned, but not rejected either):
 
+- **Cost tracking.** Per-segment and per-trip expense aggregation. Design was reached (costs on segments, DB-backed daily FX, `splitCount`, ISO 4217 currency picker) and shelved because incidentals won't get logged consistently — partial totals would mislead. Money is already stored as integer minor units, so adding it later is additive.
 - Real-time collaboration / CRDTs
 - AI-generated trip suggestions / itineraries
 - Public trip discovery / social features
