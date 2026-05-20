@@ -417,7 +417,7 @@ When working in this repo, Claude Code is expected to:
 2. **Match existing patterns.** If a feature already does X a certain way, follow it. If you want to deviate, propose an ADR first.
 3. **Plan, then code.** For any non-trivial change (>1 file, schema change, new feature), produce a brief plan first. Wait for confirmation on architectural moves.
 4. **Keep CLAUDE.md current.** If you change conventions, structure, or major tech choices, update this file in the same PR.
-5. **Feature-sized work uses a worktree and a PR; trivial fixes go directly to `main`.** Feature work happens in a sibling-directory worktree (`../<repo>-<branch>`) and lands via PR. Typo fixes, doc tweaks, and one-line changes can commit straight to `main` — no worktree, no PR. Once the repo is public, CodeRabbit reviews every PR automatically.
+5. **Feature-sized work uses a worktree and a PR; trivial fixes go directly to `main`.** Before any new task, run `git pull --ff-only` on `main` so you branch from current remote state, not a stale local commit. Feature work then happens in a sibling-directory worktree (`../<repo>-<branch>`) and lands via PR. Typo fixes, doc tweaks, and one-line changes can commit straight to `main` — no worktree, no PR (still pull first). Once the repo is public, CodeRabbit reviews every PR automatically.
 
 ### Procedural skills
 
