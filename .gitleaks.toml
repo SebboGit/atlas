@@ -1,0 +1,37 @@
+# Gitleaks configuration — the secret-scanning gate for Atlas.
+#
+# Used by both the local pre-commit hook (.husky/pre-commit) and the
+# "Secret scan" CI job (.github/workflows/ci.yml). Gitleaks auto-discovers
+# this file when run from the repo root.
+#
+# `useDefault` inherits the built-in rule set (cloud keys, OAuth tokens,
+# private keys, high-entropy strings). The allowlists below carve out the
+# few places Atlas legitimately keeps secret-shaped strings: documented
+# placeholder values, never real credentials. They are kept deliberately
+# narrow — add an entry reactively when a real false positive appears,
+# rather than excluding whole files pre-emptively.
+
+title = "Atlas gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = ".env.example holds documented placeholder values, not real secrets"
+paths = [
+  '''\.env\.example$''',
+]
+
+[[allowlists]]
+description = "CI-only placeholder credentials in ci.yml — inert, never used in production"
+# condition = "AND" — a finding is allowlisted only when it is BOTH inside
+# ci.yml AND matches one of the regexes. Gitleaks defaults to "OR", which
+# would suppress these substrings repo-wide; "AND" keeps the carve-out
+# scoped to the one file that legitimately contains them.
+condition = "AND"
+regexTarget = "line"
+paths = ['''(^|/)\.github/workflows/ci\.yml$''']
+regexes = [
+  '''ci-only-secret-not-used-in-production''',
+  '''ci-placeholder''',
+]
