@@ -1,0 +1,24 @@
+# CodeRabbit configuration — https://docs.coderabbit.ai/guides/configure-coderabbit
+language: en-US
+
+reviews:
+  # Solo pre-1.0 project — keep reviews substantive, not nitpicky.
+  profile: chill
+  high_level_summary: true
+  # No poem on every review.
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  # Skip generated, binary, and snapshot files — reviewing them is noise.
+  path_filters:
+    - '!pnpm-lock.yaml'
+    - '!public/basemaps-assets/**'
+    - '!public/geo/**'
+    - '!docs/screenshots/**'
+    - '!src/lib/airlines/iata-airlines.json'
+    - '!src/lib/airports/iata-airports.json'
+    - '!tests/fixtures/**'
+
+chat:
+  auto_reply: true
