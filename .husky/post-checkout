@@ -1,0 +1,28 @@
+# Auto-provision a freshly added git worktree so `pnpm dev` works right away.
+#
+# Fires on `git worktree add` (post-checkout). Scoped to linked worktrees only —
+# the main checkout is skipped — and every step is guarded on "only if missing",
+# so ordinary branch switches inside a worktree stay a silent no-op.
+
+git_dir="$(git rev-parse --git-dir)"
+common_dir="$(git rev-parse --git-common-dir)"
+
+# Main checkout: --git-dir and --git-common-dir match. Nothing to provision.
+[ "$git_dir" = "$common_dir" ] && exit 0
+
+# First entry of `git worktree list` is always the main checkout.
+main="$(git worktree list --porcelain | sed -n '1s/^worktree //p')"
+
+# .env is gitignored, so a new worktree has none — link the main checkout's.
+if [ ! -e .env ] && [ -n "$main" ] && [ -f "$main/.env" ]; then
+  ln -s "$main/.env" .env
+  echo "post-checkout: linked .env from $main"
+fi
+
+# A new worktree has no node_modules — install so the dev server can boot.
+if [ ! -d node_modules ]; then
+  echo "post-checkout: installing dependencies (new worktree)…"
+  pnpm install
+fi
+
+exit 0
