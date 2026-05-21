@@ -46,8 +46,8 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 | Notifications    | **ntfy** (self-hosted)                            | Push reminders for upcoming segments, extraction events, errors            |
 | Testing          | **Vitest** (unit) + **Playwright** (e2e)          | Fast unit, real-browser e2e                                                |
 | Lint / Format    | **ESLint** (flat config) + **Prettier**           | Standard                                                                   |
-| Git hooks        | **Husky** + **lint-staged**                       | Enforce gates before commit                                                |
-| CI               | **GitHub Actions** (private repo, free 2k min/mo) | Lint, typecheck, test, build on PR/main                                    |
+| Git hooks        | **Husky** + **lint-staged** + **gitleaks**        | Lint, format, and secret-scan staged files before commit                   |
+| CI               | **GitHub Actions** (private repo, free 2k min/mo) | Lint, typecheck, test, build, secret-scan on PR/main                       |
 | Dep updates      | **Dependabot** (grouped, weekly)                  | Free, no Actions minutes for itself                                        |
 | Containerization | **Docker** + Docker Compose                       | Single-host self-hosting                                                   |
 
@@ -313,6 +313,7 @@ This is a personal app but contains travel documents (passports, boarding passes
 - **Logging:** Structured JSON logs. **Never** log document contents, full PNRs, passport numbers, or auth tokens. Redact at the logger boundary.
 - **Backups:** see the `atlas-backups` skill. Test restore from a real snapshot at least once per quarter.
 - **Dependencies:** Dependabot handles updates. `pnpm audit` in CI as a soft signal.
+- **Secret scanning:** gitleaks blocks credentials at three layers — a pre-commit hook, a CI job, and GitHub's server-side push protection. Rules and the allowlist live in `.gitleaks.toml`.
 - **Threat model:** A one-pager lives in `docs/THREAT_MODEL.md` (to be written). Update when adding features that touch auth, file uploads, or external services.
 
 ---

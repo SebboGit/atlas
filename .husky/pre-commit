@@ -1,1 +1,18 @@
+# Secret-scanning gate — block commits that introduce credentials.
+# Config + allowlist live in .gitleaks.toml (auto-discovered from repo root).
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --staged --redact --no-banner; then
+    echo
+    echo "✖ gitleaks flagged a potential secret in staged changes (see above)."
+    echo "  Remove it, or — if it is a false positive — add a documented"
+    echo "  allowlist entry to .gitleaks.toml."
+    exit 1
+  fi
+else
+  echo "✖ gitleaks is not installed — the secret-scanning commit gate cannot run."
+  echo "  Install it:  brew install gitleaks"
+  exit 1
+fi
+
+# Lint & format staged files.
 pnpm exec lint-staged
