@@ -135,7 +135,10 @@ export async function create(
       type: input.type,
       data: input.data,
       startsAt: input.startsAt,
-      endsAt: input.endsAt,
+      // Food is point-in-time — a reservation time, no end. Drop any
+      // endsAt (e.g. one left in form state by a hotel→food type
+      // switch) so it never lands on a food row.
+      endsAt: input.type === 'food' ? null : input.endsAt,
       locationName,
       countryCode,
       originCountryCode,
@@ -219,7 +222,8 @@ function setColumnsFromInput(input: SegmentCreateInput, needsReview: boolean) {
     type: input.type,
     data: input.data,
     startsAt: input.startsAt,
-    endsAt: input.endsAt,
+    // Food is point-in-time — see create(); never persist an endsAt.
+    endsAt: input.type === 'food' ? null : input.endsAt,
     locationName: 'locationName' in input ? (input.locationName ?? null) : null,
     countryCode: 'countryCode' in input ? (input.countryCode ?? null) : null,
     originCountryCode: input.type === 'flight' ? (input.originCountryCode ?? null) : null,

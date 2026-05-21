@@ -20,6 +20,7 @@ export const segmentType = pgEnum('segment_type', [
   'hotel',
   'activity',
   'transit',
+  'food',
   'note',
 ]);
 

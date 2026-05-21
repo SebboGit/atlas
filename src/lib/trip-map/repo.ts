@@ -9,18 +9,18 @@ import {
   getCachedMany,
   normalizeQuery,
 } from '@/lib/geocoding';
-import { flightDataSchema, hotelDataSchema } from '@/lib/segments/validators';
+import { flightDataSchema, foodDataSchema, hotelDataSchema } from '@/lib/segments/validators';
 
 // Plain serialisable fields — these cross the RSC → client boundary.
 // Don't add Map/Set/BigInt or anything Next can't pass over the wire.
 /**
  * Pin kind drives the icon + colour. Flight pins come from the
- * committed IATA airport snapshot; hotel / activity / transit pins
- * come from the geocode cache (ADR-0010). The renderer maps `kind →
- * icon` via `ICON_BY_KIND` in pin-marker.tsx, so adding a kind here
- * requires only that one-row addition.
+ * committed IATA airport snapshot; hotel / activity / transit / food
+ * pins come from the geocode cache (ADR-0010). The renderer maps
+ * `kind → icon` via `ICON_BY_KIND` in pin-marker.tsx, so adding a
+ * kind here requires only that one-row addition.
  */
-export type TripMapPinKind = 'flight' | 'hotel' | 'activity' | 'transit';
+export type TripMapPinKind = 'flight' | 'hotel' | 'activity' | 'transit' | 'food';
 
 export interface TripMapPin {
   segmentId: string;
@@ -99,9 +99,9 @@ const segmentCols = getTableColumns(segments);
  *
  * Two coord sources:
  *   - Flights: in-memory IATA airport snapshot (`src/lib/airports`).
- *   - Hotel / activity / transit: geocode_cache, populated in the
- *     background by the segment lifecycle hook (ADR-0010). One batch
- *     SELECT covers every non-flight segment on the trip — no
+ *   - Hotel / activity / transit / food: geocode_cache, populated in
+ *     the background by the segment lifecycle hook (ADR-0010). One
+ *     batch SELECT covers every non-flight segment on the trip — no
  *     on-demand network calls in the request path.
  *
  * Notes (`segment.type === 'note'`) never appear on the map — they
@@ -212,16 +212,16 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
       continue;
     }
 
-    // hotel / activity / transit — geocode_cache resolves these to a
-    // pin. buildGeocodeQuery owns the per-type derivation; the
-    // lifecycle hook used the same function on the write side, so
+    // hotel / activity / transit / food — geocode_cache resolves
+    // these to a pin. buildGeocodeQuery owns the per-type derivation;
+    // the lifecycle hook used the same function on the write side, so
     // identical inputs produce identical cache keys.
     const query = buildGeocodeQuery(row);
     if (!query) {
       ungeocoded.push({
         segmentId: row.id,
         type: row.type,
-        label: nonFlightLabel(row),
+        label: pinLabelForType(row),
         reason: noQueryReason(row.type),
       });
       continue;
@@ -236,13 +236,14 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
       if (cached?.kind === 'hit') {
         const isHotel = row.type === 'hotel';
         // Hotel pins paint an always-on two-line label (property
-        // name + check-in→check-out range). Activities and transit
-        // keep the hover-only treatment for now — their identifiers
-        // are short enough that a tooltip works fine.
-        const hotelData = isHotel ? hotelDataSchema.safeParse(row.data) : null;
-        const label = isHotel
-          ? hotelPinLabel(row, hotelData?.success ? hotelData.data : null)
-          : nonFlightLabel(row);
+        // name + check-in→check-out range). Activities, transit, and
+        // food keep the hover-only treatment for now — their
+        // identifiers are short enough that a tooltip works fine.
+        // Hotel and food both resolve their label off the venue/
+        // property name (the recognisable headline) rather than the
+        // neighbourhood-y locationName; everything else stays on
+        // locationName via nonFlightLabel.
+        const label = pinLabelForType(row);
         const dateLabel =
           isHotel && row.startsAt ? formatHotelDateRange(row.startsAt, row.endsAt) : undefined;
         pins.push({
@@ -261,7 +262,7 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
         ungeocoded.push({
           segmentId: row.id,
           type: row.type,
-          label: nonFlightLabel(row),
+          label: pinLabelForType(row),
           reason: "We couldn't find this place on the map.",
         });
         continue;
@@ -279,7 +280,7 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
       ungeocoded.push({
         segmentId: row.id,
         type: row.type,
-        label: nonFlightLabel(row),
+        label: pinLabelForType(row),
         reason: 'Geocoding pending — try again in a moment.',
       });
     }
@@ -303,12 +304,12 @@ function flightLabel(
   return row.locationName ?? 'Flight';
 }
 
+// Label for activity / transit rows — `locationName` first, with the
+// capitalised type as a last-resort fallback. Hotels and food don't
+// reach here: `pinLabelForType` routes them to their venue-first
+// labellers so the place's own name headlines the pin.
 function nonFlightLabel(row: Segment): string {
   if (row.locationName) return row.locationName;
-  if (row.type === 'hotel') {
-    const parsed = hotelDataSchema.safeParse(row.data);
-    if (parsed.success) return parsed.data.propertyName;
-  }
   return row.type.charAt(0).toUpperCase() + row.type.slice(1);
 }
 
@@ -321,6 +322,35 @@ function hotelPinLabel(row: Segment, hotelData: { propertyName: string } | null)
   if (hotelData?.propertyName) return hotelData.propertyName;
   if (row.locationName) return row.locationName;
   return 'Hotel';
+}
+
+// Map-pin label for a food segment — venue first, locationName as a
+// fallback. Mirrors `hotelPinLabel`: the restaurant's *venue name*
+// is the recognisable headline, exactly like a hotel's property
+// name, so a neighbourhood-y `locationName` ("Bukit Bintang") must
+// not win over it.
+function foodPinLabel(row: Segment, foodData: { venue: string } | null): string {
+  if (foodData?.venue) return foodData.venue;
+  if (row.locationName) return row.locationName;
+  return 'Food';
+}
+
+// Resolve the map-pin / "not pinned" label for a non-flight row.
+// Hotels and food headline on their venue/property name (see
+// `hotelPinLabel` / `foodPinLabel`); everything else keeps the
+// `locationName`-first `nonFlightLabel`. Used for both resolved pins
+// and ungeocoded entries so the user recognises a row by the same
+// name everywhere it appears.
+function pinLabelForType(row: Segment): string {
+  if (row.type === 'hotel') {
+    const parsed = hotelDataSchema.safeParse(row.data);
+    return hotelPinLabel(row, parsed.success ? parsed.data : null);
+  }
+  if (row.type === 'food') {
+    const parsed = foodDataSchema.safeParse(row.data);
+    return foodPinLabel(row, parsed.success ? parsed.data : null);
+  }
+  return nonFlightLabel(row);
 }
 
 // Compact date-range formatter for the always-on hotel label.
@@ -367,6 +397,8 @@ function noQueryReason(type: Segment['type']): string {
       return 'Add a title to pin this on the map.';
     case 'transit':
       return 'Add a station or stop name to pin this on the map.';
+    case 'food':
+      return 'Add a venue or address to pin this on the map.';
     default:
       return 'Missing details — add a location to pin this on the map.';
   }

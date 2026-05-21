@@ -13,6 +13,7 @@
 //   hotel    → address (fallback: propertyName)
 //   activity → title (+ locationName)
 //   transit  → toName, fallback fromName
+//   food     → address (fallback: venue + locationName)
 //
 // **Hotel uses address-first, NOT a compound `name, address` query.**
 // Nominatim's q parser tokenises left-to-right and brand-y hotel
@@ -28,6 +29,7 @@
 
 import {
   activityDataSchema,
+  foodDataSchema,
   hotelDataSchema,
   transitDataSchema,
   type Segment,
@@ -81,6 +83,24 @@ export function buildGeocodeQuery(segment: Segment): string | null {
       if (dest) return dest;
       const origin = parsed.data.fromName?.trim();
       return origin ?? null;
+    }
+
+    case 'food': {
+      const parsed = foodDataSchema.safeParse(segment.data);
+      if (!parsed.success) return null;
+      // Address-first, same as hotels: a restaurant address resolves
+      // far more reliably than a venue name, especially for chains or
+      // brand-y names that throw off Nominatim's q-parser.
+      const address = parsed.data.address?.trim();
+      if (address) return address;
+      // No address on file. Fall back to the venue name, narrowed by
+      // the user's pin-style locationName ("Ginza") — same
+      // disambiguation rule as activities, since a restaurant name
+      // can exist in many cities ("Ippudo" has branches worldwide).
+      const parts = [parsed.data.venue];
+      const loc = segment.locationName?.trim();
+      if (loc) parts.push(loc);
+      return parts.join(', ');
     }
 
     // Flights are placed via the IATA airport snapshot — not a

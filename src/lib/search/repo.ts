@@ -5,10 +5,11 @@ import { db } from '@/db/client';
 import type { SearchResultRow, SearchResults, SegmentSubtype } from './types';
 
 // Trips and documents are single-bucket groups, capped at 5. Segment
-// subtypes (flight, hotel, activity, transit, note) each get their own
-// bucket capped at 3 so a multi-leg flight or a hotel-heavy trip can't
-// shove every other subtype off the result list. Total worst-case
-// segment rows: 3 × 5 subtypes = 15, displayed across separate groups.
+// subtypes (flight, hotel, activity, transit, food, note) each get
+// their own bucket capped at 3 so a multi-leg flight or a hotel-heavy
+// trip can't shove every other subtype off the result list. Total
+// worst-case segment rows: 3 × 6 subtypes = 18, displayed across
+// separate groups.
 const PER_GROUP_LIMIT = 5 as const;
 const PER_SUBTYPE_LIMIT = 3 as const;
 
@@ -118,6 +119,8 @@ export async function searchAll(query: string): Promise<SearchResults> {
                 s.location_name,
                 'Transit'
               )
+            WHEN 'food' THEN
+              coalesce(s.data->>'venue', s.location_name, 'Food')
             ELSE coalesce(s.location_name, left(s.data->>'body', 60), 'Note')
           END AS title,
           CASE
@@ -135,11 +138,17 @@ export async function searchAll(query: string): Promise<SearchResults> {
                 ''
               )
           END AS subtitle,
+          -- Flights / hotels / activities / food each have their own
+          -- per-type tab; food's flat tab is the only place undated
+          -- food is reachable, so it must deep-link there rather than
+          -- the itinerary. Transit and notes have no tab and fall back
+          -- to the itinerary (the shared chronological view).
           '/trips/' || tr.id::text || '/' ||
             CASE s.type::text
               WHEN 'flight' THEN 'flights'
               WHEN 'hotel' THEN 'hotels'
               WHEN 'activity' THEN 'activities'
+              WHEN 'food' THEN 'food'
               ELSE 'itinerary'
             END || '#seg-' || s.id::text AS href,
           ts_rank_cd(s.search_tsv, q.tsq) * 2 + similarity(s.search_text, q.s) AS rank,

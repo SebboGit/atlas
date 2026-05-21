@@ -1,8 +1,8 @@
 // Prompt builder for the LLM extractor.
 //
 // The model receives the document text and a discriminated-union
-// schema covering all three payload kinds, and is asked to pick the
-// kind from the text itself. This replaces an earlier filename-keyword
+// schema covering every payload kind, and is asked to pick the kind
+// from the text itself. This replaces an earlier filename-keyword
 // heuristic that was both English-biased and unreliable on real-world
 // inputs ("Elektronisches Ticket", "Carte d'embarquement"). The LLM
 // already sees a much richer signal (the actual document content),
@@ -10,7 +10,7 @@
 //
 // Keep the prompt short and explicit. The local 7B model behaves much
 // better with a tight schema and a single instruction than with a wall
-// of text — even when the schema has three alternatives.
+// of text — even with several schema alternatives.
 
 import { log } from '@/lib/log';
 
@@ -33,6 +33,7 @@ export const MAX_INPUT_CHARS = 8_000;
 const _kindCoverage: Record<DocKind, true> = {
   'boarding-pass': true,
   'hotel-confirmation': true,
+  'restaurant-confirmation': true,
   generic: true,
 };
 void _kindCoverage;
@@ -73,6 +74,16 @@ const HOTEL_CONFIRMATION_SCHEMA = `{
   "confidence": number between 0 and 1
 }`;
 
+const RESTAURANT_CONFIRMATION_SCHEMA = `{
+  "kind": "restaurant-confirmation",
+  "venueName": string (restaurant / café / bar name) | null,
+  "reservationDateTime": string (ISO 8601 reservation date+time as printed; include the timezone offset ONLY if the document prints one, e.g. "2026-09-20T19:30:00+09:00"; otherwise omit the offset, e.g. "2026-09-20T19:30"; date-only "2026-09-20" is acceptable when no time is given) | null,
+  "address": string | null,
+  "confirmationCode": string (booking reference) | null,
+  "country": string (ISO 3166-1 alpha-2, upper-case) | null,
+  "confidence": number between 0 and 1
+}`;
+
 const GENERIC_SCHEMA = `{
   "kind": "generic",
   "summary": string (one short sentence describing what the document is),
@@ -99,7 +110,7 @@ export function buildPrompt(text: string): string {
   return [
     'You are classifying and extracting structured data from a travel document.',
     '',
-    'Decide which ONE of these three shapes best describes the document, then return that shape filled in:',
+    'Decide which ONE of these shapes best describes the document, then return that shape filled in:',
     '',
     '1. Flight document (boarding pass, e-ticket, airline confirmation, itinerary with a flight):',
     BOARDING_PASS_SCHEMA,
@@ -107,12 +118,15 @@ export function buildPrompt(text: string): string {
     '2. Hotel booking confirmation (hotel, B&B, resort, vacation rental, Airbnb):',
     HOTEL_CONFIRMATION_SCHEMA,
     '',
-    "3. Anything else (passport scan, generic ticket, miscellaneous travel document, or you can't tell):",
+    '3. Restaurant reservation confirmation (a table booking at a restaurant, café, or bar — OpenTable, Resy, Tock, or a venue email):',
+    RESTAURANT_CONFIRMATION_SCHEMA,
+    '',
+    "4. Anything else (passport scan, generic ticket, miscellaneous travel document, or you can't tell):",
     GENERIC_SCHEMA,
     '',
     'Rules:',
-    '- Return ONLY a single JSON object matching exactly ONE of the three shapes above.',
-    '- Set `kind` to the literal string of the shape you picked: "boarding-pass", "hotel-confirmation", or "generic".',
+    '- Return ONLY a single JSON object matching exactly ONE of the shapes above.',
+    '- Set `kind` to the literal string of the shape you picked: "boarding-pass", "hotel-confirmation", "restaurant-confirmation", or "generic".',
     '- For boarding-pass: `flights` is an array. A one-way single-flight document still returns a single-element array. If the document describes a return trip, connecting flights, or a multi-city itinerary, return one entry per flight leg in `flights[]`, in chronological order (earliest departure first). Do not invent legs the document does not describe.',
     '- Use `null` for any field whose value is not present in the document. Do not guess.',
     '- If you are uncertain about the kind, prefer "generic" — under-classify rather than mis-classify.',

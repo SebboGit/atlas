@@ -186,6 +186,16 @@ function primarySummaryFor(p: StructuredPayload): string {
         ? parts.join(' · ')
         : 'Hotel confirmation (no structured fields extracted).';
     }
+    case 'restaurant-confirmation': {
+      // formatDate accepts a YYYY-MM-DD prefix; slice off any time
+      // suffix so a full ISO reservationDateTime still renders as a
+      // clean date on the summary line.
+      const when = p.reservationDateTime ? formatDate(p.reservationDateTime.slice(0, 10)) : null;
+      const parts = [p.venueName, when, p.country, p.confirmationCode].filter(Boolean);
+      return parts.length > 0
+        ? parts.join(' · ')
+        : 'Restaurant reservation (no structured fields extracted).';
+    }
     case 'generic':
       return p.summary;
   }
@@ -258,6 +268,8 @@ function kindLabel(kind: StructuredPayload['kind']): string {
       return 'Flight';
     case 'hotel-confirmation':
       return 'Hotel';
+    case 'restaurant-confirmation':
+      return 'Food';
     case 'generic':
       return 'Note';
   }

@@ -11,6 +11,7 @@ export type {
   GenericPayload,
   HotelConfirmationPayload,
   LLMExtractor,
+  RestaurantConfirmationPayload,
   StructuredPayload,
 } from './types';
 

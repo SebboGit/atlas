@@ -1,6 +1,6 @@
 export type SearchEntityType = 'trip' | 'segment' | 'document';
 
-export type SegmentSubtype = 'flight' | 'hotel' | 'activity' | 'transit' | 'note';
+export type SegmentSubtype = 'flight' | 'hotel' | 'activity' | 'transit' | 'food' | 'note';
 
 export type SearchResultRow = {
   type: SearchEntityType;

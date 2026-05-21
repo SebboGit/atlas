@@ -262,6 +262,72 @@ describe('getTripMapDataForUser — non-flight cache states', () => {
     expect(result.ungeocoded).toHaveLength(0);
   });
 
+  it('on cache hit: a food pin headlines on the venue, not the neighbourhood locationName', async () => {
+    // The bug this fix addresses: a food row carrying a
+    // neighbourhood-y `locationName` ("Bukit Bintang") used to fall
+    // through `nonFlightLabel`, which favours `locationName` — so the
+    // pin showed the district instead of the restaurant. The venue
+    // is the recognisable headline, exactly like a hotel's property
+    // name.
+    dbState.rows = [
+      makeHotel({
+        id: 'seg-food-1',
+        type: 'food',
+        data: { venue: 'Jalan Alor Night Market' },
+        locationName: 'Bukit Bintang',
+        startsAt: new Date('2026-06-02'),
+        endsAt: null,
+      }),
+    ];
+    geocodingMocks.buildGeocodeQuery.mockReturnValue('Jalan Alor Night Market');
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map([
+        [
+          'jalan alor night market',
+          {
+            kind: 'hit',
+            result: { lat: 3.146, lng: 101.71, displayName: 'Jalan Alor, Kuala Lumpur' },
+          },
+        ],
+      ]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.pins).toHaveLength(1);
+    const pin = result.pins[0]!;
+    expect(pin.kind).toBe('food');
+    expect(pin.label).toBe('Jalan Alor Night Market');
+    // Hover-only treatment — no always-on date label for food.
+    expect(pin.dateLabel).toBeUndefined();
+  });
+
+  it('an ungeocoded food segment is labelled by its venue, not its locationName', async () => {
+    // The "not pinned" list must recognise food by the same venue
+    // headline the pin uses. A null cache result drops the row into
+    // ungeocoded — its label should still be the venue.
+    dbState.rows = [
+      makeHotel({
+        id: 'seg-food-2',
+        type: 'food',
+        data: { venue: 'Jalan Alor Night Market' },
+        locationName: 'Bukit Bintang',
+        startsAt: new Date('2026-06-02'),
+        endsAt: null,
+      }),
+    ];
+    geocodingMocks.buildGeocodeQuery.mockReturnValue('Jalan Alor Night Market');
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map([['jalan alor night market', { kind: 'null', displayName: null }]]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.pins).toHaveLength(0);
+    expect(result.ungeocoded).toHaveLength(1);
+    expect(result.ungeocoded[0]!.label).toBe('Jalan Alor Night Market');
+  });
+
   it('does NOT enqueue when buildGeocodeQuery returns null (e.g. transit with no station name)', async () => {
     // A transit segment with neither toName nor fromName produces a
     // null query, so the row goes straight to ungeocoded with the

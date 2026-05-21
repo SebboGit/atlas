@@ -3,6 +3,7 @@ import type { Segment } from '@/lib/segments';
 
 import { SegmentCardActivity } from './segment-card-activity';
 import { SegmentCardFlight } from './segment-card-flight';
+import { SegmentCardFood } from './segment-card-food';
 import { SegmentCardHotel } from './segment-card-hotel';
 import { SegmentCardNote } from './segment-card-note';
 import { SegmentCardTransit } from './segment-card-transit';
@@ -32,6 +33,8 @@ export function SegmentCard({
       return <SegmentCardActivity segment={segment} linkedDocuments={linkedDocuments} />;
     case 'transit':
       return <SegmentCardTransit segment={segment} linkedDocuments={linkedDocuments} />;
+    case 'food':
+      return <SegmentCardFood segment={segment} linkedDocuments={linkedDocuments} />;
     case 'note':
       return <SegmentCardNote segment={segment} />;
   }

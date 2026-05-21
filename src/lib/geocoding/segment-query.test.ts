@@ -111,6 +111,77 @@ describe('buildGeocodeQuery — activity', () => {
   });
 });
 
+describe('buildGeocodeQuery — food', () => {
+  it('uses address alone when present — same address-first rule as hotels', () => {
+    // A restaurant address resolves far more reliably than a venue
+    // name, especially for chains or brand-y names. When the user (or
+    // the extractor) supplied an address, that wins outright.
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        data: { venue: 'Narisawa', address: '2-6-15 Minami-Aoyama, Minato, Tokyo' },
+      }),
+    );
+    expect(q).toBe('2-6-15 Minami-Aoyama, Minato, Tokyo');
+  });
+
+  it('uses address over venue + locationName when both are available', () => {
+    // Address-first means a present address suppresses the venue +
+    // locationName fallback entirely — mirroring the hotel case.
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        locationName: 'Ginza',
+        data: { venue: 'Ippudo', address: '4-10-3 Ginza, Chuo, Tokyo' },
+      }),
+    );
+    expect(q).toBe('4-10-3 Ginza, Chuo, Tokyo');
+  });
+
+  it('falls back to venue + locationName when address is whitespace-only', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        locationName: 'Ginza',
+        data: { venue: 'Ippudo', address: '   ' },
+      }),
+    );
+    expect(q).toBe('Ippudo, Ginza');
+  });
+
+  it('uses venue alone when no address and no locationName supplements it', () => {
+    const q = buildGeocodeQuery(makeSegment({ type: 'food', data: { venue: 'Narisawa' } }));
+    expect(q).toBe('Narisawa');
+  });
+
+  it('appends locationName as a disambiguator for chains in many cities', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        locationName: 'Ginza',
+        data: { venue: 'Ippudo' },
+      }),
+    );
+    expect(q).toBe('Ippudo, Ginza');
+  });
+
+  it('ignores whitespace-only locationName', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        locationName: '   ',
+        data: { venue: 'Narisawa' },
+      }),
+    );
+    expect(q).toBe('Narisawa');
+  });
+
+  it('returns null when venue is missing', () => {
+    const q = buildGeocodeQuery(makeSegment({ type: 'food', data: { bookingRef: 'OT-1' } }));
+    expect(q).toBeNull();
+  });
+});
+
 describe('buildGeocodeQuery — transit', () => {
   it('uses destination (toName) as the pin location', () => {
     const q = buildGeocodeQuery(
