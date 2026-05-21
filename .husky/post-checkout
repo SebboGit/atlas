@@ -19,6 +19,13 @@ if [ ! -e .env ] && [ -n "$main" ] && [ -f "$main/.env" ]; then
   echo "post-checkout: linked .env from $main"
 fi
 
+# data/tiles holds the multi-GB Protomaps basemap (gitignored). Link the
+# main checkout's copy so the trip map renders without copying tens of GB.
+if [ ! -e data/tiles ] && [ -n "$main" ] && [ -d "$main/data/tiles" ]; then
+  ln -s "$main/data/tiles" data/tiles
+  echo "post-checkout: linked data/tiles from $main"
+fi
+
 # A new worktree has no node_modules — install so the dev server can boot.
 if [ ! -d node_modules ]; then
   echo "post-checkout: installing dependencies (new worktree)…"
