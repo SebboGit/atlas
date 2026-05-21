@@ -1,6 +1,8 @@
 import type { LinkedDocument } from '@/lib/documents';
 import type { Segment } from '@/lib/segments';
+import { cn } from '@/lib/utils';
 
+import type { DayPosition } from './day-temporal';
 import { SegmentRow } from './segment-row';
 
 interface DayGroupProps {
@@ -12,6 +14,10 @@ interface DayGroupProps {
   // it once and passes the same reference to every day; each segment
   // looks itself up here. Empty/undefined falls through to no chips.
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
+  // Temporal position relative to today. Drives the header's "Today"
+  // marker. Defaults to 'future' so the type-specific tabs and any
+  // other caller that doesn't classify days render unchanged.
+  position?: DayPosition;
 }
 
 function formatDayLabel(d: Date): string {
@@ -25,25 +31,40 @@ function formatDayLabel(d: Date): string {
 // edge for visual rhythm. On laptop, the children are inset and a
 // thin vertical timeline rail with dot markers runs alongside; on
 // mobile the rail is dropped and cards go full width.
+//
+// The header optionally carries a "Today" marker (when `position` is
+// 'today').
 export function DayGroup({
   dayNumber,
   date,
   segments,
   tripId,
   linkedDocumentsBySegment,
+  position = 'future',
 }: DayGroupProps) {
   const dayLabel = String(dayNumber).padStart(2, '0');
+  const isToday = position === 'today';
 
   return (
     <section className="mb-8 sm:mb-10">
       <header className="mb-4 flex items-baseline gap-3 sm:mb-5">
-        <p className="text-foreground font-mono text-xs tracking-[0.28em] uppercase">
+        <p
+          className={cn(
+            'font-mono text-xs tracking-[0.28em] uppercase',
+            isToday ? 'text-primary' : 'text-foreground',
+          )}
+        >
           Day {dayLabel}
           <span aria-hidden className="text-foreground/30 mx-2">
             ·
           </span>
           <span className="tracking-[0.2em]">{formatDayLabel(date)}</span>
         </p>
+        {isToday && (
+          <span className="bg-primary/12 text-primary border-primary/25 rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.2em] uppercase">
+            Today
+          </span>
+        )}
         <span aria-hidden className="bg-foreground/20 h-px flex-1" />
       </header>
 

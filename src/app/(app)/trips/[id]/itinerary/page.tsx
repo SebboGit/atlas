@@ -1,7 +1,11 @@
 import { notFound } from 'next/navigation';
 
-import { DayGroup } from '@/components/features/segments/day-group';
-import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
+import { classifyDays } from '@/components/features/segments/day-temporal';
+import { dayKey, groupSegmentsByDay } from '@/components/features/segments/group-by-day';
+import {
+  ItineraryDayList,
+  type ItineraryDay,
+} from '@/components/features/segments/itinerary-day-list';
 import { ItineraryEmpty } from '@/components/features/segments/itinerary-empty';
 import { SegmentFormDialog } from '@/components/features/segments/segment-form-dialog';
 import { Button } from '@/components/ui/button';
@@ -39,6 +43,22 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
   // `scheduled: true` filter above guarantees no unscheduled bucket here.
   const { days } = groupSegmentsByDay(segments);
   const hasCountryFilter = !!country;
+
+  // Classify each day relative to "now" on the server so the markup the
+  // client hydrates already knows which days are past / today / future.
+  // The collapsed-past-days behaviour (which days start folded) is
+  // derived from this — see ItineraryDayList.
+  const classified = classifyDays(days, new Date());
+  const itineraryDays: ItineraryDay[] = classified.map((day) => ({
+    key: dayKey(day.date),
+    // Timezone-stable `YYYY-MM-DD` token. A UTC ISO instant reparsed on
+    // a client in a different timezone than the server can render the
+    // wrong calendar day — the day token always parses as a local date.
+    dateKey: dayKey(day.date),
+    dayNumber: day.dayNumber,
+    position: day.position,
+    segments: day.segments,
+  }));
 
   return (
     <>
@@ -85,26 +105,22 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
         />
       </header>
 
-      {days.length === 0 ? (
+      {itineraryDays.length === 0 ? (
         <ItineraryEmpty hasCountryFilter={hasCountryFilter} />
       ) : (
-        <div>
-          {days.map((day, i) => (
-            <div
-              key={day.date.toISOString()}
-              className="atlas-rise"
-              style={{ animationDelay: `${300 + i * 60}ms` }}
-            >
-              <DayGroup
-                dayNumber={i + 1}
-                date={day.date}
-                segments={day.segments}
-                tripId={id}
-                linkedDocumentsBySegment={linkedDocsBySegment}
-              />
-            </div>
-          ))}
-        </div>
+        // For an `active` trip, every past day folds into a single
+        // collapsed group, today auto-scrolls into focus, and future
+        // days stay visible. Any other status renders plainly — every
+        // day expanded, no collapse, no auto-scroll — since `active` is
+        // the only status where past / today / future coexist. The
+        // collapse interaction and its localStorage persistence live in
+        // this client component; data fetching above stays on the server.
+        <ItineraryDayList
+          tripId={id}
+          days={itineraryDays}
+          isActive={trip.status === 'active'}
+          linkedDocumentsBySegment={linkedDocsBySegment}
+        />
       )}
     </>
   );
