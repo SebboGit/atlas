@@ -57,7 +57,12 @@ export function SegmentInfoDialog({
 
   function handleClick(e: React.MouseEvent<HTMLDivElement>) {
     const target = e.target as HTMLElement | null;
-    if (target?.closest('a, button, [role="button"]')) return;
+    // `closest` walks up from the target — and the wrapper itself
+    // carries `role="button"`, so it would always match. Scope the
+    // search to nested controls only: a hit equal to the wrapper means
+    // the click landed on the card surface, not a real nested affordance.
+    const interactive = target?.closest('a, button, [role="button"]');
+    if (interactive && interactive !== e.currentTarget) return;
     setOpen(true);
   }
 
@@ -65,6 +70,11 @@ export function SegmentInfoDialog({
     // Only react when focus is on the wrapper itself — Enter / Space
     // inside a nested control would otherwise double-fire (the
     // control's own activation plus our dialog open).
+    // Strict `e.target` identity is deliberate here (unlike the
+    // `closest()` walk in handleClick): keyboard activation already
+    // targets the focused element, so a focused nested anchor/button
+    // gets its own native activation and this wrapper correctly bails —
+    // no ancestor walk is needed to tell card surface from nested control.
     if (e.target !== e.currentTarget) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
