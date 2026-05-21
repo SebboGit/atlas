@@ -142,6 +142,13 @@ export function ParsedEditDialog({ tripId, documentId, payload }: ParsedEditDial
               onChange={(patch) => setDraft({ ...draft, ...patch })}
             />
           )}
+          {draft.kind === 'restaurant-confirmation' && (
+            <RestaurantFields
+              value={draft}
+              errors={fieldErrors}
+              onChange={(patch) => setDraft({ ...draft, ...patch })}
+            />
+          )}
           {draft.kind === 'generic' && (
             <GenericFields
               value={draft}
@@ -195,6 +202,7 @@ function nullify(s: string): string | null {
 type BoardingPassPayload = Extract<StructuredPayload, { kind: 'boarding-pass' }>;
 type FlightLeg = BoardingPassPayload['flights'][number];
 type HotelPayload = Extract<StructuredPayload, { kind: 'hotel-confirmation' }>;
+type RestaurantPayload = Extract<StructuredPayload, { kind: 'restaurant-confirmation' }>;
 type GenericPayload = Extract<StructuredPayload, { kind: 'generic' }>;
 
 // Edit any leg of a boarding-pass payload. Multi-leg docs render a
@@ -505,6 +513,69 @@ function HotelFields({
       <Field label="Confirmation" error={errors.confirmationCode}>
         <Input
           placeholder="ABC123"
+          value={value.confirmationCode ?? ''}
+          onChange={(e) => onChange({ confirmationCode: nullify(e.target.value) })}
+          maxLength={40}
+          aria-invalid={!!errors.confirmationCode || undefined}
+        />
+      </Field>
+    </div>
+  );
+}
+
+function RestaurantFields({
+  value,
+  errors,
+  onChange,
+}: {
+  value: RestaurantPayload;
+  errors: Record<string, string>;
+  onChange: (patch: Partial<Omit<RestaurantPayload, 'kind'>>) => void;
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <Field label="Venue" error={errors.venueName}>
+          <Input
+            placeholder="Narisawa"
+            value={value.venueName ?? ''}
+            onChange={(e) => onChange({ venueName: nullify(e.target.value) })}
+            maxLength={200}
+            aria-invalid={!!errors.venueName || undefined}
+          />
+        </Field>
+      </div>
+      <Field label="Reservation" error={errors.reservationDateTime}>
+        <DateTimeField
+          value={value.reservationDateTime ?? ''}
+          onChange={(next) => onChange({ reservationDateTime: next === '' ? null : next })}
+          withTime={true}
+          invalid={!!errors.reservationDateTime}
+        />
+      </Field>
+      <Field label="Country" error={errors.country}>
+        <Input
+          placeholder="JP"
+          value={value.country ?? ''}
+          onChange={(e) => onChange({ country: nullify(e.target.value)?.toUpperCase() ?? null })}
+          maxLength={2}
+          aria-invalid={!!errors.country || undefined}
+        />
+      </Field>
+      <div className="sm:col-span-2">
+        <Field label="Address" error={errors.address}>
+          <Input
+            placeholder="Street, City"
+            value={value.address ?? ''}
+            onChange={(e) => onChange({ address: nullify(e.target.value) })}
+            maxLength={500}
+            aria-invalid={!!errors.address || undefined}
+          />
+        </Field>
+      </div>
+      <Field label="Confirmation" error={errors.confirmationCode}>
+        <Input
+          placeholder="OT-4821"
           value={value.confirmationCode ?? ''}
           onChange={(e) => onChange({ confirmationCode: nullify(e.target.value) })}
           maxLength={40}

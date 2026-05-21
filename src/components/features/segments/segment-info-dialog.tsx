@@ -9,6 +9,7 @@ import {
   Sparkles,
   StickyNote,
   TrainFront,
+  UtensilsCrossed,
   Waypoints,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -30,6 +31,7 @@ import type { Segment, TransitData } from '@/lib/segments';
 import {
   activityDataSchema,
   flightDataSchema,
+  foodDataSchema,
   hotelDataSchema,
   noteDataSchema,
   transitDataSchema,
@@ -133,6 +135,8 @@ function SegmentInfoBody({
       return <ActivityInfoBody segment={segment} linkedDocuments={linkedDocuments} />;
     case 'transit':
       return <TransitInfoBody segment={segment} linkedDocuments={linkedDocuments} />;
+    case 'food':
+      return <FoodInfoBody segment={segment} linkedDocuments={linkedDocuments} />;
     case 'note':
       return <NoteInfoBody segment={segment} />;
   }
@@ -396,6 +400,51 @@ function TransitInfoBody({
   );
 }
 
+function FoodInfoBody({
+  segment,
+  linkedDocuments,
+}: {
+  segment: Segment;
+  linkedDocuments: LinkedDocument[];
+}) {
+  const parse = foodDataSchema.safeParse(segment.data);
+  const data = parse.success ? parse.data : null;
+  const title = data?.venue ?? 'Meal';
+  const bookingRef = data?.bookingRef;
+
+  const startsAt = describeInstant(segment.startsAt, null);
+  const endsAt = describeInstant(segment.endsAt, null);
+
+  return (
+    <>
+      <InfoHeader eyebrow="Food" title={title} glyph={UtensilsCrossed} />
+
+      {(startsAt || endsAt) && (
+        <InfoSection title="When">
+          <InfoRow label="Reservation" value={formatInstant(startsAt)} mono />
+          {endsAt && <InfoRow label="Ends" value={formatInstant(endsAt)} mono />}
+        </InfoSection>
+      )}
+
+      {(segment.locationName || data?.address || segment.countryCode) && (
+        <InfoSection title="Location">
+          <InfoRow label="Place" value={segment.locationName} />
+          <InfoRow label="Address" value={data?.address} multiline />
+          <InfoRow label="Country" value={resolveCountry(segment.countryCode)} />
+        </InfoSection>
+      )}
+
+      {bookingRef && (
+        <InfoSection title="Booking">
+          <InfoRow label="Reference" value={bookingRef} mono />
+        </InfoSection>
+      )}
+
+      <DocumentsFooter documents={linkedDocuments} />
+    </>
+  );
+}
+
 function NoteInfoBody({ segment }: { segment: Segment }) {
   const parse = noteDataSchema.safeParse(segment.data);
   const body = parse.success ? parse.data.body : '';
@@ -426,6 +475,7 @@ const TYPE_GLYPH: Record<Segment['type'], LucideIcon> = {
   hotel: BedDouble,
   activity: Sparkles,
   transit: Waypoints,
+  food: UtensilsCrossed,
   note: StickyNote,
 };
 
@@ -638,6 +688,8 @@ function triggerLabel(segment: Segment): string {
       return 'View activity details';
     case 'transit':
       return 'View transit details';
+    case 'food':
+      return 'View food details';
     case 'note':
       return 'View note';
   }

@@ -217,4 +217,69 @@ describe('segmentCreateInput — discriminated-union safety', () => {
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.startsAt).toBeNull();
   });
+
+  it('food requires a venue', () => {
+    const result = segmentCreateInput.safeParse({ type: 'food', data: {} });
+    expect(result.success).toBe(false);
+  });
+
+  it('food accepts a venue plus an optional booking reference', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'food',
+      data: { venue: 'Narisawa', bookingRef: 'OT-4821' },
+      startsAt: '2026-09-20T19:30',
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'food') {
+      expect(result.data.data.venue).toBe('Narisawa');
+      expect(result.data.data.bookingRef).toBe('OT-4821');
+    }
+  });
+
+  it('food accepts an optional address — mirrors the hotel address field', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'food',
+      data: { venue: 'Narisawa', address: '2-6-15 Minami-Aoyama, Minato, Tokyo' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'food') {
+      expect(result.data.data.address).toBe('2-6-15 Minami-Aoyama, Minato, Tokyo');
+    }
+  });
+
+  it('food address is trimmed, like the hotel address field', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'food',
+      data: { venue: 'Narisawa', address: '  2-6-15 Minami-Aoyama  ' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'food') {
+      expect(result.data.data.address).toBe('2-6-15 Minami-Aoyama');
+    }
+  });
+
+  it('food rejects an address over the 500-char cap', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'food',
+      data: { venue: 'Narisawa', address: 'x'.repeat(501) },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects unknown keys inside food data (party size is v2)', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'food',
+      data: { venue: 'Narisawa', partySize: 4 },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('food may be left undated — an in-trip shortlist of "maybe" places', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'food',
+      data: { venue: 'Narisawa' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.startsAt).toBeNull();
+  });
 });

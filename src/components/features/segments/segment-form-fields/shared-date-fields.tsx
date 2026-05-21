@@ -10,7 +10,7 @@ import { getAirportTimezone } from '@/lib/airports';
 import { dateFromLocalInZone, formatLocalDateTimeInZone } from '@/lib/format';
 import type { SegmentType } from '@/lib/segments';
 
-import { Optional, type Form } from './_helpers';
+import { FieldError, Optional, type Form } from './_helpers';
 
 // Normalises whatever shape the form field is currently holding (Date,
 // 'yyyy-mm-dd' string, or 'yyyy-mm-ddThh:mm' string) into the
@@ -70,9 +70,31 @@ function labelsFor(type: SegmentType): { start: string; end: string } {
       return { start: 'Date', end: 'Ends' };
     case 'transit':
       return { start: 'Departure', end: 'Arrival' };
+    case 'food':
+      // Food is a point in time — a reservation, no end. It renders
+      // a start-only row, so there is no end label to surface.
+      return { start: 'Reservation', end: '' };
     default:
       return { start: 'Start', end: 'End' };
   }
+}
+
+// Placeholder for the optional start field. Activities use an undated
+// state as wishlist (ADR-0003), so the copy invites that. Food has no
+// wishlist concept — an undated meal just sits undated on the flat
+// Food tab — and the "(optional)" label marker already says the field
+// can be left empty, so food shows no placeholder at all.
+export function startPlaceholderFor(type: SegmentType): string {
+  if (type === 'food') return '';
+  return 'Leave empty for wishlist';
+}
+
+// Whether a segment type renders an end-date field. A food
+// reservation is a point in time — a "Reservation" clock time with
+// no end — so it shows a start-only row. Every other type keeps the
+// start/end pair.
+export function hasEndDateField(type: SegmentType): boolean {
+  return type !== 'food';
 }
 
 export function SharedDateFields({ form, type }: { form: Form; type: SegmentType }) {
@@ -103,16 +125,26 @@ export function SharedDateFields({ form, type }: { form: Form; type: SegmentType
     return parseDateString(String(startRaw).slice(0, 10));
   }, [startRaw]);
 
-  // Activities can be left undated — wishlist state per ADR-0003.
-  const startOptional = type === 'activity';
+  // Activities and food can both be left undated. Activities use it
+  // for wishlist state (ADR-0003); food uses it because the user
+  // rarely reserves ahead — undated food is an in-trip shortlist of
+  // "maybe" places and lives on the flat Food tab alongside dated
+  // reservations.
+  const startOptional = type === 'activity' || type === 'food';
 
-  // Time matters for flights, transit, and scheduled activities.
-  // Hotels run on property-set check-in times, notes are date-pinned
-  // at most.
-  const withTime = type === 'flight' || type === 'transit' || type === 'activity';
+  // Time matters for flights, transit, scheduled activities, and
+  // food (a restaurant reservation is a specific clock time). Hotels
+  // run on property-set check-in times, notes are date-pinned at most.
+  const withTime =
+    type === 'flight' || type === 'transit' || type === 'activity' || type === 'food';
+
+  // A food reservation is a point in time, not a range — it has a
+  // start ("Reservation") and no end. Every other type keeps the
+  // two-field start/end layout.
+  const hasEnd = hasEndDateField(type);
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className={hasEnd ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5'}>
       <div className="flex flex-col gap-2">
         <Label htmlFor="seg-start-trigger">
           {labels.start}
@@ -122,44 +154,49 @@ export function SharedDateFields({ form, type }: { form: Form; type: SegmentType
           control={form.control}
           name="startsAt"
           render={({ field, fieldState }) => (
-            <DateTimeField
-              id="seg-start"
-              value={toDateTimeValue(field.value as Date | string | null | undefined, startTz)}
-              onChange={(s) => field.onChange(fromDateTimeValue(s, startTz))}
-              onBlur={field.onBlur}
-              name={field.name}
-              inputRef={field.ref}
-              invalid={!!fieldState.error}
-              placeholder={startOptional ? 'Leave empty for wishlist' : 'Pick a date'}
-              withTime={withTime}
-            />
+            <>
+              <DateTimeField
+                id="seg-start"
+                value={toDateTimeValue(field.value as Date | string | null | undefined, startTz)}
+                onChange={(s) => field.onChange(fromDateTimeValue(s, startTz))}
+                onBlur={field.onBlur}
+                name={field.name}
+                inputRef={field.ref}
+                invalid={!!fieldState.error}
+                placeholder={startOptional ? startPlaceholderFor(type) : 'Pick a date'}
+                withTime={withTime}
+              />
+              {fieldState.error?.message && <FieldError>{fieldState.error.message}</FieldError>}
+            </>
           )}
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="seg-end-trigger">
-          {labels.end} <Optional />
-        </Label>
-        <Controller
-          control={form.control}
-          name="endsAt"
-          render={({ field, fieldState }) => (
-            <DateTimeField
-              id="seg-end"
-              value={toDateTimeValue(field.value as Date | string | null | undefined, endTz)}
-              onChange={(s) => field.onChange(fromDateTimeValue(s, endTz))}
-              onBlur={field.onBlur}
-              name={field.name}
-              inputRef={field.ref}
-              invalid={!!fieldState.error}
-              placeholder="—"
-              defaultMonth={startDateObj}
-              minDate={startDateObj}
-              withTime={withTime}
-            />
-          )}
-        />
-      </div>
+      {hasEnd && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="seg-end-trigger">
+            {labels.end} <Optional />
+          </Label>
+          <Controller
+            control={form.control}
+            name="endsAt"
+            render={({ field, fieldState }) => (
+              <DateTimeField
+                id="seg-end"
+                value={toDateTimeValue(field.value as Date | string | null | undefined, endTz)}
+                onChange={(s) => field.onChange(fromDateTimeValue(s, endTz))}
+                onBlur={field.onBlur}
+                name={field.name}
+                inputRef={field.ref}
+                invalid={!!fieldState.error}
+                placeholder="—"
+                defaultMonth={startDateObj}
+                minDate={startDateObj}
+                withTime={withTime}
+              />
+            )}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -30,6 +30,7 @@
   - `hotel` — name, address, check-in/out, confirmation, room type, price.
   - `activity` — name, location, date/time, booking ref, price. **Two states**: scheduled (`startsAt IS NOT NULL`, lives in the itinerary) and wishlist (`startsAt IS NULL`, undated intention pinned to the trip). See ADR-0003.
   - `transit` — non-flight transit (train, ferry, rental car).
+  - `food` — a restaurant booking or a meal slotted on the itinerary. Venue name, optional booking reference; the reservation time is the shared `startsAt`. Split from `activity` because a trip has far more meals than attractions and the two slot by different rhythms — see the food-segment design note.
   - `note` — freeform text/markdown, optional date.
 - Stored as `(type, data: jsonb)` plus a few hot-path columns lifted to top-level for indexing: `startsAt`, `endsAt`, `locationName`, `countryCode`, `originCountryCode`.
 - **Country attribution** (see ADR-0005): `countryCode` is the primary country (destination for flights, location country for everything else). `originCountryCode` is set only on flights and carries the origin country. The country filter matches either column, so a flight surfaces under both endpoints.

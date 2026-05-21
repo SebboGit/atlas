@@ -31,15 +31,22 @@ describe('buildPrompt', () => {
     expect(out).not.toContain(b);
   });
 
-  it('emits all three schemas in a single discriminated-union prompt', () => {
-    // The new prompt lets the LLM pick the kind from content, so a
-    // single buildPrompt call must include every variant the model is
+  it('emits every schema in a single discriminated-union prompt', () => {
+    // The prompt lets the LLM pick the kind from content, so a single
+    // buildPrompt call must include every variant the model is
     // allowed to return.
     const out = buildPrompt('irrelevant body');
 
     expect(out).toContain('"kind": "boarding-pass"');
     expect(out).toContain('"kind": "hotel-confirmation"');
+    expect(out).toContain('"kind": "restaurant-confirmation"');
     expect(out).toContain('"kind": "generic"');
+  });
+
+  it('describes the restaurant-confirmation shape with a venue and reservation time', () => {
+    const out = buildPrompt('irrelevant body');
+    expect(out).toContain('venueName');
+    expect(out).toContain('reservationDateTime');
   });
 
   it('instructs the model to prefer generic when uncertain', () => {

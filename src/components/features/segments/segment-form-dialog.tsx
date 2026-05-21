@@ -40,6 +40,7 @@ const CREATE_TITLES: Record<SegmentType, string> = {
   hotel: 'New stay',
   activity: 'New activity',
   transit: 'New transit',
+  food: 'New meal',
   note: 'New note',
 };
 
@@ -48,6 +49,7 @@ const EDIT_TITLES: Record<SegmentType, string> = {
   hotel: 'Edit stay',
   activity: 'Edit activity',
   transit: 'Edit transit',
+  food: 'Edit meal',
   note: 'Edit note',
 };
 

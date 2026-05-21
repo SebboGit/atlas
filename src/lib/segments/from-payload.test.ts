@@ -5,6 +5,7 @@ import type {
   FlightLeg,
   GenericPayload,
   HotelConfirmationPayload,
+  RestaurantConfirmationPayload,
   StructuredPayload,
 } from '@/lib/extraction';
 
@@ -65,6 +66,21 @@ function hotel(overrides: Partial<HotelConfirmationPayload> = {}): HotelConfirma
     confirmationCode: 'CONF-9',
     country: 'US',
     confidence: 0.81,
+    ...overrides,
+  };
+}
+
+function restaurant(
+  overrides: Partial<RestaurantConfirmationPayload> = {},
+): RestaurantConfirmationPayload {
+  return {
+    kind: 'restaurant-confirmation',
+    venueName: 'Narisawa',
+    reservationDateTime: '2026-06-03T19:30',
+    address: '2-6-15 Minami-Aoyama, Minato, Tokyo',
+    confirmationCode: 'OT-4821',
+    country: 'JP',
+    confidence: 0.78,
     ...overrides,
   };
 }
@@ -272,6 +288,77 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
       expect(out).not.toBeNull();
       if (out === null || out.type !== 'hotel') throw new Error('expected hotel');
       expect(out.locationName).toBeNull();
+    });
+  });
+
+  describe('restaurant-confirmation', () => {
+    it('maps a full payload to a food segment input', () => {
+      const out = mapOne(restaurant());
+
+      expect(out).toEqual({
+        type: 'food',
+        // Naive ISO date+time parses as local — same as the form's
+        // dateInput transform.
+        startsAt: new Date('2026-06-03T19:30'),
+        endsAt: null,
+        // locationName is intentionally null on extraction, mirroring
+        // the hotel mapper — no extracted field maps cleanly onto a
+        // short pin label without guessing.
+        locationName: null,
+        countryCode: 'JP',
+        data: {
+          venue: 'Narisawa',
+          // The extracted address lands in `data.address`, mirroring
+          // the hotel-confirmation branch — the food geocoder uses it
+          // address-first.
+          address: '2-6-15 Minami-Aoyama, Minato, Tokyo',
+          bookingRef: 'OT-4821',
+        },
+      });
+    });
+
+    it('writes the extracted address into data.address', () => {
+      // The restaurant extractor pulls a full address; the food
+      // segment now has somewhere structured to keep it, mirroring
+      // hotel-confirmation → data.address.
+      const out = mapOne(restaurant({ address: '1-1-1 Roppongi, Minato, Tokyo' }));
+      expect(out).not.toBeNull();
+      if (out === null || out.type !== 'food') throw new Error('expected food');
+      expect(out.data.address).toBe('1-1-1 Roppongi, Minato, Tokyo');
+    });
+
+    it('omits address when no address was extracted', () => {
+      const out = mapOne(restaurant({ address: null }));
+      expect(out).not.toBeNull();
+      if (out === null || out.type !== 'food') throw new Error('expected food');
+      expect(out.data).toEqual({ venue: 'Narisawa', bookingRef: 'OT-4821' });
+    });
+
+    it('accepts a date-only reservation, parsed at local midnight', () => {
+      // A date-only reservation must land on the calendar day the
+      // document prints — `new Date('2026-06-03')` would be UTC
+      // midnight, which buckets a day early on a UTC-or-west server.
+      const out = mapOne(restaurant({ reservationDateTime: '2026-06-03' }));
+      expect(out).not.toBeNull();
+      if (out === null || out.type !== 'food') throw new Error('expected food');
+      expect(out.startsAt).toEqual(new Date(2026, 5, 3));
+    });
+
+    it('returns null when venueName is missing (validator requires it)', () => {
+      // FoodData requires `venue`; without it the validator would
+      // reject the input. Refuse in the mapper rather than producing
+      // a write that .strict() will throw on — same posture as hotels.
+      expect(mapOne(restaurant({ venueName: null }))).toBeNull();
+    });
+
+    it('omits bookingRef when no confirmation code was extracted', () => {
+      const out = mapOne(restaurant({ confirmationCode: null }));
+      expect(out).not.toBeNull();
+      if (out === null || out.type !== 'food') throw new Error('expected food');
+      expect(out.data).toEqual({
+        venue: 'Narisawa',
+        address: '2-6-15 Minami-Aoyama, Minato, Tokyo',
+      });
     });
   });
 

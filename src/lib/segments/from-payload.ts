@@ -35,9 +35,9 @@ import type { SegmentCreateInput } from './validators';
 /**
  * Translate a successful extraction payload into zero or more
  * `SegmentCreateInput`s that `segments.repo.create` accepts. A
- * single-flight boarding pass and a hotel confirmation each produce
- * one input; a multi-leg boarding pass produces one per leg;
- * `generic` payloads produce none.
+ * single-flight boarding pass, a hotel confirmation, and a restaurant
+ * reservation each produce one input; a multi-leg boarding pass
+ * produces one per leg; `generic` payloads produce none.
  *
  * The caller is responsible for:
  *   - boarding-pass dedup against existing segments on the trip,
@@ -87,6 +87,44 @@ export function payloadToSegmentInputs(payload: StructuredPayload): SegmentCreat
             propertyName: payload.hotelName,
             ...(payload.address ? { address: payload.address } : {}),
             ...(payload.confirmationCode ? { confirmationNumber: payload.confirmationCode } : {}),
+          },
+        },
+      ];
+    }
+    case 'restaurant-confirmation': {
+      // A restaurant booking needs at minimum a venue name to satisfy
+      // the strict food validator. Without it we can't construct a
+      // meaningful segment; the user can still create one manually
+      // from the parsed payload on the Documents tab.
+      if (!payload.venueName) return [];
+
+      // The reservation can be a full date+time or a bare date. A
+      // bare date goes through parseLocalDate (local midnight) so it
+      // buckets onto the same itinerary day the document prints —
+      // `parseFlexibleDateTime` (new Date()) would read a date-only
+      // ISO string as UTC midnight and slide it a day west of the
+      // user. A full datetime keeps parseFlexibleDateTime's offset-
+      // aware parse. Same precedence as the flight mapper's flightDate.
+      const startsAt =
+        parseLocalDate(payload.reservationDateTime) ??
+        parseFlexibleDateTime(payload.reservationDateTime);
+      return [
+        {
+          type: 'food',
+          startsAt,
+          endsAt: null,
+          // Left null on extraction, mirroring the hotel mapper. The
+          // extracted address goes in `data.address` (full text) and
+          // the venue name in `data.venue`; `locationName` is a short
+          // pin-style label the user fills in. Auto-filling it from
+          // the address or venue name duplicated content on the card.
+          // Better blank than wrong.
+          locationName: null,
+          countryCode: payload.country ?? null,
+          data: {
+            venue: payload.venueName,
+            ...(payload.address ? { address: payload.address } : {}),
+            ...(payload.confirmationCode ? { bookingRef: payload.confirmationCode } : {}),
           },
         },
       ];

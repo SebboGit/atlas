@@ -99,7 +99,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── storage/         # Filesystem storage adapter (see "Storage" section)
 │   │   ├── documents/       # Document repo + server actions (upload/list/delete)
 │   │   ├── trips/           # Trip repo + server actions
-│   │   ├── segments/        # Flight/hotel/activity/transit/note repo + actions
+│   │   ├── segments/        # Flight/hotel/activity/transit/food/note repo + actions
 │   │   ├── trip-map/        # Per-trip map data shaping (flight arcs, geocoded pins)
 │   │   ├── geocoding/       # Nominatim client + DB-cached lookup (ADR-0010)
 │   │   ├── airlines/        # Reference data — static IATA → airline-name lookup (OpenFlights snapshot)
@@ -137,7 +137,7 @@ A high-level mental model — the canonical version lives in `docs/DOMAIN_MODEL.
 User
  └── Trip (id, title, summary, status, startDate, endDate, coverImageId)
       ├── Country[]               # countries visited on this trip (many-to-many)
-      ├── Segment[]               # discriminated union: flight | hotel | activity | transit | note
+      ├── Segment[]               # discriminated union: flight | hotel | activity | transit | food | note
       │    └── Document[]         # boarding pass, reservation, ticket (immutable originals)
       └── Location[]              # geocoded points for map rendering
 

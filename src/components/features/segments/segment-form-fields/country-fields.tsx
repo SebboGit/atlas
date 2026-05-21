@@ -54,7 +54,7 @@ export function CountryFields({ form, type }: { form: Form; type: SegmentType })
         </Label>
         <Input
           id="seg-location"
-          placeholder={type === 'hotel' ? 'Shinjuku' : 'Toyosu'}
+          placeholder={locationPlaceholder(type)}
           {...form.register('locationName' as never)}
         />
       </div>
@@ -120,6 +120,20 @@ function FlightCountryFields({ form }: { form: Form }) {
       </div>
     </div>
   );
+}
+
+// A neighbourhood-style placeholder for the free-text location name,
+// keyed to the segment type so the example reads naturally for what
+// the user is entering.
+function locationPlaceholder(type: SegmentType): string {
+  switch (type) {
+    case 'hotel':
+      return 'Shinjuku';
+    case 'food':
+      return 'Ginza';
+    default:
+      return 'Toyosu';
+  }
 }
 
 // Watches an IATA field and keeps the matching country dropdown in

@@ -14,6 +14,7 @@ import type { Result } from '@/types/result';
 import { ActivityFields } from './segment-form-fields/activity-fields';
 import { CountryFields } from './segment-form-fields/country-fields';
 import { FlightFields } from './segment-form-fields/flight-fields';
+import { FoodFields } from './segment-form-fields/food-fields';
 import { FormBanner, type FormInput, type FormOutput } from './segment-form-fields/_helpers';
 import { HotelFields } from './segment-form-fields/hotel-fields';
 import { NoteFields } from './segment-form-fields/note-fields';
@@ -25,6 +26,7 @@ const TYPE_LABELS: Record<SegmentType, string> = {
   hotel: 'Hotel',
   activity: 'Activity',
   transit: 'Transit',
+  food: 'Food',
   note: 'Note',
 };
 
@@ -59,6 +61,8 @@ function emptyDataFor(type: SegmentType): FormInput['data'] {
       return { title: '' } as FormInput['data'];
     case 'transit':
       return { mode: 'train' } as FormInput['data'];
+    case 'food':
+      return { venue: '' } as FormInput['data'];
     case 'note':
       return { body: '' } as FormInput['data'];
   }
@@ -157,6 +161,7 @@ export function SegmentForm({
       {currentType === 'hotel' && <HotelFields form={form} />}
       {currentType === 'activity' && <ActivityFields form={form} />}
       {currentType === 'transit' && <TransitFields form={form} />}
+      {currentType === 'food' && <FoodFields form={form} />}
       {currentType === 'note' && <NoteFields form={form} />}
 
       {currentType !== 'note' && <SharedDateFields form={form} type={currentType} />}

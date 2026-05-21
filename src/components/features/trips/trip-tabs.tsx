@@ -17,7 +17,8 @@ const TABS = [
   { slug: 'flights', label: 'Flights', numeral: 'ii' },
   { slug: 'hotels', label: 'Hotels', numeral: 'iii' },
   { slug: 'activities', label: 'Activities', numeral: 'iv' },
-  { slug: 'documents', label: 'Documents', numeral: 'v' },
+  { slug: 'food', label: 'Food', numeral: 'v' },
+  { slug: 'documents', label: 'Documents', numeral: 'vi' },
 ] as const;
 
 export function TripTabs({ tripId }: { tripId: string }) {

@@ -1,6 +1,15 @@
 'use client';
 
-import { Activity, FileText, Hotel, Map as MapIcon, MapPin, Plane, TrainFront } from 'lucide-react';
+import {
+  Activity,
+  FileText,
+  Hotel,
+  Map as MapIcon,
+  MapPin,
+  Plane,
+  TrainFront,
+  UtensilsCrossed,
+} from 'lucide-react';
 import * as React from 'react';
 
 import { CommandGroup, CommandItem } from '@/components/ui/command';
@@ -25,6 +34,8 @@ function RowIcon({ row }: { row: SearchResultRow }) {
       return <Activity className={ICON_CLASS} aria-hidden />;
     case 'transit':
       return <TrainFront className={ICON_CLASS} aria-hidden />;
+    case 'food':
+      return <UtensilsCrossed className={ICON_CLASS} aria-hidden />;
     case 'note':
       return <FileText className={ICON_CLASS} aria-hidden />;
     default:
@@ -108,12 +119,11 @@ function ResultItem({
   );
 }
 
-// Group render order: Trips → Hotels → Activities → Documents → Flights → Transit → Notes.
-// Reflects likelihood-of-interest. The parent Trip first, then where you
-// stayed / what you did, then documents, then the transactional records
-// (flights, transit, notes) you mostly remember by trip rather than by
-// name. Food slots in between Trips and Hotels when the food segment
-// type lands — see memory: food-segment-type.
+// Group render order: Trips → Food → Hotels → Activities → Documents →
+// Flights → Transit → Notes. Reflects likelihood-of-interest. The
+// parent Trip first, then food and where you stayed / what you did,
+// then documents, then the transactional records (flights, transit,
+// notes) you mostly remember by trip rather than by name.
 export function SearchResultsView({
   results,
   query,
@@ -141,6 +151,7 @@ export function SearchResultsView({
   return (
     <>
       <Group heading="Trips" rows={results.trips} query={query} onSelect={onSelect} />
+      <Group heading="Food" rows={bySubtype.get('food')} query={query} onSelect={onSelect} />
       <Group heading="Hotels" rows={bySubtype.get('hotel')} query={query} onSelect={onSelect} />
       <Group
         heading="Activities"

@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Mirrors the `segment_type` Postgres enum from src/db/schema/segments.ts.
 // Kept inline so the Zod schema is self-contained and feature code
 // doesn't have to reach into the db layer.
-export const SEGMENT_TYPES = ['flight', 'hotel', 'activity', 'transit', 'note'] as const;
+export const SEGMENT_TYPES = ['flight', 'hotel', 'activity', 'transit', 'food', 'note'] as const;
 export const segmentTypeEnum = z.enum(SEGMENT_TYPES);
 export type SegmentType = z.infer<typeof segmentTypeEnum>;
 
@@ -94,6 +94,23 @@ const transitData = z
   })
   .strict();
 
+// Food — a restaurant booking or a meal slotted on the itinerary.
+// Deliberately light: the venue name, an optional address, and an
+// optional booking reference. The reservation time itself lives on
+// the shared `startsAt` column, not in `data` — same convention as
+// activities. The address mirrors `hotelData.address` (same length
+// cap, same blank-to-undefined handling) so the geocoder has a
+// reliable signal when a restaurant doesn't resolve by name alone.
+// Party size and a cuisine tag are explicitly v2 (see the
+// food-segment-type design note) and intentionally NOT added here.
+const foodData = z
+  .object({
+    venue: z.string().trim().min(1).max(200),
+    address: z.string().trim().max(500).optional(),
+    bookingRef: z.string().trim().max(50).optional(),
+  })
+  .strict();
+
 const noteData = z
   .object({
     body: z.string().trim().min(1).max(10000),
@@ -106,12 +123,14 @@ export const flightDataSchema = flightData;
 export const hotelDataSchema = hotelData;
 export const activityDataSchema = activityData;
 export const transitDataSchema = transitData;
+export const foodDataSchema = foodData;
 export const noteDataSchema = noteData;
 
 export type FlightData = z.infer<typeof flightData>;
 export type HotelData = z.infer<typeof hotelData>;
 export type ActivityData = z.infer<typeof activityData>;
 export type TransitData = z.infer<typeof transitData>;
+export type FoodData = z.infer<typeof foodData>;
 export type NoteData = z.infer<typeof noteData>;
 
 // Field layers — each variant in the discriminated union picks the
@@ -141,11 +160,19 @@ const flightGeoFields = geoFields.extend({
 // discriminator; `data` shape is enforced per type via .strict()
 // schemas above. The geography layers above keep notes off the
 // country grid and keep originCountryCode flight-only.
+//
+// Food's `startsAt` is optional, exactly like an activity's. The
+// user rarely books restaurants ahead, so a food segment works as an
+// in-trip shortlist of "maybe" places — dated reservations and
+// undated candidates live together. Undated food is reachable on its
+// own flat Food tab (a single list of all food, sorted dated-first),
+// so there's no "creatable yet unreachable" gap to guard against.
 export const segmentCreateInput = z.discriminatedUnion('type', [
   flightGeoFields.extend({ type: z.literal('flight'), data: flightData }),
   geoFields.extend({ type: z.literal('hotel'), data: hotelData }),
   geoFields.extend({ type: z.literal('activity'), data: activityData }),
   geoFields.extend({ type: z.literal('transit'), data: transitData }),
+  geoFields.extend({ type: z.literal('food'), data: foodData }),
   commonFields.extend({ type: z.literal('note'), data: noteData }),
 ]);
 export type SegmentCreateInput = z.infer<typeof segmentCreateInput>;

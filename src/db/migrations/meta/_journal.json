@@ -92,6 +92,13 @@
       "when": 1779303615660,
       "tag": "0012_segments_camelcase_split",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779385145867,
+      "tag": "0013_bright_wolverine",
+      "breakpoints": true
     }
   ]
 }

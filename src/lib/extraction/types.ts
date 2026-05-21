@@ -27,7 +27,12 @@ import { z } from 'zod';
  * the same source of truth — the literal strings in the prompt and
  * the Zod discriminator cannot drift apart silently.
  */
-export const DOC_KINDS = ['boarding-pass', 'hotel-confirmation', 'generic'] as const;
+export const DOC_KINDS = [
+  'boarding-pass',
+  'hotel-confirmation',
+  'restaurant-confirmation',
+  'generic',
+] as const;
 
 /**
  * The discriminator value on a {@link StructuredPayload}. Once produced
@@ -235,6 +240,39 @@ const hotelConfirmationPayloadSchema = z.object({
   confidence: z.number().min(0).max(1),
 });
 
+const restaurantConfirmationPayloadSchema = z.object({
+  kind: z.literal('restaurant-confirmation'),
+  /** Restaurant / venue name as it appears on the confirmation. */
+  venueName: blankToNull(z.string().min(1).max(200).nullable()),
+  /**
+   * Full reservation date+time. ISO 8601, with a timezone offset only
+   * when the document prints one ("2026-09-20T19:30:00+09:00"); a
+   * naive date+time is fine ("2026-09-20T19:30"). When only a date is
+   * known, leave the time off ("2026-09-20").
+   */
+  reservationDateTime: blankToNull(
+    z
+      .string()
+      .regex(
+        /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:?\d{2}|Z)?)?$/,
+        'reservationDateTime must be an ISO 8601 date or date+time',
+      )
+      .nullable(),
+  ),
+  /** Free-form address string; geocoding is a downstream concern. */
+  address: blankToNull(z.string().min(1).max(500).nullable()),
+  /** Booking confirmation code. Never logged. */
+  confirmationCode: blankToNull(z.string().min(1).max(40).nullable()),
+  /** ISO 3166-1 alpha-2 country code if extractable. */
+  country: blankToNull(
+    z
+      .string()
+      .regex(/^[A-Z]{2}$/, 'country must be a 2-letter ISO code')
+      .nullable(),
+  ),
+  confidence: z.number().min(0).max(1),
+});
+
 const genericPayloadSchema = z.object({
   kind: z.literal('generic'),
   /** A short human-readable summary of what the document is. */
@@ -249,6 +287,7 @@ const genericPayloadSchema = z.object({
 export const structuredPayloadSchema = z.discriminatedUnion('kind', [
   boardingPassPayloadSchema,
   hotelConfirmationPayloadSchema,
+  restaurantConfirmationPayloadSchema,
   genericPayloadSchema,
 ]);
 
@@ -256,6 +295,7 @@ export type StructuredPayload = z.infer<typeof structuredPayloadSchema>;
 export type BoardingPassPayload = z.infer<typeof boardingPassPayloadSchema>;
 export type FlightLeg = z.infer<typeof flightLegSchema>;
 export type HotelConfirmationPayload = z.infer<typeof hotelConfirmationPayloadSchema>;
+export type RestaurantConfirmationPayload = z.infer<typeof restaurantConfirmationPayloadSchema>;
 export type GenericPayload = z.infer<typeof genericPayloadSchema>;
 
 // ---------------------------------------------------------------------------
@@ -266,7 +306,7 @@ export interface LLMExtractor {
   /**
    * Structure free-form text into a {@link StructuredPayload}. The
    * implementation is responsible for asking the model to discriminate
-   * between the three payload variants from the document text itself —
+   * between the payload variants from the document text itself —
    * the caller does not pass a hint. Filename-based heuristics are
    * intentionally not part of this interface; they were brittle and
    * locale-bound.
