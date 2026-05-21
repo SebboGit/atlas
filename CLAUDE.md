@@ -112,6 +112,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── maintenance/     # Reusable housekeeping (prune queries) — shared by CLI + scheduler
 │   │   ├── scheduler/       # In-stack cron (croner). Runs in the `cron` compose service.
 │   │   ├── search/          # Cmd+K palette over Postgres FTS + pg_trgm (ADR-0013)
+│   │   ├── stats/           # Read-only aggregation for the /stats dashboard
 │   │   ├── validators/      # Shared Zod schemas
 │   │   ├── format/          # Shared formatters (dates, money, durations)
 │   │   └── log.ts           # Structured logger entrypoint

@@ -34,10 +34,10 @@ export default async function HomePage() {
         style={{ animationDelay: '160ms' }}
       />
 
-      {/* Three primary surfaces. Trips is live; the others are
-       *  intentionally inert tiles that hold a place in the layout
+      {/* Four primary surfaces. Trips, Map, and Stats are live; Documents
+       *  is an intentionally inert tile that holds a place in the layout
        *  without lying about being clickable. */}
-      <section className="grid gap-5 sm:grid-cols-3">
+      <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/trips"
           className="atlas-rise group focus-visible:ring-primary/40 focus-visible:ring-offset-background block focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
@@ -125,6 +125,39 @@ export default async function HomePage() {
                   Map
                 </h2>
                 <p className="text-muted-foreground mt-2 text-sm">Every place you&apos;ve been.</p>
+              </div>
+            </CardContent>
+            <span
+              aria-hidden
+              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20"
+            />
+          </Card>
+        </Link>
+
+        <Link
+          href="/stats"
+          className="atlas-rise group focus-visible:ring-primary/40 focus-visible:ring-offset-background block focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          style={{ animationDelay: '420ms' }}
+        >
+          <Card
+            variant="glass"
+            className="relative h-full overflow-hidden transition-transform duration-500 hover:-translate-y-0.5"
+          >
+            <span
+              aria-hidden
+              className="border-primary/40 text-primary/80 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+            >
+              04
+            </span>
+            <CardContent className="flex min-h-44 flex-col justify-between pt-7">
+              <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+                Section
+              </p>
+              <div>
+                <h2 className="font-display text-3xl leading-none font-medium tracking-tight">
+                  Stats
+                </h2>
+                <p className="text-muted-foreground mt-2 text-sm">A lifetime in numbers.</p>
               </div>
             </CardContent>
             <span
