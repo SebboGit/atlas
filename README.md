@@ -71,9 +71,9 @@ Uploaded files with extraction status and parsed fields.
 
 ![Documents tab showing uploaded files with extraction status](./docs/screenshots/documents.png)
 
-### Trip map — country zoom
+### Trip map — zoomed in
 
-Filter to one country, click a pin for details.
+Click a pin to zoom in on a city and see its details.
 
 ![Trip map zoomed in on a city with a hotel pin selected](./docs/screenshots/trip-map-zoom.png)
 
