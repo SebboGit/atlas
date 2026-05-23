@@ -26,7 +26,13 @@ import type {
 
 import { log } from '@/lib/log';
 
-import type { Jobs, JobHandler, RegisterOptions, ScheduleOptions, SendOptions } from './types';
+import type {
+  Jobs,
+  JobHandler,
+  RegisterOptions,
+  ScheduleOptions,
+  SendOptions,
+} from '@/lib/jobs/types';
 
 type JobsRole = 'app' | 'worker';
 
@@ -156,32 +162,47 @@ export class PgBossJobs implements Jobs {
     const createSpec: Partial<PgBossQueue> = {};
     if (opts?.policy) createSpec.policy = opts.policy;
     if (opts?.expireInSeconds !== undefined) createSpec.expireInSeconds = opts.expireInSeconds;
-    await this.#boss.createQueue(name, createSpec).catch(async (err: unknown) => {
-      // Race with another process is benign — pg-boss raises if the
-      // queue already exists; both cases mean "queue is ready". Fall
-      // back to `updateQueue` so a queue created previously with
-      // defaults still gets reshaped to match the current code.
-      log.debug(
-        { name, err: err instanceof Error ? err.message : 'unknown' },
-        'jobs.pgboss.queue_create_noop',
-      );
+    try {
+      await this.#boss.createQueue(name, createSpec);
+    } catch (err: unknown) {
+      // pg-boss v12 throws Postgres' unique-constraint error (SQLSTATE
+      // 23505 on `queue_pkey`) when the queue already exists — benign,
+      // both processes were trying to create it. Anything else is a
+      // real failure (permissions, schema missing, connection error)
+      // and should surface, not be silently treated as "queue ready".
+      if (!isAlreadyExistsError(err)) throw err;
+      log.debug({ name }, 'jobs.pgboss.queue_create_noop');
+      // Queue exists with whoever-got-there-first's spec. Update to
+      // match the current code's intent so a deploy that changes
+      // policy/timeout actually takes effect.
       if (opts) await this.#applyQueueOptions(name, opts);
-    });
+    }
     this.#ensuredQueues.add(name);
   }
 
   async #applyQueueOptions(name: string, opts: RegisterOptions): Promise<void> {
     if (!opts.policy && opts.expireInSeconds === undefined) return;
-    try {
-      await this.#boss.updateQueue(name, {
-        ...(opts.policy ? { policy: opts.policy } : {}),
-        ...(opts.expireInSeconds !== undefined ? { expireInSeconds: opts.expireInSeconds } : {}),
-      });
-    } catch (err) {
-      log.warn(
-        { name, err: err instanceof Error ? err.message : 'unknown' },
-        'jobs.pgboss.queue_update_failed',
-      );
-    }
+    // No catch: a failed updateQueue means the queue keeps its
+    // existing policy/timeout, which silently breaks singleton dedup
+    // (geocode-fetch) or extraction timeout. Better to fail boot —
+    // the worker container restarts and surfaces the error, the
+    // operator sees something is wrong.
+    await this.#boss.updateQueue(name, {
+      ...(opts.policy ? { policy: opts.policy } : {}),
+      ...(opts.expireInSeconds !== undefined ? { expireInSeconds: opts.expireInSeconds } : {}),
+    });
   }
+}
+
+// Recognise pg-boss's "queue already exists" error. v12 surfaces it as
+// Postgres' unique-constraint violation on `queue_pkey`; we match on
+// the SQLSTATE 23505 code (set by node-postgres on PG errors) and fall
+// back to a substring match on the message for safety. Anything else
+// is a real failure.
+function isAlreadyExistsError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const code = (err as { code?: unknown }).code;
+  if (code === '23505') return true;
+  const message = (err as { message?: unknown }).message;
+  return typeof message === 'string' && message.includes('queue_pkey');
 }

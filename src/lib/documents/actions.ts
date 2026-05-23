@@ -161,10 +161,12 @@ export async function extractDocumentAction(
   revalidateTrip(tripId);
 
   // Enqueue durably. The worker process consumes the job; this action
-  // returns the moment the row hits `pgboss.job`. A queueing failure
-  // surfaces here as a thrown promise — we log and degrade to "queued"
-  // anyway because the row is already marked extracting and the user
-  // can re-trigger; better than a 500 they can't act on.
+  // returns the moment the row hits `pgboss.job`. If the persist fails
+  // we MUST roll back the extraction claim — otherwise the doc is
+  // marked extracting with no job behind it, the UI hangs on
+  // "Extracting…" indefinitely, and only the stale-extraction sweep
+  // on the next user click eventually unsticks it. Clear the claim,
+  // revalidate, return a user-actionable error.
   const payload: ExtractionJobData = {
     userId: user.id,
     tripId,
@@ -172,14 +174,17 @@ export async function extractDocumentAction(
     claim: claim.toISOString(),
     priorLinkedSegmentIds,
   };
-  await getJobs()
-    .send(EXTRACTION_JOB, payload)
-    .catch((e) => {
-      log.error(
-        { documentId, err: e instanceof Error ? `${e.name}: ${e.message}` : 'unknown' },
-        'documents.extract.enqueue_failed',
-      );
-    });
+  try {
+    await getJobs().send(EXTRACTION_JOB, payload);
+  } catch (e) {
+    log.error(
+      { documentId, err: e instanceof Error ? `${e.name}: ${e.message}` : 'unknown' },
+      'documents.extract.enqueue_failed',
+    );
+    await repo.clearExtractionStarted(user.id, documentId, claim).catch(() => undefined);
+    revalidateTrip(tripId);
+    return err({ formMessage: 'Could not queue extraction. Please try again.' });
+  }
 
   return ok({ status: 'queued' });
 }

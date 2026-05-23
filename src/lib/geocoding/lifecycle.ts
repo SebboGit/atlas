@@ -83,8 +83,15 @@ export function enqueueGeocodeFetch(query: string): void {
   void getJobs()
     .send(GEOCODE_FETCH_JOB, payload, { singletonKey })
     .catch((err) => {
+      // The singletonKey is the normalised free-text address (hotel
+      // name + street, activity title + city) the user typed; log the
+      // length only so a failure is debuggable without leaking user
+      // content into the structured-log stream.
       log.warn(
-        { err: err instanceof Error ? `${err.name}: ${err.message}` : 'unknown', singletonKey },
+        {
+          err: err instanceof Error ? `${err.name}: ${err.message}` : 'unknown',
+          singletonKeyLen: singletonKey.length,
+        },
         'geocoding.lifecycle.enqueue_failed',
       );
     });
