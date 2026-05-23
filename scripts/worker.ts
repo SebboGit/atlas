@@ -91,7 +91,20 @@ async function checkPmtilesPresent(): Promise<void> {
     // on-disk bind-mount case here. A relative path (e.g.
     // `/api/tiles/world.pmtiles`) is the in-stack route and falls
     // through to the local-file check below.
-    log.info({ source: 'remote', url: configuredUrl }, 'worker.boot.pmtiles_remote');
+    //
+    // Log origin + pathname only — a signed or token-bearing URL
+    // would otherwise leak credentials into the structured-log
+    // stream via the query string. Parse defensively so a malformed
+    // URL still logs *something*.
+    let remoteLog: Record<string, string> = { source: 'remote' };
+    try {
+      const remote = new URL(configuredUrl);
+      remoteLog = { source: 'remote', origin: remote.origin, pathname: remote.pathname };
+    } catch {
+      // configuredUrl matched the http(s) regex but URL parsing
+      // failed — log generically rather than echoing the raw value.
+    }
+    log.info(remoteLog, 'worker.boot.pmtiles_remote');
     return;
   }
   const tilesDir = process.env.TILES_DIR?.trim();

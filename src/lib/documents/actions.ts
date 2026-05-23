@@ -181,7 +181,23 @@ export async function extractDocumentAction(
       { documentId, err: e instanceof Error ? `${e.name}: ${e.message}` : 'unknown' },
       'documents.extract.enqueue_failed',
     );
-    await repo.clearExtractionStarted(user.id, documentId, claim).catch(() => undefined);
+    // Compensating rollback. If this ALSO fails, the doc is stuck
+    // with `extractionStartedAt` set but no pg-boss job behind it.
+    // We don't rethrow — the user-facing path returns a friendly
+    // error either way, and the user's next click recovers via the
+    // stale-extraction sweep at the top of this action. Logging the
+    // rollback failure separately is what surfaces it to operators.
+    try {
+      await repo.clearExtractionStarted(user.id, documentId, claim);
+    } catch (clearErr) {
+      log.error(
+        {
+          documentId,
+          err: clearErr instanceof Error ? `${clearErr.name}: ${clearErr.message}` : 'unknown',
+        },
+        'documents.extract.enqueue_rollback_failed',
+      );
+    }
     revalidateTrip(tripId);
     return err({ formMessage: 'Could not queue extraction. Please try again.' });
   }
