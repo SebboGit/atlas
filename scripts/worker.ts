@@ -34,7 +34,7 @@
 
 process.env.JOBS_ROLE = 'worker';
 
-import { access, writeFile } from 'node:fs/promises';
+import { access, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -84,12 +84,14 @@ async function runBootStatusSweep(): Promise<void> {
 }
 
 async function checkPmtilesPresent(): Promise<void> {
-  const remoteUrl = process.env.PROTOMAPS_PMTILES_URL?.trim();
-  if (remoteUrl) {
+  const configuredUrl = process.env.PROTOMAPS_PMTILES_URL?.trim();
+  if (configuredUrl && /^https?:\/\//i.test(configuredUrl)) {
     // A remote `https://…/world.pmtiles` is left to the app to
     // fail-fast on first byte-range request; we only check the
-    // on-disk bind-mount case here.
-    log.info({ source: 'remote', url: remoteUrl }, 'worker.boot.pmtiles_remote');
+    // on-disk bind-mount case here. A relative path (e.g.
+    // `/api/tiles/world.pmtiles`) is the in-stack route and falls
+    // through to the local-file check below.
+    log.info({ source: 'remote', url: configuredUrl }, 'worker.boot.pmtiles_remote');
     return;
   }
   const tilesDir = process.env.TILES_DIR?.trim();
@@ -107,6 +109,12 @@ async function checkPmtilesPresent(): Promise<void> {
 
 async function main(): Promise<void> {
   log.info({ pid: process.pid }, 'worker.boot.start');
+
+  // If the process restarts in-place (orchestrator restart, supervisord,
+  // etc.) the marker from a prior boot would otherwise let the
+  // healthcheck pass before migrations + handler registration finish
+  // for this boot. Clear it first; recreated at the end of main().
+  await rm(READY_MARKER_PATH, { force: true });
 
   await runMigrations();
 

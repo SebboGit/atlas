@@ -82,11 +82,18 @@ export function classifyTransition(
 
 export async function runStatusSweep(db: AnyDb, now: Date): Promise<StatusSweepCounts> {
   const today = startOfDayUtc(now);
+  // `updatedAt` records the actual write instant — not `today` —
+  // because a same-day backfill (worker boot at 14:00 UTC) would
+  // otherwise stamp `2026-05-23T00:00:00Z` onto a row whose previous
+  // `updatedAt` from a user edit was `2026-05-23T10:00:00Z`. That
+  // moves the audit cursor backward and breaks "what changed since
+  // last check" queries.
+  const changedAt = now;
+
   // planned → active: in-range trips with a start date that has arrived.
-  // We update `updatedAt` so the row's audit trail reflects the change.
   const activated = await db
     .update(trips)
-    .set({ status: 'active', updatedAt: today })
+    .set({ status: 'active', updatedAt: changedAt })
     .where(
       and(
         eq(trips.status, 'planned'),
@@ -102,7 +109,7 @@ export async function runStatusSweep(db: AnyDb, now: Date): Promise<StatusSweepC
   // module docstring.
   const completed = await db
     .update(trips)
-    .set({ status: 'completed', updatedAt: today })
+    .set({ status: 'completed', updatedAt: changedAt })
     .where(and(eq(trips.status, 'active'), isNotNull(trips.endDate), lt(trips.endDate, today)))
     .returning({ id: trips.id });
 
