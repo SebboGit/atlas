@@ -22,7 +22,7 @@ const DEFAULT_MIN_INTERVAL_MS = 1100;
 // Hard ceiling on how long a single fetch can hang before we give up
 // and emit a `network-error`. The public Nominatim endpoint
 // occasionally stalls; default undici fetch timeout is ~5 min, which
-// would block the InlineJobs queue behind a single slow request and
+// would tie up a worker slot behind a single slow request and
 // (more importantly) make a misconfigured self-hosted Nominatim look
 // like the whole app froze. 10 s is generous for a healthy provider
 // and tight enough that a hang surfaces fast.

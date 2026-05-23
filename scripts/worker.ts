@@ -1,0 +1,188 @@
+// Worker entrypoint — the long-running container that hosts pg-boss.
+//
+// Boot order matters. Each step must complete before the next:
+//
+//   1. JOBS_ROLE=worker          must be set before getJobs() is first
+//                                called. ESM hoists imports above this
+//                                line, so the assignment only works
+//                                because getJobs() is lazy — the
+//                                singleton is constructed on first call,
+//                                inside main(). If a future contributor
+//                                adds `getJobs()` at the top level of
+//                                any transitively-imported module, role
+//                                detection silently falls back to 'app'
+//                                and register() throws. Keep getJobs()
+//                                calls inside functions.
+//   2. Drizzle migrations        forward-only application schema migrations;
+//                                the worker is the single source of truth
+//                                so the app process never races to migrate
+//   3. pg-boss start             installs/migrates the `pgboss.*` schema
+//                                and starts the supervision loop
+//   4. Boot-time status sweep    catches up trips that were `planned` /
+//                                `active` before this worker version
+//                                landed (idempotent — running once at
+//                                boot + nightly is harmless)
+//   5. PMTiles existence check   non-fatal warn if the bind-mount is
+//                                missing; the map silently breaks
+//                                otherwise and the cause is opaque
+//   6. registerWorkerJobs        wire pg-boss handlers + schedules
+//   7. Hold the process alive    until SIGTERM / SIGINT, then graceful
+//                                stop so in-flight handlers finish
+//
+// If step 2 or 3 fails the process exits non-zero and the orchestrator
+// restarts us — `pg_isready`-style behaviour for the worker.
+
+process.env.JOBS_ROLE = 'worker';
+
+import { access, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+
+import { db } from '../src/db/client';
+import { getJobs } from '../src/lib/jobs';
+import { log } from '../src/lib/log';
+import { runStatusSweep, registerWorkerJobs } from '../src/lib/scheduler';
+
+const PMTILES_DEFAULT_REL = 'data/tiles/world.pmtiles';
+
+// Docker compose's `depends_on: condition: service_healthy` blocks the
+// app container's startup until this marker exists — see the worker
+// service's healthcheck in docker-compose.yml. Written once at the end
+// of the boot sequence, after migrations + pg-boss start + handler
+// registration have all succeeded. Per-container ephemeral; recreated
+// every boot.
+const READY_MARKER_PATH = '/tmp/atlas-worker-ready';
+
+async function runMigrations(): Promise<void> {
+  const startedAt = Date.now();
+  log.info({}, 'worker.migrate.started');
+  await migrate(db, { migrationsFolder: './src/db/migrations' });
+  log.info({ durationMs: Date.now() - startedAt }, 'worker.migrate.completed');
+}
+
+async function runBootStatusSweep(): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    const counts = await runStatusSweep(db, new Date());
+    log.info(
+      {
+        plannedToActive: counts.plannedToActive,
+        activeToCompleted: counts.activeToCompleted,
+        durationMs: Date.now() - startedAt,
+      },
+      'worker.boot.status_sweep_completed',
+    );
+  } catch (err) {
+    // Non-fatal — the scheduled job will retry tonight. Log loudly so
+    // operators see it surface in the first few minutes after upgrade.
+    log.error(
+      { err: err instanceof Error ? `${err.name}: ${err.message}` : 'unknown' },
+      'worker.boot.status_sweep_failed',
+    );
+  }
+}
+
+async function checkPmtilesPresent(): Promise<void> {
+  const remoteUrl = process.env.PROTOMAPS_PMTILES_URL?.trim();
+  if (remoteUrl) {
+    // A remote `https://…/world.pmtiles` is left to the app to
+    // fail-fast on first byte-range request; we only check the
+    // on-disk bind-mount case here.
+    log.info({ source: 'remote', url: remoteUrl }, 'worker.boot.pmtiles_remote');
+    return;
+  }
+  const tilesDir = process.env.TILES_DIR?.trim();
+  const path = tilesDir ? `${tilesDir}/world.pmtiles` : resolve(process.cwd(), PMTILES_DEFAULT_REL);
+  try {
+    await access(path);
+    log.info({ path }, 'worker.boot.pmtiles_ok');
+  } catch {
+    log.warn(
+      { path },
+      'worker.boot.pmtiles_missing — map will not render until you run `pnpm tiles:fetch` (~33 GB, see scripts/fetch-tiles.sh)',
+    );
+  }
+}
+
+async function main(): Promise<void> {
+  log.info({ pid: process.pid }, 'worker.boot.start');
+
+  await runMigrations();
+
+  const jobs = getJobs();
+  await jobs.start();
+
+  // Boot-time backfill — the sweep is idempotent, so running it both
+  // at boot and on schedule is fine. Catches trips whose dates have
+  // moved without a sweep firing yet (typically: just upgraded to a
+  // version with this job for the first time).
+  await runBootStatusSweep();
+
+  await checkPmtilesPresent();
+
+  await registerWorkerJobs(jobs, db);
+
+  // Signal "boot complete" to compose's healthcheck. If this fails the
+  // worker still runs, but the app container won't start — surface it
+  // as an error rather than silently hanging the dependency chain.
+  try {
+    await writeFile(READY_MARKER_PATH, `${new Date().toISOString()}\n`, 'utf8');
+  } catch (err) {
+    log.error(
+      {
+        path: READY_MARKER_PATH,
+        err: err instanceof Error ? `${err.name}: ${err.message}` : 'unknown',
+      },
+      'worker.boot.ready_marker_failed',
+    );
+    throw err;
+  }
+
+  log.info({}, 'worker.boot.ready');
+
+  let shuttingDown = false;
+  async function shutdown(signal: NodeJS.Signals): Promise<void> {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    log.info({ signal }, 'worker.shutdown.signal');
+    try {
+      await jobs.stop();
+    } catch (err) {
+      log.warn(
+        { err: err instanceof Error ? `${err.name}: ${err.message}` : 'unknown' },
+        'worker.shutdown.jobs_stop_failed',
+      );
+    }
+    process.exit(0);
+  }
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+
+  // A handler-body fire-and-forget rejection would otherwise crash the
+  // process under Node 24's default — fine, because the orchestrator
+  // restarts us, but the log line is what tells the operator WHAT
+  // crashed. Same for an unexpected uncaughtException.
+  process.on('unhandledRejection', (reason) => {
+    log.error(
+      { err: reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason) },
+      'worker.unhandled_rejection',
+    );
+    process.exit(1);
+  });
+  process.on('uncaughtException', (err) => {
+    log.error(
+      { err: `${err.name}: ${err.message}\n${err.stack ?? ''}` },
+      'worker.uncaught_exception',
+    );
+    process.exit(1);
+  });
+}
+
+main().catch((err) => {
+  log.error(
+    { err: err instanceof Error ? `${err.name}: ${err.message}\n${err.stack ?? ''}` : 'unknown' },
+    'worker.boot.failed',
+  );
+  process.exit(1);
+});

@@ -87,8 +87,10 @@ const config = [
       'src/lib/extraction/flight-cache.ts',
       'src/lib/geocoding/cache.ts',
       // Maintenance owns cross-table cleanup (sessions, tokens, geocode
-      // cache). Shared by `pnpm db:prune` and the in-stack scheduler.
+      // cache) and the auto-status sweep. Shared by `pnpm db:prune` /
+      // the worker's boot-time backfill and the scheduled jobs.
       'src/lib/maintenance/prune.ts',
+      'src/lib/maintenance/status.ts',
       'src/app/api/**/*.ts',
       'scripts/**/*.ts',
       '**/*.test.ts',

@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Segment } from '@/lib/segments';
 
 const mocks = vi.hoisted(() => ({
-  enqueue: vi.fn<(work: () => Promise<void>) => void>(),
+  send: vi.fn<(name: string, data: unknown, opts?: { singletonKey?: string }) => Promise<void>>(),
   getGeocoder: vi.fn(),
   getCachedOrFetch: vi.fn(),
 }));
 
 vi.mock('@/lib/jobs', () => ({
-  getJobs: () => ({ enqueue: mocks.enqueue }),
+  getJobs: () => ({ send: mocks.send }),
 }));
 
 vi.mock('./index', () => ({
@@ -20,7 +20,12 @@ vi.mock('./cache', () => ({
   getCachedOrFetch: mocks.getCachedOrFetch,
 }));
 
-import { enqueueGeocodeFetch, geocodeOnSegmentChange } from './lifecycle';
+import {
+  enqueueGeocodeFetch,
+  GEOCODE_FETCH_JOB,
+  geocodeOnSegmentChange,
+  runGeocodeFetchJob,
+} from './lifecycle';
 
 function makeSegment(overrides: Partial<Segment>): Segment {
   return {
@@ -42,9 +47,7 @@ function makeSegment(overrides: Partial<Segment>): Segment {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.enqueue.mockImplementation((work) => {
-    void work();
-  });
+  mocks.send.mockResolvedValue();
   mocks.getGeocoder.mockReturnValue({ geocode: vi.fn() });
   mocks.getCachedOrFetch.mockResolvedValue({ result: null, cached: false });
 });
@@ -54,54 +57,55 @@ afterEach(() => {
 });
 
 describe('geocodeOnSegmentChange — gating', () => {
-  it('schedules for a hotel with a propertyName', () => {
+  it('enqueues for a hotel with a propertyName', () => {
     geocodeOnSegmentChange({
       segment: makeSegment({ type: 'hotel', data: { propertyName: 'Hotel A' } }),
     });
-    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.send.mock.calls[0]![0]).toBe(GEOCODE_FETCH_JOB);
   });
 
-  it('schedules for an activity with a title', () => {
+  it('enqueues for an activity with a title', () => {
     geocodeOnSegmentChange({
       segment: makeSegment({ type: 'activity', data: { title: 'Mountain' } }),
     });
-    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 
-  it('schedules for a transit with a toName', () => {
+  it('enqueues for a transit with a toName', () => {
     geocodeOnSegmentChange({
       segment: makeSegment({ type: 'transit', data: { mode: 'train', toName: 'Heathrow T5' } }),
     });
-    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 
-  it('does NOT schedule for flight segments — they go through the IATA snapshot', () => {
+  it('does NOT enqueue for flight segments — they go through the IATA snapshot', () => {
     geocodeOnSegmentChange({
       segment: makeSegment({
         type: 'flight',
         data: { carrier: 'BA', flightNumber: '287', destinationAirport: 'SFO' },
       }),
     });
-    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 
-  it('does NOT schedule for note segments', () => {
+  it('does NOT enqueue for note segments', () => {
     geocodeOnSegmentChange({
       segment: makeSegment({ type: 'note', data: { body: 'remember visa' } }),
     });
-    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 
-  it('does NOT schedule when the segment has no geocodable identity (hotel missing propertyName)', () => {
+  it('does NOT enqueue when the segment has no geocodable identity (hotel missing propertyName)', () => {
     geocodeOnSegmentChange({
       segment: makeSegment({ type: 'hotel', data: { address: 'somewhere' } }),
     });
-    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 });
 
 describe('geocodeOnSegmentChange — update path', () => {
-  it('does NOT schedule when the derived query is identical to the prior', () => {
+  it('does NOT enqueue when the derived query is identical to the prior', () => {
     const before = makeSegment({
       type: 'hotel',
       data: { propertyName: 'Hotel California' },
@@ -110,21 +114,20 @@ describe('geocodeOnSegmentChange — update path', () => {
     const after = makeSegment({
       type: 'hotel',
       data: { propertyName: 'Hotel California' },
-      // Different startsAt — but the geocode query is unchanged.
       startsAt: new Date('2026-06-05'),
     });
     geocodeOnSegmentChange({ segment: after, prior: before });
-    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 
-  it('schedules when the propertyName changes', () => {
+  it('enqueues when the propertyName changes', () => {
     const before = makeSegment({ type: 'hotel', data: { propertyName: 'Hotel California' } });
     const after = makeSegment({ type: 'hotel', data: { propertyName: 'Hotel Sakura' } });
     geocodeOnSegmentChange({ segment: after, prior: before });
-    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 
-  it('schedules when the address changes', () => {
+  it('enqueues when the address changes', () => {
     const before = makeSegment({
       type: 'hotel',
       data: { propertyName: 'Hotel California', address: '1 Sunset Blvd' },
@@ -134,101 +137,61 @@ describe('geocodeOnSegmentChange — update path', () => {
       data: { propertyName: 'Hotel California', address: '2 Sunset Blvd' },
     });
     geocodeOnSegmentChange({ segment: after, prior: before });
-    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 
-  it('schedules when an activity transitions from missing title to having one', () => {
-    // Title is required by the validator, so in practice the prior
-    // state would always have one. But buildGeocodeQuery returns null
-    // for malformed data, and the lifecycle should treat null→string
-    // as "changed" and fire.
+  it('enqueues when an activity transitions from missing title to having one', () => {
     const before = makeSegment({ type: 'activity', data: { description: 'no title' } });
     const after = makeSegment({ type: 'activity', data: { title: 'Eiffel Tower' } });
     geocodeOnSegmentChange({ segment: after, prior: before });
-    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('geocodeOnSegmentChange — job body', () => {
-  it('routes the built query through getCachedOrFetch', async () => {
-    let captured: (() => Promise<void>) | null = null;
-    mocks.enqueue.mockImplementation((work) => {
-      captured = work;
-    });
-
-    geocodeOnSegmentChange({
-      segment: makeSegment({
-        type: 'hotel',
-        data: { propertyName: 'Hotel Sakura', address: '1-2-3 Roppongi, Tokyo' },
-      }),
-    });
-
-    expect(captured).not.toBeNull();
-    await captured!();
-    expect(mocks.getCachedOrFetch).toHaveBeenCalledTimes(1);
-    // Address-first: propertyName is excluded from the query to
-    // keep Nominatim's q-parser happy. See segment-query.ts.
-    expect(mocks.getCachedOrFetch.mock.calls[0]![0]).toBe('1-2-3 Roppongi, Tokyo');
+describe('enqueueGeocodeFetch — singleton key', () => {
+  it('passes a normalised singletonKey so pg-boss can dedupe cross-process', () => {
+    enqueueGeocodeFetch('111 Dedup Ave, Testville');
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    const [name, data, opts] = mocks.send.mock.calls[0]!;
+    expect(name).toBe(GEOCODE_FETCH_JOB);
+    expect(data).toEqual({ query: '111 Dedup Ave, Testville' });
+    expect(typeof opts?.singletonKey).toBe('string');
+    expect(opts?.singletonKey?.length).toBeGreaterThan(0);
   });
 
-  it('logs and returns when the geocoder factory throws (unconfigured)', async () => {
-    mocks.getGeocoder.mockImplementation(() => {
-      throw new Error('NOMINATIM_CONTACT_EMAIL is not set');
-    });
-    let captured: (() => Promise<void>) | null = null;
-    mocks.enqueue.mockImplementation((work) => {
-      captured = work;
-    });
-
-    geocodeOnSegmentChange({
-      segment: makeSegment({ type: 'hotel', data: { propertyName: 'Hotel A' } }),
-    });
-    expect(captured).not.toBeNull();
-    await expect(captured!()).resolves.toBeUndefined();
-    expect(mocks.getCachedOrFetch).not.toHaveBeenCalled();
-  });
-});
-
-describe('enqueueGeocodeFetch — per-process dedup', () => {
-  // The in-flight Set is module-level state that survives
-  // vi.clearAllMocks. Use a unique query per test so prior-test
-  // entries don't pollute. Production code is unaffected — Atlas
-  // doesn't see the same hotel address from two different test
-  // contexts at runtime.
-
-  it('deduplicates concurrent calls for the same normalized query', async () => {
-    const captured: Array<() => Promise<void>> = [];
-    mocks.enqueue.mockImplementation((work) => {
-      captured.push(work);
-    });
-
-    enqueueGeocodeFetch('111 dedup ave, testville');
-    enqueueGeocodeFetch('  111 Dedup Ave,  testville  '); // same normalized
-    enqueueGeocodeFetch('111 DEDUP AVE, TESTVILLE'); // same normalized
-    expect(captured).toHaveLength(1);
-
-    // Drain the queued work so the in-flight slot is released —
-    // keeps the module-level Set clean for subsequent tests.
-    await captured[0]!();
-  });
-
-  it('re-enqueues once the prior fetch completes (in-flight slot released)', async () => {
-    mocks.enqueue.mockImplementation((work) => {
-      void work();
-    });
-
-    enqueueGeocodeFetch('222 reentry st, testville');
-    // Microtask flush so the first job's `finally` removes the entry.
-    await Promise.resolve();
-    await Promise.resolve();
-    enqueueGeocodeFetch('222 reentry st, testville');
-
-    expect(mocks.enqueue).toHaveBeenCalledTimes(2);
+  it('produces the same singletonKey for equivalent queries (case + whitespace)', () => {
+    enqueueGeocodeFetch('222 Reentry St, Testville');
+    enqueueGeocodeFetch('  222 reentry st,  testville  ');
+    enqueueGeocodeFetch('222 REENTRY ST, TESTVILLE');
+    expect(mocks.send).toHaveBeenCalledTimes(3);
+    const keys = mocks.send.mock.calls.map((c) => c[2]?.singletonKey);
+    expect(new Set(keys).size).toBe(1);
   });
 
   it('short-circuits empty / whitespace-only queries', () => {
     enqueueGeocodeFetch('');
     enqueueGeocodeFetch('   ');
-    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+});
+
+describe('runGeocodeFetchJob — handler body', () => {
+  it('routes the query through getCachedOrFetch', async () => {
+    await runGeocodeFetchJob({ query: '1-2-3 Roppongi, Tokyo' });
+    expect(mocks.getCachedOrFetch).toHaveBeenCalledTimes(1);
+    expect(mocks.getCachedOrFetch.mock.calls[0]![0]).toBe('1-2-3 Roppongi, Tokyo');
+  });
+
+  it('returns without throwing when the geocoder factory throws (unconfigured)', async () => {
+    mocks.getGeocoder.mockImplementation(() => {
+      throw new Error('NOMINATIM_CONTACT_EMAIL is not set');
+    });
+    await expect(runGeocodeFetchJob({ query: 'anywhere' })).resolves.toBeUndefined();
+    expect(mocks.getCachedOrFetch).not.toHaveBeenCalled();
+  });
+
+  it('short-circuits empty queries', async () => {
+    await runGeocodeFetchJob({ query: '   ' });
+    expect(mocks.getCachedOrFetch).not.toHaveBeenCalled();
   });
 });

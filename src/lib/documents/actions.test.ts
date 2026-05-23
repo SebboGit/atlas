@@ -27,7 +27,9 @@ import type { ExtractDocumentResult } from '@/lib/extraction/orchestrator';
 
 const mocks = vi.hoisted(() => {
   // captured by the fake Jobs implementation; tests run them explicitly
-  const enqueued: Array<() => Promise<void>> = [];
+  // via `runEnqueuedJobs()` below, which invokes the extracted handler
+  // body in `./extraction-job.ts` with the captured payload.
+  const enqueued: Array<{ name: string; data: unknown }> = [];
   return {
     requireUser: vi.fn(),
     getByIdForUser: vi.fn(),
@@ -45,8 +47,8 @@ const mocks = vi.hoisted(() => {
     revalidatePath: vi.fn(),
     enqueued,
     getJobs: vi.fn(() => ({
-      enqueue(work: () => Promise<void>) {
-        enqueued.push(work);
+      async send(name: string, data: unknown) {
+        enqueued.push({ name, data });
       },
     })),
   };
@@ -91,6 +93,9 @@ vi.mock('@/lib/extraction', async (importOriginal) => {
   };
 });
 
+// segment-link is mocked at this module path because both `./actions`
+// and `./extraction-job` (the handler module the worker calls) import
+// from it.
 vi.mock('./segment-link', () => ({
   ensureSegmentForExtraction: mocks.ensureSegmentForExtraction,
 }));
@@ -126,6 +131,7 @@ vi.mock('@/db/client', () => ({
 
 // Import AFTER the vi.mock hoists.
 import { deleteDocumentAction, extractDocumentAction, updateParsedAction } from './actions';
+import { EXTRACTION_JOB, runExtractionJob, type ExtractionJobData } from './extraction-job';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -200,13 +206,16 @@ const OK_BOARDING_PAYLOAD: StructuredPayload = {
   confidence: 0.9,
 };
 
-// Drain any thunks the action enqueued. Tests that care about the
-// job body call this; tests that only care about the action's return
-// value can leave the queue full and assert it.
+// Drain any jobs the action enqueued by invoking the worker-side
+// handler directly with the captured payload. The action passes
+// `(name, data)` to `getJobs().send`; we recover the data and call
+// the same `runExtractionJob` the worker registers — so the job-body
+// tests still cover the full handler logic end-to-end.
 async function runEnqueuedJobs(): Promise<void> {
   while (mocks.enqueued.length > 0) {
-    const work = mocks.enqueued.shift()!;
-    await work();
+    const entry = mocks.enqueued.shift()!;
+    expect(entry.name).toBe(EXTRACTION_JOB);
+    await runExtractionJob(entry.data as ExtractionJobData);
   }
 }
 
@@ -376,8 +385,12 @@ describe('extractDocumentAction — background job body', () => {
       },
       CLAIM_AT,
     );
-    // Twice: once on the synchronous enqueue, once on completion.
-    expect(mocks.revalidatePath).toHaveBeenCalledTimes(2);
+    // Once on the synchronous enqueue. Post-job revalidation moved to
+    // client-side polling (ExtractingAutoRefresh) because the worker
+    // runs in a different process from the Next.js render context;
+    // cross-process revalidatePath doesn't work with the in-process
+    // cache.
+    expect(mocks.revalidatePath).toHaveBeenCalledTimes(1);
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/trips/${TRIP_ID}`, 'layout');
   });
 
