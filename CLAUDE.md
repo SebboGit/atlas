@@ -22,34 +22,34 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 
 ## Tech Stack
 
-| Layer            | Choice                                            | Why                                                                        |
-| ---------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
-| Framework        | **Next.js 15** (App Router, RSC)                  | Full-stack TS, mature ecosystem, server actions                            |
-| Language         | **TypeScript** (strict mode)                      | Type safety end-to-end                                                     |
-| Styling          | **Tailwind CSS** + **shadcn/ui**                  | Sophisticated default, zero lock-in, fully owned components                |
-| Database         | **PostgreSQL 18**                                 | JSONB, native UUIDv7, async I/O, FTS, PostGIS-ready                        |
-| ORM              | **Drizzle ORM** + `drizzle-kit`                   | SQL-first, lightweight, great TS inference                                 |
-| File storage     | **Local filesystem** (bind-mounted volume)        | Single-user homelab — see ADR-0001. Behind a `Storage` interface.          |
-| DB backups       | **nfrastack/container-db-backup**                 | Scheduled, compressed, retention-managed — see `atlas-backups` skill       |
-| Maps             | **MapLibre GL JS** + **Protomaps PMTiles**        | Fully self-hostable, no tile server, no licensing concerns                 |
-| Geocoding        | **Nominatim** (public OSM) + DB cache             | Pin non-flight segments on maps — see ADR-0010                             |
-| Auth             | **Auth.js + PocketID** (OIDC, passkeys)           | Passwordless, phishing-resistant; see ADR-0002 and "Auth" section          |
-| Data fetching    | **TanStack Query** (client) + RSC (server)        | Use RSC by default, Query for interactive client state                     |
-| Validation       | **Zod**                                           | Schema-first input validation, shared client/server                        |
-| Forms            | **react-hook-form** + Zod resolver                | Performant, type-safe                                                      |
-| PDF parsing      | `pdf-parse` / `pdfjs-dist`                        | Most hotel/flight confirmations are text PDFs                              |
-| OCR fallback     | **Tesseract.js** (Node) or PaddleOCR sidecar      | Only when PDF text extraction fails                                        |
-| Structuring      | **Ollama** (local LLM, e.g. Qwen)                 | Extract structured data from raw OCR/text — see ADR-0006                   |
-| Airline lookup   | **Static IATA→name table** (OpenFlights snapshot) | Friendly carrier names without an external API — see ADR-0009              |
-| Airport lookup   | **Static IATA→airport table** (OurAirports)       | Coords + timezone for flight pins/times, no runtime API call               |
-| Jobs             | **In-process `Jobs` interface** (`InlineJobs`)    | Background work without a queue today; pg-boss swap when needed (ADR-0012) |
-| Notifications    | **ntfy** (self-hosted)                            | Push reminders for upcoming segments, extraction events, errors            |
-| Testing          | **Vitest** (unit) + **Playwright** (e2e)          | Fast unit, real-browser e2e                                                |
-| Lint / Format    | **ESLint** (flat config) + **Prettier**           | Standard                                                                   |
-| Git hooks        | **Husky** + **lint-staged** + **gitleaks**        | Lint, format, and secret-scan staged files before commit                   |
-| CI               | **GitHub Actions** (private repo, free 2k min/mo) | Lint, typecheck, test, build, secret-scan on PR/main                       |
-| Dep updates      | **Dependabot** (grouped, weekly)                  | Free, no Actions minutes for itself                                        |
-| Containerization | **Docker** + Docker Compose                       | Single-host self-hosting                                                   |
+| Layer            | Choice                                            | Why                                                                            |
+| ---------------- | ------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Framework        | **Next.js 15** (App Router, RSC)                  | Full-stack TS, mature ecosystem, server actions                                |
+| Language         | **TypeScript** (strict mode)                      | Type safety end-to-end                                                         |
+| Styling          | **Tailwind CSS** + **shadcn/ui**                  | Sophisticated default, zero lock-in, fully owned components                    |
+| Database         | **PostgreSQL 18**                                 | JSONB, native UUIDv7, async I/O, FTS, PostGIS-ready                            |
+| ORM              | **Drizzle ORM** + `drizzle-kit`                   | SQL-first, lightweight, great TS inference                                     |
+| File storage     | **Local filesystem** (bind-mounted volume)        | Single-user homelab — see ADR-0001. Behind a `Storage` interface.              |
+| DB backups       | **nfrastack/container-db-backup**                 | Scheduled, compressed, retention-managed — see `atlas-backups` skill           |
+| Maps             | **MapLibre GL JS** + **Protomaps PMTiles**        | Fully self-hostable, no tile server, no licensing concerns                     |
+| Geocoding        | **Nominatim** (public OSM) + DB cache             | Pin non-flight segments on maps — see ADR-0010                                 |
+| Auth             | **Auth.js + PocketID** (OIDC, passkeys)           | Passwordless, phishing-resistant; see ADR-0002 and "Auth" section              |
+| Data fetching    | **TanStack Query** (client) + RSC (server)        | Use RSC by default, Query for interactive client state                         |
+| Validation       | **Zod**                                           | Schema-first input validation, shared client/server                            |
+| Forms            | **react-hook-form** + Zod resolver                | Performant, type-safe                                                          |
+| PDF parsing      | `pdf-parse` / `pdfjs-dist`                        | Most hotel/flight confirmations are text PDFs                                  |
+| OCR fallback     | **Tesseract.js** (Node) or PaddleOCR sidecar      | Only when PDF text extraction fails                                            |
+| Structuring      | **Ollama** (local LLM, e.g. Qwen)                 | Extract structured data from raw OCR/text — see ADR-0006                       |
+| Airline lookup   | **Static IATA→name table** (OpenFlights snapshot) | Friendly carrier names without an external API — see ADR-0009                  |
+| Airport lookup   | **Static IATA→airport table** (OurAirports)       | Coords + timezone for flight pins/times, no runtime API call                   |
+| Jobs             | **pg-boss** (`Jobs` interface, Postgres-backed)   | Durable background work + recurring schedules; one schema, no Redis (ADR-0012) |
+| Notifications    | **ntfy** (self-hosted)                            | Push reminders for upcoming segments, extraction events, errors                |
+| Testing          | **Vitest** (unit) + **Playwright** (e2e)          | Fast unit, real-browser e2e                                                    |
+| Lint / Format    | **ESLint** (flat config) + **Prettier**           | Standard                                                                       |
+| Git hooks        | **Husky** + **lint-staged** + **gitleaks**        | Lint, format, and secret-scan staged files before commit                       |
+| CI               | **GitHub Actions** (private repo, free 2k min/mo) | Lint, typecheck, test, build, secret-scan on PR/main                           |
+| Dep updates      | **Dependabot** (grouped, weekly)                  | Free, no Actions minutes for itself                                            |
+| Containerization | **Docker** + Docker Compose                       | Single-host self-hosting                                                       |
 
 ---
 
@@ -107,17 +107,17 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── countries/       # Reference data — country names + ISO codes
 │   │   ├── ocr/             # PDF text extraction + OCR fallback
 │   │   ├── extraction/      # Ollama-backed structuring
-│   │   ├── jobs/            # In-process Jobs interface (`InlineJobs`) — swap door for pg-boss (ADR-0012)
+│   │   ├── jobs/            # Jobs interface (send/register/schedule), pg-boss-backed — see ADR-0012
 │   │   ├── notifications/   # ntfy client (planned — directory not yet present)
-│   │   ├── maintenance/     # Reusable housekeeping (prune queries) — shared by CLI + scheduler
-│   │   ├── scheduler/       # In-stack cron (croner). Runs in the `cron` compose service.
+│   │   ├── maintenance/     # Reusable housekeeping (prune, status sweep) — shared by CLI + worker
+│   │   ├── scheduler/       # Worker-side handler + schedule registration for pg-boss
 │   │   ├── search/          # Cmd+K palette over Postgres FTS + pg_trgm (ADR-0013)
 │   │   ├── stats/           # Read-only aggregation for the /stats dashboard
 │   │   ├── validators/      # Shared Zod schemas
 │   │   ├── format/          # Shared formatters (dates, money, durations)
 │   │   └── log.ts           # Structured logger entrypoint
 │   └── types/               # Cross-cutting types
-├── docker-compose.yml       # Local dev stack (app, postgres, cron; db-backup behind profile)
+├── docker-compose.yml       # Local dev stack (app, postgres, worker; db-backup behind profile)
 ├── docker-compose.prod.yml  # Production overlay
 ├── Dockerfile               # App image (dev + prod targets)
 ├── drizzle.config.ts        # Drizzle Kit config
@@ -444,7 +444,7 @@ The following are deliberately stubbed but not yet built. Keep them in mind so t
 - **ntfy notifications.** Push reminders for upcoming flights / hotel check-ins, plus extraction success/failure. Self-hosted ntfy server, per-user topic. See "External Integrations → Push notifications".
 - **Calendar sync.** ICS export of confirmed segments; CalDAV later.
 - **Storage backend swap.** If usage ever justifies it, replace `src/lib/storage/fs.ts` with `s3.ts`. The `Storage` interface stays the same.
-- **Job queue (pg-boss).** A small `Jobs` interface lives at `src/lib/jobs/` with an in-process floating-promise implementation (`InlineJobs`). Use it for any background work that would otherwise block a server action — extraction is the first consumer. When in-process stops being enough (multi-process, restart-survivability, retry policies, scheduled work), swap the implementation for **pg-boss** behind the same interface — Postgres-only, no Redis. See ADR-0012 (proposed).
+- **Job queue (graduation past pg-boss).** The `Jobs` interface at `src/lib/jobs/` is backed by **pg-boss** (ADR-0012, accepted). Three methods — `send` (app code), `register` + `schedule` (worker only). One Postgres schema (`pgboss.*`), one container (`worker` compose service), one operational model for ad-hoc + scheduled work. If pg-boss ever stops being enough — multi-tenant scale, sub-second latency — BullMQ + Redis is the next graduation step behind the same interface.
 
 ---
 
@@ -463,7 +463,7 @@ Architectural decisions live in `docs/adr/` as numbered ADRs.
 - **ADR-0009** — Drop flight-metadata lookup; Ollama extracts times directly + static airline-name table. Accepted.
 - **ADR-0010** — Geocoding via Nominatim (public OSM endpoint), DB-cached. Accepted.
 - **ADR-0011** — Self-hosted Protomaps PMTiles basemap (bind-mounted, byte-range served, no third-party tile origins). Accepted.
-- **ADR-0012** — pg-boss for durable jobs and in-stack scheduling (graduates `Jobs` and `cron` service from their minimal in-process implementations). Proposed.
+- **ADR-0012** — pg-boss for durable jobs and in-stack scheduling (graduates `Jobs` and the `worker` service from their minimal in-process implementations). Accepted.
 - **ADR-0013** — Postgres-native search via generated `tsvector` columns directly on source tables (no central `search_index`, no out-of-process search engine). Accepted.
 
 When making a non-obvious choice (a library, a pattern, a tradeoff), write a short ADR. Template in `docs/adr/0000-template.md`.

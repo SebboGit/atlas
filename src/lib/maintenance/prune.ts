@@ -10,7 +10,7 @@
 // "expired" means and what gets reclaimed:
 //
 //   - scripts/prune.ts                       (CLI: `pnpm db:prune`)
-//   - src/lib/scheduler/index.ts             (nightly cron sidecar)
+//   - src/lib/scheduler/index.ts             (worker-side scheduled handler)
 
 import { lt, sql, type SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';

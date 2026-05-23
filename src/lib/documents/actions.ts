@@ -6,20 +6,14 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/db/client';
 import { trips } from '@/db/schema';
 import { requireUser } from '@/lib/auth/session';
-import {
-  createOllamaExtractor,
-  extractDocument,
-  getDefaultDirectExtractors,
-  structuredPayloadSchema,
-} from '@/lib/extraction';
+import { createOllamaExtractor, structuredPayloadSchema } from '@/lib/extraction';
 import { getJobs } from '@/lib/jobs';
 import { log } from '@/lib/log';
-import { getDefaultExtractors } from '@/lib/ocr';
 import { getStorage, StorageRejectedError } from '@/lib/storage';
 import { err, ok, type Result } from '@/types/result';
 
+import { EXTRACTION_JOB, type ExtractionJobData } from './extraction-job';
 import * as repo from './repo';
-import { ensureSegmentForExtraction } from './segment-link';
 import { EXTRACTION_STALE_MS } from './state';
 
 export type FormError = {
@@ -29,32 +23,6 @@ export type FormError = {
 
 function revalidateTrip(tripId: string) {
   revalidatePath(`/trips/${tripId}`, 'layout');
-}
-
-// Same as `revalidateTrip`, but safe to call from inside a background
-// job. Next.js 15 forbids `revalidatePath` while ANY render is active
-// in the same process — and the InlineJobs body runs concurrently
-// with the user's polling RSC fetches (ExtractingAutoRefresh ticks
-// every 4s), so the check trips on every successful extraction.
-//
-// We swallow that specific error and rely on ExtractingAutoRefresh to
-// pick up the new state on its next tick. Other shapes of error still
-// bubble — those would be real misconfiguration. Single-user app
-// scope: cross-tab freshness lags by up to the polling interval; the
-// user is almost certainly looking at the Documents tab while a doc
-// extracts anyway.
-function revalidateTripFromJob(tripId: string): void {
-  try {
-    revalidatePath(`/trips/${tripId}`, 'layout');
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('during render')) {
-      // Expected when a poll-driven RSC fetch is in flight. Drop it
-      // silently — ExtractingAutoRefresh will redraw on next tick.
-      return;
-    }
-    throw err;
-  }
 }
 
 export async function uploadDocumentAction(
@@ -192,164 +160,28 @@ export async function extractDocumentAction(
 
   revalidateTrip(tripId);
 
-  // Schedule the actual work. The closure captures everything it
-  // needs; the InlineJobs implementation catches and logs any throw
-  // from the handler. We don't await — the action returns now.
-  getJobs().enqueue(async () => {
-    await runExtractionJob({
-      userId: user.id,
-      tripId,
-      documentId,
-      claim,
-      priorLinkedSegmentIds,
+  // Enqueue durably. The worker process consumes the job; this action
+  // returns the moment the row hits `pgboss.job`. A queueing failure
+  // surfaces here as a thrown promise — we log and degrade to "queued"
+  // anyway because the row is already marked extracting and the user
+  // can re-trigger; better than a 500 they can't act on.
+  const payload: ExtractionJobData = {
+    userId: user.id,
+    tripId,
+    documentId,
+    claim: claim.toISOString(),
+    priorLinkedSegmentIds,
+  };
+  await getJobs()
+    .send(EXTRACTION_JOB, payload)
+    .catch((e) => {
+      log.error(
+        { documentId, err: e instanceof Error ? `${e.name}: ${e.message}` : 'unknown' },
+        'documents.extract.enqueue_failed',
+      );
     });
-  });
 
   return ok({ status: 'queued' });
-}
-
-// Body of the extraction job. Extracted into its own function so the
-// action stays readable and so a future BullMQ-backed Jobs
-// implementation can register this directly as a handler. The `claim`
-// is the timestamp `markExtractionStarted` returned — every write
-// back to the row is keyed on it so a superseded job (the user
-// re-clicked, a fresh markExtractionStarted re-stamped the row) can
-// see its persist write rejected and bow out cleanly.
-async function runExtractionJob(args: {
-  userId: string;
-  tripId: string;
-  documentId: string;
-  claim: Date;
-  /**
-   * Segment IDs this document was linked to BEFORE `markExtractionStarted`
-   * wiped the links. The bridge uses these to decide which dedup matches
-   * are this document's own prior segments (update in place) vs. another
-   * document's segments (link only, leave fields alone). Empty on first
-   * extraction.
-   */
-  priorLinkedSegmentIds: string[];
-}): Promise<void> {
-  const { userId, tripId, documentId, claim, priorLinkedSegmentIds } = args;
-
-  // Re-read the row inside the job: it might have been deleted
-  // between the click and now. Same reason every step that mutates
-  // a document scopes by (id, userId) — defensive on principle.
-  const document = await repo.getByIdForUser(userId, documentId);
-  if (!document) {
-    log.warn({ documentId }, 'documents.extract.job.doc_missing');
-    return;
-  }
-
-  let llm;
-  try {
-    llm = createOllamaExtractor();
-  } catch (e) {
-    // Lost-race: config went away between the action's check and the
-    // job running. Release the in-progress flag — but only if it's
-    // still our claim, so we don't undo a fresh re-click's setup.
-    log.warn(
-      {
-        documentId,
-        err: e instanceof Error ? `${e.name}: ${e.message}` : 'unknown',
-      },
-      'documents.extract.job.config_lost',
-    );
-    await repo.clearExtractionStarted(userId, documentId, claim);
-    revalidateTripFromJob(tripId);
-    return;
-  }
-
-  const result = await extractDocument(
-    {
-      objectKey: document.objectKey,
-      mime: document.mime,
-      bytes: document.bytes,
-    },
-    {
-      storage: getStorage(),
-      llm,
-      extractors: getDefaultExtractors(),
-      directExtractors: getDefaultDirectExtractors(),
-    },
-  );
-
-  if (result.status === 'ok') {
-    const persisted = await repo.recordExtraction(
-      userId,
-      documentId,
-      {
-        parsed: result.parsed,
-        parsedBy: result.sourceMethod,
-        parsedConfidence: result.confidence,
-        textMethod: result.textMethod,
-        extractionError: null,
-      },
-      claim,
-    );
-    if (!persisted) {
-      // Either the doc was deleted, or this job was superseded by a
-      // re-click. Either way, NOT our row to touch. The newer job
-      // (or absence) wins.
-      log.warn({ documentId }, 'documents.extract.job.superseded_or_removed');
-      return;
-    }
-    // ADR-0008: try to create + link the corresponding segment on
-    // the trip. Best-effort — a failure here leaves the row with
-    // `parsed` set and segmentId null, which the user resolves by
-    // re-clicking Extract (dedup picks up any orphaned segment).
-    const outcome = await ensureSegmentForExtraction({
-      userId,
-      tripId,
-      documentId,
-      payload: result.parsed,
-      priorLinkedSegmentIds,
-      claim: { startedAt: claim },
-    }).catch((e) => {
-      log.warn(
-        {
-          documentId,
-          err: e instanceof Error ? `${e.name}: ${e.message}` : 'unknown',
-        },
-        'documents.extract.job.segment_link_threw',
-      );
-      return null;
-    });
-    if (outcome) {
-      // Multi-flight outcomes also surface the per-leg breakdown so
-      // a partial failure (e.g. 2 legs linked, 1 create-failed) is
-      // visible in the log without scraping the warn lines.
-      const detail =
-        outcome.kind === 'linked'
-          ? { items: outcome.items.map((i) => i.kind) }
-          : outcome.kind === 'already-linked'
-            ? { linkedCount: outcome.segmentIds.length }
-            : {};
-      log.info(
-        { documentId, outcome: outcome.kind, ...detail },
-        'documents.extract.job.segment_link',
-      );
-    }
-    revalidateTripFromJob(tripId);
-    return;
-  }
-
-  const persisted = await repo.recordExtraction(
-    userId,
-    documentId,
-    {
-      parsed: null,
-      parsedBy: null,
-      parsedConfidence: null,
-      textMethod: null,
-      extractionError: result.reason,
-    },
-    claim,
-  );
-  if (!persisted) {
-    log.warn({ documentId }, 'documents.extract.job.superseded_or_removed');
-    return;
-  }
-  revalidateTripFromJob(tripId);
 }
 
 // User-edit of the extracted `parsed` payload. Re-extract reaches

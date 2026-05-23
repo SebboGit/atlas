@@ -85,8 +85,8 @@ keyed on the normalized query string.
 6. **Server-only.** The geocoding module never ships to a client bundle.
    Trip-map data goes through the existing server-side repo
    (`src/lib/trip-map/repo.ts`); on-demand geocoding is fired from
-   server actions via the `Jobs` interface (`InlineJobs` today), never
-   from the browser.
+   server actions via the `Jobs` interface (pg-boss-backed; see
+   ADR-0012), never from the browser.
 
 ### Privacy
 

@@ -215,9 +215,9 @@ pnpm docs:cleanup-orphans --apply    # delete orphan rows + files
 pnpm db:prune                        # list expired sessions/tokens (dry-run)
 pnpm db:prune --apply                # delete them
 
-# Scheduler (runs automatically in the `cron` compose service)
-pnpm cron                            # boot scheduler locally (SIGINT to stop)
-docker compose logs -f cron          # tail in-stack scheduler
+# Worker — pg-boss host (extraction, geocoding, prune, status sweep)
+pnpm worker                          # boot worker locally (SIGINT to stop)
+docker compose logs -f worker        # tail the in-stack worker
 
 # Reference data refresh
 pnpm tsx scripts/fetch-airlines.ts   # rebuild iata-airlines.json

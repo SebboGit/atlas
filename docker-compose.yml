@@ -52,6 +52,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # Wait for the worker to finish migrations + pg-boss schema setup
+      # before the app starts answering requests. Single source of truth
+      # for migrations lives in the worker (ADR-0012).
+      worker:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -74,20 +79,27 @@ services:
       - atlas
 
   # ---------------------------------------------------------------------------
-  # In-stack scheduler: nightly DB prune (today), upcoming-flight ntfy
-  # reminders (later). Uses the same image as `app` but with the
-  # `pnpm cron` entrypoint. No Docker socket required — fits hosts
-  # like managed homelab orchestrators that restrict socket access.
+  # Worker (pg-boss host) — runs ALL background work:
+  #   - Drizzle migrations on boot (single source of truth, no race
+  #     between containers; see ADR-0012)
+  #   - pg-boss schema bootstrap + supervision loop
+  #   - Scheduled jobs: nightly DB prune, daily trip-status sweep
+  #   - Ad-hoc handlers: document extraction, geocoding fetches
   #
-  # Schedule + timezone are env-overridable so a deploy can shift the
-  # run window without rebuilding. Defaults assume UTC.
+  # Schedules and timezone are env-overridable so an operator can shift
+  # the run window without rebuilding. Defaults assume UTC.
+  #
+  # The healthcheck reads /tmp/atlas-worker-ready (written by
+  # scripts/worker.ts once migrations + pg-boss + handler registration
+  # have completed). The `app` service depends on this so requests are
+  # never served against an unmigrated schema.
   # ---------------------------------------------------------------------------
-  cron:
+  worker:
     build:
       context: .
       dockerfile: Dockerfile
       target: dev
-    container_name: atlas-cron
+    container_name: atlas-worker
     restart: unless-stopped
     depends_on:
       postgres:
@@ -96,19 +108,22 @@ services:
       - .env
     environment:
       DATABASE_URL: postgres://atlas:atlas@postgres:5432/atlas
-      # Defaults match src/lib/scheduler/index.ts. Override in .env if you
-      # need a different run window or non-UTC schedules.
-      CRON_PRUNE_SCHEDULE: ${CRON_PRUNE_SCHEDULE:-0 40 3 * * *}
+      # Defaults match src/lib/scheduler/index.ts. Override in .env if
+      # you need a different run window or non-UTC schedules.
+      CRON_PRUNE_SCHEDULE: ${CRON_PRUNE_SCHEDULE:-40 3 * * *}
+      CRON_STATUS_SCHEDULE: ${CRON_STATUS_SCHEDULE:-5 0 * * *}
       CRON_TZ: ${CRON_TZ:-UTC}
-    # The scheduler only needs the source tree and node_modules, no
-    # bind mount writes. Mounting the same source as `app` keeps
-    # hot-reload-during-dev coherent: edit src/lib/scheduler and the
-    # cron container picks it up on restart.
     volumes:
       - ./src:/app/src
       - ./scripts:/app/scripts
       - /app/node_modules
-    command: ['pnpm', 'cron']
+    command: ['pnpm', 'worker']
+    healthcheck:
+      test: ['CMD-SHELL', 'test -f /tmp/atlas-worker-ready']
+      interval: 5s
+      timeout: 2s
+      retries: 60
+      start_period: 5s
     networks:
       - atlas
 

@@ -1,7 +1,7 @@
 # ADR-0012: pg-boss for durable jobs and in-stack scheduling
 
-- **Status:** Proposed
-- **Date:** 2026-05-19
+- **Status:** Accepted
+- **Date:** 2026-05-19 (proposed) · 2026-05-23 (accepted, bundled with auto-status)
 - **Deciders:** @SebboGit
 
 ## Context
@@ -30,9 +30,10 @@ Building either of those on top of what we have would amount to a hand-rolled qu
 Adopt **[pg-boss](https://github.com/timgit/pg-boss)** as the implementation behind both the `Jobs` interface and the in-stack scheduler.
 
 - **Storage:** pg-boss installs its own `pgboss` schema in the existing Postgres instance on first boot. No new service, no new container, no new credential.
-- **Jobs interface:** a new `PgBossJobs` implementation in `src/lib/jobs/pgboss.ts` replaces `InlineJobs` as the singleton returned by `getJobs()`. The `Jobs` interface itself does not change — feature code keeps calling `enqueue(thunk)`. Internally, the thunk is serialised as a named handler registration so it survives a container restart; the public surface stays a single method.
-- **Scheduler:** pg-boss's `schedule(name, cron, data, opts)` replaces croner. Job registration moves from `src/lib/scheduler/index.ts` to a `registerSchedules()` function called once at worker boot. Cron syntax is the same. `CRON_PRUNE_SCHEDULE` and `CRON_TZ` keep their meanings.
-- **Worker process:** the existing `cron` compose service is renamed to `worker` and runs `pnpm worker` (a renamed `scripts/cron.ts`). It hosts both the scheduler and the job consumers. One process, one container, same deployment shape.
+- **Jobs interface:** a new `PgBossJobs` implementation in `src/lib/jobs/pgboss.ts` replaces `InlineJobs` as the singleton returned by `getJobs()`. The interface gains two methods on top of an evolved `send(name, data)` (replacing `enqueue(thunk)`): `register(name, handler)` and `schedule(name, cron, data, opts)`. Both are worker-only by convention — the app process throws if it tries to register handlers or schedules. Call discipline, not enforcement: one container per role, simple ownership.
+- **Scheduler:** pg-boss's `schedule(name, cron, data, opts)` replaces croner. Job registration moves from `src/lib/scheduler/index.ts`'s `startScheduler()` to a `registerWorkerJobs(jobs, db)` function called once at worker boot, which registers both ad-hoc handlers and recurring schedules. Standard 5-field cron syntax. `CRON_PRUNE_SCHEDULE` and `CRON_TZ` keep their meanings; new `CRON_STATUS_SCHEDULE` follows the same convention.
+- **Worker process:** the existing `cron` compose service is renamed to `worker` and runs `pnpm worker` (a new `scripts/worker.ts`). It hosts both the scheduler and the ad-hoc job consumers. One process, one container, same deployment shape.
+- **Migrations on boot:** the worker runs Drizzle migrations before starting pg-boss; the app container `depends_on: worker: service_healthy` via a `/tmp/atlas-worker-ready` marker. Single source of truth for migrations, no race between containers.
 - **Maintenance CLI:** `pnpm db:prune` keeps working unchanged. Both the CLI and the scheduled job call into `src/lib/maintenance/prune.ts` — the maintenance modules never learn that pg-boss exists.
 - **Croner is removed** from `package.json` in the same PR. Running both schedulers in parallel is pure churn.
 
@@ -53,7 +54,7 @@ The migration lands the next time we add a scheduled job — concretely, alongsi
 
 - **Postgres becomes the queue too.** Job throughput now shares CPU and connections with the app. For Atlas's workload (single-digit jobs per minute at peak) this is irrelevant, but it's worth naming: we're choosing operational simplicity over the kind of isolation Redis would give us.
 - **pg-boss owns its own schema.** Job tables live in `pgboss.*` and pg-boss runs its own DDL and migrations on boot — the same shape as PostGIS or `pg_cron`. They never appear in `drizzle-kit generate` output and feature code never reads from them directly. The Drizzle integration is at the _transaction_ layer (`fromDrizzle`), not the schema layer, so this isn't a workaround for missing ORM support — it's how pg-boss is designed to be used. Worth naming so future-you doesn't try to `drizzle-kit pull` it or hand-roll a migration on top.
-- **Workers need handler registration on boot.** Unlike `InlineJobs`, you can't just hand pg-boss an arbitrary closure to run later — each job name needs a registered handler in the worker process. That's a small ergonomic step down at the call site; feature code now passes `{ name: 'send-ntfy-reminder', data: {...} }` instead of a thunk. The `Jobs` interface gains one method (`register(name, handler)`) called from the worker entrypoint.
+- **Workers need handler registration on boot.** Unlike `InlineJobs`, you can't just hand pg-boss an arbitrary closure to run later — each job name needs a registered handler in the worker process. That's a small ergonomic step down at the call site; feature code now passes `(name, data)` to `send()` instead of a thunk to `enqueue()`. The `Jobs` interface gains `register(name, handler)` (called from the worker entrypoint) and `schedule(name, cron, data, opts)` (likewise worker-only).
 - **Backup story slightly bigger.** Job history lives in Postgres, so it's already covered by the nightly dump. The `archive` table grows over time; pg-boss has a built-in `maintenance` job that prunes it, but we need to make sure it's enabled.
 - **One more dependency to track.** pg-boss is well-maintained (active commits, Postgres 18 supported) but it's a meaningful runtime piece. Pinning + dependabot grouping mitigates this.
 

@@ -1,6 +1,6 @@
 ---
 name: atlas-commands
-description: Use when running Atlas dev/db/backup/scheduler commands, starting the stack, resetting the DB, applying migrations, seeding data, running tests, taking a manual backup, or triggering maintenance. Reference for pnpm dev:up, db:setup/reset/migrate/seed/studio, the compose stack, the quality gates, the documents snapshot script, db:prune, docs:cleanup-orphans, and pnpm cron.
+description: Use when running Atlas dev/db/backup/scheduler commands, starting the stack, resetting the DB, applying migrations, seeding data, running tests, taking a manual backup, or triggering maintenance. Reference for pnpm dev:up, db:setup/reset/migrate/seed/studio, the compose stack, the quality gates, the documents snapshot script, db:prune, docs:cleanup-orphans, and pnpm worker.
 ---
 
 # Atlas — Common Commands
@@ -45,7 +45,7 @@ pnpm db:prune                                  # list expired sessions/tokens/ge
 pnpm db:prune --apply                          # delete expired rows from all three tables
 pnpm db:prune --sessions --apply               # scope to a single table (also --tokens, --geocode)
 
-# Scheduler (runs automatically in the `cron` compose service)
-pnpm cron                                      # boot the scheduler locally (foreground, SIGINT to stop)
-docker compose logs -f cron                    # tail the in-stack scheduler running in Docker
+# Worker — pg-boss host (extraction, geocoding, prune, status sweep)
+pnpm worker                                    # boot the worker locally (foreground, SIGINT to stop)
+docker compose logs -f worker                  # tail the in-stack worker running in Docker
 ```

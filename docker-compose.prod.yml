@@ -44,11 +44,15 @@ services:
     environment:
       NODE_ENV: production
 
-  cron:
-    # The cron service deliberately stays on the `dev` target — the prod
-    # Next.js standalone image strips out tsx and our source tree, which
-    # the scheduler entrypoint needs at runtime. Image footprint is a
-    # non-issue for a single-instance background process.
+  worker:
+    # Explicitly pin `dev` even though the base compose already sets it
+    # — the prod Next.js standalone image strips out tsx and our source
+    # tree, which `tsx scripts/worker.ts` needs at runtime. Restating
+    # the target here means a future "use prod image everywhere" edit
+    # to the overlay won't silently break the worker. Image footprint
+    # is a non-issue for a single-instance background process.
+    build:
+      target: dev
     restart: always
     # Use the baked image, not the host source mounts the dev compose
     # uses. Same data isolation rule as `app` above.
