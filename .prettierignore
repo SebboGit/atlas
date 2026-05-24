@@ -10,5 +10,6 @@ src/db/migrations/**/*.sql
 src/db/migrations/meta/
 *.pmtiles
 public/tiles/
+public/geo/*.geojson
 data/
 LICENSE
