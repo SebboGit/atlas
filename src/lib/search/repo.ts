@@ -21,6 +21,40 @@ const PER_SUBTYPE_LIMIT = 3 as const;
 // CTE evaluation order. Tune after real query traffic shows up.
 const TRIGRAM_SIMILARITY = 0.2;
 
+// Minimum token length for prefix (`:*`) matching to fire. Single-char
+// prefixes match huge swaths of the corpus and the FTS rank becomes
+// arbitrary — the palette would be filled with whichever row happened
+// to sort first. Two chars give the planner enough signal to rank
+// meaningfully without losing the as-you-type feel.
+const PREFIX_MIN_TOKEN_LENGTH = 2;
+
+// Build a `to_tsquery`-compatible string that prefix-matches every
+// eligible token. Splits on any non-alphanumeric run (whitespace,
+// hyphens, punctuation), keeps Unicode letters/digits so non-ASCII
+// place names ("Tōkyō", "München") survive, lowercases for visual
+// consistency (tsquery is case-insensitive anyway), drops tokens
+// shorter than PREFIX_MIN_TOKEN_LENGTH, and joins survivors with ` & `
+// suffixed by `:*`.
+//
+// Hyphens deserve a note: `to_tsquery` parses bare `-` as the NOT
+// operator, so "saint-jean" naïvely becomes `saint & !jean`. Splitting
+// on non-alphanumerics sidesteps that — and the `simple` tsvector
+// stored on disk already breaks "saint-jean" into two lexemes, so
+// `saint:* & jean:*` matches what users expect.
+//
+// Returns the joined query string, or an empty string when no tokens
+// qualify. `to_tsquery('simple', '')` parses to an empty tsquery (no
+// FTS match), leaving the trigram path to carry whatever recall the
+// short query deserves.
+export function buildPrefixTsquery(input: string): string {
+  return input
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((tok) => tok.length >= PREFIX_MIN_TOKEN_LENGTH)
+    .map((tok) => `${tok}:*`)
+    .join(' & ');
+}
+
 type Row = {
   type: 'trip' | 'segment' | 'document';
   segment_type: SegmentSubtype | null;
@@ -34,17 +68,27 @@ export async function searchAll(query: string): Promise<SearchResults> {
   const q = query.trim();
   if (q.length < 1) return { trips: [], segments: [], documents: [] };
 
+  // Build a prefix-matching tsquery in JS rather than handing the raw
+  // input to `websearch_to_tsquery`. websearch matches whole lexemes
+  // only — typing "Pav" never hits "Pavilion" — which defeats the
+  // purpose of an as-you-type palette (issue #17).
+  const prefixQuery = buildPrefixTsquery(q);
+
   // Rank = ts_rank_cd * 2 + similarity. FTS weight doubled so exact
   // keyword hits win ties; trigram hits on typos still surface above
-  // weak FTS matches. websearch_to_tsquery never throws on malformed
-  // input — strictly nicer than plainto_tsquery for an end-user box.
+  // weak FTS matches. `to_tsquery('simple', '<token>:*')` is the
+  // canonical way to make an FTS query prefix-match — `:*` is a
+  // documented lexeme-prefix marker. For empty/sub-threshold input the
+  // builder returns ''; `to_tsquery('simple', '')` parses to an empty
+  // tsquery (matches nothing via FTS) and the trigram path carries the
+  // remaining recall, so the parser never throws.
   //
-  // The `q` CTE evaluates the input string AND parses the tsquery once;
-  // the three per-entity CTEs cross-join `q` so the parser doesn't fire
-  // per row. The trigram threshold is an explicit `similarity(...) > X`
-  // predicate (the GIN trgm opclass accepts both forms) rather than the
-  // session-state `set_limit()` GUC, so the threshold cannot drift with
-  // planner evaluation order.
+  // The `q` CTE evaluates the raw text (for trigram) AND parses the
+  // prefix tsquery once; the three per-entity CTEs cross-join `q` so
+  // the parser doesn't fire per row. The trigram threshold is an
+  // explicit `similarity(...) > X` predicate (the GIN trgm opclass
+  // accepts both forms) rather than the session-state `set_limit()`
+  // GUC, so the threshold cannot drift with planner evaluation order.
   //
   // The combined score is exposed as a single `rank` alias so ORDER BY
   // can reference it as a bare name. Postgres resolves output aliases
@@ -55,7 +99,7 @@ export async function searchAll(query: string): Promise<SearchResults> {
     WITH q AS (
       SELECT
         ${q}::text AS s,
-        websearch_to_tsquery('simple', ${q}::text) AS tsq
+        to_tsquery('simple', ${prefixQuery}::text) AS tsq
     ),
     trip_hits AS (
       SELECT
