@@ -35,7 +35,7 @@ vi.mock('@/db/client', () => ({
   },
 }));
 
-import { searchAll } from './repo';
+import { buildPrefixTsquery, searchAll } from './repo';
 
 beforeEach(() => {
   dbState.rows = [];
@@ -114,5 +114,48 @@ describe('searchAll', () => {
   it('returns empty groups when the DB returns no rows', async () => {
     const out = await searchAll('zzz-no-match');
     expect(out).toEqual({ trips: [], segments: [], documents: [] });
+  });
+});
+
+describe('buildPrefixTsquery', () => {
+  it('appends :* to every eligible token', () => {
+    expect(buildPrefixTsquery('Pav Hot')).toBe('pav:* & hot:*');
+  });
+
+  it('lowercases tokens for visual consistency', () => {
+    expect(buildPrefixTsquery('PAVILION')).toBe('pavilion:*');
+  });
+
+  it('drops single-character tokens to keep ranking meaningful', () => {
+    // "p" alone would match too much; the user explicitly chose 2+
+    // chars as the prefix-match threshold.
+    expect(buildPrefixTsquery('p')).toBe('');
+    expect(buildPrefixTsquery('P Pavilion')).toBe('pavilion:*');
+  });
+
+  it('returns empty string when no eligible tokens remain', () => {
+    expect(buildPrefixTsquery('')).toBe('');
+    expect(buildPrefixTsquery('   ')).toBe('');
+    expect(buildPrefixTsquery('!@#$')).toBe('');
+  });
+
+  it('splits hyphenated input on the hyphen so the NOT operator never appears', () => {
+    // The `simple` tsvector breaks "saint-jean" into two lexemes, so
+    // querying for both prefixes matches what the user sees on the
+    // page. A naïve `to_tsquery('saint-jean:*')` would parse the `-`
+    // as a NOT operator.
+    expect(buildPrefixTsquery('saint-jean')).toBe('saint:* & jean:*');
+  });
+
+  it('preserves Unicode letters for non-ASCII place names', () => {
+    // Atlas stores "Tōkyō", "München", etc. verbatim; the prefix
+    // builder must not strip diacritics or the partial-typing path
+    // breaks for those names.
+    expect(buildPrefixTsquery('Tōkyō')).toBe('tōkyō:*');
+    expect(buildPrefixTsquery('München')).toBe('münchen:*');
+  });
+
+  it('collapses any non-alphanumeric run into a token separator', () => {
+    expect(buildPrefixTsquery('Damascus  Bukit, Bintang')).toBe('damascus:* & bukit:* & bintang:*');
   });
 });
