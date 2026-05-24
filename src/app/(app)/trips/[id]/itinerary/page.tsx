@@ -8,12 +8,14 @@ import {
 } from '@/components/features/segments/itinerary-day-list';
 import { ItineraryEmpty } from '@/components/features/segments/itinerary-empty';
 import { SegmentFormDialog } from '@/components/features/segments/segment-form-dialog';
+import { WishlistSuggestionsPanel } from '@/components/features/wishlist/wishlist-suggestions-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
 import * as documentsRepo from '@/lib/documents/repo';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
+import * as wishlistRepo from '@/lib/wishlist/repo';
 
 interface ItineraryPageProps {
   params: Promise<{ id: string }>;
@@ -32,13 +34,27 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
-  const [segments, linkedDocsBySegment] = await Promise.all([
+  const [segments, linkedDocsBySegment, tripCountries] = await Promise.all([
     segmentsRepo.listForTrip(user.id, id, {
       countryCode: country?.toUpperCase(),
       scheduled: true,
     }),
     documentsRepo.listLinkedDocumentsByTripSegment(user.id, id),
+    // Countries are derived from segment attribution (ADR-0005), not
+    // a separate trip_countries row — `trip_countries` exists in the
+    // schema but isn't populated anywhere.
+    segmentsRepo.listCountryCodesForTrip(user.id, id),
   ]);
+
+  // Suggestions panel surfaces wishlist items in this trip's countries
+  // that aren't already on this trip. Same item still appears on other
+  // trips' panels — see the wishlist-architecture design.
+  const wishlistSuggestions =
+    tripCountries.length > 0
+      ? await wishlistRepo.listForCountries(tripCountries, {
+          excludeMaterialisedOnTrip: id,
+        })
+      : [];
 
   // `scheduled: true` filter above guarantees no unscheduled bucket here.
   const { days } = groupSegmentsByDay(segments);
@@ -122,6 +138,8 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
           linkedDocumentsBySegment={linkedDocsBySegment}
         />
       )}
+
+      <WishlistSuggestionsPanel tripId={id} items={wishlistSuggestions} />
     </>
   );
 }

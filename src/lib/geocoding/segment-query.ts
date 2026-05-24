@@ -32,20 +32,35 @@ import {
   foodDataSchema,
   hotelDataSchema,
   transitDataSchema,
-  type Segment,
+  type SegmentType,
 } from '@/lib/segments';
 
 /**
- * Build the free-text geocoder query for a segment, or null if the
- * segment has no geocodable identity (wrong type, missing required
- * fields, malformed `data` JSONB). The string returned here is what
- * `Geocoder.geocode` sees; the cache layer normalises it on the way in.
+ * Minimal shape required to derive a geocode query. Both `Segment` and
+ * `WishlistItem` satisfy this — and that's the whole point: wishlist
+ * items and the segments materialised from them must produce the same
+ * query string so they share the same `geocode_cache` row. A wishlist
+ * item geocoded on save means its materialised segment is born with
+ * coordinates ready for the trip map.
+ */
+export interface PlaceLike {
+  type: SegmentType | 'food' | 'activity';
+  data: unknown;
+  locationName: string | null;
+}
+
+/**
+ * Build the free-text geocoder query for a place (segment or wishlist
+ * item), or null if it has no geocodable identity (wrong type, missing
+ * required fields, malformed `data` JSONB). The string returned here
+ * is what `Geocoder.geocode` sees; the cache layer normalises it on
+ * the way in.
  *
  * The construction joins parts with ", " — Nominatim handles compound
  * queries natively and reliably scores a (name, address) match higher
  * than either part alone.
  */
-export function buildGeocodeQuery(segment: Segment): string | null {
+export function buildGeocodeQuery(segment: PlaceLike): string | null {
   switch (segment.type) {
     case 'hotel': {
       const parsed = hotelDataSchema.safeParse(segment.data);

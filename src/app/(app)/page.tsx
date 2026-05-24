@@ -72,15 +72,18 @@ export default async function HomePage() {
           </Card>
         </Link>
 
-        <div className="atlas-rise" style={{ animationDelay: '300ms' }}>
+        <Link
+          href="/wishlist"
+          className="atlas-rise group focus-visible:ring-primary/40 focus-visible:ring-offset-background block focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          style={{ animationDelay: '300ms' }}
+        >
           <Card
-            variant="paper"
-            className="relative h-full overflow-hidden opacity-80"
-            aria-disabled
+            variant="glass"
+            className="relative h-full overflow-hidden transition-transform duration-500 hover:-translate-y-0.5"
           >
             <span
               aria-hidden
-              className="border-foreground/25 text-foreground/55 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+              className="border-primary/40 text-primary/80 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
             >
               02
             </span>
@@ -89,17 +92,18 @@ export default async function HomePage() {
                 Section
               </p>
               <div>
-                <h2 className="font-display text-foreground/70 text-3xl leading-none font-medium tracking-tight">
-                  Documents
+                <h2 className="font-display text-3xl leading-none font-medium tracking-tight">
+                  Wishlist
                 </h2>
-                <p className="text-muted-foreground mt-2 text-sm">Boarding passes, reservations.</p>
+                <p className="text-muted-foreground mt-2 text-sm">Places worth coming back to.</p>
               </div>
             </CardContent>
-            <span className="text-muted-foreground absolute right-6 bottom-6 font-mono text-[9px] tracking-[0.28em] uppercase">
-              Soon
-            </span>
+            <span
+              aria-hidden
+              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20"
+            />
           </Card>
-        </div>
+        </Link>
 
         <Link
           href="/map"

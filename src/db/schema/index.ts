@@ -7,3 +7,4 @@ export * from './documents';
 export * from './document-segments';
 export * from './locations';
 export * from './geocode-cache';
+export * from './wishlist-items';

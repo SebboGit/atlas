@@ -7,6 +7,7 @@ import {
   Map as MapIcon,
   MapPin,
   Plane,
+  Sparkles,
   TrainFront,
   UtensilsCrossed,
 } from 'lucide-react';
@@ -25,6 +26,10 @@ const ICON_CLASS = 'text-foreground/55 size-4 shrink-0';
 function RowIcon({ row }: { row: SearchResultRow }) {
   if (row.type === 'trip') return <MapIcon className={ICON_CLASS} aria-hidden />;
   if (row.type === 'document') return <FileText className={ICON_CLASS} aria-hidden />;
+  if (row.type === 'wishlist') {
+    if (row.wishlistType === 'food') return <UtensilsCrossed className={ICON_CLASS} aria-hidden />;
+    return <Sparkles className={ICON_CLASS} aria-hidden />;
+  }
   switch (row.segmentType) {
     case 'flight':
       return <Plane className={ICON_CLASS} aria-hidden />;
@@ -134,7 +139,10 @@ export function SearchResultsView({
   onSelect: (row: SearchResultRow) => void;
 }) {
   const hasAny =
-    results.trips.length > 0 || results.segments.length > 0 || results.documents.length > 0;
+    results.trips.length > 0 ||
+    results.segments.length > 0 ||
+    results.documents.length > 0 ||
+    results.wishlist.length > 0;
   if (!hasAny) return null;
 
   // Partition segments by subtype so each renders in its own group.
@@ -151,6 +159,7 @@ export function SearchResultsView({
   return (
     <>
       <Group heading="Trips" rows={results.trips} query={query} onSelect={onSelect} />
+      <Group heading="Wishlist" rows={results.wishlist} query={query} onSelect={onSelect} />
       <Group heading="Food" rows={bySubtype.get('food')} query={query} onSelect={onSelect} />
       <Group heading="Hotels" rows={bySubtype.get('hotel')} query={query} onSelect={onSelect} />
       <Group

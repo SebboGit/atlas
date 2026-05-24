@@ -3,10 +3,16 @@
 import maplibregl, { type LngLatBoundsLike, type Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
+import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import type { TripMapArc, TripMapPin, UngeocodedSegment } from '@/lib/trip-map/repo';
+import type {
+  TripMapArc,
+  TripMapPin,
+  UngeocodedSegment,
+  WishlistMapPin,
+} from '@/lib/trip-map/repo';
 
 import { curvedArcCoords } from './arc-geometry';
 import { buildBasemapStyle } from './basemap-style';
@@ -36,6 +42,13 @@ interface TripMapProps {
   activeCountry: string | null;
   /** Used by the chip strip to build country-filter hrefs. */
   tripId: string;
+  /**
+   * Muted overlay pins for wishlist items in this trip's countries
+   * that aren't already on the trip. Drawn as a separate, low-weight
+   * marker layer behind a toggle. Defaults to off; the toggle state
+   * persists per-trip in localStorage.
+   */
+  wishlistPins?: WishlistMapPin[];
 }
 
 interface HoverInfo {
@@ -121,10 +134,21 @@ export function TripMap({
   countries,
   activeCountry,
   tripId,
+  wishlistPins = [],
 }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<ManagedMarker[]>([]);
+  // Wishlist overlay markers are kept separate from the main pin
+  // markers so toggling the overlay (or wishlistPins changing) never
+  // disturbs the segment-pin lifecycle.
+  const wishlistMarkersRef = useRef<maplibregl.Marker[]>([]);
+  // Default off — the overlay is a hint, not the primary surface.
+  // Persisted per-trip so toggling stays sticky across reloads. The
+  // toggle function below writes localStorage and updates state
+  // together so we don't read-then-set inside an effect (the
+  // react-hooks/set-state-in-effect rule blocks the obvious shape).
+  const { showWishlist, setShowWishlist } = useWishlistOverlayState(tripId);
   const hoveredIdxRef = useRef<number | null>(null);
   const firstFitDoneRef = useRef(false);
   // activeCountry mirrored into a ref so the pin-sync effect's hover
@@ -505,6 +529,56 @@ export function TripMap({
     source.setData(arcsToFeatureCollection(arcs));
   }, [arcs, mapReady]);
 
+  // Wishlist overlay markers. Independent of the main pin lifecycle —
+  // creates / tears down on prop or toggle change. Each marker is a
+  // small native DOM element (no React root, no tooltip) styled muted
+  // so the overlay reads as decoration rather than primary content.
+  // When the toggle is off we tear them down entirely instead of
+  // hiding via CSS — keeps the DOM clean and matches the rest of the
+  // pin lifecycle pattern.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    // Always rebuild — wishlistPins are short and this avoids
+    // managing diff state for a feature that gets toggled in/out
+    // wholesale.
+    for (const m of wishlistMarkersRef.current) m.remove();
+    wishlistMarkersRef.current = [];
+
+    if (!showWishlist) return;
+
+    for (const pin of wishlistPins) {
+      const el = document.createElement('div');
+      el.className =
+        'flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-foreground/40 bg-card/65 text-foreground/60 shadow-[0_1px_2px_rgba(60,40,20,0.08)] backdrop-blur-sm opacity-70 hover:opacity-100 transition-opacity';
+      el.setAttribute('role', 'img');
+      el.setAttribute(
+        'aria-label',
+        `Wishlist ${pin.kind === 'food' ? 'food spot' : 'attraction'}: ${pin.label}`,
+      );
+      el.title = pin.label;
+      // Single SVG glyph — matches the wishlist-card iconography
+      // (UtensilsCrossed for food, Sparkles for activity).
+      el.innerHTML =
+        pin.kind === 'food'
+          ? '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/><path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/></svg>'
+          : '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>';
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([pin.lng, pin.lat])
+        .addTo(map);
+      wishlistMarkersRef.current.push(marker);
+    }
+
+    return () => {
+      // Unmount cleanup — the next effect run tears down too, but a
+      // component unmount or HMR re-render takes this path.
+      for (const m of wishlistMarkersRef.current) m.remove();
+      wishlistMarkersRef.current = [];
+    };
+  }, [wishlistPins, showWishlist, mapReady]);
+
   // Re-apply dimming + re-frame on pin/arc/country changes. Pin
   // dimming runs through the React root for each managed marker;
   // arc dimming still uses MapLibre's feature-state (those are
@@ -647,6 +721,27 @@ export function TripMap({
             </p>
           </div>
         )}
+        {wishlistPins.length > 0 && (
+          <button
+            type="button"
+            aria-pressed={showWishlist}
+            aria-label={
+              showWishlist
+                ? `Hide ${wishlistPins.length} wishlist ${wishlistPins.length === 1 ? 'pin' : 'pins'}`
+                : `Show ${wishlistPins.length} wishlist ${wishlistPins.length === 1 ? 'pin' : 'pins'}`
+            }
+            onClick={() => setShowWishlist((v) => !v)}
+            className={`border-foreground/20 bg-card/85 text-foreground/70 hover:text-foreground absolute top-3 right-3 inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors ${
+              showWishlist ? 'border-foreground/45 bg-foreground/8 text-foreground' : ''
+            }`}
+          >
+            <span
+              aria-hidden
+              className="border-foreground/55 inline-flex h-3 w-3 items-center justify-center rounded-full border border-dashed"
+            />
+            Wishlist · {String(wishlistPins.length).padStart(2, '0')}
+          </button>
+        )}
       </div>
 
       {ungeocoded.length > 0 && <UngeocodedList items={ungeocoded} />}
@@ -657,4 +752,91 @@ export function TripMap({
       </p>
     </div>
   );
+}
+
+// localStorage-backed toggle for the wishlist overlay. Uses
+// useSyncExternalStore so the server render and the first client
+// paint both match (default off) — flipping in via an `useEffect`
+// would trip react-hooks/set-state-in-effect. The store layer is
+// per-tripId; cross-tab edits sync via the storage event.
+type ToggleListener = () => void;
+const overlayListeners = new Map<string, Set<ToggleListener>>();
+const overlayCache = new Map<string, boolean>();
+
+function storageKey(tripId: string): string {
+  return `atlas:wishlist-overlay:${tripId}`;
+}
+
+function readOverlay(tripId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  const cached = overlayCache.get(tripId);
+  if (cached !== undefined) return cached;
+  try {
+    const stored = window.localStorage.getItem(storageKey(tripId)) === 'on';
+    overlayCache.set(tripId, stored);
+    return stored;
+  } catch {
+    return false;
+  }
+}
+
+function publishOverlay(tripId: string, next: boolean): void {
+  overlayCache.set(tripId, next);
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(storageKey(tripId), next ? 'on' : 'off');
+    } catch {
+      // Quota / private mode — session-only toggle is still correct.
+    }
+  }
+  const listeners = overlayListeners.get(tripId);
+  if (listeners) for (const l of listeners) l();
+}
+
+function subscribeOverlay(tripId: string, callback: ToggleListener): () => void {
+  let set = overlayListeners.get(tripId);
+  if (!set) {
+    set = new Set();
+    overlayListeners.set(tripId, set);
+  }
+  set.add(callback);
+  function onStorage(e: StorageEvent) {
+    if (e.key === storageKey(tripId)) {
+      overlayCache.delete(tripId);
+      callback();
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', onStorage);
+  }
+  return () => {
+    set?.delete(callback);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', onStorage);
+    }
+  };
+}
+
+function useWishlistOverlayState(tripId: string): {
+  showWishlist: boolean;
+  setShowWishlist: (next: boolean | ((prev: boolean) => boolean)) => void;
+} {
+  const subscribe = React.useCallback(
+    (cb: ToggleListener) => subscribeOverlay(tripId, cb),
+    [tripId],
+  );
+  const getSnapshot = React.useCallback(() => readOverlay(tripId), [tripId]);
+  // Server snapshot: always off. Matches the first client paint so
+  // hydration agrees; the marker effect then runs and reads the
+  // genuine stored value via the cache.
+  const getServerSnapshot = React.useCallback(() => false, []);
+  const showWishlist = React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const setShowWishlist = React.useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      const resolved = typeof next === 'function' ? next(readOverlay(tripId)) : next;
+      publishOverlay(tripId, resolved);
+    },
+    [tripId],
+  );
+  return { showWishlist, setShowWishlist };
 }

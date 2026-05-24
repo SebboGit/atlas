@@ -187,7 +187,7 @@ export function SearchPalette() {
 }
 
 function totalCount(r: SearchResults): number {
-  return r.trips.length + r.segments.length + r.documents.length;
+  return r.trips.length + r.segments.length + r.documents.length + r.wishlist.length;
 }
 
 function buildLiveMessage(args: {

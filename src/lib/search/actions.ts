@@ -7,7 +7,7 @@ import { requireUser } from '@/lib/auth/session';
 import { searchAll } from './repo';
 import type { SearchResults } from './types';
 
-const EMPTY: SearchResults = { trips: [], segments: [], documents: [] };
+const EMPTY: SearchResults = { trips: [], segments: [], documents: [], wishlist: [] };
 
 const querySchema = z.string().trim().min(1).max(200).catch('');
 
