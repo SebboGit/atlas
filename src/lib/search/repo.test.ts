@@ -155,6 +155,20 @@ describe('buildPrefixTsquery', () => {
     expect(buildPrefixTsquery('München')).toBe('münchen:*');
   });
 
+  it('normalises NFD-encoded input so IME and precomposed forms agree', () => {
+    // Japanese / Korean IMEs can produce NFD-encoded output where
+    // diacritics are separate combining codepoints. Without NFC
+    // normalisation the \p{L} split would strip the combining marks
+    // and produce a different tsquery for the same visible string.
+    const nfc = 'Tōkyō';
+    const nfd = 'Tōkyō';
+    // Sanity: confirm the two string literals on disk are actually
+    // different byte sequences. If a future formatter run normalises
+    // them to the same form, this test would otherwise pass trivially.
+    expect(nfd).not.toBe(nfc);
+    expect(buildPrefixTsquery(nfd)).toBe(buildPrefixTsquery(nfc));
+  });
+
   it('collapses any non-alphanumeric run into a token separator', () => {
     expect(buildPrefixTsquery('Damascus  Bukit, Bintang')).toBe('damascus:* & bukit:* & bintang:*');
   });
