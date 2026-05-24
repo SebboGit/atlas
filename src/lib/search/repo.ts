@@ -47,7 +47,13 @@ const PREFIX_MIN_TOKEN_LENGTH = 2;
 // FTS match), leaving the trigram path to carry whatever recall the
 // short query deserves.
 export function buildPrefixTsquery(input: string): string {
+  // NFC-normalise first so an IME-produced NFD "Tōkyō" (base 'o' +
+  // combining macron) collapses to the precomposed form before the
+  // \p{L} split — otherwise the combining mark gets stripped and the
+  // user's typed string produces a different tsquery than the same
+  // characters pasted from elsewhere.
   return input
+    .normalize('NFC')
     .toLowerCase()
     .split(/[^\p{L}\p{N}]+/u)
     .filter((tok) => tok.length >= PREFIX_MIN_TOKEN_LENGTH)
@@ -80,8 +86,9 @@ export async function searchAll(query: string): Promise<SearchResults> {
   // canonical way to make an FTS query prefix-match — `:*` is a
   // documented lexeme-prefix marker. For empty/sub-threshold input the
   // builder returns ''; `to_tsquery('simple', '')` parses to an empty
-  // tsquery (matches nothing via FTS) and the trigram path carries the
-  // remaining recall, so the parser never throws.
+  // tsquery (matches nothing via FTS) and `ts_rank_cd(tsv, empty)`
+  // evaluates to 0, so the rank expression collapses to pure trigram
+  // similarity and the trigram path carries the remaining recall.
   //
   // The `q` CTE evaluates the raw text (for trigram) AND parses the
   // prefix tsquery once; the three per-entity CTEs cross-join `q` so
