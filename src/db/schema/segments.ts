@@ -14,6 +14,7 @@ import {
 import { tsvector, uuidv7Pk } from './_helpers';
 import { countries } from './countries';
 import { trips } from './trips';
+import { wishlistItems } from './wishlist-items';
 
 export const segmentType = pgEnum('segment_type', [
   'flight',
@@ -63,6 +64,14 @@ export const segments = pgTable(
     // and FALSE are equivalent ("nothing to review"). Manual segment
     // creation never sets this.
     needsReview: boolean('needs_review').notNull().default(false),
+    // Provenance backref for segments that were materialised from a
+    // global wishlist item (src/db/schema/wishlist-items.ts). NULL for
+    // segments entered directly. ON DELETE SET NULL — deleting the
+    // wishlist item must not cascade-delete materialised segments;
+    // the segment keeps its data snapshot, just loses the link back.
+    wishlistItemId: uuid('wishlist_item_id').references(() => wishlistItems.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
     // Global Cmd+K search. Postgres maintains both columns via
@@ -83,6 +92,13 @@ export const segments = pgTable(
     index('segments_type_idx').on(s.type),
     index('segments_trip_country_idx').on(s.tripId, s.countryCode),
     index('segments_trip_origin_country_idx').on(s.tripId, s.originCountryCode),
+    // Suggestions panel filter: "items NOT already materialised on
+    // this trip". Without this index the NOT IN subquery scans all
+    // segments. Partial index — only rows actually carrying a backref
+    // are interesting, the rest are noise.
+    index('segments_wishlist_item_id_idx')
+      .on(s.wishlistItemId)
+      .where(sql`${s.wishlistItemId} IS NOT NULL`),
     index('segments_search_tsv_idx').using('gin', s.searchTsv),
     index('segments_search_text_trgm_idx').using('gin', sql`${s.searchText} gin_trgm_ops`),
   ],

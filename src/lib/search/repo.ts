@@ -22,8 +22,9 @@ const PER_SUBTYPE_LIMIT = 3 as const;
 const TRIGRAM_SIMILARITY = 0.2;
 
 type Row = {
-  type: 'trip' | 'segment' | 'document';
+  type: 'trip' | 'segment' | 'document' | 'wishlist';
   segment_type: SegmentSubtype | null;
+  wishlist_type: 'food' | 'activity' | null;
   id: string;
   title: string;
   subtitle: string | null;
@@ -32,7 +33,7 @@ type Row = {
 
 export async function searchAll(query: string): Promise<SearchResults> {
   const q = query.trim();
-  if (q.length < 1) return { trips: [], segments: [], documents: [] };
+  if (q.length < 1) return { trips: [], segments: [], documents: [], wishlist: [] };
 
   // Rank = ts_rank_cd * 2 + similarity. FTS weight doubled so exact
   // keyword hits win ties; trigram hits on typos still surface above
@@ -61,6 +62,7 @@ export async function searchAll(query: string): Promise<SearchResults> {
       SELECT
         'trip'::text AS type,
         NULL::text AS segment_type,
+        NULL::text AS wishlist_type,
         t.id::text AS id,
         t.title AS title,
         -- Trip's own subtitle is just the period; the title already
@@ -88,11 +90,12 @@ export async function searchAll(query: string): Promise<SearchResults> {
       -- so the user can disambiguate two segments with the same title
       -- across trips. Flights also get the airline carrier as a brand
       -- prefix because users remember flights by carrier first.
-      SELECT type, segment_type, id, title, subtitle, href
+      SELECT type, segment_type, wishlist_type, id, title, subtitle, href
       FROM (
         SELECT
           'segment'::text AS type,
           s.type::text AS segment_type,
+          NULL::text AS wishlist_type,
           s.id::text AS id,
           CASE s.type::text
             WHEN 'flight' THEN
@@ -168,6 +171,7 @@ export async function searchAll(query: string): Promise<SearchResults> {
       SELECT
         'document'::text AS type,
         NULL::text AS segment_type,
+        NULL::text AS wishlist_type,
         d.id::text AS id,
         d.original_name AS title,
         'Trip: ' || tr.title ||
@@ -184,18 +188,45 @@ export async function searchAll(query: string): Promise<SearchResults> {
              OR similarity(d.search_text, q.s) > ${TRIGRAM_SIMILARITY})
       ORDER BY rank DESC
       LIMIT ${PER_GROUP_LIMIT}
+    ),
+    wishlist_hits AS (
+      -- Wishlist items match against the same FTS + trgm columns as
+      -- everything else. Title = venue (food) / activity title; the
+      -- subtitle carries country + optional location label so the
+      -- user can disambiguate "Senso-ji" entries across cities.
+      SELECT
+        'wishlist'::text AS type,
+        NULL::text AS segment_type,
+        w.type::text AS wishlist_type,
+        w.id::text AS id,
+        CASE w.type::text
+          WHEN 'food' THEN coalesce(w.data->>'venue', 'Food spot')
+          ELSE coalesce(w.data->>'title', 'Attraction')
+        END AS title,
+        coalesce(c.name, w.country_code) ||
+          coalesce(' · ' || nullif(w.location_name, ''), '') AS subtitle,
+        '/wishlist#' || w.id::text AS href,
+        ts_rank_cd(w.search_tsv, q.tsq) * 2 + similarity(w.search_text, q.s) AS rank
+      FROM wishlist_items w
+      LEFT JOIN countries c ON c.code = w.country_code, q
+      WHERE w.search_tsv @@ q.tsq
+         OR similarity(w.search_text, q.s) > ${TRIGRAM_SIMILARITY}
+      ORDER BY rank DESC
+      LIMIT ${PER_GROUP_LIMIT}
     )
-    SELECT type, segment_type, id, title, subtitle, href FROM trip_hits
-    UNION ALL SELECT type, segment_type, id, title, subtitle, href FROM segment_hits
-    UNION ALL SELECT type, segment_type, id, title, subtitle, href FROM document_hits
+    SELECT type, segment_type, wishlist_type, id, title, subtitle, href FROM trip_hits
+    UNION ALL SELECT type, segment_type, wishlist_type, id, title, subtitle, href FROM segment_hits
+    UNION ALL SELECT type, segment_type, wishlist_type, id, title, subtitle, href FROM document_hits
+    UNION ALL SELECT type, segment_type, wishlist_type, id, title, subtitle, href FROM wishlist_hits
   `);
 
   const rows = result.rows as Row[];
-  const out: SearchResults = { trips: [], segments: [], documents: [] };
+  const out: SearchResults = { trips: [], segments: [], documents: [], wishlist: [] };
   for (const r of rows) {
     const row: SearchResultRow = {
       type: r.type,
       segmentType: r.segment_type,
+      wishlistType: r.wishlist_type,
       id: r.id,
       title: r.title,
       subtitle: r.subtitle,
@@ -203,7 +234,8 @@ export async function searchAll(query: string): Promise<SearchResults> {
     };
     if (r.type === 'trip') out.trips.push(row);
     else if (r.type === 'segment') out.segments.push(row);
-    else out.documents.push(row);
+    else if (r.type === 'document') out.documents.push(row);
+    else out.wishlist.push(row);
   }
   return out;
 }

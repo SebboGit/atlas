@@ -9,7 +9,14 @@ import {
   getCachedMany,
   normalizeQuery,
 } from '@/lib/geocoding';
-import { flightDataSchema, foodDataSchema, hotelDataSchema } from '@/lib/segments/validators';
+import * as segmentsRepo from '@/lib/segments/repo';
+import {
+  activityDataSchema,
+  flightDataSchema,
+  foodDataSchema,
+  hotelDataSchema,
+} from '@/lib/segments/validators';
+import * as wishlistRepo from '@/lib/wishlist/repo';
 
 // Plain serialisable fields — these cross the RSC → client boundary.
 // Don't add Map/Set/BigInt or anything Next can't pass over the wire.
@@ -88,6 +95,21 @@ export interface TripMapData {
    * is the most surprising bug class for a map view.
    */
   ungeocoded: UngeocodedSegment[];
+}
+
+// Wishlist overlay pin — a muted, toggleable marker layer drawn on
+// top of the regular trip-map pins. Items already materialised on
+// this trip are excluded at the repo layer; items without resolved
+// coords (cache miss / null) are also dropped here — the overlay is
+// a hint, not a "missing" surface.
+export interface WishlistMapPin {
+  itemId: string;
+  kind: 'food' | 'activity';
+  label: string;
+  /** ISO 3166-1 alpha-2 of the wishlist item's country. */
+  country: string;
+  lat: number;
+  lng: number;
 }
 
 const segmentCols = getTableColumns(segments);
@@ -383,6 +405,80 @@ function formatHotelDateRange(start: Date, end: Date | null): string {
     `${startDay} ${startMonth} ${start.getUTCFullYear()} ` +
     `– ${endDay} ${endMonth} ${end.getUTCFullYear()}`
   );
+}
+
+/**
+ * Wishlist-overlay pins for a trip: items whose country is in this
+ * trip's country list and which aren't already materialised on this
+ * trip. Items with no cached coords (cache miss or null result) are
+ * silently dropped — the overlay is a suggestion, not a "missing"
+ * surface. The user can refine an unresolved item via #16's address
+ * picker later, and the next render will pick it up.
+ *
+ * Same per-type query construction as segments (`buildGeocodeQuery`)
+ * so the wishlist item shares its `geocode_cache` row with any
+ * segment materialised from it.
+ */
+export async function getWishlistOverlayForTrip(
+  userId: string,
+  tripId: string,
+): Promise<WishlistMapPin[]> {
+  // Trip ownership AND the country list both come from
+  // `listCountryCodesForTrip`, which derives the codes from
+  // segment attribution (ADR-0005) via a user-scoped JOIN. A
+  // foreign userId returns an empty list — no separate ACL check
+  // needed.
+  const countryCodes = await segmentsRepo.listCountryCodesForTrip(userId, tripId);
+  if (countryCodes.length === 0) return [];
+
+  const items = await wishlistRepo.listForCountries(countryCodes, {
+    excludeMaterialisedOnTrip: tripId,
+  });
+  if (items.length === 0) return [];
+
+  const queryFor = (item: (typeof items)[number]): string | null =>
+    buildGeocodeQuery({
+      type: item.type,
+      data: item.data,
+      locationName: item.locationName,
+    });
+
+  // Pair each item with its derived query so we can map cache hits
+  // back to the item.
+  const withQuery: Array<{ item: (typeof items)[number]; query: string }> = [];
+  for (const item of items) {
+    const q = queryFor(item);
+    if (q && q.trim() !== '') withQuery.push({ item, query: q });
+  }
+  if (withQuery.length === 0) return [];
+
+  const cache = await getCachedMany(withQuery.map((p) => p.query));
+  const pins: WishlistMapPin[] = [];
+  for (const { item, query } of withQuery) {
+    const cached = cache.get(normalizeQuery(query));
+    if (cached?.kind !== 'hit') continue;
+    // Headline label — same source as the materialised segment's pin
+    // label (venue / title), kept short for the muted marker.
+    const label = wishlistPinLabel(item);
+    pins.push({
+      itemId: item.id,
+      kind: item.type,
+      label,
+      country: item.countryCode,
+      lat: cached.result.lat,
+      lng: cached.result.lng,
+    });
+  }
+  return pins;
+}
+
+function wishlistPinLabel(item: { type: 'food' | 'activity'; data: unknown }): string {
+  if (item.type === 'food') {
+    const parsed = foodDataSchema.safeParse(item.data);
+    return parsed.success ? parsed.data.venue : 'Food spot';
+  }
+  const parsed = activityDataSchema.safeParse(item.data);
+  return parsed.success ? parsed.data.title : 'Attraction';
 }
 
 function noQueryReason(type: Segment['type']): string {

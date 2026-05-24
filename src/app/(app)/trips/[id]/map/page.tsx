@@ -22,9 +22,10 @@ export default async function MapTabPage({ params, searchParams }: MapTabPagePro
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
-  const [mapData, allCountryCodes] = await Promise.all([
+  const [mapData, allCountryCodes, wishlistPins] = await Promise.all([
     tripMapRepo.getTripMapDataForUser(user.id, id),
     segmentsRepo.listCountryCodesForTrip(user.id, id),
+    tripMapRepo.getWishlistOverlayForTrip(user.id, id),
   ]);
 
   // Country chip strip only matters when the trip touched 2+ places.
@@ -46,6 +47,7 @@ export default async function MapTabPage({ params, searchParams }: MapTabPagePro
       countries={countries}
       activeCountry={activeCountry}
       tripId={id}
+      wishlistPins={wishlistPins}
     />
   );
 }

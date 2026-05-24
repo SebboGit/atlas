@@ -45,7 +45,7 @@ beforeEach(() => {
 describe('searchAll', () => {
   it('short-circuits empty input without touching the DB', async () => {
     const out = await searchAll('   ');
-    expect(out).toEqual({ trips: [], segments: [], documents: [] });
+    expect(out).toEqual({ trips: [], segments: [], documents: [], wishlist: [] });
     expect(dbState.calls).toHaveLength(0);
   });
 
@@ -113,6 +113,6 @@ describe('searchAll', () => {
 
   it('returns empty groups when the DB returns no rows', async () => {
     const out = await searchAll('zzz-no-match');
-    expect(out).toEqual({ trips: [], segments: [], documents: [] });
+    expect(out).toEqual({ trips: [], segments: [], documents: [], wishlist: [] });
   });
 });

@@ -24,4 +24,15 @@ test.describe('smoke', () => {
     expect(body).toHaveProperty('ok');
     expect(body).toHaveProperty('db');
   });
+
+  test('/wishlist exists and gates on auth like other app routes', async ({ page }) => {
+    // The proxy redirects unauthenticated requests under /(app)/* to
+    // sign-in. /wishlist is one of those — confirms the route shipped
+    // and the gating works. Full wishlist functional flows require an
+    // authenticated session and live in the (yet-to-build) auth-stubbed
+    // E2E suite.
+    const response = await page.goto('/wishlist');
+    await expect(page).not.toHaveURL(/\/wishlist$/);
+    expect(response?.status()).toBeLessThan(500);
+  });
 });
