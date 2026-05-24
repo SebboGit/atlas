@@ -69,7 +69,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 docker compose --profile backup up -d
 ```
 
-The `app`, `postgres`, and `cron` services come up automatically. The
+The `app`, `postgres`, and `worker` services come up automatically. The
 `db-backup` service is opt-in via the `backup` profile.
 
 ### 4. Run migrations and seed
@@ -265,19 +265,25 @@ Test a restore from a real snapshot at least once per quarter.
 
 - App: `GET /api/health` returns `200 OK` if the database is reachable.
 - Postgres: `pg_isready` inside the container.
-- Cron: `docker compose logs -f cron` should show job registration at
-  startup and successful runs each night.
+- Worker: `docker compose logs -f worker` should show handler and
+  schedule registration at startup and successful runs each night. See
+  [WORKER.md](./WORKER.md) for the full job inventory.
 
 ### Nightly maintenance
 
-The `cron` service runs a nightly prune at 03:40 UTC (configurable via
-`CRON_PRUNE_SCHEDULE`) that sweeps expired auth sessions, verification
-tokens, and stale geocode cache rows. See
-[CLAUDE.md → Backups → Nightly DB prune](../CLAUDE.md#4-nightly-db-prune-in-stack)
-for details. Manual run:
+The `worker` service runs two scheduled jobs out of the box:
+
+- `prune` at 03:40 UTC (configurable via `CRON_PRUNE_SCHEDULE`) — sweeps
+  expired auth sessions, verification tokens, and stale geocode cache rows.
+- `status-sweep` at 00:05 UTC (configurable via `CRON_STATUS_SCHEDULE`) —
+  flips trip statuses forward through their lifecycle (`planned → active`,
+  `active → completed`). Forward-only.
+
+Both honour `CRON_TZ` (defaults to `UTC`). See [WORKER.md](./WORKER.md)
+for the full picture. Manual prune:
 
 ```bash
-docker compose exec app pnpm db:prune --apply
+docker compose exec worker pnpm db:prune --apply
 ```
 
 ### Upgrading
@@ -296,7 +302,7 @@ upgrading a production deployment.
 
 ```bash
 docker compose logs -f app
-docker compose logs -f cron
+docker compose logs -f worker
 docker compose logs -f postgres
 ```
 
