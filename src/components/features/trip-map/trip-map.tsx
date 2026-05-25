@@ -98,6 +98,19 @@ function readCssColor(varName: string, fallback: string): string {
   return val || fallback;
 }
 
+// Tiny HTML escaper for the wishlist marker popup. Popup content is
+// built as raw HTML so labels containing user-typed brackets, quotes,
+// or ampersands need escaping or we'd inject broken markup. Five
+// chars cover the relevant XSS attack surface for HTML text content.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // A live MapLibre marker plus the React root that owns its DOM. We
 // keep both around so the marker-sync effect can update prop-driven
 // state (hovered/dimmed) on existing markers cheaply and tear them
@@ -531,18 +544,16 @@ export function TripMap({
 
   // Wishlist overlay markers. Independent of the main pin lifecycle —
   // creates / tears down on prop or toggle change. Each marker is a
-  // small native DOM element (no React root, no tooltip) styled muted
-  // so the overlay reads as decoration rather than primary content.
-  // When the toggle is off we tear them down entirely instead of
-  // hiding via CSS — keeps the DOM clean and matches the rest of the
-  // pin lifecycle pattern.
+  // small native DOM element with an inline-styled glyph so the look
+  // isn't dependent on Tailwind seeing the runtime-built class string.
+  // Click opens a maplibregl.Popup with the label + type, matching
+  // segment pins' "click for detail" pattern.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    // Always rebuild — wishlistPins are short and this avoids
-    // managing diff state for a feature that gets toggled in/out
-    // wholesale.
+    // Always rebuild — wishlistPins are short and this avoids managing
+    // diff state for a feature that gets toggled in/out wholesale.
     for (const m of wishlistMarkersRef.current) m.remove();
     wishlistMarkersRef.current = [];
 
@@ -550,23 +561,67 @@ export function TripMap({
 
     for (const pin of wishlistPins) {
       const el = document.createElement('div');
-      el.className =
-        'flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-foreground/40 bg-card/65 text-foreground/60 shadow-[0_1px_2px_rgba(60,40,20,0.08)] backdrop-blur-sm opacity-70 hover:opacity-100 transition-opacity';
-      el.setAttribute('role', 'img');
+      // Inline style — Tailwind would tree-shake unknown runtime-built
+      // class strings, leaving the marker invisible. Inline keeps the
+      // muted-dotted-ring visual stable regardless of build pipeline.
+      el.style.cssText = [
+        'display:inline-flex',
+        'align-items:center',
+        'justify-content:center',
+        'width:28px',
+        'height:28px',
+        'border-radius:9999px',
+        'border:1.5px dashed rgba(28,22,14,0.45)',
+        'background:rgba(255,253,248,0.85)',
+        'color:rgba(28,22,14,0.65)',
+        'backdrop-filter:blur(4px)',
+        'box-shadow:0 1px 2px rgba(60,40,20,0.12)',
+        'cursor:pointer',
+        'transition:opacity 150ms ease',
+        'opacity:0.85',
+      ].join(';');
+      el.setAttribute('role', 'button');
       el.setAttribute(
         'aria-label',
         `Wishlist ${pin.kind === 'food' ? 'food spot' : 'attraction'}: ${pin.label}`,
       );
-      el.title = pin.label;
+      el.addEventListener('mouseenter', () => {
+        el.style.opacity = '1';
+      });
+      el.addEventListener('mouseleave', () => {
+        el.style.opacity = '0.85';
+      });
       // Single SVG glyph — matches the wishlist-card iconography
       // (UtensilsCrossed for food, Sparkles for activity).
       el.innerHTML =
         pin.kind === 'food'
-          ? '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/><path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/></svg>'
-          : '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>';
+          ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/><path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/></svg>'
+          : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>';
+
+      // Popup mirrors PinTooltip's role for segment pins: click the
+      // marker to surface what the pin represents. Native popup over
+      // a React-rendered one because the wishlist overlay is
+      // intentionally a lower-weight surface — no need for the full
+      // hover-tracking machinery.
+      const popupHtml = [
+        '<div style="font-family:inherit;padding:2px 4px;min-width:120px">',
+        '<div style="font-family:ui-monospace,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(28,22,14,0.55)">',
+        pin.kind === 'food' ? 'Wishlist · Food' : 'Wishlist · Activity',
+        '</div>',
+        '<div style="font-size:14px;font-weight:500;color:rgba(28,22,14,0.92);margin-top:3px;line-height:1.25">',
+        escapeHtml(pin.label),
+        '</div>',
+        '</div>',
+      ].join('');
+      const popup = new maplibregl.Popup({
+        offset: 18,
+        closeButton: false,
+        className: 'atlas-wishlist-popup',
+      }).setHTML(popupHtml);
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([pin.lng, pin.lat])
+        .setPopup(popup)
         .addTo(map);
       wishlistMarkersRef.current.push(marker);
     }
@@ -627,7 +682,18 @@ export function TripMap({
           { lat: arc.destLat, lng: arc.destLng },
         ]);
 
-    const matched = [...matchedPins, ...matchedArcEndpoints];
+    // When the overlay is on, fold wishlist pins into the bounds so
+    // toggling actually reveals the suggestion — otherwise a pin in a
+    // home-country city (e.g. Munich on a Japan trip) sits offscreen
+    // and the toggle looks broken. Off-state: bounds collapse back
+    // to segments only.
+    const matchedWishlistPoints = showWishlist
+      ? wishlistPins
+          .filter((p) => activeCountry === null || p.country === activeCountry)
+          .map((p) => ({ lat: p.lat, lng: p.lng }))
+      : [];
+
+    const matched = [...matchedPins, ...matchedArcEndpoints, ...matchedWishlistPoints];
     const fallback = [
       ...pins,
       ...arcs.flatMap((arc) => [
@@ -674,7 +740,7 @@ export function TripMap({
       },
     );
     firstFitDoneRef.current = true;
-  }, [pins, arcs, activeCountry, mapReady]);
+  }, [pins, arcs, activeCountry, mapReady, showWishlist, wishlistPins]);
 
   return (
     <div className="atlas-rise" style={{ animationDelay: '160ms' }}>
@@ -754,89 +820,54 @@ export function TripMap({
   );
 }
 
-// localStorage-backed toggle for the wishlist overlay. Uses
-// useSyncExternalStore so the server render and the first client
-// paint both match (default off) — flipping in via an `useEffect`
-// would trip react-hooks/set-state-in-effect. The store layer is
-// per-tripId; cross-tab edits sync via the storage event.
-type ToggleListener = () => void;
-const overlayListeners = new Map<string, Set<ToggleListener>>();
-const overlayCache = new Map<string, boolean>();
-
+// localStorage-backed toggle for the wishlist overlay. Plain
+// useState + a hydration-time effect to load persisted state. The
+// effect violates `react-hooks/set-state-in-effect` once — that
+// rule is right in spirit but wrong for the SSR-localStorage
+// pairing, where setting on the server isn't possible and lazy
+// init produces hydration mismatches. The disable is local and the
+// reason is in the comment above it. Prior implementation used
+// useSyncExternalStore but the toggle wasn't propagating to the
+// marker effect in practice; this shape is simpler and obviously
+// correct.
 function storageKey(tripId: string): string {
   return `atlas:wishlist-overlay:${tripId}`;
-}
-
-function readOverlay(tripId: string): boolean {
-  if (typeof window === 'undefined') return false;
-  const cached = overlayCache.get(tripId);
-  if (cached !== undefined) return cached;
-  try {
-    const stored = window.localStorage.getItem(storageKey(tripId)) === 'on';
-    overlayCache.set(tripId, stored);
-    return stored;
-  } catch {
-    return false;
-  }
-}
-
-function publishOverlay(tripId: string, next: boolean): void {
-  overlayCache.set(tripId, next);
-  if (typeof window !== 'undefined') {
-    try {
-      window.localStorage.setItem(storageKey(tripId), next ? 'on' : 'off');
-    } catch {
-      // Quota / private mode — session-only toggle is still correct.
-    }
-  }
-  const listeners = overlayListeners.get(tripId);
-  if (listeners) for (const l of listeners) l();
-}
-
-function subscribeOverlay(tripId: string, callback: ToggleListener): () => void {
-  let set = overlayListeners.get(tripId);
-  if (!set) {
-    set = new Set();
-    overlayListeners.set(tripId, set);
-  }
-  set.add(callback);
-  function onStorage(e: StorageEvent) {
-    if (e.key === storageKey(tripId)) {
-      overlayCache.delete(tripId);
-      callback();
-    }
-  }
-  if (typeof window !== 'undefined') {
-    window.addEventListener('storage', onStorage);
-  }
-  return () => {
-    set?.delete(callback);
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('storage', onStorage);
-    }
-  };
 }
 
 function useWishlistOverlayState(tripId: string): {
   showWishlist: boolean;
   setShowWishlist: (next: boolean | ((prev: boolean) => boolean)) => void;
 } {
-  const subscribe = React.useCallback(
-    (cb: ToggleListener) => subscribeOverlay(tripId, cb),
-    [tripId],
-  );
-  const getSnapshot = React.useCallback(() => readOverlay(tripId), [tripId]);
-  // Server snapshot: always off. Matches the first client paint so
-  // hydration agrees; the marker effect then runs and reads the
-  // genuine stored value via the cache.
-  const getServerSnapshot = React.useCallback(() => false, []);
-  const showWishlist = React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [showWishlist, setShowWishlistState] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (window.localStorage.getItem(storageKey(tripId)) === 'on') {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration sync from localStorage; lazy initial state would mismatch SSR's default-off render.
+        setShowWishlistState(true);
+      }
+    } catch {
+      // Quota / private mode — default-off stays.
+    }
+  }, [tripId]);
+
   const setShowWishlist = React.useCallback(
     (next: boolean | ((prev: boolean) => boolean)) => {
-      const resolved = typeof next === 'function' ? next(readOverlay(tripId)) : next;
-      publishOverlay(tripId, resolved);
+      setShowWishlistState((prev) => {
+        const resolved = typeof next === 'function' ? next(prev) : next;
+        if (typeof window !== 'undefined') {
+          try {
+            window.localStorage.setItem(storageKey(tripId), resolved ? 'on' : 'off');
+          } catch {
+            // Non-fatal — the toggle still works for the session.
+          }
+        }
+        return resolved;
+      });
     },
     [tripId],
   );
+
   return { showWishlist, setShowWishlist };
 }
