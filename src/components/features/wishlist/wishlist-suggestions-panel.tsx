@@ -47,9 +47,9 @@ export function WishlistSuggestionsPanel({ tripId, items }: WishlistSuggestionsP
           const isFood = item.type === 'food';
           const label = suggestionLabel(item);
           return (
-            <li key={item.id}>
-              <Card variant="paper" className="overflow-hidden">
-                <CardContent className="flex items-center gap-4 px-4 py-4 sm:px-5">
+            <li key={item.id} className="h-full">
+              <Card variant="paper" className="h-full overflow-hidden">
+                <CardContent className="flex h-full items-center gap-4 px-4 py-4 sm:px-5">
                   <div
                     aria-hidden
                     className="border-foreground/25 text-foreground/65 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border [&_svg]:size-4"
@@ -79,7 +79,7 @@ export function WishlistSuggestionsPanel({ tripId, items }: WishlistSuggestionsP
                       </p>
                     )}
                   </div>
-                  <WishlistAddToTripButton itemId={item.id} tripId={tripId} />
+                  <WishlistAddToTripButton itemId={item.id} tripId={tripId} kind={item.type} />
                 </CardContent>
               </Card>
             </li>

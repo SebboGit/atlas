@@ -95,7 +95,7 @@ export default async function HomePage() {
                 <h2 className="font-display text-3xl leading-none font-medium tracking-tight">
                   Wishlist
                 </h2>
-                <p className="text-muted-foreground mt-2 text-sm">Places worth coming back to.</p>
+                <p className="text-muted-foreground mt-2 text-sm">Worth returning to.</p>
               </div>
             </CardContent>
             <span
