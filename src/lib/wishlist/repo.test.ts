@@ -14,7 +14,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { trips, users, wishlistItems } from '@/db/schema';
+import { countries, trips, users, wishlistItems } from '@/db/schema';
 
 import * as repo from './repo';
 
@@ -33,6 +33,14 @@ describeIfDb('wishlist.repo', () => {
     pool = new Pool({ connectionString: DATABASE_URL, max: 2 });
     db = drizzle(pool);
     await pool.query('SELECT 1');
+    // Ensure 'JP' exists in the countries reference table. Local dev
+    // has seed data populated, but CI only runs migrations — so the
+    // FK on wishlist_items.country_code would otherwise reject every
+    // insert here. ON CONFLICT DO NOTHING keeps the local case a no-op.
+    await db
+      .insert(countries)
+      .values({ code: 'JP', name: 'Japan' })
+      .onConflictDoNothing({ target: countries.code });
   });
 
   afterAll(async () => {

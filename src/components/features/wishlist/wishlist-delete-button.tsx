@@ -39,8 +39,15 @@ export function WishlistDeleteButton({ itemId, noun = 'item' }: WishlistDeleteBu
     });
   }
 
+  // Clear the error whenever the dialog opens or closes so a previous
+  // failed attempt doesn't shout at the user on reopen.
+  function onOpenChange(next: boolean) {
+    setOpen(next);
+    setError(null);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <button
           type="button"

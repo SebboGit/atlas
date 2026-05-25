@@ -64,11 +64,17 @@ export function WishlistSuggestionsPanel({ tripId, items }: WishlistSuggestionsP
                     <p className="text-foreground/55 font-mono text-[9px] tracking-[0.28em] uppercase">
                       {isFood ? 'Food' : 'Activity'}
                     </p>
-                    <p className="font-display text-foreground mt-0.5 truncate text-lg leading-tight font-medium tracking-tight">
+                    <p
+                      title={label}
+                      className="font-display text-foreground mt-0.5 truncate text-lg leading-tight font-medium tracking-tight"
+                    >
                       {label}
                     </p>
                     {item.locationName && (
-                      <p className="text-foreground/55 mt-0.5 truncate text-xs">
+                      <p
+                        title={item.locationName}
+                        className="text-foreground/55 mt-0.5 truncate text-xs"
+                      >
                         {item.locationName}
                       </p>
                     )}
