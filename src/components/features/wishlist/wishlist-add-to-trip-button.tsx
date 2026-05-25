@@ -1,6 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -24,9 +25,21 @@ interface WishlistAddToTripButtonProps {
 // and "the parent re-renders without us". By the time the chip
 // would otherwise expire, the card is usually already gone.
 export function WishlistAddToTripButton({ itemId, tripId, kind }: WishlistAddToTripButtonProps) {
+  const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const [added, setAdded] = React.useState(false);
+  // Refresh is delayed so the confirmation chip stays on screen long
+  // enough to be readable. The timer ref lets us clear the pending
+  // refresh if the component unmounts first (parent navigation,
+  // HMR, etc.) — firing router.refresh on an unmounted component
+  // is harmless but the cleanup is the polite default.
+  const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
 
   const tabLabel = kind === 'food' ? 'Food' : 'Activities';
 
@@ -38,10 +51,24 @@ export function WishlistAddToTripButton({ itemId, tripId, kind }: WishlistAddToT
         setError(result.error.formMessage ?? 'Could not add to trip.');
         return;
       }
-      // Sticky confirmation — left visible until the parent revalidates
-      // away this card. No timeout: the revalidatePath in the server
-      // action unmounts this component within a frame or two.
+      // Sticky confirmation — left visible until we trigger the
+      // router refresh below.
       setAdded(true);
+      // `revalidatePath` in the server action invalidates the data
+      // cache, but Next's router cache only refreshes on the NEXT
+      // visit to a path — navigating to the map tab right after the
+      // add would serve a stale wishlistPins prop (and the muted pin
+      // for the just-materialised item would stick around). Force a
+      // refresh of the current route + its layouts so every sibling
+      // tab re-fetches on next navigation.
+      //
+      // The refresh is delayed ~1.5s so the user gets to actually
+      // read the "✓ Added to <tab>" chip before the parent re-renders
+      // and unmounts this card. If the user navigates away during
+      // that window the cleanup effect clears the timer.
+      refreshTimerRef.current = setTimeout(() => {
+        router.refresh();
+      }, 1500);
     });
   }
 

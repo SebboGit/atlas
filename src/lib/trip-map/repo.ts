@@ -357,6 +357,20 @@ function foodPinLabel(row: Segment, foodData: { venue: string } | null): string 
   return 'Food';
 }
 
+// Map-pin label for an activity segment — title first, then
+// locationName, then the generic type fallback. Same pattern as
+// hotels and food: the *thing's name* ("Senso-ji Temple") is the
+// recognisable headline. The plain `locationName`-first fallback
+// in `nonFlightLabel` is too generic for activities — it leaves
+// a pin reading "Activity" whenever the user didn't supply a
+// pin-style label, even though the activity has a perfectly good
+// title in `data`.
+function activityPinLabel(row: Segment, activityData: { title: string } | null): string {
+  if (activityData?.title) return activityData.title;
+  if (row.locationName) return row.locationName;
+  return 'Activity';
+}
+
 // Resolve the map-pin / "not pinned" label for a non-flight row.
 // Hotels and food headline on their venue/property name (see
 // `hotelPinLabel` / `foodPinLabel`); everything else keeps the
@@ -371,6 +385,10 @@ function pinLabelForType(row: Segment): string {
   if (row.type === 'food') {
     const parsed = foodDataSchema.safeParse(row.data);
     return foodPinLabel(row, parsed.success ? parsed.data : null);
+  }
+  if (row.type === 'activity') {
+    const parsed = activityDataSchema.safeParse(row.data);
+    return activityPinLabel(row, parsed.success ? parsed.data : null);
   }
   return nonFlightLabel(row);
 }
@@ -436,19 +454,46 @@ export async function getWishlistOverlayForTrip(
   });
   if (items.length === 0) return [];
 
-  const queryFor = (item: (typeof items)[number]): string | null =>
+  const queryFor = (place: {
+    type: 'food' | 'activity' | Segment['type'];
+    data: unknown;
+    locationName: string | null;
+  }): string | null =>
     buildGeocodeQuery({
-      type: item.type,
-      data: item.data,
-      locationName: item.locationName,
+      type: place.type,
+      data: place.data,
+      locationName: place.locationName,
     });
 
+  // Belt-and-braces dedup. The FK-based `excludeMaterialisedOnTrip`
+  // filter covers segments whose `wishlistItemId` is intact, but the
+  // FK is `ON DELETE SET NULL` — so a segment materialised from a
+  // wishlist item that was later deleted (and possibly re-created)
+  // has a NULL backref. Without this step, the muted overlay marker
+  // would render on top of the segment's own pin at the same coords,
+  // and the user can't easily tell why a segment looks like a
+  // wishlist pin.
+  //
+  // The dedup happens by *derived geocode query* — same logical
+  // place, same cache row, same coordinates. We fetch all segments
+  // on the trip and build their normalised query set; any wishlist
+  // item that produces the same normalised string is filtered out.
+  const tripSegments = await segmentsRepo.listForTrip(userId, tripId);
+  const segmentQueries = new Set<string>();
+  for (const seg of tripSegments) {
+    const q = queryFor(seg);
+    if (q && q.trim() !== '') segmentQueries.add(normalizeQuery(q));
+  }
+
   // Pair each item with its derived query so we can map cache hits
-  // back to the item.
+  // back to the item. Skip items whose query matches a segment on
+  // this trip (the dedup case above).
   const withQuery: Array<{ item: (typeof items)[number]; query: string }> = [];
   for (const item of items) {
     const q = queryFor(item);
-    if (q && q.trim() !== '') withQuery.push({ item, query: q });
+    if (!q || q.trim() === '') continue;
+    if (segmentQueries.has(normalizeQuery(q))) continue;
+    withQuery.push({ item, query: q });
   }
   if (withQuery.length === 0) return [];
 

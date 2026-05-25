@@ -797,15 +797,24 @@ export function TripMap({
                 : `Show ${wishlistPins.length} wishlist ${wishlistPins.length === 1 ? 'pin' : 'pins'}`
             }
             onClick={() => setShowWishlist((v) => !v)}
-            className={`border-foreground/20 bg-card/85 text-foreground/70 hover:text-foreground absolute top-3 right-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5 ${
-              showWishlist ? 'border-foreground/45 bg-foreground/8 text-foreground' : ''
+            className={`absolute top-3 right-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5 ${
+              showWishlist
+                ? 'border-primary/55 bg-primary/12 text-primary'
+                : 'border-foreground/20 bg-card/85 text-foreground/70 hover:text-foreground'
             }`}
           >
             <span
               aria-hidden
-              className="border-foreground/55 inline-flex h-3 w-3 items-center justify-center rounded-full border border-dashed"
+              className={
+                showWishlist
+                  ? 'bg-primary inline-block h-3 w-3 rounded-full'
+                  : 'border-foreground/55 inline-block h-3 w-3 rounded-full border border-dashed'
+              }
             />
-            Wishlist · {String(wishlistPins.length).padStart(2, '0')}
+            <span>
+              {showWishlist ? 'Showing' : 'Wishlist'} ·{' '}
+              {String(wishlistPins.length).padStart(2, '0')}
+            </span>
           </button>
         )}
       </div>
