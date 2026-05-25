@@ -11,11 +11,16 @@ export type WishlistItemType = z.infer<typeof wishlistItemTypeEnum>;
 // **non-nullable** here — wishlist items are useless without a country
 // (the suggestions panel filter is country-scoped). Empty / whitespace
 // input fails refinement so the form surfaces the error.
+//
+// The regex enforces "two uppercase letters" — bare `length === 2`
+// would accept digits or punctuation ("12", "JP1"[:2]) which the
+// FK would later reject with an opaque error. Catching it here
+// gives the form a usable message.
 const countryCode = z
   .string()
   .trim()
   .transform((s) => s.toUpperCase())
-  .refine((s) => s.length === 2, 'Choose a country');
+  .refine((s) => /^[A-Z]{2}$/.test(s), 'Choose a valid country');
 
 // Common fields shared across types. `locationName` is the pin-style
 // label (e.g. "Ginza"), NOT the venue or attraction name — same role

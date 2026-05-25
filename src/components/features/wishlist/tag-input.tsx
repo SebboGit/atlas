@@ -64,7 +64,7 @@ export function TagInput({ value, onChange, placeholder, id }: TagInputProps) {
                 <button
                   type="button"
                   aria-label={`Remove tag ${tag}`}
-                  className="text-foreground/55 hover:text-foreground focus-visible:ring-primary/40 -m-1 inline-flex h-7 w-7 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                  className="text-foreground/55 hover:text-foreground focus-visible:ring-primary/40 inline-flex h-11 w-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none [@media(hover:hover)]:-m-1 [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
                   onClick={() => removeTag(tag)}
                 >
                   <X className="h-3 w-3" aria-hidden />

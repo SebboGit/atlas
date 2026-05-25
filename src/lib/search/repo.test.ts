@@ -10,8 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const dbState = vi.hoisted(() => ({
   rows: [] as Array<{
-    type: 'trip' | 'segment' | 'document';
+    type: 'trip' | 'segment' | 'document' | 'wishlist';
     segment_type: string | null;
+    wishlist_type: 'food' | 'activity' | null;
     id: string;
     title: string;
     subtitle: string | null;
@@ -54,6 +55,7 @@ describe('searchAll', () => {
       {
         type: 'trip',
         segment_type: null,
+        wishlist_type: null,
         id: 't1',
         title: 'Vietnam 2024',
         subtitle: null,
@@ -62,6 +64,7 @@ describe('searchAll', () => {
       {
         type: 'segment',
         segment_type: 'flight',
+        wishlist_type: null,
         id: 's1',
         title: 'HAN',
         subtitle: 'Vietnam 2024',
@@ -70,10 +73,20 @@ describe('searchAll', () => {
       {
         type: 'document',
         segment_type: null,
+        wishlist_type: null,
         id: 'd1',
         title: 'boarding-pass.pdf',
         subtitle: 'Vietnam 2024',
         href: '/trips/t1/documents',
+      },
+      {
+        type: 'wishlist',
+        segment_type: null,
+        wishlist_type: 'food',
+        id: 'w1',
+        title: 'Bún chả Hương Liên',
+        subtitle: 'Vietnam · Hanoi',
+        href: '/wishlist#w1',
       },
     ];
 
@@ -82,8 +95,11 @@ describe('searchAll', () => {
     expect(out.trips).toHaveLength(1);
     expect(out.segments).toHaveLength(1);
     expect(out.documents).toHaveLength(1);
+    expect(out.wishlist).toHaveLength(1);
     expect(out.trips[0]?.id).toBe('t1');
     expect(out.trips[0]?.href).toBe('/trips/t1');
+    expect(out.wishlist[0]?.wishlistType).toBe('food');
+    expect(out.wishlist[0]?.href).toBe('/wishlist#w1');
   });
 
   it('preserves segmentType for the icon picker on the client', async () => {
@@ -91,6 +107,7 @@ describe('searchAll', () => {
       {
         type: 'segment',
         segment_type: 'hotel',
+        wishlist_type: null,
         id: 's1',
         title: 'Hanoi Boutique',
         subtitle: 'Vietnam 2024',
@@ -99,6 +116,7 @@ describe('searchAll', () => {
       {
         type: 'segment',
         segment_type: 'activity',
+        wishlist_type: null,
         id: 's2',
         title: 'Old Quarter walk',
         subtitle: 'Vietnam 2024',
