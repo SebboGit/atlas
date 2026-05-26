@@ -12,7 +12,7 @@
 // trip-map repo and any future wishlist-overlay repo read coords
 // straight from the cache by the same query string.
 
-import { enqueueGeocodeFetch } from '@/lib/geocoding';
+import { enqueueGeocodeFetch, normalizeForGeocoder } from '@/lib/geocoding';
 import { buildGeocodeQuery } from '@/lib/geocoding/segment-query';
 
 import type { WishlistItem } from './repo';
@@ -33,19 +33,24 @@ export interface GeocodeOnWishlistChangeArgs {
  * surface as log lines on the worker side.
  */
 export function geocodeOnWishlistChange(args: GeocodeOnWishlistChangeArgs): void {
-  const nextQuery = buildGeocodeQuery({
+  const rawNext = buildGeocodeQuery({
     type: args.item.type,
     data: args.item.data,
     locationName: args.item.locationName,
   });
-  if (nextQuery === null || nextQuery.trim() === '') return;
+  if (rawNext === null || rawNext.trim() === '') return;
+  const nextQuery = normalizeForGeocoder(rawNext);
+  if (nextQuery === '') return;
 
   if (args.prior) {
-    const priorQuery = buildGeocodeQuery({
+    const rawPrior = buildGeocodeQuery({
       type: args.prior.type,
       data: args.prior.data,
       locationName: args.prior.locationName,
     });
+    // Compare normalised forms — see the parallel comment in
+    // src/lib/geocoding/lifecycle.ts.
+    const priorQuery = rawPrior === null ? null : normalizeForGeocoder(rawPrior);
     if (priorQuery === nextQuery) return;
   }
 

@@ -25,6 +25,7 @@ import type { Segment } from '@/lib/segments';
 import { getCachedOrFetch } from './cache';
 import { getGeocoder } from './index';
 import { normalizeQuery } from './normalize';
+import { normalizeForGeocoder } from './normalize-for-geocoder';
 import { buildGeocodeQuery } from './segment-query';
 
 export const GEOCODE_FETCH_JOB = 'geocode-fetch';
@@ -52,11 +53,17 @@ export interface GeocodeOnSegmentChangeArgs {
  * provider down, no result) surface as log lines, not exceptions.
  */
 export function geocodeOnSegmentChange(args: GeocodeOnSegmentChangeArgs): void {
-  const nextQuery = buildGeocodeQuery(args.segment);
-  if (nextQuery === null || nextQuery.trim() === '') return;
+  const rawNext = buildGeocodeQuery(args.segment);
+  if (rawNext === null || rawNext.trim() === '') return;
+  const nextQuery = normalizeForGeocoder(rawNext);
+  if (nextQuery === '') return;
 
   if (args.prior) {
-    const priorQuery = buildGeocodeQuery(args.prior);
+    const rawPrior = buildGeocodeQuery(args.prior);
+    // Compare normalised forms — an edit that only changed a postcode
+    // or floor designator shouldn't refire a fetch since the cache key
+    // is unchanged.
+    const priorQuery = rawPrior === null ? null : normalizeForGeocoder(rawPrior);
     if (priorQuery === nextQuery) return;
   }
 
@@ -103,8 +110,13 @@ export function enqueueGeocodeFetch(query: string): void {
  * with the no-throw contract `getCachedOrFetch` provides.
  */
 export async function runGeocodeFetchJob(data: GeocodeFetchJobData): Promise<void> {
-  const trimmed = data.query.trim();
-  if (trimmed === '') return;
+  // Defensive normalize: callers enqueue normalized queries today, but
+  // a job queued before this rollout (or by any future caller that
+  // forgets the convention) lands here as raw text. Normalize again
+  // so the cache key and the geocoder input always reflect the same
+  // shape the read side computes. Idempotent.
+  const query = normalizeForGeocoder(data.query.trim());
+  if (query === '') return;
   let geocoder;
   try {
     // Reading the geocoder inside the job (not at scheduling time)
@@ -120,5 +132,5 @@ export async function runGeocodeFetchJob(data: GeocodeFetchJobData): Promise<voi
     return;
   }
   // getCachedOrFetch is no-throw by contract.
-  await getCachedOrFetch(trimmed, geocoder);
+  await getCachedOrFetch(query, geocoder);
 }

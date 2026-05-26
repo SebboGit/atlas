@@ -55,6 +55,10 @@ const geocodingMocks = vi.hoisted(() => ({
   enqueueGeocodeFetch: vi.fn<(q: string) => void>(),
   getCachedMany: vi.fn(),
   normalizeQuery: vi.fn((s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ')),
+  // Passthrough — these tests stub buildGeocodeQuery directly and
+  // don't include addresses with postcodes / designators, so the
+  // normalizer is a no-op for them.
+  normalizeForGeocoder: vi.fn((s: string) => s),
 }));
 
 vi.mock('@/lib/geocoding', () => geocodingMocks);
