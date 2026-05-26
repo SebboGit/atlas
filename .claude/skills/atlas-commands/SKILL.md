@@ -12,6 +12,7 @@ cp .env.example .env       # then edit .env — set AUTH_SECRET and (for sign-in
 
 # The one-shot dev command — every iteration after first-time setup
 pnpm dev:up                # docker compose up -d --wait postgres → migrate → seed → next dev
+pnpm dev:up:wt             # dev:up + seed:dev — for sibling worktrees only (refuses on main)
 
 # Individual pieces (when dev:up is overkill)
 pnpm dev                   # just next dev (requires postgres running + DB migrated)
@@ -19,7 +20,8 @@ pnpm db:setup              # migrate + seed
 pnpm db:reset              # nuke postgres volume, bring up fresh, migrate + seed
 pnpm db:generate           # generate a migration from schema changes
 pnpm db:migrate            # apply pending migrations only
-pnpm db:seed               # seed dev data only
+pnpm db:seed               # seed dev data only (countries reference data)
+pnpm seed:dev              # seed the synthetic Tokyo & Kyoto fixture + sign-in cookie; worktrees only
 pnpm db:studio             # Drizzle Studio (browse DB)
 
 # Full compose stack (app container, not just postgres)
