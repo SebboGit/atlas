@@ -3,7 +3,9 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db/client';
-import { segments, sessions, trips, users, wishlistItems } from '@/db/schema';
+import { geocodeCache, segments, sessions, trips, users, wishlistItems } from '@/db/schema';
+import { normalizeQuery } from '@/lib/geocoding/normalize';
+import { buildGeocodeQuery } from '@/lib/geocoding/segment-query';
 
 import { assertTestDatabase } from './safety';
 
@@ -151,5 +153,114 @@ export async function seedWishlistActivity(
     .returning({ id: wishlistItems.id });
   const row = inserted[0];
   if (!row) throw new Error('E2E fixture: failed to seed wishlist item.');
+  return row.id;
+}
+
+// Activity segment that the trip-map repo will resolve to a real pin.
+// Inserts the segment AND seeds a positive geocode_cache row keyed on
+// the production buildGeocodeQuery output — so the repo treats it as
+// `kind: 'hit'` without waiting on a live Nominatim call. Required
+// when a test needs "everything is pinned" as a control case, since a
+// missing cache row reads as `kind: 'miss'` and still surfaces the
+// segment as ungeocoded with a "geocoding pending" reason.
+export async function seedGeocodedActivitySegment(
+  tripId: string,
+  values: {
+    title: string;
+    locationName: string;
+    countryCode?: string | null;
+    lat: number;
+    lng: number;
+  },
+): Promise<string> {
+  assertTestDatabase();
+  const inserted = await db
+    .insert(segments)
+    .values({
+      tripId,
+      type: 'activity',
+      data: { title: values.title },
+      locationName: values.locationName,
+      countryCode: values.countryCode ?? null,
+    })
+    .returning({ id: segments.id });
+  const row = inserted[0];
+  if (!row) throw new Error('E2E fixture: failed to seed geocoded segment.');
+
+  const query = buildGeocodeQuery({
+    type: 'activity',
+    data: { title: values.title },
+    locationName: values.locationName,
+  });
+  if (!query) throw new Error('E2E fixture: buildGeocodeQuery returned null.');
+
+  await db
+    .insert(geocodeCache)
+    .values({
+      queryNormalized: normalizeQuery(query),
+      lat: values.lat,
+      lng: values.lng,
+      displayName: query,
+      source: 'nominatim',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    })
+    .onConflictDoUpdate({
+      target: geocodeCache.queryNormalized,
+      set: { lat: values.lat, lng: values.lng, displayName: query },
+    });
+
+  return row.id;
+}
+
+// Activity segment that the trip-map repo will report as ungeocoded.
+// Inserts the segment AND seeds a NULL geocode_cache row keyed on the
+// production buildGeocodeQuery output — so the repo's cache lookup
+// reads `kind: 'null'` and the segment lands in the "Not pinned" list
+// without a live Nominatim call. Required because Playwright + live
+// network = flake.
+export async function seedUngeocodedActivitySegment(
+  tripId: string,
+  values: { title: string; countryCode?: string | null },
+): Promise<string> {
+  assertTestDatabase();
+  const inserted = await db
+    .insert(segments)
+    .values({
+      tripId,
+      type: 'activity',
+      data: { title: values.title },
+      // No `locationName` — keeps the cache key (built from title alone
+      // by buildGeocodeQuery) free of values that might collide with a
+      // real lookup elsewhere.
+      countryCode: values.countryCode ?? null,
+    })
+    .returning({ id: segments.id });
+  const row = inserted[0];
+  if (!row) throw new Error('E2E fixture: failed to seed ungeocoded segment.');
+
+  const query = buildGeocodeQuery({
+    type: 'activity',
+    data: { title: values.title },
+    locationName: null,
+  });
+  if (!query) throw new Error('E2E fixture: buildGeocodeQuery returned null for activity title.');
+
+  await db
+    .insert(geocodeCache)
+    .values({
+      queryNormalized: normalizeQuery(query),
+      lat: null,
+      lng: null,
+      displayName: null,
+      source: 'nominatim',
+      // 1d is plenty for a test run; the cleanup deletes the row when
+      // it cascades from the trip anyway, so TTL is advisory only.
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    })
+    .onConflictDoUpdate({
+      target: geocodeCache.queryNormalized,
+      set: { lat: null, lng: null, displayName: null },
+    });
+
   return row.id;
 }

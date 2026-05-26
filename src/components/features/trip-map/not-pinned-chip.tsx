@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronUp, MapPinOff } from 'lucide-react';
 import * as React from 'react';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -11,10 +12,17 @@ interface NotPinnedChipProps {
 
 /**
  * Bottom-left disclosure for segments that couldn't be placed on the
- * map. Mirrors the wishlist toggle in the top-right — same chip shape,
- * same density rules. Click opens a popover with the segment list and
- * the per-item reason. Replaces the long list that previously rendered
- * below the map (and below the fold on most viewports).
+ * map. Replaces the long list that previously rendered below the map
+ * (and below the fold on most viewports).
+ *
+ * Visually distinct from the wishlist toggle in the top-right:
+ *   - `MapPinOff` icon — semantic match for "things that aren't pinned"
+ *     (vs. the wishlist's dashed-circle, which signalled a binary toggle).
+ *   - Chevron-up affordance that rotates on open — disclosure pattern,
+ *     not a toggle.
+ *   - No strong "active" colour shift when open — the popover itself is
+ *     the active state; the chip stays neutral so the two corner
+ *     controls don't read as a matched pair.
  */
 export function NotPinnedChip({ items }: NotPinnedChipProps) {
   const [open, setOpen] = React.useState(false);
@@ -27,17 +35,17 @@ export function NotPinnedChip({ items }: NotPinnedChipProps) {
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label={`${items.length} ${items.length === 1 ? 'segment' : 'segments'} not on the map`}
-          className={`absolute bottom-3 left-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5 ${
-            open
-              ? 'border-foreground/35 bg-card text-foreground'
-              : 'border-foreground/20 bg-card/85 text-foreground/70 hover:text-foreground'
-          }`}
+          className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground absolute bottom-3 left-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
         >
-          <span
-            aria-hidden
-            className="border-foreground/55 inline-block h-3 w-3 rounded-full border border-dashed"
-          />
+          <MapPinOff aria-hidden className="text-foreground/55 h-3.5 w-3.5" strokeWidth={1.5} />
           <span>Not pinned · {String(items.length).padStart(2, '0')}</span>
+          <ChevronUp
+            aria-hidden
+            className={`text-foreground/45 h-3 w-3 transition-transform duration-150 ${
+              open ? 'rotate-180' : ''
+            }`}
+            strokeWidth={2}
+          />
         </button>
       </PopoverTrigger>
       <PopoverContent
