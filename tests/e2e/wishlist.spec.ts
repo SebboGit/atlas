@@ -1,0 +1,189 @@
+import { expect, test } from './fixtures/auth';
+import { seedActivitySegment, seedTrip, seedWishlistActivity } from './fixtures/db';
+
+// Wishlist is the household's reusable place list. The five scenarios
+// below exercise the architecture from the original issue:
+//
+//   1. Created items appear on /wishlist
+//   2. They surface as suggestions on trips in their country
+//   3. Adding to a trip materialises a segment AND removes the
+//      suggestion from THAT trip
+//   4. The same item still suggests on a SECOND trip in the same country
+//   5. Deleting a wishlist item does NOT cascade to materialised segments
+//
+// Setup is via DB seeding — the wishlist form's country combobox is a
+// custom popover (not a native <select>) and driving it is brittle. The
+// Zod input shape is already unit-tested at src/lib/wishlist/validators.ts.
+// What's load-bearing for E2E is the surfaces and the cross-trip
+// suggestion logic, not the form widget.
+
+test.describe('wishlist', () => {
+  test('seeded item appears on /wishlist', async ({ authedPage, authedUser }) => {
+    const title = `Senso-ji ${Date.now()}`;
+    await seedWishlistActivity(authedUser.id, {
+      title,
+      countryCode: 'JP',
+      locationName: 'Asakusa',
+    });
+
+    await authedPage.goto('/wishlist');
+    await expect(authedPage.getByText(title)).toBeVisible();
+  });
+
+  test('item shows as a suggestion on a same-country trip', async ({ authedPage, authedUser }) => {
+    const tripId = await seedTrip(authedUser.id, {
+      title: 'Japan trip A',
+      startDate: new Date('2024-03-01T00:00:00Z'),
+      endDate: new Date('2024-03-07T00:00:00Z'),
+      status: 'completed',
+    });
+    // Trip-country derivation is via segments (ADR-0005), not a
+    // trip_countries table — seed at least one JP segment so the trip
+    // counts as a Japan trip for the suggestions query.
+    await seedActivitySegment(tripId, {
+      title: 'Anchor segment',
+      countryCode: 'JP',
+      startsAt: new Date('2024-03-02T10:00:00Z'),
+    });
+    const wishlistTitle = `Tsukiji market ${Date.now()}`;
+    await seedWishlistActivity(authedUser.id, {
+      title: wishlistTitle,
+      countryCode: 'JP',
+    });
+
+    await authedPage.goto(`/trips/${tripId}/itinerary`);
+    const suggestionsHeader = authedPage.getByText(/from your wishlist/i);
+    await expect(suggestionsHeader).toBeVisible();
+    await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
+  });
+
+  test('adding to trip materialises a segment and removes the suggestion', async ({
+    authedPage,
+    authedUser,
+  }) => {
+    const tripId = await seedTrip(authedUser.id, {
+      title: 'Japan trip B',
+      startDate: new Date('2024-04-01T00:00:00Z'),
+      endDate: new Date('2024-04-07T00:00:00Z'),
+      status: 'completed',
+    });
+    await seedActivitySegment(tripId, {
+      title: 'Anchor segment',
+      countryCode: 'JP',
+      startsAt: new Date('2024-04-02T10:00:00Z'),
+    });
+    const wishlistTitle = `Shinjuku gyoen ${Date.now()}`;
+    await seedWishlistActivity(authedUser.id, {
+      title: wishlistTitle,
+      countryCode: 'JP',
+    });
+
+    await authedPage.goto(`/trips/${tripId}/itinerary`);
+    // Suggestion present.
+    await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
+
+    // Click "Add to trip" inside the suggestion card. There's only one
+    // suggestion on this trip so a top-level button query is unambiguous.
+    await authedPage.getByRole('button', { name: /add to trip/i }).click();
+
+    // Confirmation chip appears synchronously after the server action
+    // resolves. The card-level router.refresh is delayed ~1.5s so the
+    // chip stays readable — explicitly wait for it.
+    await expect(authedPage.getByText(/added to activities/i)).toBeVisible();
+
+    // Activities tab should show the materialised segment.
+    await authedPage.goto(`/trips/${tripId}/activities`);
+    await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
+
+    // Back on the itinerary, the suggestion is gone (excluded by
+    // excludeMaterialisedOnTrip in wishlist/repo).
+    await authedPage.goto(`/trips/${tripId}/itinerary`);
+    await expect(authedPage.getByText(wishlistTitle)).toHaveCount(0);
+  });
+
+  test('same item still suggests on a different same-country trip', async ({
+    authedPage,
+    authedUser,
+  }) => {
+    const tripAId = await seedTrip(authedUser.id, {
+      title: 'Japan trip C',
+      startDate: new Date('2024-05-01T00:00:00Z'),
+      endDate: new Date('2024-05-07T00:00:00Z'),
+      status: 'completed',
+    });
+    const tripBId = await seedTrip(authedUser.id, {
+      title: 'Japan trip D',
+      startDate: new Date('2024-06-01T00:00:00Z'),
+      endDate: new Date('2024-06-07T00:00:00Z'),
+      status: 'completed',
+    });
+    await seedActivitySegment(tripAId, {
+      title: 'Anchor A',
+      countryCode: 'JP',
+      startsAt: new Date('2024-05-02T10:00:00Z'),
+    });
+    await seedActivitySegment(tripBId, {
+      title: 'Anchor B',
+      countryCode: 'JP',
+      startsAt: new Date('2024-06-02T10:00:00Z'),
+    });
+    const wishlistTitle = `Teamlab Planets ${Date.now()}`;
+    await seedWishlistActivity(authedUser.id, {
+      title: wishlistTitle,
+      countryCode: 'JP',
+    });
+
+    // Add to trip A.
+    await authedPage.goto(`/trips/${tripAId}/itinerary`);
+    await authedPage.getByRole('button', { name: /add to trip/i }).click();
+    await expect(authedPage.getByText(/added to activities/i)).toBeVisible();
+
+    // Trip B's suggestion panel still surfaces the same item — the
+    // exclusion is per-trip, not global.
+    await authedPage.goto(`/trips/${tripBId}/itinerary`);
+    await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
+  });
+
+  test('deleting a wishlist item leaves materialised segments alone', async ({
+    authedPage,
+    authedUser,
+  }) => {
+    const tripId = await seedTrip(authedUser.id, {
+      title: 'Japan trip E',
+      startDate: new Date('2024-07-01T00:00:00Z'),
+      endDate: new Date('2024-07-07T00:00:00Z'),
+      status: 'completed',
+    });
+    await seedActivitySegment(tripId, {
+      title: 'Anchor segment',
+      countryCode: 'JP',
+      startsAt: new Date('2024-07-02T10:00:00Z'),
+    });
+    const wishlistTitle = `Meiji Jingu ${Date.now()}`;
+    await seedWishlistActivity(authedUser.id, {
+      title: wishlistTitle,
+      countryCode: 'JP',
+    });
+
+    // Materialise the wishlist item onto the trip via UI.
+    await authedPage.goto(`/trips/${tripId}/itinerary`);
+    await authedPage.getByRole('button', { name: /add to trip/i }).click();
+    await expect(authedPage.getByText(/added to activities/i)).toBeVisible();
+
+    // Confirm the segment exists on the activities tab.
+    await authedPage.goto(`/trips/${tripId}/activities`);
+    await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
+
+    // Delete the wishlist item via the /wishlist UI.
+    await authedPage.goto('/wishlist');
+    await authedPage.getByRole('button', { name: /delete this attraction/i }).click();
+    await authedPage.getByRole('button', { name: /^remove$/i }).click();
+    // After delete, the /wishlist list should no longer show the item.
+    await expect(authedPage.getByText(wishlistTitle)).toHaveCount(0);
+
+    // The materialised segment survives the delete (FK from
+    // segments.wishlistItemId is ON DELETE SET NULL).
+    await authedPage.goto(`/trips/${tripId}/activities`);
+    await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
+  });
+});

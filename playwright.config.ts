@@ -1,14 +1,20 @@
 import { defineConfig } from '@playwright/test';
 
-// E2E suite. Not part of the CI workflow today (it'd nearly double our
-// minute budget). Run locally with `pnpm test:e2e`. When CI flips it on
-// it should be a PR-only job that skips when src/app/ wasn't touched.
+// E2E suite. Runs in CI via .github/workflows/e2e.yml and locally via
+// `pnpm test:e2e`. Tests share a single sentinel test user
+// (`e2e@test.invalid`) inserted + torn down by the auth fixture, so
+// `fullyParallel: false` + `workers: 1` keeps them serial — parallel
+// workers would race on the cleanup-and-insert step.
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
   workers: 1,
   reporter: process.env.CI ? 'github' : 'list',
-  timeout: 30_000,
+  // 60s per test rather than the default 30s. `next dev` cold-compiles
+  // each route on first hit (no .next cache on CI runners), and the
+  // first `goto()` in a fresh worker can routinely take 15–25s before
+  // assertions even start.
+  timeout: 60_000,
   expect: { timeout: 5_000 },
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
@@ -27,7 +33,8 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
-      // Inert values — the smoke run never hits Auth.js callbacks.
+      // AUTH_SECRET in CI is generated per-run (see e2e.yml). Locally
+      // the fallback keeps `pnpm test:e2e` runnable without ceremony.
       AUTH_SECRET: process.env.AUTH_SECRET ?? 'playwright-only-secret',
       AUTH_URL: process.env.AUTH_URL ?? 'http://localhost:3000',
       OIDC_ISSUER_URL: process.env.OIDC_ISSUER_URL ?? 'http://localhost:0',

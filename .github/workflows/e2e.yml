@@ -1,0 +1,147 @@
+name: E2E
+
+# Separate workflow from `ci.yml` so the path filter applies cleanly:
+# doc-only PRs and unrelated config changes skip the (heavier) browser
+# job, while typecheck/lint/test/build still runs on everything.
+#
+# DO NOT make this job a required status check on `main`. GitHub does
+# not emit a success result when a `paths`-filtered workflow is skipped
+# — the check simply never reports — so any PR that doesn't touch the
+# filtered paths would stay blocked forever. If you want required
+# coverage, convert this to a "always-run-but-short-circuit" pattern
+# with an internal paths-changed check.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/e2e/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'playwright.config.ts'
+      - '.github/workflows/e2e.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/e2e/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'playwright.config.ts'
+      - '.github/workflows/e2e.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Playwright (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: atlas
+          POSTGRES_PASSWORD: atlas
+          POSTGRES_DB: atlas
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atlas"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Connection string for the Postgres service above. The DB is
+      # ephemeral, lives only for this job, and has no public surface.
+      DATABASE_URL: postgres://atlas:atlas@localhost:5432/atlas
+      # Inert OIDC config — the auth fixture bypasses the OIDC handshake
+      # entirely by inserting a session row directly. These vars exist
+      # only so `next dev` boots without complaining at startup.
+      AUTH_URL: http://localhost:3000
+      OIDC_ISSUER_URL: http://localhost:0
+      OIDC_CLIENT_ID: ci-placeholder
+      OIDC_CLIENT_SECRET: ci-placeholder
+      STORAGE_DIR: /tmp/atlas-documents
+      STORAGE_MAX_BYTES: '20971520'
+      NEXT_TELEMETRY_DISABLED: '1'
+      # Set even though the seeded E2E paths don't trigger geocoding —
+      # if a future test creates a hotel/activity via UI and the
+      # lifecycle hook queues a Nominatim lookup, an unset value would
+      # crash with a misleading error AND send a User-Agent containing
+      # "undefined" to the public OSM endpoint (rate-limit / ban risk).
+      NOMINATIM_CONTACT_EMAIL: e2e-noreply@test.invalid
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          # No git push from this job; don't leave the token in
+          # .git/config where untrusted PR-test code could read it.
+          # Matches the hardening on the `secrets` job in ci.yml.
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Generate ephemeral AUTH_SECRET
+        # Per-run secret — never committed, masked in logs, scoped to a
+        # single CI run. The real production AUTH_SECRET is always set
+        # via deployment env, never inherited from CI.
+        run: |
+          SECRET=$(openssl rand -hex 32)
+          echo "::add-mask::$SECRET"
+          echo "AUTH_SECRET=$SECRET" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium
+        # Chromium only — the cost-discipline rule in atlas-ci. WebKit
+        # and Firefox would triple browser install + run time for very
+        # little marginal coverage on a personal app.
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Prepare storage dir
+        run: mkdir -p "$STORAGE_DIR"
+
+      - name: Run migrations + seed countries
+        # db:setup = migrate + seed. Seed populates `countries`, which
+        # the wishlist FK depends on (wishlist items have a countryCode
+        # → countries.code reference).
+        run: pnpm db:setup
+
+      - name: Run Playwright suite
+        run: pnpm exec playwright test
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
