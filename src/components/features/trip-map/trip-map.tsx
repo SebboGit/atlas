@@ -19,7 +19,7 @@ import { buildBasemapStyle } from './basemap-style';
 import { CountryChipStrip } from './country-chip-strip';
 import { PinMarker } from './pin-marker';
 import { PinTooltip } from './pin-tooltip';
-import { UngeocodedList } from './ungeocoded-list';
+import { NotPinnedChip } from './not-pinned-chip';
 
 // Register the pmtiles:// protocol with MapLibre on module load.
 // MapLibre intercepts source URLs starting with `pmtiles://` and
@@ -787,6 +787,7 @@ export function TripMap({
             </p>
           </div>
         )}
+        {ungeocoded.length > 0 && <NotPinnedChip items={ungeocoded} />}
         {wishlistPins.length > 0 && (
           <button
             type="button"
@@ -818,8 +819,6 @@ export function TripMap({
           </button>
         )}
       </div>
-
-      {ungeocoded.length > 0 && <UngeocodedList items={ungeocoded} />}
 
       <p className="text-muted-foreground mt-6 text-center font-mono text-[10px] tracking-[0.2em] uppercase">
         Map data © OpenStreetMap contributors · Country shapes © Natural Earth · Geocoding by
