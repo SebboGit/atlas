@@ -18,7 +18,7 @@
 
 import { randomBytes, randomUUID } from 'node:crypto';
 
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 
@@ -333,8 +333,18 @@ export interface FixturePayload {
  * Idempotent: clears any prior fixture data first.
  */
 export async function buildFixtureDataset(pool: Pool): Promise<FixturePayload> {
-  const db = drizzle(pool);
+  // Wrap the whole rebuild in a single transaction so a failure mid-
+  // sequence rolls back to the previous fixture state (or to empty,
+  // for a first run) rather than leaving the fixture user
+  // half-wiped. The body lives in `rebuildInTx` so the existing
+  // indentation stays flat — the drizzle transaction handle has the
+  // same query API as the base client.
+  return drizzle(pool).transaction(rebuildInTx);
+}
 
+type DbHandle = Parameters<Parameters<ReturnType<typeof drizzle>['transaction']>[0]>[0];
+
+async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
   // 0) Reference data — the FK targets for segment / visited-country
   //    country codes. Idempotent; a no-op once `pnpm db:seed` has run.
   await db
@@ -675,11 +685,14 @@ export async function buildFixtureDataset(pool: Pool): Promise<FixturePayload> {
     .onConflictDoNothing();
 
   // 10) Re-read the trips so callers can build deep links without
-  //     parsing IDs from the page.
+  //     parsing IDs from the page. ORDER BY keeps the returned list
+  //     stable across runs — the screenshot-capture script and any
+  //     future fixture consumer can rely on positional access.
   const persisted = await db
     .select({ id: trips.id, title: trips.title, status: trips.status })
     .from(trips)
-    .where(eq(trips.userId, userId));
+    .where(eq(trips.userId, userId))
+    .orderBy(asc(trips.startDate), asc(trips.id));
 
   return { userId, detailTripId: hero.id, trips: persisted };
 }
