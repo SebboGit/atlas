@@ -28,10 +28,13 @@ description = "CI-only placeholder credentials in ci.yml — inert, never used i
 # ci.yml AND matches one of the regexes. Gitleaks defaults to "OR", which
 # would suppress these substrings repo-wide; "AND" keeps the carve-out
 # scoped to the one file that legitimately contains them.
+#
+# `AUTH_SECRET` is no longer committed — it's generated per-run via
+# `openssl rand -hex 32` (see ci.yml + e2e.yml). The remaining
+# placeholder is OIDC_CLIENT_ID/SECRET, which is genuinely inert.
 condition = "AND"
 regexTarget = "line"
 paths = ['''(^|/)\.github/workflows/ci\.yml$''']
 regexes = [
-  '''ci-only-secret-not-used-in-production''',
   '''ci-placeholder''',
 ]
