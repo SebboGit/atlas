@@ -41,6 +41,9 @@ export function proxy(req: NextRequest): NextResponse {
 
 // Match every path EXCEPT:
 //   - /api/auth/*        (sign-in flow itself)
+//   - /api/dev/*         (dev-only convenience endpoints. The routes themselves
+//                         return 404 when NODE_ENV != "development", so the
+//                         exception is only meaningful at dev time.)
 //   - /api/health        (Dockerfile HEALTHCHECK)
 //   - /_next/*           (Next internals + static assets)
 //   - /favicon.ico
@@ -60,6 +63,6 @@ export function proxy(req: NextRequest): NextResponse {
 // a personal app with sensitive data.
 export const config = {
   matcher: [
-    '/((?!api/auth|api/health|_next/static|_next/image|favicon.ico|favicon\\.svg|atlas_logo\\.svg|\\.well-known|signin).*)',
+    '/((?!api/auth|api/dev|api/health|_next/static|_next/image|favicon.ico|favicon\\.svg|atlas_logo\\.svg|\\.well-known|signin).*)',
   ],
 };

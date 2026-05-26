@@ -60,30 +60,22 @@ async function main() {
     await pool.end();
   }
 
-  // Print operator-friendly instructions. Stay terse — first line is
-  // the headline, then the copy-paste snippet, then the URL to open
-  // afterwards. No marketing, no preamble.
-  const expiresHours = 24;
+  // Print a click-to-sign-in URL. The /api/dev/signin endpoint exists
+  // only in NODE_ENV=development builds and 404s otherwise — see
+  // src/app/api/dev/signin/route.ts. Operator opens the link once,
+  // gets the cookie + a redirect to the hero trip.
+  const signinUrl = `${origin}/api/dev/signin?token=${encodeURIComponent(sessionToken)}&next=${encodeURIComponent(`/trips/${payload.detailTripId}`)}`;
   console.log('');
   console.log('Fixture dataset seeded.');
   console.log('');
-  console.log(`Open ${origin} → DevTools → Application → Cookies → ${origin}`);
-  // Plain `authjs.session-token` is the dev (http) cookie name. A TLS-
-  // fronted Atlas would carry the `__Secure-` prefix; not a concern
-  // here because this script only runs against the local dev origin.
-  console.log("Add a cookie named 'authjs.session-token' with this value:");
+  console.log('Sign in (click to open in your browser):');
   console.log('');
-  console.log(`  ${sessionToken}`);
+  console.log(`  ${signinUrl}`);
   console.log('');
-  console.log(`Or paste this into the DevTools Console (cookie expires in ${expiresHours}h):`);
-  console.log('');
-  console.log(
-    `  document.cookie = "authjs.session-token=${sessionToken}; path=/; max-age=${expiresHours * 3600}"`,
-  );
-  console.log('');
-  console.log(`Hero trip: ${origin}/trips/${payload.detailTripId}`);
-  console.log(`Trip map:  ${origin}/trips/${payload.detailTripId}/map`);
-  console.log(`Wishlist:  ${origin}/wishlist`);
+  console.log('Shortcuts:');
+  console.log(`  ${origin}/trips/${payload.detailTripId}     (hero trip)`);
+  console.log(`  ${origin}/trips/${payload.detailTripId}/map (trip map)`);
+  console.log(`  ${origin}/wishlist                          (wishlist)`);
   console.log('');
 }
 
