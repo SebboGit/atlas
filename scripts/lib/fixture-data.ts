@@ -36,6 +36,7 @@ import {
 } from '../../src/db/schema';
 import { ISO_COUNTRIES } from '../../src/lib/countries/data';
 import { normalizeQuery } from '../../src/lib/geocoding/normalize';
+import { normalizeForGeocoder } from '../../src/lib/geocoding/normalize-for-geocoder';
 import { buildGeocodeQuery } from '../../src/lib/geocoding/segment-query';
 
 export const FIXTURE_SUB = 'screenshot-fixture-user';
@@ -467,7 +468,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(query),
+        queryNormalized: normalizeQuery(normalizeForGeocoder(query)),
         lat: seg.pin.lat,
         lng: seg.pin.lng,
         displayName: query,
@@ -488,7 +489,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(nullQuery),
+        queryNormalized: normalizeQuery(normalizeForGeocoder(nullQuery)),
         lat: null,
         lng: null,
         displayName: null,
@@ -634,7 +635,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(query),
+        queryNormalized: normalizeQuery(normalizeForGeocoder(query)),
         lat: pin.lat,
         lng: pin.lng,
         displayName: query,
