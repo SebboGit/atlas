@@ -38,7 +38,6 @@ jobs:
     env:
       # Build-time env. Real secrets stay in GitHub Secrets and aren't needed for CI.
       DATABASE_URL: postgres://atlas:atlas@localhost:5432/atlas
-      AUTH_SECRET: ci-only-secret-not-used-in-production
       AUTH_URL: http://localhost:3000
       # OIDC vars are inert during build — no live PocketID call happens in CI.
       OIDC_ISSUER_URL: http://localhost:0
@@ -62,6 +61,14 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+
+      - name: Generate ephemeral AUTH_SECRET
+        # Per-run rather than a committed static value. Real production
+        # AUTH_SECRET is provided via deployment env, never from CI.
+        run: |
+          SECRET=$(openssl rand -hex 32)
+          echo "::add-mask::$SECRET"
+          echo "AUTH_SECRET=$SECRET" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
