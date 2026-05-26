@@ -322,6 +322,35 @@ describe('getStatsDashboardData — personal records', () => {
     expect(data.records.southernmost!.lat).toBeLessThan(0);
   });
 
+  it('runs the buildGeocodeQuery result through normalizeForGeocoder before the cache lookup', async () => {
+    // Regression guard: if the stats path drops the normalize step,
+    // the cache key won't match what the lifecycle hook writes and
+    // the records map silently loses points. A non-identity mock
+    // turns a missed chain into a test failure rather than a silent
+    // cache miss.
+    dbState.trips = [trip({ id: 't1', startDate: new Date('2024-01-01T00:00:00Z') })];
+    dbState.segments = [
+      hotel({
+        id: 'h1',
+        locationName: 'Queenstown',
+        data: { propertyName: 'Lakeside Lodge', address: 'raw addr' },
+      }),
+    ];
+    geocodingMocks.normalizeForGeocoder.mockImplementation((s) =>
+      s === 'raw addr' ? 'normalized addr' : s,
+    );
+    seedGeocode('normalized addr', -45.03, 168.66);
+
+    const data = await getStatsDashboardData('u1');
+
+    expect(geocodingMocks.normalizeForGeocoder).toHaveBeenCalledWith('raw addr');
+    expect(geocodingMocks.getCachedMany).toHaveBeenCalledWith(['normalized addr']);
+    // A cache miss under the raw key would produce no southernmost
+    // record; the cache hit under the normalized key surfaces the
+    // hotel as the southernmost point.
+    expect(data.records.southernmost?.label).toBe('Queenstown');
+  });
+
   it('skips non-flight segments with no cached geocode (no live geocoding)', async () => {
     dbState.trips = [trip({ id: 't1', startDate: new Date('2024-01-01T00:00:00Z') })];
     dbState.segments = [

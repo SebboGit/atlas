@@ -137,6 +137,30 @@ describe('getTripMapDataForUser — non-flight cache states', () => {
     expect(result.ungeocoded[0]!.reason).toBe('Geocoding pending — try again in a moment.');
   });
 
+  it('chains buildGeocodeQuery → normalizeForGeocoder before cache lookup and enqueue', async () => {
+    // Regression guard: if a future change drops the normalizer from
+    // the read path, the cache key won't match what the lifecycle hook
+    // writes and the trip map will silently lose pins. Mock the
+    // normalizer as a non-identity mapper so a missed chain shows up
+    // as a wrong cache key / wrong enqueue payload.
+    dbState.rows = [makeHotel()];
+    geocodingMocks.buildGeocodeQuery.mockReturnValue('raw addr');
+    geocodingMocks.normalizeForGeocoder.mockImplementation((s) =>
+      s === 'raw addr' ? 'normalized addr' : s,
+    );
+    // Seed the cache miss under the normalized key — only a normalized
+    // lookup will find it.
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map([['normalized addr', { kind: 'miss' }]]),
+    );
+
+    await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(geocodingMocks.normalizeForGeocoder).toHaveBeenCalledWith('raw addr');
+    expect(geocodingMocks.getCachedMany).toHaveBeenCalledWith(['normalized addr']);
+    expect(geocodingMocks.enqueueGeocodeFetch).toHaveBeenCalledWith('normalized addr');
+  });
+
   it('on cache null result: emits "couldn\'t find" and does NOT enqueue', async () => {
     dbState.rows = [makeHotel()];
     geocodingMocks.buildGeocodeQuery.mockReturnValue('1 Sunset Blvd, Los Angeles');
