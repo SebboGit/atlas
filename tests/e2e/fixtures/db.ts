@@ -80,6 +80,7 @@ export interface SeedTripValues {
 }
 
 export async function seedTrip(userId: string, values: SeedTripValues): Promise<string> {
+  assertTestDatabase();
   const inserted = await db
     .insert(trips)
     .values({
@@ -110,6 +111,7 @@ export async function seedActivitySegment(
   tripId: string,
   values: SeedActivityValues,
 ): Promise<string> {
+  assertTestDatabase();
   const inserted = await db
     .insert(segments)
     .values({
@@ -136,6 +138,7 @@ export async function seedWishlistActivity(
   userId: string,
   values: SeedWishlistValues,
 ): Promise<string> {
+  assertTestDatabase();
   const inserted = await db
     .insert(wishlistItems)
     .values({

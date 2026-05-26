@@ -86,16 +86,18 @@ test.describe('wishlist', () => {
     // suggestion on this trip so a top-level button query is unambiguous.
     await authedPage.getByRole('button', { name: /add to trip/i }).click();
 
-    // Confirmation chip appears synchronously after the server action
-    // resolves. The card-level router.refresh is delayed ~1.5s so the
-    // chip stays readable — explicitly wait for it.
-    await expect(authedPage.getByText(/added to activities/i)).toBeVisible();
+    // Wait on the deterministic post-action state — the suggestion's
+    // "Add to trip" button disappears once the RSC payload from the
+    // action's revalidatePath lands. The component's transient "Added
+    // to Activities" confirmation chip races the same revalidate, so
+    // checking it directly is flaky; the button-gone state is not.
+    await expect(authedPage.getByRole('button', { name: /add to trip/i })).toHaveCount(0);
 
-    // Activities tab should show the materialised segment.
+    // Activities tab shows the materialised segment.
     await authedPage.goto(`/trips/${tripId}/activities`);
     await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
 
-    // Back on the itinerary, the suggestion is gone (excluded by
+    // Back on the itinerary, the suggestion stays gone (excluded by
     // excludeMaterialisedOnTrip in wishlist/repo).
     await authedPage.goto(`/trips/${tripId}/itinerary`);
     await expect(authedPage.getByText(wishlistTitle)).toHaveCount(0);
@@ -136,7 +138,9 @@ test.describe('wishlist', () => {
     // Add to trip A.
     await authedPage.goto(`/trips/${tripAId}/itinerary`);
     await authedPage.getByRole('button', { name: /add to trip/i }).click();
-    await expect(authedPage.getByText(/added to activities/i)).toBeVisible();
+    // Wait for the action's revalidate to land — the suggestion's
+    // "Add to trip" button disappears on this trip once materialised.
+    await expect(authedPage.getByRole('button', { name: /add to trip/i })).toHaveCount(0);
 
     // Trip B's suggestion panel still surfaces the same item — the
     // exclusion is per-trip, not global.
@@ -168,7 +172,8 @@ test.describe('wishlist', () => {
     // Materialise the wishlist item onto the trip via UI.
     await authedPage.goto(`/trips/${tripId}/itinerary`);
     await authedPage.getByRole('button', { name: /add to trip/i }).click();
-    await expect(authedPage.getByText(/added to activities/i)).toBeVisible();
+    // Wait for the action's revalidate to land before navigating away.
+    await expect(authedPage.getByRole('button', { name: /add to trip/i })).toHaveCount(0);
 
     // Confirm the segment exists on the activities tab.
     await authedPage.goto(`/trips/${tripId}/activities`);
