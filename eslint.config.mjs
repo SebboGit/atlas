@@ -94,9 +94,25 @@ const config = [
       'src/app/api/**/*.ts',
       'scripts/**/*.ts',
       '**/*.test.ts',
+      // E2E specs + fixtures reach into @/db/* to insert sentinel test
+      // users, sessions, and seed data for authed flows.
+      'tests/e2e/**/*.ts',
     ],
     rules: {
       'no-restricted-imports': 'off',
+    },
+  },
+
+  // Playwright's fixture API destructures a parameter named `use`.
+  // The `react-hooks/rules-of-hooks` heuristic flags any `use*`
+  // identifier called as a function, so it fires on Playwright's
+  // fixture `use(value)` call. Scoped to fixtures only — a real
+  // `useFoo()` mistake in a spec file should still surface as a
+  // lint error.
+  {
+    files: ['tests/e2e/fixtures/**/*.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
 ];
