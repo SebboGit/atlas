@@ -22,6 +22,8 @@ export type { GeocodeOnSegmentChangeArgs } from './lifecycle';
 
 export { buildGeocodeQuery } from './segment-query';
 
+export { normalizeForGeocoder } from './normalize-for-geocoder';
+
 import { createNominatimGeocoder } from './nominatim';
 import type { Geocoder } from './types';
 

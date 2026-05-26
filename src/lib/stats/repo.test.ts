@@ -92,6 +92,10 @@ const geocodingMocks = vi.hoisted(() => ({
     return null;
   }),
   normalizeQuery: vi.fn((s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ')),
+  // Passthrough — fixture queries are clean (no postcode / designator
+  // shape) so the normalizer is a no-op for these tests. The real
+  // normalizer has its own dedicated unit tests.
+  normalizeForGeocoder: vi.fn((s: string) => s),
   getCachedMany: vi.fn(async (queries: ReadonlyArray<string>) => {
     const out = new Map<string, CachedLookup>();
     for (const q of queries) {
