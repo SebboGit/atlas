@@ -2,10 +2,13 @@ import Link from 'next/link';
 
 import { TripFormDialog } from '@/components/features/trips/trip-form-dialog';
 import { TripListCard } from '@/components/features/trips/trip-list-card';
+import { TripYearGroup } from '@/components/features/trips/trip-year-group';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
+import { groupPastByYear, partitionForDashboard } from '@/lib/trips/dashboard-groups';
 import * as tripsRepo from '@/lib/trips/repo';
+import type { Trip } from '@/lib/trips/repo';
 
 interface TripsPageProps {
   searchParams: Promise<{ status?: string }>;
@@ -59,7 +62,10 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
 
       {trips.length === 0 ? (
         <EmptyState archived={showingArchived} />
-      ) : (
+      ) : showingArchived ? (
+        // Archived view stays a flat grid — no chronological framing.
+        // Archived trips are out of the workflow; this tab is for
+        // retrieval / restore, not timeline browsing.
         <ul className="grid gap-5 sm:grid-cols-2">
           {trips.map((trip, i) => (
             <li key={trip.id} style={{ animationDelay: `${160 + i * 60}ms` }}>
@@ -67,8 +73,66 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
             </li>
           ))}
         </ul>
+      ) : (
+        <DashboardLayout trips={trips} />
       )}
     </main>
+  );
+}
+
+// Chronological dashboard (#10): active + planned at the top in one
+// grid; past (completed) below, grouped under sticky year headings.
+// Year grouping derives from `startDate` (`endDate` as fallback);
+// completed trips with neither date land in a final "Undated" bucket.
+// Per the home-dashboard-layout memory: no collapse here — scrolling
+// is the affordance; the collapsed-past pattern is trip-detail only.
+function DashboardLayout({ trips }: { trips: Trip[] }) {
+  const { upcoming, past } = partitionForDashboard(trips);
+  const { groups, undated } = groupPastByYear(past);
+
+  // Pre-compute the running card index per section so the corner
+  // stamps number 01, 02, … continuously across upcoming, each year,
+  // and the undated bucket. The accumulator runs once at render-prep
+  // time (not inside a `.map` closure) to keep render side-effect-free.
+  const upcomingStart = 0;
+  const yearStarts: number[] = [];
+  let cursor = upcoming.length;
+  for (const group of groups) {
+    yearStarts.push(cursor);
+    cursor += group.trips.length;
+  }
+  const undatedStart = cursor;
+
+  return (
+    <div className="flex flex-col gap-12 sm:gap-14">
+      {upcoming.length > 0 && (
+        <section aria-label="Active and upcoming trips">
+          <ul className="grid gap-5 sm:grid-cols-2">
+            {upcoming.map((trip, i) => (
+              <li key={trip.id} style={{ animationDelay: `${160 + i * 60}ms` }}>
+                <TripListCard trip={trip} index={upcomingStart + i} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {(groups.length > 0 || undated.length > 0) && (
+        <section aria-label="Past trips">
+          {groups.map((group, i) => (
+            <TripYearGroup
+              key={group.year}
+              label={group.year}
+              trips={group.trips}
+              startIndex={yearStarts[i]!}
+            />
+          ))}
+          {undated.length > 0 && (
+            <TripYearGroup label="Undated" trips={undated} startIndex={undatedStart} />
+          )}
+        </section>
+      )}
+    </div>
   );
 }
 
