@@ -98,6 +98,8 @@ interface ItineraryDayListProps {
   // trips render every day fully expanded, no collapse, no auto-scroll.
   isActive: boolean;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
+  /** Trip-wide segmentId → cached coordinates map. Drives the Plus Code badge. */
+  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
 }
 
 function formatRangeLabel(d: Date): string {
@@ -194,11 +196,13 @@ function ExpandedPastGroup({
   days,
   tripId,
   linkedDocumentsBySegment,
+  coordsBySegmentId,
   onCollapse,
 }: {
   days: ItineraryDay[];
   tripId: string;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
+  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
   onCollapse: () => void;
 }) {
   return (
@@ -236,6 +240,7 @@ function ExpandedPastGroup({
           segments={day.segments}
           tripId={tripId}
           linkedDocumentsBySegment={linkedDocumentsBySegment}
+          coordsBySegmentId={coordsBySegmentId}
           position="past"
         />
       ))}
@@ -250,12 +255,14 @@ function PastGroup({
   days,
   tripId,
   linkedDocumentsBySegment,
+  coordsBySegmentId,
   isExpanded,
   onToggle,
 }: {
   days: ItineraryDay[];
   tripId: string;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
+  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
   isExpanded: boolean;
   onToggle: () => void;
 }) {
@@ -291,6 +298,7 @@ function PastGroup({
         days={days}
         tripId={tripId}
         linkedDocumentsBySegment={linkedDocumentsBySegment}
+        coordsBySegmentId={coordsBySegmentId}
         onCollapse={onToggle}
       />
     </section>
@@ -316,6 +324,7 @@ export function ItineraryDayList({
   days,
   isActive,
   linkedDocumentsBySegment,
+  coordsBySegmentId,
 }: ItineraryDayListProps) {
   const { isExpanded, toggle } = useItineraryCollapse(tripId);
   const todayRef = React.useRef<HTMLDivElement | null>(null);
@@ -417,6 +426,7 @@ export function ItineraryDayList({
               segments={day.segments}
               tripId={tripId}
               linkedDocumentsBySegment={linkedDocumentsBySegment}
+              coordsBySegmentId={coordsBySegmentId}
               position={day.position}
             />
           </div>
@@ -452,6 +462,7 @@ export function ItineraryDayList({
             days={pastDays}
             tripId={tripId}
             linkedDocumentsBySegment={linkedDocumentsBySegment}
+            coordsBySegmentId={coordsBySegmentId}
             isExpanded={pastExpanded}
             onToggle={() => {
               // Collapsing the past group. A deep-link force-expand and
@@ -499,6 +510,7 @@ export function ItineraryDayList({
               segments={day.segments}
               tripId={tripId}
               linkedDocumentsBySegment={linkedDocumentsBySegment}
+              coordsBySegmentId={coordsBySegmentId}
               position={day.position}
             />
           </div>

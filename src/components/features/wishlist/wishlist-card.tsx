@@ -1,5 +1,6 @@
 import { Pencil, Sparkles, UtensilsCrossed } from 'lucide-react';
 
+import { PlusCodeBadge } from '@/components/features/segments/plus-code-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { countryName } from '@/lib/countries';
 import { activityDataSchema, foodDataSchema } from '@/lib/segments';
@@ -12,6 +13,12 @@ interface WishlistCardProps {
   item: WishlistItem;
   /** Display label such as "Sebastian" — surfaced as "added by …". */
   addedByLabel?: string | null;
+  /**
+   * Cached coordinates from `geocode_cache`. When present, the card
+   * shows a clickable Plus Code badge that deep-links to Google Maps —
+   * same pattern as segment cards.
+   */
+  coords?: { lat: number; lng: number } | null;
 }
 
 // Pull the headline name for a wishlist item from its per-type `data`.
@@ -39,11 +46,16 @@ function subtitleText(item: WishlistItem): string | undefined {
   return desc || item.locationName || undefined;
 }
 
-export function WishlistCard({ item, addedByLabel }: WishlistCardProps) {
+export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) {
   const name = headlineName(item);
   const subtitle = subtitleText(item);
   const country = countryName(item.countryCode) ?? item.countryCode;
   const isFood = item.type === 'food';
+  const hasBadge =
+    coords !== null &&
+    coords !== undefined &&
+    Number.isFinite(coords.lat) &&
+    Number.isFinite(coords.lng);
 
   return (
     <Card variant="paper" className="relative overflow-hidden">
@@ -85,7 +97,12 @@ export function WishlistCard({ item, addedByLabel }: WishlistCardProps) {
           <h3 className="font-display text-foreground text-xl leading-tight font-medium tracking-tight">
             {name}
           </h3>
-          {subtitle && <p className="text-muted-foreground text-sm leading-snug">{subtitle}</p>}
+          {(subtitle || hasBadge) && (
+            <p className="text-muted-foreground inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-sm leading-snug">
+              {subtitle && <span>{subtitle}</span>}
+              {hasBadge && <PlusCodeBadge lat={coords.lat} lng={coords.lng} venue={name} />}
+            </p>
+          )}
           <div className="text-foreground/65 mt-1 flex flex-wrap items-baseline gap-2 text-xs">
             <span className="font-mono tracking-wider">{country}</span>
             {item.locationName && (

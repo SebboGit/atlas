@@ -159,6 +159,94 @@ describe('NominatimGeocoder.geocode', () => {
   });
 });
 
+describe('NominatimGeocoder.reverse', () => {
+  it('returns display_name from the /reverse endpoint payload', async () => {
+    const { fetchImpl, calls } = queuedFetch([
+      () =>
+        jsonResponse({
+          lat: '35.6762',
+          lon: '139.6503',
+          display_name: 'Tokyo Tower, 4 Chome-2-8 Shibakoen, Minato City, Tokyo, Japan',
+        }),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const result = await geocoder.reverse(35.6762, 139.6503);
+
+    expect(result).toBe('Tokyo Tower, 4 Chome-2-8 Shibakoen, Minato City, Tokyo, Japan');
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.url).toContain('/reverse?');
+    expect(calls[0]!.url).toContain('lat=35.6762');
+    expect(calls[0]!.url).toContain('lon=139.6503');
+    expect(calls[0]!.url).toContain('zoom=18');
+    expect(calls[0]!.url).toContain('format=jsonv2');
+  });
+
+  it('returns null without calling fetch for non-finite coordinates', async () => {
+    const { fetchImpl, calls } = queuedFetch([]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    expect(await geocoder.reverse(Number.NaN, 0)).toBeNull();
+    expect(await geocoder.reverse(0, Number.POSITIVE_INFINITY)).toBeNull();
+    expect(calls).toHaveLength(0);
+  });
+
+  it('returns null when the endpoint signals out-of-coverage with an error payload', async () => {
+    const { fetchImpl } = queuedFetch([() => jsonResponse({ error: 'Unable to geocode' })]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    expect(await geocoder.reverse(0, 0)).toBeNull();
+  });
+
+  it('returns null on non-2xx response', async () => {
+    const { fetchImpl } = queuedFetch([() => jsonResponse({ error: 'rate-limited' }, 429)]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    expect(await geocoder.reverse(35, 139)).toBeNull();
+  });
+
+  it('returns null on network error', async () => {
+    const fetchImpl: typeof fetch = async () => {
+      throw new Error('ECONNREFUSED');
+    };
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    expect(await geocoder.reverse(35, 139)).toBeNull();
+  });
+
+  it('returns null on non-JSON body', async () => {
+    const { fetchImpl } = queuedFetch([() => new Response('<!doctype html>oops', { status: 200 })]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    expect(await geocoder.reverse(35, 139)).toBeNull();
+  });
+
+  it('shares the throttle bucket with geocode()', async () => {
+    const { fetchImpl } = queuedFetch([
+      () => jsonResponse([]),
+      () => jsonResponse({ display_name: 'somewhere' }),
+    ]);
+    const FIXED_NOW = 1_000_000;
+    const sleeps: number[] = [];
+    const geocoder = makeGeocoder({
+      fetchImpl,
+      minIntervalMs: 1100,
+      now: () => FIXED_NOW,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    await Promise.all([geocoder.geocode('a'), geocoder.reverse(35, 139)]);
+
+    // First caller waits 0, second waits 1100 — proves reverse() shares
+    // the same `nextAvailableAt` as geocode() rather than maintaining
+    // its own bucket.
+    const nonZero = sleeps.filter((s) => s > 0);
+    expect(nonZero).toEqual([1100]);
+  });
+});
+
 describe('NominatimGeocoder throttle', () => {
   it('serialises concurrent callers at minIntervalMs spacing', async () => {
     const { fetchImpl } = queuedFetch([

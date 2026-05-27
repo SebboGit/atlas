@@ -16,6 +16,12 @@ interface SegmentRowProps {
   // footer. Empty / omitted suppresses the footer. The page fetches a
   // trip-wide map (one query) and passes the per-segment slice here.
   linkedDocuments?: LinkedDocument[];
+  /**
+   * Cached coordinates for this segment, when the geocode_cache has
+   * resolved them. Drives the Plus Code badge on the card. Same
+   * trip-wide-map-then-per-segment pattern as `linkedDocuments`.
+   */
+  coords?: { lat: number; lng: number } | null;
   // When true and the segment is an activity, render a "schedule" /
   // "reschedule" action alongside delete. Off on the itinerary view
   // (the date is implicit from the day group); on for the Activities
@@ -33,6 +39,7 @@ export function SegmentRow({
   segment,
   tripId,
   linkedDocuments,
+  coords,
   showScheduleAction = false,
 }: SegmentRowProps) {
   return (
@@ -50,7 +57,7 @@ export function SegmentRow({
         so the chips keep their default navigation behaviour.
       */}
       <SegmentInfoDialog segment={segment} linkedDocuments={linkedDocuments}>
-        <SegmentCard segment={segment} linkedDocuments={linkedDocuments} />
+        <SegmentCard segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
       </SegmentInfoDialog>
       <div className="absolute top-3 right-3 flex items-center gap-0.5">
         {/*
@@ -87,6 +94,7 @@ export function SegmentRow({
           key="edit"
           tripId={tripId}
           editingSegment={segment}
+          coords={coords}
           trigger={
             <button
               type="button"

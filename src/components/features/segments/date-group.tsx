@@ -10,6 +10,8 @@ interface DateGroupProps {
   segments: Segment[];
   tripId: string;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
+  /** Trip-wide segmentId → cached coordinates map. Drives the Plus Code badge. */
+  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
   // Forwarded to SegmentRow — Activities tab uses this so the
   // reschedule affordance sits on each card.
   showScheduleAction?: boolean;
@@ -32,6 +34,7 @@ export function DateGroup({
   segments,
   tripId,
   linkedDocumentsBySegment,
+  coordsBySegmentId,
   showScheduleAction = false,
 }: DateGroupProps) {
   const label = date ? formatDayLabel(date) : 'UNDATED';
@@ -48,6 +51,7 @@ export function DateGroup({
               segment={s}
               tripId={tripId}
               linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
+              coords={coordsBySegmentId?.get(s.id) ?? null}
               showScheduleAction={showScheduleAction}
             />
           </li>

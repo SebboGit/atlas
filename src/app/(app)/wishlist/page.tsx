@@ -1,11 +1,13 @@
 import { Sparkles } from 'lucide-react';
 
+import { GeocodePoller } from '@/components/features/segments/geocode-poller';
 import { WishlistCard } from '@/components/features/wishlist/wishlist-card';
 import { WishlistFilters } from '@/components/features/wishlist/wishlist-filters';
 import { WishlistFormDialog } from '@/components/features/wishlist/wishlist-form-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
+import { getPlaceCoordsView } from '@/lib/geocoding';
 import * as repo from '@/lib/wishlist/repo';
 import { WISHLIST_ITEM_TYPES, type WishlistItemType } from '@/lib/wishlist';
 
@@ -54,6 +56,10 @@ export default async function WishlistPage({ searchParams }: WishlistPageProps) 
     activity: allItems.filter((i) => i.type === 'activity').length,
   };
 
+  // WishlistItem satisfies PlaceLike (type/data/locationName) — same
+  // chain as segments, single round-trip against geocode_cache.
+  const { coordsById, pendingCount } = await getPlaceCoordsView(items);
+
   return (
     <main className="mx-auto w-full max-w-5xl px-6 pt-16 pb-24 sm:px-8 sm:pt-20">
       <header className="atlas-rise mb-10" style={{ animationDelay: '40ms' }}>
@@ -90,11 +96,16 @@ export default async function WishlistPage({ searchParams }: WishlistPageProps) 
         <ul className="atlas-rise grid gap-5 sm:grid-cols-2" style={{ animationDelay: '160ms' }}>
           {items.map((item) => (
             <li key={item.id}>
-              <WishlistCard item={item} addedByLabel={nameById.get(item.createdBy) ?? null} />
+              <WishlistCard
+                item={item}
+                addedByLabel={nameById.get(item.createdBy) ?? null}
+                coords={coordsById.get(item.id) ?? null}
+              />
             </li>
           ))}
         </ul>
       )}
+      <GeocodePoller pending={pendingCount} />
     </main>
   );
 }

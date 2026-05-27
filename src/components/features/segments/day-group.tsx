@@ -14,6 +14,12 @@ interface DayGroupProps {
   // it once and passes the same reference to every day; each segment
   // looks itself up here. Empty/undefined falls through to no chips.
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
+  /**
+   * Trip-wide map of segmentId → cached coordinates. Same pattern as
+   * `linkedDocumentsBySegment` — single page-side fetch, per-row
+   * lookup. Drives the Plus Code badge on each card.
+   */
+  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
   // Temporal position relative to today. Drives the header's "Today"
   // marker. Defaults to 'future' so the type-specific tabs and any
   // other caller that doesn't classify days render unchanged.
@@ -40,6 +46,7 @@ export function DayGroup({
   segments,
   tripId,
   linkedDocumentsBySegment,
+  coordsBySegmentId,
   position = 'future',
 }: DayGroupProps) {
   const dayLabel = String(dayNumber).padStart(2, '0');
@@ -87,6 +94,7 @@ export function DayGroup({
               segment={s}
               tripId={tripId}
               linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
+              coords={coordsBySegmentId?.get(s.id) ?? null}
             />
           </li>
         ))}

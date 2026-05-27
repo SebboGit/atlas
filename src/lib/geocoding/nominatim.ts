@@ -15,7 +15,7 @@ import { createHash } from 'node:crypto';
 
 import { log } from '@/lib/log';
 
-import type { Geocoder, GeocodeResult } from './types';
+import type { Geocoder, GeocodeResult, ReverseGeocoder } from './types';
 
 const DEFAULT_BASE_URL = 'https://nominatim.openstreetmap.org';
 const DEFAULT_MIN_INTERVAL_MS = 1100;
@@ -68,7 +68,7 @@ interface NominatimSearchHit {
   display_name?: unknown;
 }
 
-export class NominatimGeocoder implements Geocoder {
+export class NominatimGeocoder implements Geocoder, ReverseGeocoder {
   private readonly baseUrl: string;
   private readonly userAgent: string;
   private readonly minIntervalMs: number;
@@ -165,6 +165,78 @@ export class NominatimGeocoder implements Geocoder {
     return { lat, lng, displayName };
   }
 
+  /**
+   * Reverse geocode: lat/lng → `display_name`. Same throttle, same
+   * no-throw contract, same logging shape as {@link geocode}. Used by
+   * the Plus Code path to put a real place name on cache rows whose
+   * coordinates came from offline decoding.
+   *
+   * Non-finite coordinates short-circuit to null without touching the
+   * bucket — defence in depth; the resolver shouldn't pass anything
+   * the library wouldn't accept.
+   */
+  async reverse(lat: number, lng: number): Promise<string | null> {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    await this.acquireSlot();
+
+    // Hash the formatted coord pair for log correlation across hits
+    // and misses on the same point. Six decimals ≈ 11 cm, plenty of
+    // precision to keep distinct lookups distinct.
+    const queryHash = shortHash(`${lat.toFixed(6)},${lng.toFixed(6)}`);
+    const url = this.buildReverseUrl(lat, lng);
+
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), this.requestTimeoutMs);
+
+    let res: Response;
+    try {
+      res = await this.fetchImpl(url, {
+        method: 'GET',
+        headers: {
+          'user-agent': this.userAgent,
+          accept: 'application/json',
+          'accept-language': 'en',
+        },
+        signal: abort.signal,
+      });
+    } catch {
+      log.warn({ queryHash, reason: 'network-error' }, 'geocoding.nominatim.reverse_failed');
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+      log.warn({ queryHash, reason: `http-${res.status}` }, 'geocoding.nominatim.reverse_failed');
+      return null;
+    }
+
+    let payload: unknown;
+    try {
+      payload = await res.json();
+    } catch {
+      log.warn({ queryHash, reason: 'invalid-json' }, 'geocoding.nominatim.reverse_failed');
+      return null;
+    }
+
+    // The /reverse endpoint returns a single object (not an array).
+    // Out-of-coverage lookups return `{ error: "..." }` with no
+    // `display_name` — treat as a miss.
+    if (typeof payload !== 'object' || payload === null) {
+      log.info({ queryHash, found: false }, 'geocoding.nominatim.reverse_ok');
+      return null;
+    }
+    const obj = payload as { display_name?: unknown };
+    if (typeof obj.display_name !== 'string' || obj.display_name === '') {
+      log.info({ queryHash, found: false }, 'geocoding.nominatim.reverse_ok');
+      return null;
+    }
+
+    log.info({ queryHash, found: true }, 'geocoding.nominatim.reverse_ok');
+    return obj.display_name;
+  }
+
   // Token-bucket gate. Each call reserves the next slot synchronously
   // (before any `await`), so a burst of concurrent callers fan out as
   // `t`, `t + interval`, `t + 2·interval`, … without two of them
@@ -185,6 +257,19 @@ export class NominatimGeocoder implements Geocoder {
       limit: '1',
     });
     return `${this.baseUrl}/search?${params.toString()}`;
+  }
+
+  private buildReverseUrl(lat: number, lng: number): string {
+    const params = new URLSearchParams({
+      lat: lat.toString(),
+      lon: lng.toString(),
+      format: 'jsonv2',
+      // zoom=18 ≈ building-level — matches the precision a 10-char
+      // Plus Code resolves at, so the returned display_name names the
+      // POI itself rather than the surrounding neighbourhood.
+      zoom: '18',
+    });
+    return `${this.baseUrl}/reverse?${params.toString()}`;
   }
 }
 

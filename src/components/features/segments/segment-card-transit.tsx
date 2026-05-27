@@ -7,6 +7,7 @@ import type { Segment, TransitData } from '@/lib/segments';
 import { transitDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 
 const MODE_ICON: Record<TransitData['mode'], LucideIcon> = {
@@ -28,9 +29,12 @@ const MODE_LABEL: Record<TransitData['mode'], string> = {
 export function SegmentCardTransit({
   segment,
   linkedDocuments = [],
+  coords,
 }: {
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
+  /** Cached coordinates, if any — drive the Plus Code badge + deep link. */
+  coords?: { lat: number; lng: number } | null;
 }) {
   const parse = transitDataSchema.safeParse(segment.data);
   const mode = parse.success ? parse.data.mode : 'other';
@@ -43,8 +47,6 @@ export function SegmentCardTransit({
   const title =
     titleParts.length === 2 ? `${titleParts[0]} → ${titleParts[1]}` : (titleParts[0] ?? label);
 
-  const subtitleParts = [data.carrier, data.referenceNumber].filter(Boolean);
-
   const meta = segment.startsAt ? (
     <div className="text-foreground/75 font-mono text-[11px] leading-tight tracking-wider">
       <div>{formatTime(segment.startsAt)}</div>
@@ -54,12 +56,20 @@ export function SegmentCardTransit({
     </div>
   ) : null;
 
+  const subtitle = subtitleWithPlusCodeBadge({
+    parts: [data.carrier, data.referenceNumber],
+    coords,
+    // Destination is the venue Maps should land on when the user
+    // taps the badge — origin is the boarding point, not the place.
+    venue: data.toName ?? data.fromName ?? null,
+  });
+
   return (
     <SegmentCardShell
       glyph={<Icon className="size-4" strokeWidth={1.5} />}
       typeLabel={label}
       title={title}
-      subtitle={subtitleParts.length ? subtitleParts.join(' · ') : undefined}
+      subtitle={subtitle}
       meta={meta}
       footer={
         linkedDocuments.length > 0 ? <LinkedDocumentChips documents={linkedDocuments} /> : undefined

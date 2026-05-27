@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { isValidPlusCodeShape } from '@/lib/geocoding/plus-code';
+
 // Mirrors the `segment_type` Postgres enum from src/db/schema/segments.ts.
 // Kept inline so the Zod schema is self-contained and feature code
 // doesn't have to reach into the db layer.
@@ -67,29 +69,57 @@ const flightData = z
   })
   .strict();
 
+// Optional Plus Code (Open Location Code) field. Accepts a full code
+// ("8Q7XMPWG+5V") or a local code with anchor reference text
+// ("MP7J+CV Minato City, Tokyo"); rejects a bare local code since it
+// can't resolve without an anchor. Max length tolerates both shapes
+// plus a typical city-and-country anchor.
+//
+// When present, `plusCode` takes precedence over `address` in
+// `buildGeocodeQuery` — see [[plus-code-architecture]] memory.
+const plusCode = z
+  .string()
+  .trim()
+  .max(200)
+  .optional()
+  .refine((s) => (s === undefined ? true : isValidPlusCodeShape(s)), {
+    message: 'Not a valid Plus Code',
+  });
+
 const hotelData = z
   .object({
     propertyName: z.string().trim().min(1).max(200),
     address: z.string().trim().max(500).optional(),
+    plusCode,
     confirmationNumber: z.string().trim().max(50).optional(),
     roomType: z.string().trim().max(100).optional(),
   })
   .strict();
 
+// Activity gets `address` alongside `plusCode` — symmetric with hotels
+// and food. Either field upgrades the pin from "title + locationName"
+// (a landmark query) to a precise location.
 const activityData = z
   .object({
     title: z.string().trim().min(1).max(200),
     description: z.string().trim().max(2000).optional(),
+    address: z.string().trim().max(500).optional(),
+    plusCode,
     bookingRef: z.string().trim().max(50).optional(),
   })
   .strict();
 
+// Transit endpoints are often stations rather than addresses, but a
+// precise pin via `plusCode` or a street `address` is still useful for
+// the long tail (obscure ferry terminals, bus stops by street).
 const transitData = z
   .object({
     mode: z.enum(['train', 'bus', 'ferry', 'car', 'other']),
     carrier: z.string().trim().max(100).optional(),
     fromName: z.string().trim().max(200).optional(),
     toName: z.string().trim().max(200).optional(),
+    address: z.string().trim().max(500).optional(),
+    plusCode,
     referenceNumber: z.string().trim().max(50).optional(),
   })
   .strict();
@@ -107,6 +137,7 @@ const foodData = z
   .object({
     venue: z.string().trim().min(1).max(200),
     address: z.string().trim().max(500).optional(),
+    plusCode,
     bookingRef: z.string().trim().max(50).optional(),
   })
   .strict();

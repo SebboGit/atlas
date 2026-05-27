@@ -20,21 +20,36 @@ import { SegmentCardTransit } from './segment-card-transit';
 export function SegmentCard({
   segment,
   linkedDocuments = [],
+  coords,
 }: {
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
+  /**
+   * Cached coordinates for the Plus Code badge. Flights resolve coords
+   * via the IATA snapshot (handled inside the flight card itself); the
+   * non-flight variants take this through.
+   */
+  coords?: { lat: number; lng: number } | null;
 }) {
   switch (segment.type) {
     case 'flight':
       return <SegmentCardFlight segment={segment} linkedDocuments={linkedDocuments} />;
     case 'hotel':
-      return <SegmentCardHotel segment={segment} linkedDocuments={linkedDocuments} />;
+      return (
+        <SegmentCardHotel segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
+      );
     case 'activity':
-      return <SegmentCardActivity segment={segment} linkedDocuments={linkedDocuments} />;
+      return (
+        <SegmentCardActivity segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
+      );
     case 'transit':
-      return <SegmentCardTransit segment={segment} linkedDocuments={linkedDocuments} />;
+      return (
+        <SegmentCardTransit segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
+      );
     case 'food':
-      return <SegmentCardFood segment={segment} linkedDocuments={linkedDocuments} />;
+      return (
+        <SegmentCardFood segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
+      );
     case 'note':
       return <SegmentCardNote segment={segment} />;
   }

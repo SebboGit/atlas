@@ -111,10 +111,14 @@ const HERO_SEGMENTS: HeroSegment[] = [
     originCountryCode: 'GB',
   },
   {
+    // Demonstrates the Plus Code path — a real local code with anchor.
+    // `buildGeocodeQuery` returns the plusCode, so the seeded cache
+    // row lands at the Plus-Code key and the card shows the badge.
     type: 'hotel',
     data: {
       propertyName: 'Hotel Niwa Tokyo',
       address: '1-1-16 Misakicho, Chiyoda City, Tokyo 101-0061',
+      plusCode: 'MQ8R+5C Chiyoda City, Tokyo',
       confirmationNumber: 'HN-20488',
       roomType: 'Garden twin',
     },
@@ -276,11 +280,14 @@ const WISHLIST_ITEMS: WishlistFixture[] = [
     materialiseOn: 'hero',
   },
   {
+    // Demonstrates Plus Code on a wishlist item — same precedence rule
+    // as segments, so the card on /wishlist shows the badge alongside
+    // any future trip-map pin.
     type: 'activity',
     countryCode: 'JP',
     locationName: 'Mitaka',
     notes: 'Tickets sell out — buy the moment they release.',
-    data: { title: 'Ghibli Museum' },
+    data: { title: 'Ghibli Museum', plusCode: 'MQR4+9X Mitaka, Tokyo' },
   },
   {
     type: 'activity',

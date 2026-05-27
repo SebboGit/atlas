@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { classifyDays } from '@/components/features/segments/day-temporal';
+import { GeocodePoller } from '@/components/features/segments/geocode-poller';
 import { dayKey, groupSegmentsByDay } from '@/components/features/segments/group-by-day';
 import {
   ItineraryDayList,
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
 import * as documentsRepo from '@/lib/documents/repo';
+import { getPlaceCoordsView } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
 import * as wishlistRepo from '@/lib/wishlist/repo';
@@ -45,6 +47,14 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
     // schema but isn't populated anywhere.
     segmentsRepo.listCountryCodesForTrip(user.id, id),
   ]);
+
+  // Coordinates feed the Plus Code badge on each card. Reads the
+  // geocode_cache only — never enqueues fetches; absent rows just
+  // mean no badge yet (cache miss surfaces on the trip map's "Not
+  // pinned" disclosure separately). `pendingCount` is the number of
+  // geocodable segments whose cache row hasn't landed yet — the
+  // poller below uses it to silently refresh until they do.
+  const { coordsById: coordsBySegmentId, pendingCount } = await getPlaceCoordsView(segments);
 
   // Suggestions panel surfaces wishlist items in this trip's countries
   // that aren't already on this trip. Same item still appears on other
@@ -136,10 +146,12 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
           days={itineraryDays}
           isActive={trip.status === 'active'}
           linkedDocumentsBySegment={linkedDocsBySegment}
+          coordsBySegmentId={coordsBySegmentId}
         />
       )}
 
       <WishlistSuggestionsPanel tripId={id} items={wishlistSuggestions} />
+      <GeocodePoller pending={pendingCount} />
     </>
   );
 }

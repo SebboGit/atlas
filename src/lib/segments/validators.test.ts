@@ -283,3 +283,70 @@ describe('segmentCreateInput — discriminated-union safety', () => {
     if (result.success) expect(result.data.startsAt).toBeNull();
   });
 });
+
+describe('segmentCreateInput — Plus Code field', () => {
+  it('accepts a full Plus Code on hotel data', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'Hotel California', plusCode: '8Q7XMPWG+5V' },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a local Plus Code with anchor on food data', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'food',
+      data: { venue: 'Narisawa', plusCode: 'MP7J+CV Minato City, Tokyo' },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a bare local Plus Code (no anchor)', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'Hotel California', plusCode: 'MP7J+CV' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects garbage input', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'Hotel California', plusCode: 'not a code' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts an empty Plus Code string (optional field)', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'Hotel California', plusCode: '' },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts plusCode on activity data alongside the new address field', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'activity',
+      data: {
+        title: 'Old Town',
+        address: '1-2-3 Roppongi, Tokyo',
+        plusCode: '8Q7XMPWG+5V',
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts plusCode on transit data alongside the new address field', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'transit',
+      data: {
+        mode: 'ferry',
+        toName: 'Sumida Ferry Terminal',
+        address: '2-1-1 Hama-rikyu Gardens, Chuo, Tokyo',
+        plusCode: '8Q7XMPWG+5V',
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+});

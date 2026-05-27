@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import { GeocodePoller } from '@/components/features/segments/geocode-poller';
 import { SegmentFormDialog } from '@/components/features/segments/segment-form-dialog';
 import { SegmentRow } from '@/components/features/segments/segment-row';
 import { TabEmpty } from '@/components/features/segments/tab-empty';
@@ -7,6 +8,7 @@ import { TabHeader } from '@/components/features/segments/tab-header';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/session';
 import * as documentsRepo from '@/lib/documents/repo';
+import { getPlaceCoordsView } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
 
@@ -42,6 +44,8 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
     documentsRepo.listLinkedDocumentsByTripSegment(user.id, id),
   ]);
 
+  const { coordsById: coordsBySegmentId, pendingCount } = await getPlaceCoordsView(food);
+
   const addButton = (
     <SegmentFormDialog
       tripId={id}
@@ -68,11 +72,13 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
                 segment={segment}
                 tripId={id}
                 linkedDocuments={linkedDocsBySegment.get(segment.id)}
+                coords={coordsBySegmentId.get(segment.id) ?? null}
               />
             </li>
           ))}
         </ul>
       )}
+      <GeocodePoller pending={pendingCount} />
     </>
   );
 }
