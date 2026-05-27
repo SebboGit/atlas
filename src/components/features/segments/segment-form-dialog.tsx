@@ -9,6 +9,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+// Leaf import (not the barrel) so the dialog — used inside client
+// rows — doesn't pull the geocoding cache / pg driver into the browser
+// bundle.
+import { encodePlusCode } from '@/lib/geocoding/plus-code';
 import type { Segment, SegmentType } from '@/lib/segments';
 import {
   createSegmentAction,
@@ -33,7 +37,18 @@ interface SegmentFormDialogProps {
   // exclusive with `defaultType` (an edit dialog always knows the
   // type from the segment row).
   editingSegment?: Segment;
+  /**
+   * Cached coordinates for the segment, threaded from the row. Used
+   * exclusively to prefill `data.plusCode` with the encoded Plus Code
+   * when the segment has no stored Plus Code — so the form field
+   * agrees with the badge on the card. Ignored on Add.
+   */
+  coords?: { lat: number; lng: number } | null;
 }
+
+// Types that support `data.plusCode`. Mirrors the schema set in
+// segments/validators.ts.
+const PLUS_CODE_TYPES: ReadonlySet<SegmentType> = new Set(['hotel', 'food', 'activity', 'transit']);
 
 const CREATE_TITLES: Record<SegmentType, string> = {
   flight: 'New flight',
@@ -65,10 +80,34 @@ const LOADING_GRACE_MS = 140;
 // land as Date objects (RHF's defaultValues accepts them via the
 // `dateInput` union in validators.ts); strings on the row come
 // through unchanged.
-function segmentToFormInput(segment: Segment): FormInput {
+//
+// When `coords` is supplied and the segment supports `plusCode` AND
+// has no stored Plus Code, the field is prefilled with the encoded
+// form of the cached coordinates. Same value the card badge shows —
+// makes the form field agree with the badge instead of looking empty.
+// Saving without touching the prefill is intentional: the lifecycle
+// hook re-keys the cache row off the Plus Code, decode↔encode is
+// stable, and the badge stays identical across save.
+function segmentToFormInput(
+  segment: Segment,
+  coords?: { lat: number; lng: number } | null,
+): FormInput {
+  let data = segment.data;
+  if (
+    coords &&
+    Number.isFinite(coords.lat) &&
+    Number.isFinite(coords.lng) &&
+    PLUS_CODE_TYPES.has(segment.type) &&
+    !hasStoredPlusCode(data)
+  ) {
+    const encoded = encodePlusCode(coords.lat, coords.lng);
+    if (encoded !== null) {
+      data = { ...(data as Record<string, unknown>), plusCode: encoded };
+    }
+  }
   return {
     type: segment.type,
-    data: segment.data,
+    data,
     startsAt: segment.startsAt,
     endsAt: segment.endsAt,
     locationName: segment.locationName ?? '',
@@ -77,11 +116,18 @@ function segmentToFormInput(segment: Segment): FormInput {
   } as FormInput;
 }
 
+function hasStoredPlusCode(data: unknown): boolean {
+  if (data === null || typeof data !== 'object') return false;
+  const candidate = (data as { plusCode?: unknown }).plusCode;
+  return typeof candidate === 'string' && candidate.trim() !== '';
+}
+
 export function SegmentFormDialog({
   tripId,
   trigger,
   defaultType,
   editingSegment,
+  coords,
 }: SegmentFormDialogProps) {
   const [open, setOpen] = React.useState(false);
   // Sibling-leg group for the multi-leg flight-edit path. Loaded
@@ -217,7 +263,7 @@ export function SegmentFormDialog({
       ? CREATE_TITLES[defaultType]
       : GENERIC_TITLE;
 
-  const initialValues = editingSegment ? segmentToFormInput(editingSegment) : undefined;
+  const initialValues = editingSegment ? segmentToFormInput(editingSegment, coords) : undefined;
   const submitLabel = editingSegment ? 'Save changes' : undefined;
 
   return (

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { DateGroup } from '@/components/features/segments/date-group';
+import { GeocodePoller } from '@/components/features/segments/geocode-poller';
 import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
 import { SegmentFormDialog } from '@/components/features/segments/segment-form-dialog';
 import { SegmentRow } from '@/components/features/segments/segment-row';
@@ -9,6 +10,7 @@ import { TabHeader } from '@/components/features/segments/tab-header';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/session';
 import * as documentsRepo from '@/lib/documents/repo';
+import { getPlaceCoordsView } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
 
@@ -37,6 +39,8 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
     }),
     documentsRepo.listLinkedDocumentsByTripSegment(user.id, id),
   ]);
+
+  const { coordsById: coordsBySegmentId, pendingCount } = await getPlaceCoordsView(all);
 
   const scheduled = all.filter((a) => a.startsAt !== null);
   const wishlist = all.filter((a) => a.startsAt === null);
@@ -81,6 +85,7 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
                     segments={day.segments}
                     tripId={id}
                     linkedDocumentsBySegment={linkedDocsBySegment}
+                    coordsBySegmentId={coordsBySegmentId}
                     showScheduleAction
                   />
                 ))}
@@ -106,6 +111,7 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
                       segment={a}
                       tripId={id}
                       linkedDocuments={linkedDocsBySegment.get(a.id)}
+                      coords={coordsBySegmentId.get(a.id) ?? null}
                       showScheduleAction
                     />
                   </li>
@@ -115,6 +121,7 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
           </section>
         </div>
       )}
+      <GeocodePoller pending={pendingCount} />
     </>
   );
 }

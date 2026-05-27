@@ -4,6 +4,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
+import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 
 export function ActivityFields({ form }: { form: Form }) {
   const e = getDataErrors(form.formState.errors);
@@ -30,6 +31,18 @@ export function ActivityFields({ form }: { form: Form }) {
           {...form.register('data.description' as never)}
         />
       </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="seg-activity-address">
+          Address <Optional />
+        </Label>
+        <Input
+          id="seg-activity-address"
+          placeholder="6-1-16 Toyosu, Koto"
+          {...form.register('data.address' as never)}
+        />
+        <PlusCodeNudge form={form} />
+      </div>
+      <PlusCodeFields form={form} idPrefix="seg-activity" />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import type { Segment } from '@/lib/segments';
 import { foodDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 
 // The food card subtitle locates the venue. The parsed address wins
@@ -27,9 +28,12 @@ export function foodCardSubtitle({
 export function SegmentCardFood({
   segment,
   linkedDocuments = [],
+  coords,
 }: {
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
+  /** Cached coordinates, if any — drive the Plus Code badge + deep link. */
+  coords?: { lat: number; lng: number } | null;
 }) {
   const parse = foodDataSchema.safeParse(segment.data);
   const title = parse.success ? parse.data.venue : 'Meal';
@@ -47,7 +51,12 @@ export function SegmentCardFood({
     </div>
   ) : null;
 
-  const subtitle = foodCardSubtitle({ address, locationName: segment.locationName });
+  const subtitleText = foodCardSubtitle({ address, locationName: segment.locationName });
+  const subtitle = subtitleWithPlusCodeBadge({
+    parts: [subtitleText],
+    coords,
+    venue: title,
+  });
 
   return (
     <SegmentCardShell

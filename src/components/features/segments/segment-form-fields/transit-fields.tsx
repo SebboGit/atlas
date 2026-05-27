@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import type { TransitData } from '@/lib/segments';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
+import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 
 // Reuses the Zod-inferred TransitData['mode'] union — no second source
 // of truth for the mode literal list.
@@ -64,6 +65,18 @@ export function TransitFields({ form }: { form: Form }) {
           />
         </div>
       </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="seg-transit-address">
+          Address <Optional />
+        </Label>
+        <Input
+          id="seg-transit-address"
+          placeholder="1-9-1 Marunouchi, Chiyoda"
+          {...form.register('data.address' as never)}
+        />
+        <PlusCodeNudge form={form} />
+      </div>
+      <PlusCodeFields form={form} idPrefix="seg-transit" />
       {e.mode?.message && <FieldError>{e.mode.message}</FieldError>}
     </div>
   );

@@ -209,6 +209,106 @@ describe('buildGeocodeQuery — transit', () => {
   });
 });
 
+describe('buildGeocodeQuery — Plus Code precedence', () => {
+  it('hotel: plusCode wins over address', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'hotel',
+        data: {
+          propertyName: 'Hotel California',
+          address: '1 Sunset Blvd, Los Angeles',
+          plusCode: '8Q7XMPWG+5V',
+        },
+      }),
+    );
+    expect(q).toBe('8Q7XMPWG+5V');
+  });
+
+  it('food: plusCode wins over address', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        data: {
+          venue: 'Narisawa',
+          address: '2-6-15 Minami-Aoyama, Minato, Tokyo',
+          plusCode: 'MP7J+CV Minato City, Tokyo',
+        },
+      }),
+    );
+    expect(q).toBe('MP7J+CV Minato City, Tokyo');
+  });
+
+  it('activity: plusCode wins over address and title', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'activity',
+        locationName: 'Shibuya',
+        data: {
+          title: 'Old Town',
+          address: 'Some Street, Chiang Mai',
+          plusCode: '8Q7XMPWG+5V',
+        },
+      }),
+    );
+    expect(q).toBe('8Q7XMPWG+5V');
+  });
+
+  it('transit: plusCode wins over toName/fromName/address', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'transit',
+        data: {
+          mode: 'train',
+          fromName: 'Paddington Station',
+          toName: 'Heathrow T5',
+          address: 'Heathrow Airport, London',
+          plusCode: '9C3XGV4C+VR',
+        },
+      }),
+    );
+    expect(q).toBe('9C3XGV4C+VR');
+  });
+
+  it('activity: address used when plusCode absent, before falling through to title', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'activity',
+        locationName: 'Shibuya',
+        data: { title: 'Old Town', address: '1-2-3 Roppongi, Tokyo' },
+      }),
+    );
+    expect(q).toBe('1-2-3 Roppongi, Tokyo');
+  });
+
+  it('transit: address used when plusCode absent, before falling through to toName', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'transit',
+        data: {
+          mode: 'ferry',
+          toName: 'Sumida Ferry Terminal',
+          address: '2-1-1 Hama-rikyu Gardens, Chuo, Tokyo',
+        },
+      }),
+    );
+    expect(q).toBe('2-1-1 Hama-rikyu Gardens, Chuo, Tokyo');
+  });
+
+  it('whitespace-only plusCode is treated as unset', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'hotel',
+        data: {
+          propertyName: 'Hotel California',
+          address: '1 Sunset Blvd, Los Angeles',
+          plusCode: '   ',
+        },
+      }),
+    );
+    expect(q).toBe('1 Sunset Blvd, Los Angeles');
+  });
+});
+
 describe('buildGeocodeQuery — flight and note', () => {
   it('returns null for flight segments (handled by IATA snapshot)', () => {
     expect(

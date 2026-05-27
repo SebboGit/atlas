@@ -6,6 +6,7 @@ import type { Segment } from '@/lib/segments';
 import { hotelDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 
 function nightsBetween(checkIn: Date, checkOut: Date): number {
@@ -25,9 +26,12 @@ function hasTimeComponent(d: Date | null): boolean {
 export function SegmentCardHotel({
   segment,
   linkedDocuments = [],
+  coords,
 }: {
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
+  /** Cached coordinates, if any — drive the Plus Code badge + deep link. */
+  coords?: { lat: number; lng: number } | null;
 }) {
   const parse = hotelDataSchema.safeParse(segment.data);
   const propertyName = parse.success ? parse.data.propertyName : 'Hotel';
@@ -36,11 +40,15 @@ export function SegmentCardHotel({
   const nights =
     segment.startsAt && segment.endsAt ? nightsBetween(segment.startsAt, segment.endsAt) : null;
 
-  const subtitleParts = [
-    segment.locationName,
-    nights !== null ? `${nights} night${nights === 1 ? '' : 's'}` : null,
-    roomType,
-  ].filter(Boolean);
+  const subtitle = subtitleWithPlusCodeBadge({
+    parts: [
+      segment.locationName,
+      nights !== null ? `${nights} night${nights === 1 ? '' : 's'}` : null,
+      roomType,
+    ],
+    coords,
+    venue: propertyName,
+  });
 
   const meta = hasTimeComponent(segment.startsAt) ? (
     <div className="text-foreground/75 font-mono text-sm leading-tight tracking-wider">
@@ -54,7 +62,7 @@ export function SegmentCardHotel({
       glyph={<BedDouble className="size-4" strokeWidth={1.5} />}
       typeLabel="Hotel"
       title={propertyName}
-      subtitle={subtitleParts.length ? subtitleParts.join(' · ') : undefined}
+      subtitle={subtitle}
       meta={meta}
       footer={
         linkedDocuments.length > 0 ? <LinkedDocumentChips documents={linkedDocuments} /> : undefined

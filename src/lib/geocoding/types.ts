@@ -38,3 +38,13 @@ export interface Geocoder {
    */
   geocode(query: string): Promise<GeocodeResult | null>;
 }
+
+/**
+ * Reverse lookup: coordinates → human-friendly place name. Used by the
+ * Plus Code path so a decoded code carries an OSM `display_name` rather
+ * than a synthesised label. Same no-throw / no-leak contract as
+ * {@link Geocoder.geocode}. `null` covers every failure mode.
+ */
+export interface ReverseGeocoder {
+  reverse(lat: number, lng: number): Promise<string | null>;
+}

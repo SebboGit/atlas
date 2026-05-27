@@ -6,14 +6,18 @@ import type { Segment } from '@/lib/segments';
 import { activityDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 
 export function SegmentCardActivity({
   segment,
   linkedDocuments = [],
+  coords,
 }: {
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
+  /** Cached coordinates, if any — drive the Plus Code badge + deep link. */
+  coords?: { lat: number; lng: number } | null;
 }) {
   const parse = activityDataSchema.safeParse(segment.data);
   const title = parse.success ? parse.data.title : 'Activity';
@@ -37,14 +41,18 @@ export function SegmentCardActivity({
     </div>
   ) : null;
 
-  const subtitleParts = [segment.locationName, description].filter(Boolean);
+  const subtitle = subtitleWithPlusCodeBadge({
+    parts: [segment.locationName, description],
+    coords,
+    venue: title,
+  });
 
   return (
     <SegmentCardShell
       glyph={<Sparkles className="size-4" strokeWidth={1.5} />}
       typeLabel="Activity"
       title={title}
-      subtitle={subtitleParts.length ? subtitleParts.join(' · ') : undefined}
+      subtitle={subtitle}
       meta={meta}
       footer={
         linkedDocuments.length > 0 ? <LinkedDocumentChips documents={linkedDocuments} /> : undefined

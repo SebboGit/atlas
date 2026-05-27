@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
+import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 
 export function HotelFields({ form }: { form: Form }) {
   const e = getDataErrors(form.formState.errors);
@@ -50,7 +51,9 @@ export function HotelFields({ form }: { form: Form }) {
           placeholder="3-7-1-2 Nishi-Shinjuku"
           {...form.register('data.address' as never)}
         />
+        <PlusCodeNudge form={form} />
       </div>
+      <PlusCodeFields form={form} />
     </div>
   );
 }

@@ -8,21 +8,26 @@
 // Per CLAUDE.md "External Integrations" — `locationName` is a short
 // pin-style label like "Shibuya" or "Bukit Bintang" (the user's
 // shorthand for where on a map this lands). The geocodable strings
-// are the per-type fields:
+// are the per-type fields, with `plusCode` taking precedence
+// universally when present:
 //
-//   hotel    → address (fallback: propertyName)
-//   activity → title (+ locationName)
-//   transit  → toName, fallback fromName
-//   food     → address (fallback: venue + locationName)
+//   hotel    → plusCode → address → propertyName
+//   activity → plusCode → address → title (+ locationName)
+//   transit  → plusCode → address → toName → fromName
+//   food     → plusCode → address → venue (+ locationName)
 //
-// **Hotel uses address-first, NOT a compound `name, address` query.**
-// Nominatim's q parser tokenises left-to-right and brand-y hotel
-// names with suffixes ("a long branded hotel name Managed By
-// Another Brand") routinely turn an otherwise-resolvable query into a
-// null result. The address alone ("<address line 1> Bintang, Kuala
-// Lumpur 55100, Malaysia") resolves reliably. propertyName is for
-// the card title; the geocode goes off the address. Manually-entered
-// hotels with no address fall back to propertyName.
+// **Why plusCode wins.** Plus Codes resolve to coordinates offline
+// (full codes) or with a single anchor lookup (local codes) and
+// effectively never null. They sidestep Nominatim's left-to-right
+// q-parser entirely — see [[geocoding-failure-modes]] for the patterns
+// they bypass, and [[plus-code-architecture]] for the design.
+//
+// **Hotel/food fall back to address, NOT a compound `name, address`
+// query.** Nominatim's q-parser tokenises left-to-right and brand-y
+// names with suffixes ("a long branded hotel name Managed By Another
+// Brand") routinely turn an otherwise-resolvable query into a null
+// result. The address alone resolves reliably; the venue/property
+// name is only the fallback when no address is on file.
 //
 // Notes and flights produce no query — flights are handled by the
 // committed IATA airport snapshot, notes have no place on a map.
@@ -54,29 +59,33 @@ export interface PlaceLike {
  * item), or null if it has no geocodable identity (wrong type, missing
  * required fields, malformed `data` JSONB). The string returned here
  * is what `Geocoder.geocode` sees; the cache layer normalises it on
- * the way in.
- *
- * The construction joins parts with ", " — Nominatim handles compound
- * queries natively and reliably scores a (name, address) match higher
- * than either part alone.
+ * the way in. A Plus Code returned here is routed by the PlaceResolver
+ * to the offline-decode pipeline; everything else falls through to
+ * Nominatim free-text search.
  */
 export function buildGeocodeQuery(segment: PlaceLike): string | null {
   switch (segment.type) {
     case 'hotel': {
       const parsed = hotelDataSchema.safeParse(segment.data);
       if (!parsed.success) return null;
+      const plus = parsed.data.plusCode?.trim();
+      if (plus) return plus;
       const address = parsed.data.address?.trim();
       if (address) return address;
-      // No address on file. Hotel names alone resolve sometimes
-      // (well-indexed independent properties) and not others (any
-      // chain or hyphenated brand). The user can upgrade the pin
-      // by adding an address in the segment form.
+      // No precise location on file. Hotel names alone resolve
+      // sometimes (well-indexed independent properties) and not
+      // others (any chain or hyphenated brand). The user can upgrade
+      // the pin by adding an address or Plus Code in the segment form.
       return parsed.data.propertyName;
     }
 
     case 'activity': {
       const parsed = activityDataSchema.safeParse(segment.data);
       if (!parsed.success) return null;
+      const plus = parsed.data.plusCode?.trim();
+      if (plus) return plus;
+      const address = parsed.data.address?.trim();
+      if (address) return address;
       const parts = [parsed.data.title];
       // locationName here is the user's pin-style label ("Shibuya").
       // Tacking it onto the title disambiguates landmarks that exist
@@ -90,6 +99,10 @@ export function buildGeocodeQuery(segment: PlaceLike): string | null {
     case 'transit': {
       const parsed = transitDataSchema.safeParse(segment.data);
       if (!parsed.success) return null;
+      const plus = parsed.data.plusCode?.trim();
+      if (plus) return plus;
+      const address = parsed.data.address?.trim();
+      if (address) return address;
       // Destination-as-pin matches the flight convention (ADR-0005's
       // "primary country = destination"). Fall back to origin only
       // when we genuinely have no destination — better one pin at
@@ -103,6 +116,8 @@ export function buildGeocodeQuery(segment: PlaceLike): string | null {
     case 'food': {
       const parsed = foodDataSchema.safeParse(segment.data);
       if (!parsed.success) return null;
+      const plus = parsed.data.plusCode?.trim();
+      if (plus) return plus;
       // Address-first, same as hotels: a restaurant address resolves
       // far more reliably than a venue name, especially for chains or
       // brand-y names that throw off Nominatim's q-parser.

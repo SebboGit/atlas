@@ -17,6 +17,7 @@ import {
 } from '@/lib/wishlist';
 import type { Result } from '@/types/result';
 
+import { PlusCodeFields, PlusCodeNudge } from '../segments/segment-form-fields/plus-code-fields';
 import { TagInput } from './tag-input';
 
 type FormInput = z.input<typeof wishlistItemCreateInput>;
@@ -188,7 +189,9 @@ export function WishlistForm({
                 placeholder="2-6-15 Minami-Aoyama, Minato"
                 {...register('data.address' as never)}
               />
+              <PlusCodeNudge form={form} />
             </div>
+            <PlusCodeFields form={form} idPrefix="wl-food" />
           </>
         )}
 
@@ -217,6 +220,18 @@ export function WishlistForm({
                 {...register('data.description' as never)}
               />
             </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="wl-activity-address">
+                Address <Optional />
+              </Label>
+              <Input
+                id="wl-activity-address"
+                placeholder="6-1-16 Toyosu, Koto"
+                {...register('data.address' as never)}
+              />
+              <PlusCodeNudge form={form} />
+            </div>
+            <PlusCodeFields form={form} idPrefix="wl-activity" />
           </>
         )}
 

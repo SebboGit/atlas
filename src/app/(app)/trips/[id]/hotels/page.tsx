@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { DateGroup } from '@/components/features/segments/date-group';
+import { GeocodePoller } from '@/components/features/segments/geocode-poller';
 import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
 import { SegmentFormDialog } from '@/components/features/segments/segment-form-dialog';
 import { TabEmpty } from '@/components/features/segments/tab-empty';
@@ -8,6 +9,7 @@ import { TabHeader } from '@/components/features/segments/tab-header';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/session';
 import * as documentsRepo from '@/lib/documents/repo';
+import { getPlaceCoordsView } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
 
@@ -31,6 +33,8 @@ export default async function HotelsTabPage({ params, searchParams }: HotelsTabP
     }),
     documentsRepo.listLinkedDocumentsByTripSegment(user.id, id),
   ]);
+
+  const { coordsById: coordsBySegmentId, pendingCount } = await getPlaceCoordsView(hotels);
 
   const { days, unscheduled } = groupSegmentsByDay(hotels);
 
@@ -61,6 +65,7 @@ export default async function HotelsTabPage({ params, searchParams }: HotelsTabP
               segments={day.segments}
               tripId={id}
               linkedDocumentsBySegment={linkedDocsBySegment}
+              coordsBySegmentId={coordsBySegmentId}
             />
           ))}
           {unscheduled.length > 0 && (
@@ -69,10 +74,12 @@ export default async function HotelsTabPage({ params, searchParams }: HotelsTabP
               segments={unscheduled}
               tripId={id}
               linkedDocumentsBySegment={linkedDocsBySegment}
+              coordsBySegmentId={coordsBySegmentId}
             />
           )}
         </div>
       )}
+      <GeocodePoller pending={pendingCount} />
     </>
   );
 }
