@@ -124,7 +124,9 @@ export function PlusCodeNudge({ form }: { form: AnyForm }) {
     <button
       type="button"
       onClick={move}
-      className="text-primary hover:text-primary/80 -mt-1 self-start text-xs font-medium underline-offset-2 hover:underline"
+      // `@media (hover: none)` gets a 44 px touch target per CLAUDE.md;
+      // pointer devices keep the compact inline-link treatment.
+      className="text-primary hover:text-primary/80 -mt-1 self-start text-xs font-medium underline-offset-2 hover:underline [@media(hover:none)]:inline-flex [@media(hover:none)]:min-h-11 [@media(hover:none)]:items-center [@media(hover:none)]:px-1 [@media(hover:none)]:py-2 [@media(hover:none)]:text-sm"
     >
       Looks like a Plus Code — move it to the Plus Code field
     </button>
