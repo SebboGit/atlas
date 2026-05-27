@@ -21,6 +21,28 @@ describe('tryParsePlusCode', () => {
     expect(tryParsePlusCode('8Q7XMPWG+5VC')).toEqual({ kind: 'full', code: '8Q7XMPWG+5VC' });
   });
 
+  it('accepts spec-max 15-char full codes (7 chars after +)', () => {
+    // OLC spec: full codes are 10–15 chars total with `+` after the
+    // 8th, so the suffix can be 2–7 chars long. Regression for the
+    // original {2,3} suffix bound that wrongly rejected longer codes.
+    expect(tryParsePlusCode('8Q7XMPWG+5VCFGHJ')).toEqual({
+      kind: 'full',
+      code: '8Q7XMPWG+5VCFGHJ',
+    });
+  });
+
+  it('rejects full codes with suffix beyond the spec maximum (8 chars)', () => {
+    expect(tryParsePlusCode('8Q7XMPWG+5VCFGHJM')).toBeNull();
+  });
+
+  it('accepts local codes with extended suffix lengths (4–7 chars after +)', () => {
+    expect(tryParsePlusCode('MP7J+CVCFG Minato City, Tokyo')).toEqual({
+      kind: 'local',
+      code: 'MP7J+CVCFG',
+      reference: 'Minato City, Tokyo',
+    });
+  });
+
   it('trims leading and trailing whitespace', () => {
     expect(tryParsePlusCode('  8Q7XMPWG+5V  ')).toEqual({ kind: 'full', code: '8Q7XMPWG+5V' });
   });
@@ -66,8 +88,9 @@ describe('tryParsePlusCode', () => {
     expect(tryParsePlusCode('8Q7XMPWG+5V some text')).toBeNull();
   });
 
-  it('returns null for malformed shapes (suffix too long)', () => {
-    expect(tryParsePlusCode('8Q7XMPWG+5VVV5')).toBeNull();
+  it('returns null for malformed shapes (suffix beyond spec maximum)', () => {
+    // 8 chars after `+` — OLC spec caps the suffix at 7.
+    expect(tryParsePlusCode('8Q7XMPWG+5VCFGHJM')).toBeNull();
   });
 });
 

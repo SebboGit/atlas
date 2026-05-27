@@ -19,9 +19,14 @@ const olc = new OpenLocationCode();
 // spelling words. Case-insensitive in practice.
 const OLC_CHAR_CLASS = '[23456789CFGHJMPQRVWX]';
 
-const FULL_CODE_RE = new RegExp(`^${OLC_CHAR_CLASS}{8}\\+${OLC_CHAR_CLASS}{2,3}$`, 'i');
+// OLC spec: total code length 10–15 alphabet chars excluding the `+`,
+// with the separator after exactly the 8th char. That leaves 2–7
+// alphabet chars after `+` for a full code. Short/local codes follow
+// the same suffix shape; the `before-+` part is just trimmed to 4–6
+// for resolvable shortened forms.
+const FULL_CODE_RE = new RegExp(`^${OLC_CHAR_CLASS}{8}\\+${OLC_CHAR_CLASS}{2,7}$`, 'i');
 const LOCAL_CODE_RE = new RegExp(
-  `^(${OLC_CHAR_CLASS}{4,6}\\+${OLC_CHAR_CLASS}{2,3})(?:\\s+(.+))?$`,
+  `^(${OLC_CHAR_CLASS}{4,6}\\+${OLC_CHAR_CLASS}{2,7})(?:\\s+(.+))?$`,
   'i',
 );
 

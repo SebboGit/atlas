@@ -17,7 +17,10 @@ import {
 } from '@/lib/wishlist';
 import type { Result } from '@/types/result';
 
-import { PlusCodeFields, PlusCodeNudge } from '../segments/segment-form-fields/plus-code-fields';
+import {
+  PlusCodeFields,
+  PlusCodeNudge,
+} from '@/components/features/segments/segment-form-fields/plus-code-fields';
 import { TagInput } from './tag-input';
 
 type FormInput = z.input<typeof wishlistItemCreateInput>;
