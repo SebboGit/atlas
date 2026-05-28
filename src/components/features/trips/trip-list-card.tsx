@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
-import type { Trip } from '@/lib/trips';
+import type { Trip, TripStatus } from '@/lib/trips';
 
 import { TripStatusBadge } from './trip-status-badge';
 
@@ -23,9 +23,41 @@ function formatDateRange(start: Date | null, end: Date | null): string {
   return `Until ${fmtFull(end!)}`;
 }
 
+// Compact phone-only form. Tight single-line row reads at-a-glance — the
+// laptop card's chrome (corner stamp, summary, hover gradient) is
+// information density laptop has room for; phone trades it for scannable
+// height. Date range is the load-bearing field and never gets dropped.
+function formatCompactRange(start: Date | null, end: Date | null): string {
+  if (!start && !end) return 'Dates TBC';
+
+  const fmtDay = (d: Date) =>
+    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).toUpperCase();
+  const fmtYear = (d: Date) => d.getUTCFullYear().toString();
+
+  if (start && end) {
+    const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
+    return sameYear
+      ? `${fmtDay(start)} – ${fmtDay(end)} ${fmtYear(end)}`
+      : `${fmtDay(start)} ${fmtYear(start)} – ${fmtDay(end)} ${fmtYear(end)}`;
+  }
+  if (start) return `From ${fmtDay(start)} ${fmtYear(start)}`;
+  return `Until ${fmtDay(end!)} ${fmtYear(end!)}`;
+}
+
+// Status-dot colour mirrors the badge variant so the row's at-a-glance
+// signal stays consistent with the laptop card. Reads `bg-current` of an
+// element coloured by the matching status text utility.
+const STATUS_DOT_COLOR: Record<TripStatus, string> = {
+  planned: 'text-foreground/65',
+  active: 'text-primary',
+  completed: 'text-accent',
+  archived: 'text-foreground/45',
+};
+
 export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
   const indexLabel = String(index + 1).padStart(2, '0');
   const range = formatDateRange(trip.startDate, trip.endDate);
+  const compactRange = formatCompactRange(trip.startDate, trip.endDate);
   const isArchived = trip.status === 'archived';
 
   return (
@@ -33,16 +65,44 @@ export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
       href={{ pathname: `/trips/${trip.id}` }}
       className="atlas-rise group focus-visible:ring-primary/40 focus-visible:ring-offset-background block rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
-      <Card
-        variant="glass"
-        className="relative h-full overflow-hidden transition-transform duration-500 hover:-translate-y-0.5"
+      {/* Phone: compact 52 px row. Single line, status dot · date · title ·
+       *  chevron. The whole row is the Link target so the entire surface
+       *  is a 44 px+ tap target. */}
+      <div
+        className={
+          'border-foreground/12 bg-card/70 flex h-[52px] items-center gap-3 rounded-xl border px-4 sm:hidden ' +
+          'group-hover:bg-card group-active:bg-card transition-colors'
+        }
       >
-        {/* Corner index numeral — quiet, monospace. Decorative chrome:
-         *  hidden on phone, where the half-width card doesn't have room
-         *  for it without crowding the title. */}
         <span
           aria-hidden
-          className="border-foreground/25 text-foreground/70 absolute top-4 right-4 hidden h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] sm:inline-flex"
+          className={`size-1.5 shrink-0 rounded-full bg-current ${STATUS_DOT_COLOR[trip.status]}`}
+        />
+        <span className="text-foreground/70 shrink-0 font-mono text-[10px] tracking-[0.14em] uppercase">
+          {compactRange}
+        </span>
+        <h3
+          className={
+            'font-display flex-1 truncate text-base font-medium tracking-tight ' +
+            (isArchived ? 'text-foreground/60' : 'text-foreground')
+          }
+        >
+          {trip.title}
+        </h3>
+        <span aria-hidden className="text-foreground/40 shrink-0 font-mono text-xs">
+          →
+        </span>
+      </div>
+
+      {/* Laptop: full card. Same data, different density — corner stamp,
+       *  summary preview, status badge with the hover gradient flourish. */}
+      <Card
+        variant="glass"
+        className="relative hidden h-full overflow-hidden transition-transform duration-500 hover:-translate-y-0.5 sm:block"
+      >
+        <span
+          aria-hidden
+          className="border-foreground/25 text-foreground/70 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
         >
           {indexLabel}
         </span>
@@ -72,7 +132,7 @@ export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
             <TripStatusBadge status={trip.status} />
             <span
               aria-hidden
-              className="from-primary/0 via-primary/50 to-primary/0 hidden h-px w-12 bg-gradient-to-r transition-all duration-500 group-hover:w-24 sm:block"
+              className="from-primary/0 via-primary/50 to-primary/0 h-px w-12 bg-gradient-to-r transition-all duration-500 group-hover:w-24"
             />
           </div>
         </CardContent>

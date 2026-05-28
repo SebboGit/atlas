@@ -95,6 +95,50 @@ function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 }
 DialogFooter.displayName = 'DialogFooter';
 
+// Apply to the <form> or wrapping <div> inside DialogContent that holds
+// a DialogScrollableBody + DialogStickyFooter. The max-h bounds the form
+// inside the dialog so the body's inner scroll is the ONLY scroll axis
+// engaged — DialogContent's own max-h-[88vh] + overflow-y-auto stays
+// dormant as long as the form fits, which it always does with this
+// bound. The action footer sits at the form's natural bottom inside
+// these bounds, so Save / Cancel are always reachable.
+const dialogScrollContainer = 'flex max-h-[calc(85vh-7rem)] flex-col gap-0';
+
+// Scrollable inner region of a dialog body — pair with `dialogScrollContainer`
+// on the parent and DialogStickyFooter as a sibling. The `flex-1` claims
+// the remaining height inside the bounded form; `overflow-y-auto` scrolls
+// when the field stack is taller than that space. `pr-1` reserves a hair
+// for the scrollbar so it doesn't crowd the rightmost field edges.
+const DialogScrollableBody = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn('flex flex-1 flex-col gap-5 overflow-y-auto pr-1 pb-1', className)}
+      {...props}
+    />
+  ),
+);
+DialogScrollableBody.displayName = 'DialogScrollableBody';
+
+// Action footer for dialogs with a scrollable body — sits at the bottom
+// of the bounded form so Save / Cancel never fall below the viewport.
+// Negative margins let the divider span the full DialogContent width
+// despite the dialog's px-6 (mobile) / sm:p-8 (laptop) padding, and
+// -mb / sm:-mb let the footer's bg cover the dialog's pb area cleanly.
+const DialogStickyFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        'border-foreground/15 bg-card -mx-6 mt-4 -mb-6 flex flex-col-reverse gap-3 border-t px-6 py-4 sm:-mx-8 sm:-mb-8 sm:flex-row sm:items-center sm:justify-end',
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
+DialogStickyFooter.displayName = 'DialogStickyFooter';
+
 const DialogEyebrow = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
@@ -149,4 +193,7 @@ export {
   DialogEyebrow,
   DialogTitle,
   DialogDescription,
+  DialogScrollableBody,
+  DialogStickyFooter,
+  dialogScrollContainer,
 };

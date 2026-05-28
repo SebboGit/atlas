@@ -5,6 +5,11 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { CountrySelect } from '@/components/ui/country-select';
 import { DateTimeField } from '@/components/ui/date-time-field';
+import {
+  DialogScrollableBody,
+  DialogStickyFooter,
+  dialogScrollContainer,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getAirportCountry, getAirportTimezone } from '@/lib/airports';
@@ -271,118 +276,120 @@ export function MultiLegFlightForm({
   const endTz = getAirportTimezone(activeDraft.destinationAirport || null);
 
   return (
-    <form noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
-      <LegTabs
-        legs={drafts}
-        labels={labels}
-        activeLegIndex={safeIndex}
-        erroredLegs={erroredLegs}
-        onChange={setActiveLegIndex}
-      />
+    <form noValidate onSubmit={onSubmit} className={dialogScrollContainer}>
+      <DialogScrollableBody>
+        <LegTabs
+          legs={drafts}
+          labels={labels}
+          activeLegIndex={safeIndex}
+          erroredLegs={erroredLegs}
+          onChange={setActiveLegIndex}
+        />
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        {/*
+        <div className="grid gap-5 sm:grid-cols-2">
+          {/*
           Row order mirrors `FlightFields` in the single-segment form:
           From/To first so the route reads left-to-right at the top,
           then Carrier/Flight no., then Departure/Arrival.
         */}
-        <FieldRow label="From (IATA)" error={activeLegErrors['data.originAirport']}>
-          <Input
-            placeholder="LHR"
-            maxLength={3}
-            value={activeDraft.originAirport}
-            onChange={(e) => patchActive({ originAirport: e.target.value.toUpperCase() })}
-            aria-invalid={!!activeLegErrors['data.originAirport'] || undefined}
-          />
-        </FieldRow>
-        <FieldRow label="To (IATA)" error={activeLegErrors['data.destinationAirport']}>
-          <Input
-            placeholder="HND"
-            maxLength={3}
-            value={activeDraft.destinationAirport}
-            onChange={(e) => patchActive({ destinationAirport: e.target.value.toUpperCase() })}
-            aria-invalid={!!activeLegErrors['data.destinationAirport'] || undefined}
-          />
-        </FieldRow>
-
-        <FieldRow label="Carrier" optional error={activeLegErrors['data.carrier']}>
-          <Input
-            placeholder="British Airways"
-            value={activeDraft.carrier}
-            onChange={(e) => patchActive({ carrier: e.target.value })}
-            aria-invalid={!!activeLegErrors['data.carrier'] || undefined}
-          />
-        </FieldRow>
-        <FieldRow label="Flight no." optional error={activeLegErrors['data.flightNumber']}>
-          <Input
-            placeholder="BA 5"
-            value={activeDraft.flightNumber}
-            onChange={(e) => patchActive({ flightNumber: e.target.value })}
-            aria-invalid={!!activeLegErrors['data.flightNumber'] || undefined}
-          />
-        </FieldRow>
-
-        <FieldRow label="Departure" error={activeLegErrors.startsAt}>
-          <DateTimeField
-            value={toDateTimeValue(activeDraft.startsAt, startTz)}
-            onChange={(s) => patchActive({ startsAt: fromDateTimeValue(s, startTz) })}
-            withTime
-            invalid={!!activeLegErrors.startsAt}
-          />
-        </FieldRow>
-        <FieldRow label="Arrival" optional error={activeLegErrors.endsAt}>
-          <DateTimeField
-            value={toDateTimeValue(activeDraft.endsAt, endTz)}
-            onChange={(s) => patchActive({ endsAt: fromDateTimeValue(s, endTz) })}
-            withTime
-            invalid={!!activeLegErrors.endsAt}
-          />
-        </FieldRow>
-
-        <FieldRow label="Origin country" optional error={activeLegErrors.originCountryCode}>
-          <CountrySelect
-            value={activeDraft.originCountryCode}
-            onChange={(v) => patchActive({ originCountryCode: v })}
-            invalid={!!activeLegErrors.originCountryCode}
-          />
-        </FieldRow>
-        <FieldRow label="Destination country" optional error={activeLegErrors.countryCode}>
-          <CountrySelect
-            value={activeDraft.countryCode}
-            onChange={(v) => patchActive({ countryCode: v })}
-            invalid={!!activeLegErrors.countryCode}
-          />
-        </FieldRow>
-
-        <div className="sm:col-span-2">
-          <FieldRow label="PNR" optional error={activeLegErrors['data.pnr']}>
+          <FieldRow label="From (IATA)" error={activeLegErrors['data.originAirport']}>
             <Input
-              placeholder="ABC123"
-              value={activeDraft.pnr}
-              onChange={(e) => patchActive({ pnr: e.target.value })}
-              aria-invalid={!!activeLegErrors['data.pnr'] || undefined}
+              placeholder="LHR"
+              maxLength={3}
+              value={activeDraft.originAirport}
+              onChange={(e) => patchActive({ originAirport: e.target.value.toUpperCase() })}
+              aria-invalid={!!activeLegErrors['data.originAirport'] || undefined}
             />
           </FieldRow>
-        </div>
-      </div>
+          <FieldRow label="To (IATA)" error={activeLegErrors['data.destinationAirport']}>
+            <Input
+              placeholder="HND"
+              maxLength={3}
+              value={activeDraft.destinationAirport}
+              onChange={(e) => patchActive({ destinationAirport: e.target.value.toUpperCase() })}
+              aria-invalid={!!activeLegErrors['data.destinationAirport'] || undefined}
+            />
+          </FieldRow>
 
-      {formError && (
-        <div
-          role="alert"
-          className="border-destructive/30 bg-destructive/8 text-destructive rounded-xl border px-4 py-3 text-sm"
-        >
-          {formError}
-        </div>
-      )}
+          <FieldRow label="Carrier" optional error={activeLegErrors['data.carrier']}>
+            <Input
+              placeholder="British Airways"
+              value={activeDraft.carrier}
+              onChange={(e) => patchActive({ carrier: e.target.value })}
+              aria-invalid={!!activeLegErrors['data.carrier'] || undefined}
+            />
+          </FieldRow>
+          <FieldRow label="Flight no." optional error={activeLegErrors['data.flightNumber']}>
+            <Input
+              placeholder="BA 5"
+              value={activeDraft.flightNumber}
+              onChange={(e) => patchActive({ flightNumber: e.target.value })}
+              aria-invalid={!!activeLegErrors['data.flightNumber'] || undefined}
+            />
+          </FieldRow>
 
-      <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-end">
+          <FieldRow label="Departure" error={activeLegErrors.startsAt}>
+            <DateTimeField
+              value={toDateTimeValue(activeDraft.startsAt, startTz)}
+              onChange={(s) => patchActive({ startsAt: fromDateTimeValue(s, startTz) })}
+              withTime
+              invalid={!!activeLegErrors.startsAt}
+            />
+          </FieldRow>
+          <FieldRow label="Arrival" optional error={activeLegErrors.endsAt}>
+            <DateTimeField
+              value={toDateTimeValue(activeDraft.endsAt, endTz)}
+              onChange={(s) => patchActive({ endsAt: fromDateTimeValue(s, endTz) })}
+              withTime
+              invalid={!!activeLegErrors.endsAt}
+            />
+          </FieldRow>
+
+          <FieldRow label="Origin country" optional error={activeLegErrors.originCountryCode}>
+            <CountrySelect
+              value={activeDraft.originCountryCode}
+              onChange={(v) => patchActive({ originCountryCode: v })}
+              invalid={!!activeLegErrors.originCountryCode}
+            />
+          </FieldRow>
+          <FieldRow label="Destination country" optional error={activeLegErrors.countryCode}>
+            <CountrySelect
+              value={activeDraft.countryCode}
+              onChange={(v) => patchActive({ countryCode: v })}
+              invalid={!!activeLegErrors.countryCode}
+            />
+          </FieldRow>
+
+          <div className="sm:col-span-2">
+            <FieldRow label="PNR" optional error={activeLegErrors['data.pnr']}>
+              <Input
+                placeholder="ABC123"
+                value={activeDraft.pnr}
+                onChange={(e) => patchActive({ pnr: e.target.value })}
+                aria-invalid={!!activeLegErrors['data.pnr'] || undefined}
+              />
+            </FieldRow>
+          </div>
+        </div>
+
+        {formError && (
+          <div
+            role="alert"
+            className="border-destructive/30 bg-destructive/8 text-destructive rounded-xl border px-4 py-3 text-sm"
+          >
+            {formError}
+          </div>
+        )}
+      </DialogScrollableBody>
+
+      <DialogStickyFooter>
         <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={pending}>
           Cancel
         </Button>
         <Button type="submit" disabled={pending}>
           {pending ? 'Saving…' : 'Save changes'}
         </Button>
-      </div>
+      </DialogStickyFooter>
     </form>
   );
 }

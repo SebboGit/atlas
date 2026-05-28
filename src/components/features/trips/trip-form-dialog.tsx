@@ -18,7 +18,12 @@ import type { Result } from '@/types/result';
 import { TripForm } from './trip-form';
 
 type CommonProps = {
-  trigger: React.ReactNode;
+  // Required when the dialog manages its own open state; optional when
+  // driven by `open` + `onOpenChange` from outside (e.g. from a parent
+  // DropdownMenu where the menu item is the affordance).
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 type CreateProps = CommonProps & {
@@ -31,7 +36,10 @@ type EditProps = CommonProps & {
 };
 
 export function TripFormDialog(props: CreateProps | EditProps) {
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const isControlled = props.open !== undefined;
+  const open = isControlled ? (props.open ?? false) : internalOpen;
+  const setOpen = isControlled ? (props.onOpenChange ?? (() => {})) : setInternalOpen;
 
   const submit = React.useCallback(
     async (input: unknown): Promise<Result<{ id: string }, FormError>> => {
@@ -52,7 +60,7 @@ export function TripFormDialog(props: CreateProps | EditProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{props.trigger}</DialogTrigger>
+      {props.trigger && <DialogTrigger asChild>{props.trigger}</DialogTrigger>}
       <DialogContent
         // Radix's default behaviour is to focus the first tabbable
         // element on open (the Title input). On a tall form that
@@ -71,13 +79,13 @@ export function TripFormDialog(props: CreateProps | EditProps) {
           }
         }}
       >
-        <DialogHeader>
-          <DialogEyebrow>
+        <DialogHeader className="gap-1 sm:gap-2">
+          <DialogEyebrow className="hidden sm:flex">
             <span aria-hidden className="bg-foreground/30 h-px w-6" />
             <span>{headingEyebrow} trip</span>
           </DialogEyebrow>
-          <DialogTitle>{heading}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle className="text-2xl sm:text-3xl">{heading}</DialogTitle>
+          <DialogDescription className="hidden sm:block">{description}</DialogDescription>
         </DialogHeader>
 
         <TripForm

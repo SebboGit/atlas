@@ -5,6 +5,11 @@ import * as React from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
+import {
+  DialogScrollableBody,
+  DialogStickyFooter,
+  dialogScrollContainer,
+} from '@/components/ui/dialog';
 import { Select } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SEGMENT_TYPES, segmentCreateInput, type SegmentType } from '@/lib/segments';
@@ -143,35 +148,37 @@ export function SegmentForm({
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit(submit)} className="flex flex-col gap-5">
-      {!typeLocked && (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="seg-type">Type</Label>
-          <Select id="seg-type" {...register('type')}>
-            {SEGMENT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {TYPE_LABELS[t]}
-              </option>
-            ))}
-          </Select>
-        </div>
-      )}
+    <form noValidate onSubmit={handleSubmit(submit)} className={dialogScrollContainer}>
+      <DialogScrollableBody>
+        {!typeLocked && (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="seg-type">Type</Label>
+            <Select id="seg-type" {...register('type')}>
+              {SEGMENT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {TYPE_LABELS[t]}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
 
-      {currentType === 'flight' && <FlightFields form={form} />}
-      {currentType === 'hotel' && <HotelFields form={form} />}
-      {currentType === 'activity' && <ActivityFields form={form} />}
-      {currentType === 'transit' && <TransitFields form={form} />}
-      {currentType === 'food' && <FoodFields form={form} />}
-      {currentType === 'note' && <NoteFields form={form} />}
+        {currentType === 'flight' && <FlightFields form={form} />}
+        {currentType === 'hotel' && <HotelFields form={form} />}
+        {currentType === 'activity' && <ActivityFields form={form} />}
+        {currentType === 'transit' && <TransitFields form={form} />}
+        {currentType === 'food' && <FoodFields form={form} />}
+        {currentType === 'note' && <NoteFields form={form} />}
 
-      {currentType !== 'note' && <SharedDateFields form={form} type={currentType} />}
-      {currentType === 'note' && <NoteDateField form={form} />}
+        {currentType !== 'note' && <SharedDateFields form={form} type={currentType} />}
+        {currentType === 'note' && <NoteDateField form={form} />}
 
-      <CountryFields form={form} type={currentType} />
+        <CountryFields form={form} type={currentType} />
 
-      {formError && <FormBanner>{formError}</FormBanner>}
+        {formError && <FormBanner>{formError}</FormBanner>}
+      </DialogScrollableBody>
 
-      <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-end">
+      <DialogStickyFooter>
         {onCancel && (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={pending}>
             Cancel
@@ -180,7 +187,7 @@ export function SegmentForm({
         <Button type="submit" disabled={pending}>
           {pending ? 'Saving…' : (submitLabel ?? `Add ${TYPE_LABELS[currentType].toLowerCase()}`)}
         </Button>
-      </div>
+      </DialogStickyFooter>
     </form>
   );
 }

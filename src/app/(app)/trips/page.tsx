@@ -66,7 +66,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
         // Archived view stays a flat grid — no chronological framing.
         // Archived trips are out of the workflow; this tab is for
         // retrieval / restore, not timeline browsing.
-        <ul className="grid gap-5 sm:grid-cols-2">
+        <ul className="grid gap-2 sm:grid-cols-2 sm:gap-5">
           {trips.map((trip, i) => (
             <li key={trip.id} style={{ animationDelay: `${160 + i * 60}ms` }}>
               <TripListCard trip={trip} index={i} />
@@ -107,7 +107,7 @@ function DashboardLayout({ trips }: { trips: Trip[] }) {
     <div className="flex flex-col gap-12 sm:gap-14">
       {upcoming.length > 0 && (
         <section aria-label="Active and upcoming trips">
-          <ul className="grid gap-5 sm:grid-cols-2">
+          <ul className="grid gap-2 sm:grid-cols-2 sm:gap-5">
             {upcoming.map((trip, i) => (
               <li key={trip.id} style={{ animationDelay: `${160 + i * 60}ms` }}>
                 <TripListCard trip={trip} index={upcomingStart + i} />
