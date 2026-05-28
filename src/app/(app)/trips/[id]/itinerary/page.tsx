@@ -97,7 +97,7 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
           style={{ animationDelay: '240ms' }}
         >
           <CardContent className="px-6 py-6 sm:px-7 sm:py-7">
-            <p className="text-foreground/55 mb-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 mb-3 font-mono text-[10px] tracking-[0.28em] uppercase">
               Summary
             </p>
             <p className="text-foreground/85 text-base leading-relaxed sm:text-[17px]">

@@ -64,7 +64,7 @@ export function TagInput({ value, onChange, placeholder, id }: TagInputProps) {
                 <button
                   type="button"
                   aria-label={`Remove tag ${tag}`}
-                  className="text-foreground/55 hover:text-foreground focus-visible:ring-primary/40 inline-flex h-11 w-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none [@media(hover:hover)]:-m-1 [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
+                  className="text-foreground/70 hover:text-foreground focus-visible:ring-primary/40 inline-flex h-11 w-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none [@media(hover:hover)]:-m-1 [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
                   onClick={() => removeTag(tag)}
                 >
                   <X className="h-3 w-3" aria-hidden />
@@ -86,7 +86,7 @@ export function TagInput({ value, onChange, placeholder, id }: TagInputProps) {
         />
       </div>
       {id && (
-        <p id={`${id}-help`} className="text-foreground/50 text-[11px] leading-snug">
+        <p id={`${id}-help`} className="text-foreground/70 text-[11px] leading-snug">
           Press comma or enter to add a tag. Backspace deletes the previous one.
         </p>
       )}

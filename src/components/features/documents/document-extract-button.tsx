@@ -71,7 +71,7 @@ export function DocumentExtractButton({ tripId, documentId, state }: DocumentExt
         <DialogTrigger asChild>
           <button
             type="button"
-            className="text-foreground/55 hover:text-foreground hover:bg-foreground/[0.04] group inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
+            className="text-foreground/70 hover:text-foreground hover:bg-foreground/[0.04] group inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
             title="Re-extract — overwrites the current parsed data and re-runs the pipeline."
           >
             <CheckCircle2 className="size-3 group-hover:hidden" strokeWidth={1.75} />
@@ -115,7 +115,7 @@ export function DocumentExtractButton({ tripId, documentId, state }: DocumentExt
   if (state === 'extracting') {
     return (
       <span
-        className="text-foreground/55 inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 font-mono text-[10px] tracking-[0.24em] uppercase"
+        className="text-foreground/70 inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 font-mono text-[10px] tracking-[0.24em] uppercase"
         title="Extraction is running in the background. The page will refresh when it's done."
       >
         <Loader2 className="size-3 animate-spin" strokeWidth={1.75} />

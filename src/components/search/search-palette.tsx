@@ -151,7 +151,7 @@ export function SearchPalette() {
                 value={`recent:${value}`}
                 onSelect={() => handleRecentSelect(value)}
               >
-                <History className="text-foreground/55 size-4 shrink-0" aria-hidden />
+                <History className="text-foreground/70 size-4 shrink-0" aria-hidden />
                 <span className="text-foreground truncate text-sm">{value}</span>
               </CommandItem>
             ))}

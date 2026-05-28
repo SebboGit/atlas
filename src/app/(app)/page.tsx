@@ -17,7 +17,7 @@ export default async function HomePage() {
       {/* Header — first-name greeting in display serif, with a quiet
        *  monospace coordinate strip as a notebook flourish. */}
       <section className="atlas-rise" style={{ animationDelay: '60ms' }}>
-        <p className="text-muted-foreground mb-5 flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-muted-foreground mb-5 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Logbook · {stampDate}</span>
         </p>
@@ -50,12 +50,12 @@ export default async function HomePage() {
             {/* Corner stamp — terracotta circle with index numeral */}
             <span
               aria-hidden
-              className="border-primary/40 text-primary/80 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+              className="border-primary/40 text-primary/80 absolute top-4 right-4 hidden h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] sm:inline-flex"
             >
               01
             </span>
             <CardContent className="flex min-h-44 flex-col justify-between pt-7">
-              <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+              <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
                 Section
               </p>
               <div>
@@ -67,7 +67,7 @@ export default async function HomePage() {
             </CardContent>
             <span
               aria-hidden
-              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20"
+              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 hidden h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20 sm:block"
             />
           </Card>
         </Link>
@@ -83,12 +83,12 @@ export default async function HomePage() {
           >
             <span
               aria-hidden
-              className="border-primary/40 text-primary/80 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+              className="border-primary/40 text-primary/80 absolute top-4 right-4 hidden h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] sm:inline-flex"
             >
               02
             </span>
             <CardContent className="flex min-h-44 flex-col justify-between pt-7">
-              <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+              <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
                 Section
               </p>
               <div>
@@ -100,7 +100,7 @@ export default async function HomePage() {
             </CardContent>
             <span
               aria-hidden
-              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20"
+              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 hidden h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20 sm:block"
             />
           </Card>
         </Link>
@@ -116,12 +116,12 @@ export default async function HomePage() {
           >
             <span
               aria-hidden
-              className="border-primary/40 text-primary/80 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+              className="border-primary/40 text-primary/80 absolute top-4 right-4 hidden h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] sm:inline-flex"
             >
               03
             </span>
             <CardContent className="flex min-h-44 flex-col justify-between pt-7">
-              <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+              <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
                 Section
               </p>
               <div>
@@ -133,7 +133,7 @@ export default async function HomePage() {
             </CardContent>
             <span
               aria-hidden
-              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20"
+              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 hidden h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20 sm:block"
             />
           </Card>
         </Link>
@@ -149,12 +149,12 @@ export default async function HomePage() {
           >
             <span
               aria-hidden
-              className="border-primary/40 text-primary/80 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+              className="border-primary/40 text-primary/80 absolute top-4 right-4 hidden h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] sm:inline-flex"
             >
               04
             </span>
             <CardContent className="flex min-h-44 flex-col justify-between pt-7">
-              <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+              <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
                 Section
               </p>
               <div>
@@ -166,7 +166,7 @@ export default async function HomePage() {
             </CardContent>
             <span
               aria-hidden
-              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20"
+              className="from-primary/0 via-primary/60 to-primary/0 absolute right-6 bottom-6 hidden h-px w-10 bg-gradient-to-r transition-all duration-500 group-hover:w-20 sm:block"
             />
           </Card>
         </Link>

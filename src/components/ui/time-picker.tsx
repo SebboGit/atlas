@@ -137,7 +137,7 @@ export function TimePicker({
             </span>
             <Clock
               aria-hidden
-              className="text-foreground/55 ml-2 size-4 shrink-0"
+              className="text-foreground/70 ml-2 size-4 shrink-0"
               strokeWidth={1.75}
             />
           </button>
@@ -169,7 +169,7 @@ interface ColumnProps {
 const Column = React.forwardRef<HTMLDivElement, ColumnProps>(
   ({ label, items, selected, onPick }, ref) => (
     <div className="flex flex-col">
-      <div className="text-foreground/50 px-3 pt-2 pb-1 text-center font-mono text-[9px] tracking-[0.22em] uppercase">
+      <div className="text-foreground/70 px-3 pt-2 pb-1 text-center font-mono text-[9px] tracking-[0.22em] uppercase">
         {label}
       </div>
       <div

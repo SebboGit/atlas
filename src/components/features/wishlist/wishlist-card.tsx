@@ -70,7 +70,7 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
             <button
               type="button"
               aria-label="Edit this wishlist item"
-              className="text-foreground/55 hover:text-foreground hover:bg-foreground/5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
+              className="text-foreground/70 hover:text-foreground hover:bg-foreground/5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
             >
               <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden />
             </button>
@@ -91,7 +91,7 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+          <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
             {isFood ? 'Food' : 'Activity'}
           </p>
           <h3 className="font-display text-foreground text-xl leading-tight font-medium tracking-tight">

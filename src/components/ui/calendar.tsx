@@ -77,7 +77,7 @@ export function Calendar({
         month_grid: 'w-full border-collapse',
         weekdays: 'flex',
         weekday:
-          'text-foreground/50 w-9 flex-1 pb-1 font-mono text-[9px] tracking-[0.22em] uppercase font-normal',
+          'text-foreground/70 w-9 flex-1 pb-1 font-mono text-[9px] tracking-[0.22em] uppercase font-normal',
 
         week: 'flex w-full',
         day: 'w-9 flex-1 p-0 text-center',

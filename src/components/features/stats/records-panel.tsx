@@ -58,7 +58,7 @@ export function RecordsPanel({ records }: { records: PersonalRecords }) {
   return (
     <Card variant="paper">
       <CardContent className="flex flex-col gap-6 p-6 sm:p-7">
-        <p className="text-foreground/55 flex items-center gap-2.5 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-foreground/70 flex items-center gap-2.5 font-mono text-[10px] tracking-[0.28em] uppercase">
           <span aria-hidden className="bg-foreground/25 h-px w-5" />
           <span>The records</span>
         </p>

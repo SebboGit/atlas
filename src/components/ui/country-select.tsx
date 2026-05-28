@@ -149,10 +149,10 @@ export function CountrySelect({
             invalid && 'border-destructive/60 focus-visible:shadow-[0_0_0_3px_hsl(0_65%_45%/0.18)]',
           )}
         >
-          <span className={cn('truncate', !selectedName && 'text-muted-foreground/60')}>
+          <span className={cn('truncate', !selectedName && 'text-muted-foreground/70')}>
             {selectedName ?? placeholder}
           </span>
-          <ChevronDown className="text-foreground/55 ml-auto size-4 shrink-0" strokeWidth={1.6} />
+          <ChevronDown className="text-foreground/70 ml-auto size-4 shrink-0" strokeWidth={1.6} />
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -194,7 +194,7 @@ export function CountrySelect({
             // No mouseenter highlight on the clear option (it's not in
             // the filtered list); keeping it distinct.
           >
-            <span className="text-foreground/55 italic">None</span>
+            <span className="text-foreground/70 italic">None</span>
           </Option>
           {filtered.length === 0 ? (
             <p className="text-muted-foreground px-3 py-2 text-sm italic">No matches.</p>

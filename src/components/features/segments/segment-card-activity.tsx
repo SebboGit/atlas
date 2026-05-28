@@ -29,7 +29,7 @@ export function SegmentCardActivity({
   const isWishlist = segment.startsAt === null;
 
   const meta = isWishlist ? (
-    <span className="border-foreground/25 text-foreground/55 inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[9px] tracking-[0.24em] uppercase">
+    <span className="border-foreground/25 text-foreground/70 inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[9px] tracking-[0.24em] uppercase">
       Wishlist
     </span>
   ) : segment.startsAt ? (

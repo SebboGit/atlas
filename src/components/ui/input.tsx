@@ -8,7 +8,7 @@ const inputClasses =
   // Paper-lined field on a warm-cream surface. Hairline border, soft
   // focus halo in primary terracotta. Type sits in the display serif so
   // the form feels handwritten, not corporate.
-  'flex h-11 w-full rounded-xl border border-foreground/15 bg-card/70 px-4 py-2 text-[15px] text-foreground placeholder:text-muted-foreground/60 ' +
+  'flex h-11 w-full rounded-xl border border-foreground/15 bg-card/70 px-4 py-2 text-[15px] text-foreground placeholder:text-muted-foreground/70 ' +
   'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(60,40,20,0.04)] backdrop-blur-sm ' +
   'transition-[border-color,box-shadow] duration-200 ' +
   'focus-visible:outline-none focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_hsl(18_52%_36%/0.16),0_1px_0_rgba(255,255,255,0.7)_inset] ' +
@@ -52,7 +52,7 @@ const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HT
       <svg
         aria-hidden
         viewBox="0 0 12 8"
-        className="text-foreground/55 pointer-events-none absolute top-1/2 right-4 -mt-1 h-2 w-3"
+        className="text-foreground/70 pointer-events-none absolute top-1/2 right-4 -mt-1 h-2 w-3"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.6"

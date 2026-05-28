@@ -61,7 +61,7 @@ export function WishlistSuggestionsPanel({ tripId, items }: WishlistSuggestionsP
                     )}
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <p className="text-foreground/55 font-mono text-[9px] tracking-[0.28em] uppercase">
+                    <p className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
                       {isFood ? 'Food' : 'Activity'}
                     </p>
                     <p
@@ -73,7 +73,7 @@ export function WishlistSuggestionsPanel({ tripId, items }: WishlistSuggestionsP
                     {item.locationName && (
                       <p
                         title={item.locationName}
-                        className="text-foreground/55 mt-0.5 truncate text-xs"
+                        className="text-foreground/70 mt-0.5 truncate text-xs"
                       >
                         {item.locationName}
                       </p>

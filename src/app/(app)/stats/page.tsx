@@ -35,7 +35,7 @@ export default async function StatsPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-6 pt-16 pb-24 sm:px-8 sm:pt-20">
       <header className="atlas-rise mb-8" style={{ animationDelay: '20ms' }}>
-        <p className="text-muted-foreground mb-4 flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Logbook · {stampDate}</span>
         </p>
@@ -92,7 +92,7 @@ export default async function StatsPage() {
 
           {/* ── Year over year — three strips, 3-col on laptop ── */}
           <section className="atlas-rise flex flex-col gap-5" style={{ animationDelay: '220ms' }}>
-            <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
               Year by year
             </p>
             <div className="grid gap-5 lg:grid-cols-3">
@@ -127,7 +127,7 @@ function EmptyState() {
       <CardContent className="flex min-h-64 flex-col items-center justify-center px-6 py-14 text-center">
         <span
           aria-hidden
-          className="border-foreground/25 text-foreground/55 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]"
+          className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]"
         >
           ø
         </span>

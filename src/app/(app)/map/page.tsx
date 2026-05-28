@@ -30,7 +30,7 @@ export default async function MapPage() {
     // the standard generous header.
     <main className="mx-auto w-full max-w-6xl px-6 pt-8 pb-24 sm:px-8 sm:pt-10">
       <header className="atlas-rise mb-5" style={{ animationDelay: '40ms' }}>
-        <p className="text-muted-foreground mb-3 flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-muted-foreground mb-3 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Section 03 · Map</span>
         </p>

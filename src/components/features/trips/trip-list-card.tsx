@@ -37,17 +37,19 @@ export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
         variant="glass"
         className="relative h-full overflow-hidden transition-transform duration-500 hover:-translate-y-0.5"
       >
-        {/* Corner index numeral — quiet, monospace */}
+        {/* Corner index numeral — quiet, monospace. Decorative chrome:
+         *  hidden on phone, where the half-width card doesn't have room
+         *  for it without crowding the title. */}
         <span
           aria-hidden
-          className="border-foreground/25 text-foreground/55 absolute top-4 right-4 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+          className="border-foreground/25 text-foreground/70 absolute top-4 right-4 hidden h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] sm:inline-flex"
         >
           {indexLabel}
         </span>
 
         <CardContent className="flex flex-col gap-4 px-6 py-6 sm:px-7 sm:py-7">
           <div className="flex flex-col gap-2 pr-12">
-            <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
               {range}
             </p>
             <h3
@@ -70,7 +72,7 @@ export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
             <TripStatusBadge status={trip.status} />
             <span
               aria-hidden
-              className="from-primary/0 via-primary/50 to-primary/0 h-px w-12 bg-gradient-to-r transition-all duration-500 group-hover:w-24"
+              className="from-primary/0 via-primary/50 to-primary/0 hidden h-px w-12 bg-gradient-to-r transition-all duration-500 group-hover:w-24 sm:block"
             />
           </div>
         </CardContent>

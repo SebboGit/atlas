@@ -21,7 +21,7 @@ import type { SearchResultRow, SearchResults } from '@/lib/search/types';
 // `react-hooks/static-components` rule otherwise flags any `const Icon =
 // pickFn(...)` shape because Icon could (in theory) be a freshly-built
 // component.
-const ICON_CLASS = 'text-foreground/55 size-4 shrink-0';
+const ICON_CLASS = 'text-foreground/70 size-4 shrink-0';
 
 function RowIcon({ row }: { row: SearchResultRow }) {
   if (row.type === 'trip') return <MapIcon className={ICON_CLASS} aria-hidden />;

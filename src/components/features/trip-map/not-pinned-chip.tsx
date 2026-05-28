@@ -37,7 +37,7 @@ export function NotPinnedChip({ items }: NotPinnedChipProps) {
           aria-label={`${items.length} ${items.length === 1 ? 'segment' : 'segments'} not on the map`}
           className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground absolute bottom-3 left-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
         >
-          <MapPinOff aria-hidden className="text-foreground/55 h-3.5 w-3.5" strokeWidth={1.5} />
+          <MapPinOff aria-hidden className="text-foreground/70 h-3.5 w-3.5" strokeWidth={1.5} />
           <span>Not pinned · {String(items.length).padStart(2, '0')}</span>
           <ChevronUp
             aria-hidden
