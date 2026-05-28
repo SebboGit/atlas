@@ -71,7 +71,9 @@ export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
       <div
         className={
           'border-foreground/12 bg-card/70 flex h-[52px] items-center gap-3 rounded-xl border px-4 sm:hidden ' +
-          'group-hover:bg-card group-active:bg-card transition-colors'
+          // `group-active:` is the touch press feedback; hover is gated to
+          // pointer devices so it doesn't stick on a tap-and-release.
+          'group-active:bg-card [@media(hover:hover)]:group-hover:bg-card transition-colors'
         }
       >
         <span

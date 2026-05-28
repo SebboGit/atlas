@@ -77,8 +77,11 @@ export function DeleteTripDialog({
 }: DeleteTripDialogProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isControlled = controlledOpen !== undefined;
+  if (isControlled && !controlledOnOpenChange) {
+    throw new Error('DeleteTripDialog: `onOpenChange` is required when `open` is provided.');
+  }
   const open = isControlled ? (controlledOpen ?? false) : internalOpen;
-  const setOpen = isControlled ? (controlledOnOpenChange ?? (() => {})) : setInternalOpen;
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   // Default to "also delete documents" per the trip-deletion design

@@ -38,8 +38,11 @@ type EditProps = CommonProps & {
 export function TripFormDialog(props: CreateProps | EditProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isControlled = props.open !== undefined;
+  if (isControlled && !props.onOpenChange) {
+    throw new Error('TripFormDialog: `onOpenChange` is required when `open` is provided.');
+  }
   const open = isControlled ? (props.open ?? false) : internalOpen;
-  const setOpen = isControlled ? (props.onOpenChange ?? (() => {})) : setInternalOpen;
+  const setOpen = isControlled ? props.onOpenChange! : setInternalOpen;
 
   const submit = React.useCallback(
     async (input: unknown): Promise<Result<{ id: string }, FormError>> => {

@@ -52,8 +52,11 @@ export function DocumentUploadDialog({
   const router = useRouter();
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isControlled = controlledOpen !== undefined;
+  if (isControlled && !controlledOnOpenChange) {
+    throw new Error('DocumentUploadDialog: `onOpenChange` is required when `open` is provided.');
+  }
   const open = isControlled ? (controlledOpen ?? false) : internalOpen;
-  const setOpen = isControlled ? (controlledOnOpenChange ?? (() => {})) : setInternalOpen;
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<File | null>(null);
