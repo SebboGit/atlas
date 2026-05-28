@@ -52,8 +52,12 @@ function CommandDialog({
           // a list surface, not a form. We want the input flush with
           // the top, no bottom-sheet rounding on desktop.
           'overflow-hidden p-0',
-          'inset-x-2 bottom-2 max-h-[88vh] rounded-2xl pt-0 pb-0',
-          'sm:inset-x-auto sm:top-[14vh] sm:bottom-auto sm:left-1/2 sm:max-h-[70vh] sm:max-w-[640px] sm:-translate-x-1/2 sm:translate-y-0 sm:rounded-2xl',
+          // Phone: full-screen so the keyboard doesn't push the input
+          // off the visible area when the soft keyboard opens. Safe-area
+          // padding handles the top notch + bottom home indicator.
+          'inset-0 max-h-none rounded-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
+          // Laptop: centered card.
+          'sm:inset-x-auto sm:top-[14vh] sm:bottom-auto sm:left-1/2 sm:max-h-[70vh] sm:max-w-[640px] sm:-translate-x-1/2 sm:translate-y-0 sm:rounded-2xl sm:p-0',
           // Hide the default close button — the input row carries
           // affordance enough, and Esc closes the dialog natively.
           '[&>button:last-child]:hidden',

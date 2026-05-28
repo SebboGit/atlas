@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { ScrollTabStrip } from '@/components/ui/scroll-tab-strip';
 import { countryName } from '@/lib/countries';
 import type { WishlistItemType } from '@/lib/wishlist';
 import { cn } from '@/lib/utils';
@@ -29,9 +30,12 @@ function ChipLink({
   return (
     <Link
       href={href}
+      data-active={active || undefined}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'inline-flex items-baseline gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors',
+        'inline-flex shrink-0 snap-start items-baseline gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors',
+        // Tap target on touch per CLAUDE.md.
+        'min-h-11',
         active
           ? 'border-foreground/45 bg-foreground/8 text-foreground'
           : 'border-foreground/15 text-foreground/70 hover:border-foreground/30 hover:text-foreground',
@@ -75,7 +79,7 @@ export function WishlistFilters({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
+      <ScrollTabStrip ariaLabel="Filter by type" activeKey={activeType ?? '__all__'}>
         <ChipLink href={typeHref(null)} active={activeType === null} count={counts.all}>
           All
         </ChipLink>
@@ -89,9 +93,9 @@ export function WishlistFilters({
         >
           Activities
         </ChipLink>
-      </div>
+      </ScrollTabStrip>
       {countriesWithItems.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <ScrollTabStrip ariaLabel="Filter by country" activeKey={activeCountry ?? '__all__'}>
           <ChipLink href={countryHref(null)} active={activeCountry === null}>
             All countries
           </ChipLink>
@@ -100,7 +104,7 @@ export function WishlistFilters({
               {countryName(code) ?? code}
             </ChipLink>
           ))}
-        </div>
+        </ScrollTabStrip>
       )}
     </div>
   );

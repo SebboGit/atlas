@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
+import { ScrollTabStrip } from '@/components/ui/scroll-tab-strip';
 import { cn } from '@/lib/utils';
 
 interface TripFilterBarProps {
@@ -30,12 +31,12 @@ export function TripFilterBar({ codes }: TripFilterBarProps) {
   };
 
   return (
-    <div
-      role="group"
-      aria-label="Filter by country"
-      className="flex flex-wrap items-center gap-1.5"
+    <ScrollTabStrip
+      ariaLabel="Filter by country"
+      activeKey={active ?? '__all__'}
+      className="gap-1.5"
     >
-      <span className="text-foreground/45 mr-1 font-mono text-[9px] tracking-[0.24em] uppercase">
+      <span className="text-foreground/45 mr-1 shrink-0 self-center font-mono text-[9px] tracking-[0.24em] uppercase">
         Country
       </span>
       <FilterChip href={buildHref(null)} active={!active}>
@@ -46,7 +47,7 @@ export function TripFilterBar({ codes }: TripFilterBarProps) {
           {code}
         </FilterChip>
       ))}
-    </div>
+    </ScrollTabStrip>
   );
 }
 
@@ -62,10 +63,13 @@ function FilterChip({
   return (
     <Link
       href={href}
+      data-active={active || undefined}
       // Filter tweaks shouldn't pollute browser history (ADR-0004).
       replace
       className={cn(
-        'rounded-full border px-2.5 py-1 font-mono text-[10px] tracking-[0.2em] uppercase transition-colors',
+        'inline-flex shrink-0 snap-start items-center rounded-full border px-2.5 py-1 font-mono text-[10px] tracking-[0.2em] uppercase transition-colors',
+        // Tap target on touch per CLAUDE.md.
+        'min-h-11 sm:min-h-0',
         active
           ? 'border-primary bg-primary text-primary-foreground'
           : 'border-foreground/20 text-foreground/65 hover:border-foreground/40 hover:text-foreground',

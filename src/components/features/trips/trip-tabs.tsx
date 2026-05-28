@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
+import { ScrollTabStrip } from '@/components/ui/scroll-tab-strip';
 import { cn } from '@/lib/utils';
 
 // Roman numerals reinforce the table-of-contents feel — these are the
@@ -26,27 +27,23 @@ export function TripTabs({ tripId }: { tripId: string }) {
   const sp = useSearchParams();
   // Preserve the country filter across tab switches (ADR-0004).
   const country = sp.get('country');
+  const activeSlug = TABS.find((t) => pathname?.startsWith(`/trips/${tripId}/${t.slug}`))?.slug;
 
   return (
-    <nav
-      aria-label="Trip sections"
-      // overflow-y-clip is deliberate: `overflow-x: auto` would
-      // silently coerce overflow-y to `auto` per CSS spec, and the
-      // active-tab indicator's `-bottom-px` offset is enough to
-      // trigger a phantom vertical scrollbar. `clip` lets the
-      // indicator bleed visually without producing a scroll axis.
-      className="-mx-1 flex [scrollbar-width:none] items-center gap-1 overflow-x-auto overflow-y-clip px-1 [&::-webkit-scrollbar]:hidden"
-    >
+    <ScrollTabStrip ariaLabel="Trip sections" activeKey={activeSlug ?? null}>
       {TABS.map((tab) => {
         const href = `/trips/${tripId}/${tab.slug}${country ? `?country=${encodeURIComponent(country)}` : ''}`;
-        const isActive = pathname?.startsWith(`/trips/${tripId}/${tab.slug}`);
+        const isActive = activeSlug === tab.slug;
         return (
           <Link
             key={tab.slug}
             href={href}
+            data-active={isActive || undefined}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'relative shrink-0 px-3 py-2 font-mono text-xs tracking-[0.28em] uppercase transition-colors',
+              'relative shrink-0 snap-start px-3 py-2 font-mono text-xs tracking-[0.28em] uppercase transition-colors',
+              // Tap target on touch per CLAUDE.md responsive rules.
+              'inline-flex min-h-11 items-center',
               isActive ? 'text-foreground' : 'text-foreground/45 hover:text-foreground/85',
             )}
           >
@@ -58,6 +55,6 @@ export function TripTabs({ tripId }: { tripId: string }) {
           </Link>
         );
       })}
-    </nav>
+    </ScrollTabStrip>
   );
 }

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { ScrollTabStrip } from '@/components/ui/scroll-tab-strip';
 import { cn } from '@/lib/utils';
 
 interface CountryChipStripProps {
@@ -20,10 +21,11 @@ export function CountryChipStrip({ countries, activeCountry, tripId }: CountryCh
   const allActive = activeCountry === null;
 
   return (
-    <div
-      className="atlas-rise -mx-1 mb-4 flex flex-wrap gap-1.5"
+    <ScrollTabStrip
+      ariaLabel="Filter by country"
+      activeKey={activeCountry ?? '__all__'}
+      className="atlas-rise mb-4 gap-1.5"
       style={{ animationDelay: '80ms' }}
-      aria-label="Filter by country"
     >
       <Chip href={baseHref} active={allActive}>
         <span>All</span>
@@ -54,7 +56,7 @@ export function CountryChipStrip({ countries, activeCountry, tripId }: CountryCh
           </Chip>
         );
       })}
-    </div>
+    </ScrollTabStrip>
   );
 }
 
@@ -70,10 +72,11 @@ function Chip({
   return (
     <Link
       href={href}
+      data-active={active || undefined}
       // Min height keeps the chip touch-friendly at 360px without
       // forcing the row to wrap on laptop.
       className={cn(
-        'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+        'inline-flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors sm:min-h-[36px]',
         active
           ? 'bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-3px_rgba(155,74,38,0.5)]'
           : 'border-foreground/12 bg-card/60 text-foreground/75 hover:border-foreground/25 hover:text-foreground hover:bg-card/85',

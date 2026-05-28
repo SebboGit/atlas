@@ -21,7 +21,7 @@ export default async function HomePage() {
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Logbook · {stampDate}</span>
         </p>
-        <h1 className="font-display text-foreground text-5xl leading-[1.02] font-medium tracking-tight sm:text-6xl md:text-7xl">
+        <h1 className="font-display text-foreground text-4xl leading-[1.02] font-medium tracking-tight sm:text-5xl md:text-7xl">
           Welcome back,
           <br />
           <span className="italic">{firstName}</span>.
