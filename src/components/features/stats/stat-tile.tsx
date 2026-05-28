@@ -26,13 +26,13 @@ export function StatTile({
 }) {
   return (
     <Card variant="paper" className={cn('h-full', className)}>
-      <CardContent className="flex h-full flex-col gap-3 p-6">
-        <p className="text-foreground/70 flex items-center gap-2.5 font-mono text-[10px] tracking-[0.28em] uppercase">
+      <CardContent className="flex h-full flex-col gap-2.5 p-4 sm:gap-3 sm:p-6">
+        <p className="text-foreground/70 flex items-center gap-2.5 font-mono text-[10px] tracking-[0.18em] uppercase sm:tracking-[0.28em]">
           <span aria-hidden className="bg-foreground/25 h-px w-5" />
           <span>{label}</span>
         </p>
         <p className="font-display text-foreground flex items-baseline gap-1.5 leading-none">
-          <span className="text-5xl font-medium tracking-tight tabular-nums sm:text-6xl">
+          <span className="text-4xl font-medium tracking-tight tabular-nums sm:text-6xl">
             {value}
           </span>
           {unit ? (
