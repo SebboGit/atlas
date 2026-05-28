@@ -102,7 +102,7 @@ const DialogEyebrow = React.forwardRef<
   <p
     ref={ref}
     className={cn(
-      'text-foreground/55 flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase',
+      'text-foreground/70 flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase',
       className,
     )}
     {...props}

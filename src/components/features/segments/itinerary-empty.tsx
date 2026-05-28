@@ -35,7 +35,7 @@ export function ItineraryEmpty({ hasCountryFilter }: ItineraryEmptyProps) {
       </svg>
 
       <CardContent className="flex min-h-72 flex-col items-center justify-center px-6 py-16 text-center">
-        <span className="border-foreground/25 text-foreground/55 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]">
+        <span className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]">
           ø
         </span>
         <p className="font-display text-foreground text-2xl tracking-tight">

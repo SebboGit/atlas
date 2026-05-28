@@ -14,10 +14,12 @@ export function ComingSoonTab({ title, description, previewItems }: ComingSoonTa
   return (
     <div className="atlas-rise" style={{ animationDelay: '240ms' }}>
       <Card variant="paper" className="relative overflow-hidden">
-        {/* Faint topographic decoration — atmosphere, not information. */}
+        {/* Faint topographic decoration — atmosphere, not information.
+         *  Hidden on phone where the placeholder card is half the width
+         *  and the contour clutters more than it warms. */}
         <svg
           aria-hidden
-          className="text-foreground/8 pointer-events-none absolute -right-20 -bottom-24 h-72 w-72"
+          className="text-foreground/8 pointer-events-none absolute -right-20 -bottom-24 hidden h-72 w-72 sm:block"
           viewBox="0 0 200 200"
           fill="none"
           stroke="currentColor"
@@ -37,7 +39,7 @@ export function ComingSoonTab({ title, description, previewItems }: ComingSoonTa
 
         <CardContent className="relative grid gap-10 px-7 py-12 sm:grid-cols-[1fr_1.1fr] sm:px-9 sm:py-14">
           <div>
-            <p className="text-foreground/55 mb-4 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 mb-4 font-mono text-[10px] tracking-[0.28em] uppercase">
               On the press
             </p>
             <h2 className="font-display text-foreground text-4xl leading-[1.05] tracking-tight sm:text-5xl">

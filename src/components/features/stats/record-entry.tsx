@@ -22,7 +22,7 @@ export function RecordEntry({
   return (
     <li className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2.5">
-        <span className="text-foreground/55 font-mono text-[10px] tracking-[0.22em] whitespace-nowrap uppercase">
+        <span className="text-foreground/70 font-mono text-[10px] tracking-[0.22em] whitespace-nowrap uppercase">
           {label}
         </span>
         <span aria-hidden className="bg-foreground/15 h-px flex-1" />

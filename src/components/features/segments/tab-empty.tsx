@@ -17,7 +17,7 @@ export function TabEmpty({ title, hint, action }: TabEmptyProps) {
       style={{ animationDelay: '300ms' }}
     >
       <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <span className="border-foreground/25 text-foreground/55 inline-flex h-9 w-9 items-center justify-center rounded-full border font-mono text-[10px]">
+        <span className="border-foreground/25 text-foreground/70 inline-flex h-9 w-9 items-center justify-center rounded-full border font-mono text-[10px]">
           ø
         </span>
         <p className="font-display text-foreground text-xl tracking-tight">{title}</p>

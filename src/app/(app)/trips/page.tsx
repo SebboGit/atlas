@@ -26,7 +26,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
   return (
     <main className="mx-auto w-full max-w-5xl px-6 pt-16 pb-24 sm:px-8 sm:pt-20">
       <header className="atlas-rise mb-10" style={{ animationDelay: '40ms' }}>
-        <p className="text-muted-foreground mb-4 flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Section 01 · Trips</span>
         </p>
@@ -54,7 +54,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
         </p>
         <Link
           href={{ pathname: '/trips', query: showingArchived ? undefined : { status: 'archived' } }}
-          className="text-foreground/55 hover:text-foreground font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
+          className="text-foreground/70 hover:text-foreground font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
         >
           {showingArchived ? '← All trips' : 'View archived →'}
         </Link>
@@ -143,10 +143,12 @@ function EmptyState({ archived }: { archived: boolean }) {
       className="atlas-rise relative overflow-hidden"
       style={{ animationDelay: '160ms' }}
     >
-      {/* Faint topographic contour, lower-right — atmospheric, decorative. */}
+      {/* Faint topographic contour, lower-right — atmospheric, decorative.
+       *  Hidden on phone where the card is half the width and the contour
+       *  reads as clutter rather than atmosphere. */}
       <svg
         aria-hidden
-        className="text-foreground/10 pointer-events-none absolute -right-16 -bottom-16 h-72 w-72"
+        className="text-foreground/10 pointer-events-none absolute -right-16 -bottom-16 hidden h-72 w-72 sm:block"
         viewBox="0 0 200 200"
         fill="none"
         stroke="currentColor"
@@ -165,7 +167,7 @@ function EmptyState({ archived }: { archived: boolean }) {
       </svg>
 
       <CardContent className="flex min-h-72 flex-col items-center justify-center px-6 py-14 text-center">
-        <span className="border-foreground/25 text-foreground/55 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]">
+        <span className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]">
           ø
         </span>
         <p className="font-display text-foreground text-2xl tracking-tight">

@@ -34,7 +34,7 @@ export function TripYearGroup({ label, trips, startIndex }: TripYearGroupProps) 
             {label}
           </h2>
           <span aria-hidden className="bg-foreground/20 h-px flex-1" />
-          <span className="text-foreground/55 shrink-0 font-mono text-[10px] tracking-[0.24em] uppercase">
+          <span className="text-foreground/70 shrink-0 font-mono text-[10px] tracking-[0.24em] uppercase">
             {trips.length} {trips.length === 1 ? 'trip' : 'trips'}
           </span>
         </div>

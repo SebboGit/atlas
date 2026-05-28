@@ -57,7 +57,7 @@ export function DayGroup({
       <header className="mb-4 flex items-baseline gap-3 sm:mb-5">
         <p
           className={cn(
-            'font-mono text-xs tracking-[0.28em] uppercase',
+            'font-mono text-xs tracking-[0.18em] uppercase sm:tracking-[0.28em]',
             isToday ? 'text-primary' : 'text-foreground',
           )}
         >
@@ -65,7 +65,7 @@ export function DayGroup({
           <span aria-hidden className="text-foreground/30 mx-2">
             ·
           </span>
-          <span className="tracking-[0.2em]">{formatDayLabel(date)}</span>
+          <span className="tracking-[0.14em] sm:tracking-[0.2em]">{formatDayLabel(date)}</span>
         </p>
         {isToday && (
           <span className="bg-primary/12 text-primary border-primary/25 rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.2em] uppercase">

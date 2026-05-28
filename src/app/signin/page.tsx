@@ -54,14 +54,14 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         {/* Section index, top-right — matches Welcome page */}
         <span
           aria-hidden
-          className="border-foreground/25 text-foreground/55 absolute top-5 right-5 inline-flex h-9 w-9 items-center justify-center rounded-full border font-mono text-[10px]"
+          className="border-foreground/25 text-foreground/70 absolute top-5 right-5 inline-flex h-9 w-9 items-center justify-center rounded-full border font-mono text-[10px]"
         >
           00
         </span>
 
         <CardContent className="flex flex-col gap-6 px-7 pt-20 pb-8">
           <div className="text-center">
-            <p className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
               Entry
             </p>
             <h2 className="font-display text-foreground mt-2 text-3xl leading-none font-medium tracking-tight">

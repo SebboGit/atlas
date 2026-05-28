@@ -63,7 +63,7 @@ export default async function WishlistPage({ searchParams }: WishlistPageProps) 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 pt-16 pb-24 sm:px-8 sm:pt-20">
       <header className="atlas-rise mb-10" style={{ animationDelay: '40ms' }}>
-        <p className="text-muted-foreground mb-4 flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Section 04 · Wishlist</span>
         </p>

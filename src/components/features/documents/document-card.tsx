@@ -41,7 +41,7 @@ export function DocumentCard({ document, tripId }: DocumentCardProps) {
               {renderIcon(document.mime)}
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-foreground/55 font-mono text-[9px] tracking-[0.28em] uppercase">
+              <p className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
                 {typeLabel} · {formatBytes(document.bytes)}
               </p>
               <a
@@ -113,7 +113,7 @@ function ExtractedSummary({
     <div className="border-foreground/10 mt-1 flex items-start gap-3 border-t pt-3">
       <p
         aria-hidden
-        className="text-foreground/55 mt-[1px] font-mono text-[9px] tracking-[0.28em] uppercase"
+        className="text-foreground/70 mt-[1px] font-mono text-[9px] tracking-[0.28em] uppercase"
       >
         {kindLabel(payload.kind)}
       </p>

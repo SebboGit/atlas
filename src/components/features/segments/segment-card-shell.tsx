@@ -49,7 +49,7 @@ export function SegmentCardShell({
           aria-label="Date outside trip window — review"
           className="border-foreground/12 bg-foreground/[0.04] flex items-center gap-3 border-b py-2.5 pr-28 pl-5 sm:pl-6"
         >
-          <span className="text-foreground/55 font-mono text-[9px] tracking-[0.28em] uppercase">
+          <span className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
             Review
           </span>
           <span aria-hidden className="bg-foreground/20 h-px w-4" />
@@ -87,7 +87,7 @@ export function SegmentCardShell({
             )}
           >
             <div className="min-w-0 flex-1">
-              <p className="text-foreground/75 font-mono text-[10px] tracking-[0.28em] uppercase">
+              <p className="text-foreground/75 font-mono text-[10px] tracking-[0.18em] uppercase sm:tracking-[0.28em]">
                 {typeLabel}
               </p>
               <h3 className="font-display text-foreground mt-1 text-lg leading-tight font-medium tracking-tight sm:text-[20px]">

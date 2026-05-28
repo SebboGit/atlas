@@ -66,7 +66,7 @@ export function TripChrome({
           <div className="atlas-rise mb-5" style={{ animationDelay: '40ms' }}>
             <Link
               href={`/trips/${trip.id}/itinerary`}
-              className="text-foreground/55 hover:text-foreground inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
+              className="text-foreground/70 hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
             >
               <span aria-hidden>←</span>
               <span>Back to trip</span>
@@ -88,7 +88,7 @@ export function TripChrome({
           <div className="atlas-rise mb-8" style={{ animationDelay: '40ms' }}>
             <Link
               href="/trips"
-              className="text-foreground/55 hover:text-foreground inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
+              className="text-foreground/70 hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
             >
               <span aria-hidden>←</span>
               <span>All trips</span>
@@ -97,7 +97,7 @@ export function TripChrome({
 
           <header className="atlas-rise mb-8" style={{ animationDelay: '100ms' }}>
             <div className="mb-4 flex items-center gap-3">
-              <p className="text-muted-foreground flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+              <p className="text-muted-foreground hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
                 <span aria-hidden className="bg-foreground/30 h-px w-8" />
                 <span>Trip</span>
               </p>

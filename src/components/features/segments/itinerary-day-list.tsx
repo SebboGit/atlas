@@ -160,7 +160,7 @@ function CollapsedPastRow({
       {/* `min-w-0` + `truncate` let the range ellipsise rather than
        *  force a horizontal scroll if the viewport is narrower than the
        *  full label — the count below stays pinned and readable. */}
-      <span className="text-foreground/55 group-hover:text-foreground/85 min-w-0 truncate font-mono text-xs tracking-[0.2em] whitespace-nowrap uppercase transition-colors">
+      <span className="text-foreground/70 group-hover:text-foreground/85 min-w-0 truncate font-mono text-xs tracking-[0.2em] whitespace-nowrap uppercase transition-colors">
         {rangeLabel}
       </span>
       {locationSummary && (
@@ -223,7 +223,7 @@ function ExpandedPastGroup({
             strokeWidth={1.75}
             className="text-foreground/35 group-hover:text-foreground/70 size-3.5 shrink-0 transition-colors"
           />
-          <span className="text-foreground/55 group-hover:text-foreground/85 font-mono text-xs tracking-[0.28em] uppercase transition-colors">
+          <span className="text-foreground/70 group-hover:text-foreground/85 font-mono text-xs tracking-[0.28em] uppercase transition-colors">
             Earlier
           </span>
           <span

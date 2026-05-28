@@ -52,7 +52,7 @@ export function WishlistDeleteButton({ itemId, noun = 'item' }: WishlistDeleteBu
         <button
           type="button"
           aria-label={`Delete this ${noun}`}
-          className="text-foreground/55 hover:text-destructive hover:bg-foreground/5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
+          className="text-foreground/70 hover:text-destructive hover:bg-foreground/5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
         >
           <Trash2 className="size-3.5" strokeWidth={1.5} aria-hidden />
         </button>

@@ -516,7 +516,7 @@ function InfoSection({ title, children }: { title: string; children: React.React
   // a presentation primitive.
   return (
     <section className="flex flex-col gap-2">
-      <h4 className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+      <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
         {title}
       </h4>
       <dl className="border-foreground/10 divide-foreground/8 divide-y rounded-xl border">
@@ -545,7 +545,7 @@ function InfoRow({
         multiline ? 'flex-col gap-1 sm:flex-row sm:gap-4' : 'items-baseline',
       )}
     >
-      <dt className="text-foreground/55 w-24 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
+      <dt className="text-foreground/70 w-24 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
         {label}
       </dt>
       <dd
@@ -565,7 +565,7 @@ function DocumentsFooter({ documents }: { documents: LinkedDocument[] }) {
   if (documents.length === 0) return null;
   return (
     <section className="flex flex-col gap-2">
-      <h4 className="text-foreground/55 font-mono text-[10px] tracking-[0.28em] uppercase">
+      <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
         Documents
       </h4>
       <LinkedDocumentChips documents={documents} />
@@ -647,14 +647,14 @@ function FlightLeg({
   if (!iata && !instant) return null;
   return (
     <div className="flex gap-4 px-4 py-3">
-      <dt className="text-foreground/55 w-20 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
+      <dt className="text-foreground/70 w-20 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
         {label}
       </dt>
       <dd className="min-w-0 flex-1">
         <div className="text-foreground font-mono text-base tracking-wider">
           {iata ?? '—'}
           {overnight && (
-            <sup className="text-foreground/55 ml-1 font-sans text-[10px] normal-case">+1</sup>
+            <sup className="text-foreground/70 ml-1 font-sans text-[10px] normal-case">+1</sup>
           )}
         </div>
         {instant && (

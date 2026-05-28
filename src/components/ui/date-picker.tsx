@@ -136,7 +136,7 @@ export function DatePicker({
             </span>
             <CalendarIcon
               aria-hidden
-              className="text-foreground/55 ml-2 size-4 shrink-0"
+              className="text-foreground/70 ml-2 size-4 shrink-0"
               strokeWidth={1.75}
             />
           </button>
