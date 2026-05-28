@@ -64,13 +64,15 @@ const SheetContent = React.forwardRef<
       {children}
       <DialogPrimitive.Close
         className={cn(
-          'absolute top-4 right-4 inline-flex h-9 w-9 items-center justify-center rounded-full',
+          // 44 px tap target — Sheet is the phone-only hamburger surface,
+          // so the close affordance is always reached by touch.
+          'absolute top-3 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full',
           'border-foreground/15 text-foreground/70 hover:bg-foreground/8 border transition-colors',
           'focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background focus-visible:outline-none',
         )}
       >
-        <X className="h-4 w-4" />
+        <X className="h-5 w-5" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>

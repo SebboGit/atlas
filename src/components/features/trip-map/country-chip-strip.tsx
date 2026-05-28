@@ -73,10 +73,11 @@ function Chip({
     <Link
       href={href}
       data-active={active || undefined}
-      // Min height keeps the chip touch-friendly at 360px without
-      // forcing the row to wrap on laptop.
+      // 44 px floor keeps the chip touch-friendly on every viewport.
+      // Tablet-sized touch devices (768–1024 px) hit `sm:` but are
+      // still touch-input, so we don't shrink the target at `sm:`.
       className={cn(
-        'inline-flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors sm:min-h-[36px]',
+        'inline-flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
         active
           ? 'bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-3px_rgba(155,74,38,0.5)]'
           : 'border-foreground/12 bg-card/60 text-foreground/75 hover:border-foreground/25 hover:text-foreground hover:bg-card/85',

@@ -68,8 +68,9 @@ function FilterChip({
       replace
       className={cn(
         'inline-flex shrink-0 snap-start items-center rounded-full border px-2.5 py-1 font-mono text-[10px] tracking-[0.2em] uppercase transition-colors',
-        // Tap target on touch per CLAUDE.md.
-        'min-h-11 sm:min-h-0',
+        // 44 px floor on every viewport — tablet-sized touch devices hit
+        // `sm:` but are still touch-input.
+        'min-h-11',
         active
           ? 'border-primary bg-primary text-primary-foreground'
           : 'border-foreground/20 text-foreground/65 hover:border-foreground/40 hover:text-foreground',
