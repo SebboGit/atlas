@@ -1,8 +1,9 @@
 'use client';
 
-import { Map as MapIcon } from 'lucide-react';
+import { Map as MapIcon, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import * as React from 'react';
 
 import { DocumentUploadDialog } from '@/components/features/documents/document-upload-dialog';
 import { useSegmentScrollFlash } from '@/components/features/segments/use-segment-scroll-flash';
@@ -13,6 +14,14 @@ import { TripStatusBadge } from '@/components/features/trips/trip-status-badge';
 import { TripTabs } from '@/components/features/trips/trip-tabs';
 import { UnarchiveButton } from '@/components/features/trips/unarchive-button';
 import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { unarchiveTripAction } from '@/lib/trips/actions';
 import type { Trip } from '@/lib/trips/repo';
 import { cn } from '@/lib/utils';
 
@@ -104,15 +113,41 @@ export function TripChrome({
               <TripStatusBadge status={trip.status} />
             </div>
 
-            <h1 className="font-display text-foreground text-5xl leading-[1.04] font-medium tracking-tight sm:text-6xl">
-              {trip.title}
-            </h1>
+            {/* Title row — phone tucks a ⋯ overflow menu to the right of
+             *  the title (Upload / Edit / Archive / Delete); laptop hides
+             *  the ⋯ and renders the full action row below. */}
+            <div className="flex items-start gap-3">
+              <h1 className="font-display text-foreground flex-1 text-4xl leading-[1.04] font-medium tracking-tight sm:text-6xl">
+                {trip.title}
+              </h1>
+              <TripOverflowMenu
+                trip={trip}
+                isArchived={isArchived}
+                attachedDocumentCount={attachedDocumentCount}
+              />
+            </div>
 
             <p className="text-muted-foreground mt-4 font-mono text-xs tracking-wider">
               {dateRange}
             </p>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3">
+            {/* Phone action row — Map is the only inline primary; the
+             *  other maintenance actions live in the ⋯ menu above. */}
+            <div className="mt-6 sm:hidden">
+              <Link
+                href={`/trips/${trip.id}/map`}
+                className={cn(buttonVariants({ variant: 'ink', size: 'sm' }), 'inline-flex')}
+              >
+                <MapIcon className="size-3.5" strokeWidth={1.75} />
+                <span>View map</span>
+              </Link>
+            </div>
+
+            {/* Laptop action row — kept as the previous inline strip.
+             *  Delete-forever is normalised to outline + destructive tint
+             *  so it carries the same visual weight as its peers; the
+             *  bare-text variant was a phone-only special case at most. */}
+            <div className="mt-7 hidden flex-wrap items-center gap-3 sm:flex">
               <DocumentUploadDialog
                 tripId={trip.id}
                 trigger={<Button size="sm">+ Upload</Button>}
@@ -167,9 +202,9 @@ export function TripChrome({
                 attachedDocumentCount={attachedDocumentCount}
                 trigger={
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className="border-destructive/30 text-destructive hover:bg-destructive/8 hover:text-destructive"
                   >
                     Delete forever
                   </Button>
@@ -189,6 +224,115 @@ export function TripChrome({
 
       {children}
     </main>
+  );
+}
+
+// Phone overflow menu — Radix DropdownMenu with menu items that drive
+// sibling dialogs via controlled `open` state. Lifting the state out of
+// the dialog components avoids stacking DropdownMenuItem + DialogTrigger
+// in an asChild composition (which would clone `aria-haspopup="dialog"`
+// onto a `role="menuitem"` and break focus restore on dialog close —
+// the menu item unmounts before the dialog can hand focus back to it).
+// The trigger button is sm:hidden so it never renders on laptop where
+// the inline action row carries the same actions.
+function TripOverflowMenu({
+  trip,
+  isArchived,
+  attachedDocumentCount,
+}: {
+  trip: Trip;
+  isArchived: boolean;
+  attachedDocumentCount: number;
+}) {
+  const [uploadOpen, setUploadOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [archiveOpen, setArchiveOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [restorePending, startRestore] = React.useTransition();
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Trip actions"
+            className="size-11 shrink-0 sm:hidden"
+          >
+            <MoreHorizontal className="size-5" strokeWidth={1.75} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setUploadOpen(true);
+            }}
+          >
+            Upload document
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setEditOpen(true);
+            }}
+          >
+            Edit trip
+          </DropdownMenuItem>
+          {isArchived ? (
+            <DropdownMenuItem
+              disabled={restorePending}
+              onSelect={() =>
+                startRestore(() => unarchiveTripAction(trip.id).then(() => undefined))
+              }
+            >
+              {restorePending ? 'Restoring…' : 'Restore from archive'}
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setArchiveOpen(true);
+              }}
+            >
+              Archive trip
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={(e) => {
+              e.preventDefault();
+              setDeleteOpen(true);
+            }}
+          >
+            Delete forever
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <DocumentUploadDialog tripId={trip.id} open={uploadOpen} onOpenChange={setUploadOpen} />
+      <TripFormDialog mode="edit" trip={trip} open={editOpen} onOpenChange={setEditOpen} />
+      {!isArchived && (
+        <DeleteTripDialog
+          tripId={trip.id}
+          tripTitle={trip.title}
+          mode="archive"
+          open={archiveOpen}
+          onOpenChange={setArchiveOpen}
+        />
+      )}
+      <DeleteTripDialog
+        tripId={trip.id}
+        tripTitle={trip.title}
+        mode="delete"
+        attachedDocumentCount={attachedDocumentCount}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+      />
+    </>
   );
 }
 

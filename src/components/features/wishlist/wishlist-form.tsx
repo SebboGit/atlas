@@ -7,6 +7,11 @@ import type { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { CountrySelect } from '@/components/ui/country-select';
+import {
+  DialogScrollableBody,
+  DialogStickyFooter,
+  dialogScrollContainer,
+} from '@/components/ui/dialog';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FormError } from '@/lib/wishlist/actions';
@@ -148,13 +153,11 @@ export function WishlistForm({
     // Constrains overall height inside the dialog so the action footer
     // below stays glued to the bottom of the viewport — the form's
     // intrinsic height was pushing Save past the fold on shorter
-    // viewports (e.g. ~700px laptops with browser chrome).
-    <form
-      noValidate
-      onSubmit={handleSubmit(submit)}
-      className="flex max-h-[calc(85vh-7rem)] flex-col gap-0"
-    >
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto pr-1 pb-1">
+    // viewports (e.g. ~700px laptops with browser chrome). The
+    // dialogScrollContainer + DialogScrollableBody + DialogStickyFooter
+    // primitives are shared across every Atlas dialog form.
+    <form noValidate onSubmit={handleSubmit(submit)} className={dialogScrollContainer}>
+      <DialogScrollableBody>
         {!typeLocked && (
           <div className="flex flex-col gap-2">
             <Label htmlFor="wl-type">Type</Label>
@@ -297,12 +300,9 @@ export function WishlistForm({
         </div>
 
         {formError && <FormBanner>{formError}</FormBanner>}
-      </div>
+      </DialogScrollableBody>
 
-      {/* Sticky action footer — sits at the bottom of the dialog no
-       *  matter how tall the field stack grows. Negative margins let
-       *  the divider span the full DialogContent width. */}
-      <div className="border-foreground/15 bg-card -mx-6 mt-4 -mb-6 flex flex-col-reverse gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+      <DialogStickyFooter>
         {onCancel && (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={pending}>
             Cancel
@@ -311,7 +311,7 @@ export function WishlistForm({
         <Button type="submit" disabled={pending}>
           {pending ? 'Saving…' : (submitLabel ?? `Add ${TYPE_LABELS[currentType].toLowerCase()}`)}
         </Button>
-      </div>
+      </DialogStickyFooter>
     </form>
   );
 }

@@ -10,10 +10,12 @@ import {
   DialogContent,
   DialogDescription,
   DialogEyebrow,
-  DialogFooter,
   DialogHeader,
+  DialogScrollableBody,
+  DialogStickyFooter,
   DialogTitle,
   DialogTrigger,
+  dialogScrollContainer,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { scheduleActivityAction, unscheduleActivityAction } from '@/lib/segments/actions';
@@ -124,86 +126,93 @@ export function ScheduleActivityDialog({
           }
         }}
       >
-        <DialogHeader>
-          <DialogEyebrow>
+        <DialogHeader className="gap-1 sm:gap-2">
+          <DialogEyebrow className="hidden sm:flex">
             <span aria-hidden className="bg-foreground/30 h-px w-6" />
             <span>{isScheduled ? 'Reschedule' : 'Schedule'}</span>
           </DialogEyebrow>
-          <DialogTitle>{isScheduled ? 'Move this activity.' : 'Pick a date.'}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-2xl sm:text-3xl">
+            {isScheduled ? 'Move this activity.' : 'Pick a date.'}
+          </DialogTitle>
+          <DialogDescription className="hidden sm:block">
             {isScheduled
               ? 'Change the date, or move it back to the wishlist.'
               : 'Once a date is set, this activity joins the itinerary.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form noValidate onSubmit={handleSubmit(onSchedule)} className="flex flex-col gap-5">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sched-start-trigger">Date</Label>
-              <Controller
-                control={control}
-                name="startsAt"
-                render={({ field, fieldState }) => (
-                  <DatePicker
-                    id="sched-start"
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    inputRef={field.ref}
-                    invalid={!!fieldState.error}
-                    placeholder="Pick a date"
-                  />
+        <form noValidate onSubmit={handleSubmit(onSchedule)} className={dialogScrollContainer}>
+          <DialogScrollableBody>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sched-start-trigger">Date</Label>
+                <Controller
+                  control={control}
+                  name="startsAt"
+                  render={({ field, fieldState }) => (
+                    <DatePicker
+                      id="sched-start"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      inputRef={field.ref}
+                      invalid={!!fieldState.error}
+                      placeholder="Pick a date"
+                    />
+                  )}
+                />
+                {errors.startsAt?.message && (
+                  <p role="alert" className="text-destructive mt-0.5 text-xs leading-snug">
+                    {errors.startsAt.message}
+                  </p>
                 )}
-              />
-              {errors.startsAt?.message && (
-                <p role="alert" className="text-destructive mt-0.5 text-xs leading-snug">
-                  {errors.startsAt.message}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sched-end-trigger">
-                Ends{' '}
-                <span className="text-foreground/40 tracking-normal normal-case"> · optional</span>
-              </Label>
-              <Controller
-                control={control}
-                name="endsAt"
-                render={({ field, fieldState }) => (
-                  <DatePicker
-                    id="sched-end"
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    inputRef={field.ref}
-                    invalid={!!fieldState.error}
-                    placeholder="—"
-                    defaultMonth={startDateObj}
-                    minDate={startDateObj}
-                  />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sched-end-trigger">
+                  Ends{' '}
+                  <span className="text-foreground/40 tracking-normal normal-case">
+                    {' '}
+                    · optional
+                  </span>
+                </Label>
+                <Controller
+                  control={control}
+                  name="endsAt"
+                  render={({ field, fieldState }) => (
+                    <DatePicker
+                      id="sched-end"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      inputRef={field.ref}
+                      invalid={!!fieldState.error}
+                      placeholder="—"
+                      defaultMonth={startDateObj}
+                      minDate={startDateObj}
+                    />
+                  )}
+                />
+                {errors.endsAt?.message && (
+                  <p role="alert" className="text-destructive mt-0.5 text-xs leading-snug">
+                    {errors.endsAt.message}
+                  </p>
                 )}
-              />
-              {errors.endsAt?.message && (
-                <p role="alert" className="text-destructive mt-0.5 text-xs leading-snug">
-                  {errors.endsAt.message}
-                </p>
-              )}
+              </div>
             </div>
-          </div>
 
-          {error && (
-            <div
-              role="alert"
-              className="border-destructive/30 bg-destructive/8 text-destructive rounded-xl border px-4 py-3 text-sm"
-            >
-              {error}
-            </div>
-          )}
+            {error && (
+              <div
+                role="alert"
+                className="border-destructive/30 bg-destructive/8 text-destructive rounded-xl border px-4 py-3 text-sm"
+              >
+                {error}
+              </div>
+            )}
+          </DialogScrollableBody>
 
-          <DialogFooter>
+          <DialogStickyFooter>
             {isScheduled && (
               <Button
                 type="button"
@@ -228,7 +237,7 @@ export function ScheduleActivityDialog({
             <Button type="submit" disabled={pending}>
               {pending ? 'Saving…' : isScheduled ? 'Save' : 'Schedule it'}
             </Button>
-          </DialogFooter>
+          </DialogStickyFooter>
         </form>
       </DialogContent>
     </Dialog>

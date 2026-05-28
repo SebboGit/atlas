@@ -29,7 +29,7 @@ export function TripYearGroup({ label, trips, startIndex }: TripYearGroupProps) 
         <div className="flex items-baseline gap-4">
           <h2
             id={headingId}
-            className="font-display text-foreground text-3xl leading-none font-medium tracking-tight sm:text-4xl"
+            className="font-display text-foreground text-xl leading-none font-medium tracking-tight sm:text-3xl"
           >
             {label}
           </h2>
@@ -39,7 +39,7 @@ export function TripYearGroup({ label, trips, startIndex }: TripYearGroupProps) 
           </span>
         </div>
       </header>
-      <ul className="grid gap-5 sm:grid-cols-2">
+      <ul className="grid gap-2 sm:grid-cols-2 sm:gap-5">
         {trips.map((trip, i) => (
           <li
             key={trip.id}

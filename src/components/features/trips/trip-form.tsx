@@ -7,6 +7,11 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { DatePicker, parseDateString } from '@/components/ui/date-picker';
+import {
+  DialogScrollableBody,
+  DialogStickyFooter,
+  dialogScrollContainer,
+} from '@/components/ui/dialog';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FormError } from '@/lib/trips/actions';
@@ -109,102 +114,104 @@ export function TripForm({ mode, initial, onSubmit, onSuccess, onCancel }: TripF
   const endErr = errors.endDate?.message;
 
   return (
-    <form noValidate onSubmit={handleSubmit(submit)} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="trip-title">Title</Label>
-        {/* No autoFocus: in a scrollable dialog, focusing this input would scroll
+    <form noValidate onSubmit={handleSubmit(submit)} className={dialogScrollContainer}>
+      <DialogScrollableBody>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="trip-title">Title</Label>
+          {/* No autoFocus: in a scrollable dialog, focusing this input would scroll
             the heading off-screen on initial open. Users can click or tab in. */}
-        <Input
-          id="trip-title"
-          aria-invalid={!!titleErr || undefined}
-          autoComplete="off"
-          placeholder="Lisbon weekend"
-          {...register('title')}
-        />
-        {titleErr && <FieldError>{titleErr}</FieldError>}
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="trip-summary">
-          Summary{' '}
-          <span className="text-foreground/40 tracking-normal normal-case"> · optional</span>
-        </Label>
-        <Textarea
-          id="trip-summary"
-          rows={4}
-          aria-invalid={!!summaryErr || undefined}
-          placeholder="A long weekend tracing tilework and pastries."
-          {...register('summary')}
-        />
-        {summaryErr && <FieldError>{summaryErr}</FieldError>}
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="trip-start-trigger">Start</Label>
-          <Controller
-            control={form.control}
-            name="startDate"
-            render={({ field, fieldState }) => (
-              <DatePicker
-                id="trip-start"
-                value={toDateInputValue(field.value)}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-                inputRef={field.ref}
-                invalid={!!fieldState.error}
-                placeholder="Pick a start date"
-              />
-            )}
+          <Input
+            id="trip-title"
+            aria-invalid={!!titleErr || undefined}
+            autoComplete="off"
+            placeholder="Lisbon weekend"
+            {...register('title')}
           />
-          {startErr && <FieldError>{startErr}</FieldError>}
+          {titleErr && <FieldError>{titleErr}</FieldError>}
         </div>
+
         <div className="flex flex-col gap-2">
-          <Label htmlFor="trip-end-trigger">End</Label>
-          <Controller
-            control={form.control}
-            name="endDate"
-            render={({ field, fieldState }) => (
-              <DatePicker
-                id="trip-end"
-                value={toDateInputValue(field.value)}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-                inputRef={field.ref}
-                invalid={!!fieldState.error}
-                placeholder="Pick an end date"
-                defaultMonth={startDateObj}
-                minDate={startDateObj}
-              />
-            )}
+          <Label htmlFor="trip-summary">
+            Summary{' '}
+            <span className="text-foreground/40 tracking-normal normal-case"> · optional</span>
+          </Label>
+          <Textarea
+            id="trip-summary"
+            rows={4}
+            aria-invalid={!!summaryErr || undefined}
+            placeholder="A long weekend tracing tilework and pastries."
+            {...register('summary')}
           />
-          {endErr && <FieldError>{endErr}</FieldError>}
+          {summaryErr && <FieldError>{summaryErr}</FieldError>}
         </div>
-      </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="trip-status">Status</Label>
-        <Select id="trip-status" {...register('status')}>
-          {TRIP_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      {formError && (
-        <div
-          role="alert"
-          className="border-destructive/30 bg-destructive/8 text-destructive rounded-xl border px-4 py-3 text-sm"
-        >
-          {formError}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="trip-start-trigger">Start</Label>
+            <Controller
+              control={form.control}
+              name="startDate"
+              render={({ field, fieldState }) => (
+                <DatePicker
+                  id="trip-start"
+                  value={toDateInputValue(field.value)}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  inputRef={field.ref}
+                  invalid={!!fieldState.error}
+                  placeholder="Pick a start date"
+                />
+              )}
+            />
+            {startErr && <FieldError>{startErr}</FieldError>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="trip-end-trigger">End</Label>
+            <Controller
+              control={form.control}
+              name="endDate"
+              render={({ field, fieldState }) => (
+                <DatePicker
+                  id="trip-end"
+                  value={toDateInputValue(field.value)}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  inputRef={field.ref}
+                  invalid={!!fieldState.error}
+                  placeholder="Pick an end date"
+                  defaultMonth={startDateObj}
+                  minDate={startDateObj}
+                />
+              )}
+            />
+            {endErr && <FieldError>{endErr}</FieldError>}
+          </div>
         </div>
-      )}
 
-      <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="trip-status">Status</Label>
+          <Select id="trip-status" {...register('status')}>
+            {TRIP_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        {formError && (
+          <div
+            role="alert"
+            className="border-destructive/30 bg-destructive/8 text-destructive rounded-xl border px-4 py-3 text-sm"
+          >
+            {formError}
+          </div>
+        )}
+      </DialogScrollableBody>
+
+      <DialogStickyFooter>
         {onCancel && (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={pending}>
             Cancel
@@ -213,7 +220,7 @@ export function TripForm({ mode, initial, onSubmit, onSuccess, onCancel }: TripF
         <Button type="submit" disabled={pending}>
           {pending ? 'Saving…' : submitLabel}
         </Button>
-      </div>
+      </DialogStickyFooter>
     </form>
   );
 }

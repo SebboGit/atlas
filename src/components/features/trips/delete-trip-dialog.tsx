@@ -21,7 +21,12 @@ interface DeleteTripDialogProps {
   tripId: string;
   tripTitle: string;
   mode: Mode;
-  trigger: React.ReactNode;
+  // Required when the dialog manages its own open state; optional when
+  // driven by `open` + `onOpenChange` from outside (e.g. from a parent
+  // DropdownMenu where the menu item is the affordance).
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   /**
    * Count of documents currently attached to this trip. Only consumed
    * when `mode === 'delete'`. Used to surface the "also delete files"
@@ -66,9 +71,14 @@ export function DeleteTripDialog({
   tripTitle,
   mode,
   trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
   attachedDocumentCount = 0,
 }: DeleteTripDialogProps) {
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? (controlledOpen ?? false) : internalOpen;
+  const setOpen = isControlled ? (controlledOnOpenChange ?? (() => {})) : setInternalOpen;
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   // Default to "also delete documents" per the trip-deletion design
@@ -99,7 +109,7 @@ export function DeleteTripDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent>
         <DialogHeader>
           <DialogEyebrow>
