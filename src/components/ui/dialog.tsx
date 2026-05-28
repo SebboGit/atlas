@@ -108,12 +108,15 @@ const dialogScrollContainer = 'flex max-h-[calc(85vh-7rem)] flex-col gap-0';
 // on the parent and DialogStickyFooter as a sibling. The `flex-1` claims
 // the remaining height inside the bounded form; `overflow-y-auto` scrolls
 // when the field stack is taller than that space. `pr-1` reserves a hair
-// for the scrollbar so it doesn't crowd the rightmost field edges.
+// for the scrollbar so it doesn't crowd the rightmost field edges. The
+// `min-h-0` reset is what lets the body actually shrink below its content
+// in a flex column — without it, `min-height: auto` keeps the body at its
+// intrinsic height and overflow falls back to the outer DialogContent.
 const DialogScrollableBody = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('flex flex-1 flex-col gap-5 overflow-y-auto pr-1 pb-1', className)}
+      className={cn('flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1 pb-1', className)}
       {...props}
     />
   ),
@@ -125,12 +128,16 @@ DialogScrollableBody.displayName = 'DialogScrollableBody';
 // Negative margins let the divider span the full DialogContent width
 // despite the dialog's px-6 (mobile) / sm:p-8 (laptop) padding, and
 // -mb / sm:-mb let the footer's bg cover the dialog's pb area cleanly.
+// The mobile pb expands to `env(safe-area-inset-bottom)` so the action
+// row clears an iOS home indicator even when the dialog's outer pb
+// alone wouldn't (e.g. on devices where Safari shrinks the visual
+// viewport without telling the layout).
 const DialogStickyFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        'border-foreground/15 bg-card -mx-6 mt-4 -mb-6 flex flex-col-reverse gap-3 border-t px-6 py-4 sm:-mx-8 sm:-mb-8 sm:flex-row sm:items-center sm:justify-end',
+        'border-foreground/15 bg-card -mx-6 mt-4 -mb-6 flex flex-col-reverse gap-3 border-t px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:-mb-8 sm:flex-row sm:items-center sm:justify-end sm:py-4',
         className,
       )}
       {...props}
