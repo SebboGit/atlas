@@ -61,8 +61,8 @@ export default async function WishlistPage({ searchParams }: WishlistPageProps) 
   const { coordsById, pendingCount } = await getPlaceCoordsView(items);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 pt-16 pb-24 sm:px-8 sm:pt-20">
-      <header className="atlas-rise mb-10" style={{ animationDelay: '40ms' }}>
+    <main className="mx-auto w-full max-w-5xl px-6 pt-8 pb-24 sm:px-8 sm:pt-20">
+      <header className="atlas-rise mb-6 sm:mb-8" style={{ animationDelay: '40ms' }}>
         <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Section 04 · Wishlist</span>
@@ -73,9 +73,9 @@ export default async function WishlistPage({ searchParams }: WishlistPageProps) 
           </h1>
           <WishlistFormDialog trigger={<Button size="default">New wishlist item</Button>} />
         </div>
-        <p className="text-muted-foreground mt-4 max-w-2xl text-sm leading-relaxed">
-          Food spots and attractions worth coming back to. Items stay here even after you add them
-          to a trip — the same Tokyo ramen keeps surfacing on every Japan trip you plan.
+        <p className="text-muted-foreground mt-3 max-w-2xl text-sm leading-relaxed">
+          Food and activities worth coming back to — they resurface on every trip that touches their
+          country.
         </p>
       </header>
 

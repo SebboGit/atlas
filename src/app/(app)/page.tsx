@@ -13,7 +13,7 @@ export default async function HomePage() {
     .toUpperCase();
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 pt-16 pb-24 sm:px-8 sm:pt-24">
+    <main className="mx-auto w-full max-w-5xl px-6 pt-8 pb-24 sm:px-8 sm:pt-24">
       {/* Header — first-name greeting in display serif, with a quiet
        *  monospace coordinate strip as a notebook flourish. */}
       <section className="atlas-rise" style={{ animationDelay: '60ms' }}>
@@ -54,7 +54,7 @@ export default async function HomePage() {
             >
               01
             </span>
-            <CardContent className="flex min-h-44 flex-col justify-between pt-7">
+            <CardContent className="flex min-h-0 flex-col justify-between pt-5 sm:min-h-44 sm:pt-7">
               <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
                 Section
               </p>
@@ -87,7 +87,7 @@ export default async function HomePage() {
             >
               02
             </span>
-            <CardContent className="flex min-h-44 flex-col justify-between pt-7">
+            <CardContent className="flex min-h-0 flex-col justify-between pt-5 sm:min-h-44 sm:pt-7">
               <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
                 Section
               </p>
@@ -120,7 +120,7 @@ export default async function HomePage() {
             >
               03
             </span>
-            <CardContent className="flex min-h-44 flex-col justify-between pt-7">
+            <CardContent className="flex min-h-0 flex-col justify-between pt-5 sm:min-h-44 sm:pt-7">
               <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
                 Section
               </p>
@@ -153,7 +153,7 @@ export default async function HomePage() {
             >
               04
             </span>
-            <CardContent className="flex min-h-44 flex-col justify-between pt-7">
+            <CardContent className="flex min-h-0 flex-col justify-between pt-5 sm:min-h-44 sm:pt-7">
               <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
                 Section
               </p>

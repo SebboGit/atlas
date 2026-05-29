@@ -27,16 +27,21 @@ export function StatTile({
   return (
     <Card variant="paper" className={cn('h-full', className)}>
       <CardContent className="flex h-full flex-col gap-2.5 p-4 sm:gap-3 sm:p-6">
-        <p className="text-foreground/70 flex items-center gap-2.5 font-mono text-[10px] tracking-[0.18em] uppercase sm:tracking-[0.28em]">
-          <span aria-hidden className="bg-foreground/25 h-px w-5" />
+        <p className="text-foreground/90 flex items-center gap-2.5 font-mono text-[11px] tracking-[0.16em] uppercase sm:text-xs sm:tracking-[0.24em]">
+          <span aria-hidden className="bg-foreground/30 h-px w-5" />
           <span>{label}</span>
         </p>
-        <p className="font-display text-foreground flex items-baseline gap-1.5 leading-none">
-          <span className="text-4xl font-medium tracking-tight tabular-nums sm:text-6xl">
+        {/* flex-wrap so a long figure + unit (e.g. "39 997 km") drops the
+         *  unit to a second line on a narrow tile instead of crowding the
+         *  card edge; the grouped figure itself uses U+202F and won't break. */}
+        <p className="font-display text-foreground flex flex-wrap items-baseline gap-x-1.5 leading-none">
+          <span className="text-2xl font-medium tracking-tight tabular-nums sm:text-6xl">
             {value}
           </span>
           {unit ? (
-            <span className="text-foreground/70 text-lg font-medium tracking-tight">{unit}</span>
+            <span className="text-foreground/70 text-base font-medium tracking-tight sm:text-lg">
+              {unit}
+            </span>
           ) : null}
         </p>
         {caption ? (
