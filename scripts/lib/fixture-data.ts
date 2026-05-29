@@ -438,6 +438,17 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         startDate: d(2025, 6, 13),
         endDate: d(2025, 6, 21),
       },
+      {
+        // Deliberately long title (and a second past year) — exercises the
+        // trip card's title wrapping on phone and the year-group spacing
+        // across two completed years on the dashboard.
+        userId,
+        title: 'A Long Way Round the North Coast of Scotland and the Outer Hebrides',
+        summary: 'A slow loop up the NC500 and out to Lewis and Harris.',
+        status: 'completed',
+        startDate: d(2024, 9, 6),
+        endDate: d(2024, 9, 20),
+      },
     ])
     .returning({ id: trips.id, title: trips.title });
   const lisbonTripId = otherTripsInserted.find((t) => t.title === 'Lisbon')?.id;
