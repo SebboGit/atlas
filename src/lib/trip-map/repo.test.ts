@@ -54,6 +54,7 @@ const geocodingMocks = vi.hoisted(() => ({
   buildGeocodeQuery: vi.fn<(s: Segment) => string | null>(),
   enqueueGeocodeFetch: vi.fn<(q: string) => void>(),
   getCachedMany: vi.fn(),
+  getGeocodeWorkerStatus: vi.fn<() => Promise<'ok' | 'unconfigured' | 'worker-down'>>(),
   normalizeQuery: vi.fn((s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ')),
   // Passthrough — these tests stub buildGeocodeQuery directly and
   // don't include addresses with postcodes / designators, so the
@@ -119,6 +120,8 @@ beforeEach(() => {
   geocodingMocks.normalizeQuery.mockImplementation((s) =>
     s.toLowerCase().trim().replace(/\s+/g, ' '),
   );
+  // Healthy worker by default; the banner-specific tests override.
+  geocodingMocks.getGeocodeWorkerStatus.mockResolvedValue('ok');
 });
 
 describe('getTripMapDataForUser — non-flight cache states', () => {
@@ -135,6 +138,22 @@ describe('getTripMapDataForUser — non-flight cache states', () => {
     expect(result.pins).toHaveLength(0);
     expect(result.ungeocoded).toHaveLength(1);
     expect(result.ungeocoded[0]!.reason).toBe('Geocoding pending — try again in a moment.');
+    // A pending miss probes worker health; healthy by default.
+    expect(geocodingMocks.getGeocodeWorkerStatus).toHaveBeenCalledTimes(1);
+    expect(result.geocodeWorkerStatus).toBe('ok');
+  });
+
+  it('surfaces a worker-down status when a pending miss meets an unhealthy worker', async () => {
+    dbState.rows = [makeHotel()];
+    geocodingMocks.buildGeocodeQuery.mockReturnValue('1 Sunset Blvd, Los Angeles');
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map([['1 sunset blvd, los angeles', { kind: 'miss' }]]),
+    );
+    geocodingMocks.getGeocodeWorkerStatus.mockResolvedValue('worker-down');
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.geocodeWorkerStatus).toBe('worker-down');
   });
 
   it('chains buildGeocodeQuery → normalizeForGeocoder before cache lookup and enqueue', async () => {
@@ -194,6 +213,9 @@ describe('getTripMapDataForUser — non-flight cache states', () => {
     const result = await getTripMapDataForUser('user-1', 'trip-1');
 
     expect(geocodingMocks.enqueueGeocodeFetch).not.toHaveBeenCalled();
+    // No pending miss → no worker-health probe, status stays 'ok'.
+    expect(geocodingMocks.getGeocodeWorkerStatus).not.toHaveBeenCalled();
+    expect(result.geocodeWorkerStatus).toBe('ok');
     expect(result.pins).toHaveLength(1);
     const pin = result.pins[0]!;
     expect(pin.kind).toBe('hotel');

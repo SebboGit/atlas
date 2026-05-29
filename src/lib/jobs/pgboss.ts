@@ -16,6 +16,7 @@
 // (`app` | `worker`). The worker entrypoint sets it to `worker`
 // before importing anything; the app inherits the default of `app`.
 
+import { Pool } from 'pg';
 import { PgBoss } from 'pg-boss';
 import type {
   ConstructorOptions,
@@ -29,6 +30,7 @@ import { log } from '@/lib/log';
 import type {
   Jobs,
   JobHandler,
+  QueueHealth,
   RegisterOptions,
   ScheduleOptions,
   SendOptions,
@@ -59,13 +61,20 @@ function buildOptions(role: JobsRole, connectionString: string): ConstructorOpti
 export class PgBossJobs implements Jobs {
   readonly #role: JobsRole;
   readonly #boss: PgBoss;
+  readonly #connectionString: string;
   #started: Promise<void> | null = null;
   // Track queues we've created in this process so we don't issue
   // redundant `createQueue` calls on every send/register.
   readonly #ensuredQueues = new Set<string>();
+  // Lazily created, single-connection pool used ONLY by getQueueHealth's
+  // introspection SELECT. Kept separate from pg-boss's own pool so a
+  // read-side liveness check never contends with job processing, and so
+  // it costs nothing until the first health query runs.
+  #healthPool: Pool | null = null;
 
   constructor(connectionString: string, role: JobsRole = resolveRole()) {
     this.#role = role;
+    this.#connectionString = connectionString;
     this.#boss = new PgBoss(buildOptions(role, connectionString));
     this.#boss.on('error', (err: unknown) => {
       log.error(
@@ -95,6 +104,40 @@ export class PgBossJobs implements Jobs {
         'jobs.pgboss.stop_failed',
       );
     }
+    // Release the health pool's connection regardless of how boss.stop
+    // went — leaking it would keep a connection open past shutdown.
+    if (this.#healthPool) {
+      await this.#healthPool.end().catch(() => {});
+      this.#healthPool = null;
+    }
+  }
+
+  async getQueueHealth(name: string): Promise<QueueHealth> {
+    if (!this.#healthPool) {
+      this.#healthPool = new Pool({ connectionString: this.#connectionString, max: 1 });
+    }
+    // pg-boss v12 keeps jobs in the partitioned `pgboss.job` table; a
+    // job waiting to run has `state < 'active'` (created or retry — the
+    // same predicate pg-boss's own pickup index uses), and `created_on`
+    // is its enqueue time. Filtering on `name` prunes to this queue's
+    // partition. Jobs in 'active' are excluded on purpose: a slow
+    // upstream (e.g. a throttled Nominatim call) is healthy work in
+    // progress, not a stuck queue.
+    const { rows } = await this.#healthPool.query<{
+      pending: number;
+      oldest_age_s: number | string | null;
+    }>(
+      `SELECT count(*)::int AS pending,
+              extract(epoch from (now() - min(created_on))) AS oldest_age_s
+         FROM pgboss.job
+        WHERE name = $1 AND state < 'active'`,
+      [name],
+    );
+    const row = rows[0];
+    const pendingCount = row?.pending ?? 0;
+    const oldestPendingAgeMs =
+      row?.oldest_age_s == null ? null : Math.round(Number(row.oldest_age_s) * 1000);
+    return { pendingCount, oldestPendingAgeMs };
   }
 
   async send<T>(name: string, data: T, opts?: SendOptions): Promise<void> {

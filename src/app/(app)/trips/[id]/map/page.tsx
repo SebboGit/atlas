@@ -48,6 +48,7 @@ export default async function MapTabPage({ params, searchParams }: MapTabPagePro
       activeCountry={activeCountry}
       tripId={id}
       wishlistPins={wishlistPins}
+      geocodeWorkerStatus={mapData.geocodeWorkerStatus}
     />
   );
 }

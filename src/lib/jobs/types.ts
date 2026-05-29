@@ -58,6 +58,32 @@ export interface RegisterOptions {
 
 export type JobHandler<T> = (data: T) => Promise<void>;
 
+/**
+ * Read-only snapshot of a queue's waiting work, read straight from
+ * pg-boss's tables. Lets a feature distinguish "the worker is keeping
+ * up" from "jobs are piling up because nothing is consuming them"
+ * without a heartbeat table — see issue #24.
+ */
+export interface QueueHealth {
+  /** Jobs waiting to start (pg-boss state < 'active': created or retry). */
+  pendingCount: number;
+  /**
+   * Age in ms of the oldest waiting job, or null when none are waiting.
+   * A value far above the worker's normal drain time means the queue
+   * isn't being consumed (worker down / not started). Jobs already
+   * being processed ('active') are excluded, so a slow upstream call
+   * doesn't read as a stuck queue.
+   *
+   * Measured from each job's enqueue time (`created_on`), so it's only
+   * a meaningful liveness signal for queues whose jobs are immediately
+   * runnable. A queue using `startAfter` delays or retry backoff could
+   * have a legitimately-deferred job that reads as "old and waiting" —
+   * today's only caller (geocode-fetch) is enqueued for immediate run,
+   * so this holds.
+   */
+  oldestPendingAgeMs: number | null;
+}
+
 export interface Jobs {
   /**
    * Initialise the underlying queue. Idempotent — calling twice is
@@ -93,4 +119,14 @@ export interface Jobs {
    * must have a registered handler (typically in the same process).
    */
   schedule<T>(name: string, cron: string, data: T, opts?: ScheduleOptions): Promise<void>;
+
+  /**
+   * Read a queue's pending-work snapshot directly from pg-boss's
+   * tables. A plain SELECT — does NOT require the queue to be started
+   * or registered in this process, so the app side can call it for
+   * liveness hints (e.g. the trip map's "geocoding worker may be down"
+   * banner). Best-effort: throws only on a genuine DB/query failure,
+   * which callers are expected to degrade gracefully around.
+   */
+  getQueueHealth(name: string): Promise<QueueHealth>;
 }
