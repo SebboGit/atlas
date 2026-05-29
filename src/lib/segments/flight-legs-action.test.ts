@@ -16,7 +16,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Segment } from '@/db/schema';
+import type { Segment, Trip } from '@/db/schema';
 
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   listFlightLegGroup: vi.fn(),
   updateMany: vi.fn(),
   revalidatePath: vi.fn(),
+  getTripForUser: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/session', () => ({ requireUser: mocks.requireUser }));
@@ -39,6 +40,7 @@ vi.mock('./repo', () => ({
   unscheduleActivity: vi.fn(),
   create: vi.fn(),
 }));
+vi.mock('@/lib/trips/repo', () => ({ getByIdForUser: mocks.getTripForUser }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock('@/db/client', () => ({ db: {} }));
 
@@ -46,6 +48,26 @@ import { loadFlightLegGroupAction, updateFlightLegsAction } from './actions';
 
 const USER = { id: 'user-1' } as const;
 const TRIP_ID = 'trip-aaa';
+
+// Trip window containing validFlightInput's 2026-06-01 date, so legs
+// dated in-window recompute `needsReview: false`. The real
+// isWithinTripWindow runs (date-window unmocked), so dates matter.
+function makeTrip(overrides: Partial<Trip> = {}): Trip {
+  return {
+    id: TRIP_ID,
+    userId: USER.id,
+    title: 'Japan',
+    summary: null,
+    status: 'planned',
+    startDate: new Date(2026, 4, 30),
+    endDate: new Date(2026, 5, 10),
+    createdAt: new Date('2026-05-01'),
+    updatedAt: new Date('2026-05-01'),
+    searchText: null,
+    searchTsv: null,
+    ...overrides,
+  } as Trip;
+}
 // Valid v4 UUIDs — Zod's `.uuid()` enforces the version + variant
 // nibbles, so the all-zeros placeholder we used at first was rejected
 // at the schema seam before any of the action-layer checks ran.
@@ -90,6 +112,7 @@ describe('updateFlightLegsAction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireUser.mockResolvedValue(USER);
+    mocks.getTripForUser.mockResolvedValue(makeTrip());
   });
 
   it('propagates the auth failure when requireUser throws', async () => {
@@ -204,14 +227,40 @@ describe('updateFlightLegsAction', () => {
 
     expect(result).toEqual({ ok: true, value: { ids: [SEG_A, SEG_B] } });
     expect(mocks.updateMany).toHaveBeenCalledTimes(1);
+    // Both legs are in-window → advisory cleared on each.
     expect(mocks.updateMany).toHaveBeenCalledWith(
       USER.id,
       expect.arrayContaining([
-        expect.objectContaining({ id: SEG_A }),
-        expect.objectContaining({ id: SEG_B }),
+        expect.objectContaining({ id: SEG_A, needsReview: false }),
+        expect.objectContaining({ id: SEG_B, needsReview: false }),
       ]),
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/trips/${TRIP_ID}`, 'layout');
+  });
+
+  it('recomputes needsReview per leg against the trip window', async () => {
+    // One leg stays in-window, the other is dragged out. The advisory
+    // must be set on the out-of-window leg alone — the batch path is
+    // not all-or-nothing.
+    mocks.getByIdForUser
+      .mockResolvedValueOnce(makeFlightSegment({ id: SEG_A }))
+      .mockResolvedValueOnce(makeFlightSegment({ id: SEG_B }));
+    mocks.updateMany.mockResolvedValueOnce([
+      makeFlightSegment({ id: SEG_A }),
+      makeFlightSegment({ id: SEG_B, needsReview: true }),
+    ]);
+
+    await updateFlightLegsAction(TRIP_ID, {
+      legs: [
+        { id: SEG_A, input: validFlightInput() }, // 2026-06-01, in window
+        { id: SEG_B, input: { ...validFlightInput(), startsAt: '2026-08-01' } }, // out
+      ],
+    });
+
+    expect(mocks.updateMany).toHaveBeenCalledWith(USER.id, [
+      expect.objectContaining({ id: SEG_A, needsReview: false }),
+      expect.objectContaining({ id: SEG_B, needsReview: true }),
+    ]);
   });
 
   it('surfaces per-leg `data` validation failures at the dotted path the dialog expects', async () => {

@@ -13,7 +13,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Segment } from '@/db/schema';
+import type { Segment, Trip } from '@/db/schema';
 
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   revalidatePath: vi.fn(),
   geocodeOnSegmentChange: vi.fn(),
+  getTripForUser: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/session', () => ({ requireUser: mocks.requireUser }));
@@ -28,6 +29,7 @@ vi.mock('./repo', () => ({
   getByIdForUser: mocks.getByIdForUser,
   update: mocks.update,
 }));
+vi.mock('@/lib/trips/repo', () => ({ getByIdForUser: mocks.getTripForUser }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock('@/lib/geocoding', () => ({
   geocodeOnSegmentChange: mocks.geocodeOnSegmentChange,
@@ -39,6 +41,27 @@ import { updateSegmentAction } from './actions';
 const USER = { id: 'user-1' } as const;
 const TRIP_ID = 'trip-aaa';
 const SEG_ID = 'seg-bbb';
+
+// Trip window that comfortably contains validFlightInput's 2026-06-01
+// date, so the default edit recomputes `needsReview: false`. The real
+// `isWithinTripWindow` runs (date-window is not mocked), so these dates
+// matter. Override per-test to exercise the out-of-window path.
+function makeTrip(overrides: Partial<Trip> = {}): Trip {
+  return {
+    id: TRIP_ID,
+    userId: USER.id,
+    title: 'Japan',
+    summary: null,
+    status: 'planned',
+    startDate: new Date(2026, 4, 30),
+    endDate: new Date(2026, 5, 10),
+    createdAt: new Date('2026-05-01'),
+    updatedAt: new Date('2026-05-01'),
+    searchText: null,
+    searchTsv: null,
+    ...overrides,
+  } as Trip;
+}
 
 function makeFlightSegment(overrides: Partial<Segment> = {}): Segment {
   return {
@@ -77,6 +100,7 @@ describe('updateSegmentAction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireUser.mockResolvedValue(USER);
+    mocks.getTripForUser.mockResolvedValue(makeTrip());
   });
 
   it('propagates the auth failure when requireUser throws', async () => {
@@ -148,11 +172,15 @@ describe('updateSegmentAction', () => {
 
     expect(result).toEqual({ ok: true, value: { id: SEG_ID } });
     expect(mocks.update).toHaveBeenCalledTimes(1);
+    // The date is inside the trip window → advisory cleared.
     expect(mocks.update).toHaveBeenCalledWith(
       USER.id,
       SEG_ID,
       expect.objectContaining({ type: 'flight' }),
+      { needsReview: false },
     );
+    // Window is resolved from the segment's own tripId, not the param.
+    expect(mocks.getTripForUser).toHaveBeenCalledWith(USER.id, TRIP_ID);
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/trips/${TRIP_ID}`, 'layout');
     // Geocode hook receives both rows so it can compare the derived
     // query (per-type — propertyName + address for hotels, title for
@@ -175,5 +203,56 @@ describe('updateSegmentAction', () => {
 
     expect(result).toEqual({ ok: false, error: { formMessage: 'Segment not found.' } });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('recomputes needsReview=true when the edited date is outside the trip window', async () => {
+    // Window-truth semantics (ADR-0008): editing a segment's date out
+    // of the trip window re-raises the advisory chip even though the
+    // form edit is a deliberate user action.
+    mocks.getByIdForUser.mockResolvedValueOnce(makeFlightSegment());
+    mocks.update.mockResolvedValueOnce(makeFlightSegment({ needsReview: true }));
+    mocks.getTripForUser.mockResolvedValueOnce(
+      makeTrip({ startDate: new Date(2026, 5, 20), endDate: new Date(2026, 5, 30) }),
+    );
+
+    const result = await updateSegmentAction(TRIP_ID, SEG_ID, validFlightInput());
+
+    expect(result).toEqual({ ok: true, value: { id: SEG_ID } });
+    expect(mocks.update).toHaveBeenCalledWith(
+      USER.id,
+      SEG_ID,
+      expect.objectContaining({ type: 'flight' }),
+      { needsReview: true },
+    );
+  });
+
+  it('scores the window against the segment’s own trip, not the route param', async () => {
+    // A crafted request supplies a route tripId the segment does not
+    // live on. The advisory must be computed against the segment's real
+    // trip so the caller can't dodge (or trigger) the chip by lying.
+    mocks.getByIdForUser.mockResolvedValueOnce(makeFlightSegment({ tripId: 'real-trip' }));
+    mocks.update.mockResolvedValueOnce(makeFlightSegment());
+
+    await updateSegmentAction('spoofed-trip', SEG_ID, validFlightInput());
+
+    expect(mocks.getTripForUser).toHaveBeenCalledWith(USER.id, 'real-trip');
+  });
+
+  it('degrades to needsReview=false when the trip cannot be resolved', async () => {
+    // FK shouldn't allow an orphaned segment, but if the trip lookup
+    // returns null we still write the edit — just without an advisory.
+    mocks.getByIdForUser.mockResolvedValueOnce(makeFlightSegment());
+    mocks.update.mockResolvedValueOnce(makeFlightSegment());
+    mocks.getTripForUser.mockResolvedValueOnce(null);
+
+    const result = await updateSegmentAction(TRIP_ID, SEG_ID, validFlightInput());
+
+    expect(result).toEqual({ ok: true, value: { id: SEG_ID } });
+    expect(mocks.update).toHaveBeenCalledWith(
+      USER.id,
+      SEG_ID,
+      expect.objectContaining({ type: 'flight' }),
+      { needsReview: false },
+    );
   });
 });

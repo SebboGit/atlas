@@ -91,11 +91,12 @@ export async function listCountryCodesForTrip(userId: string, tripId: string): P
 
 export interface CreateOptions {
   /**
-   * Set by the document-extraction pipeline (ADR-0008) when the
-   * derived `startsAt` falls outside the trip's ±2 day window. The
-   * UI renders an advisory chip on the segment until the user clears
-   * the flag (by editing, confirming, or moving the segment).
-   * Defaults to `false` — manual segment creation never sets this.
+   * ADR-0008 advisory: set when the segment's `startsAt` falls outside
+   * the trip's ±2 day window. The UI renders an advisory chip on the
+   * segment card. Both the document-extraction pipeline and the manual
+   * create/edit actions compute it against the trip window, so the chip
+   * reflects the segment's current date regardless of how it was
+   * entered. Defaults to `false` when the caller omits it.
    */
   needsReview?: boolean;
 }
@@ -227,13 +228,12 @@ function setColumnsFromInput(input: SegmentCreateInput, needsReview: boolean) {
     locationName: 'locationName' in input ? (input.locationName ?? null) : null,
     countryCode: 'countryCode' in input ? (input.countryCode ?? null) : null,
     originCountryCode: input.type === 'flight' ? (input.originCountryCode ?? null) : null,
-    // Form edits pass `needsReview: false` (a user edit is the user's
-    // confirmation of the segment's current state — clear any advisory
-    // flag the auto-create pipeline set). The re-extract path passes
-    // the freshly-recomputed flag so the chip reflects the trip window
-    // against the new dates. If we hard-coded `false` here, a re-extract
-    // that moved the segment outside the window would silently drop
-    // the warning.
+    // Every caller passes an explicit flag: the manual edit actions
+    // and the re-extract path both recompute it against the trip
+    // window (ADR-0008), so the chip always reflects the segment's
+    // current dates. If we hard-coded `false` here, editing a segment
+    // into an out-of-window date — or a re-extract that moved it there
+    // — would silently drop the warning.
     needsReview,
     updatedAt: new Date(),
   };
@@ -247,9 +247,12 @@ function setColumnsFromInput(input: SegmentCreateInput, needsReview: boolean) {
 // have to be migrated). Returns the updated row, or null if not
 // found / not owned.
 //
-// `opts.needsReview` defaults to false (the form-edit semantics). The
-// extraction bridge passes an explicit value computed against the trip
-// window so re-extract behaves identically to first-extract.
+// `opts.needsReview` is supplied explicitly by the only caller
+// (`updateSegmentAction`), which recomputes it against the trip window
+// on every edit (ADR-0008 window-truth). The `?? false` below is a
+// defensive default for an omitted opt, not the edit behaviour — the
+// extraction/re-extract path doesn't go through `update` at all (it
+// uses `updateForActiveExtractionClaim`).
 export async function update(
   userId: string,
   segmentId: string,
@@ -374,16 +377,20 @@ export async function updateForActiveExtractionClaim(
 // Order is preserved in the returned array — the action layer relies
 // on `legs[i]` ↔ `result[i]` to map per-leg field errors back to the
 // originating tab.
+//
+// `needsReview` is per-leg: the action recomputes each leg's ADR-0008
+// advisory against the trip window before calling in. Defaults to
+// `false` when a leg omits it.
 export async function updateMany(
   userId: string,
-  legs: ReadonlyArray<{ id: string; input: SegmentCreateInput }>,
+  legs: ReadonlyArray<{ id: string; input: SegmentCreateInput; needsReview?: boolean }>,
 ): Promise<Segment[]> {
   return db.transaction(async (tx) => {
     const out: Segment[] = [];
     for (const leg of legs) {
       const rows = await tx
         .update(segments)
-        .set(setColumnsFromInput(leg.input, false))
+        .set(setColumnsFromInput(leg.input, leg.needsReview ?? false))
         .where(
           and(
             eq(segments.id, leg.id),

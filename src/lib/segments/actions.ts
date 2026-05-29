@@ -5,8 +5,10 @@ import { z } from 'zod';
 
 import { requireUser } from '@/lib/auth/session';
 import { geocodeOnSegmentChange } from '@/lib/geocoding';
+import { getByIdForUser as getTripForUser } from '@/lib/trips/repo';
 import { err, ok, type Result } from '@/types/result';
 
+import { isWithinTripWindow } from './date-window';
 import * as repo from './repo';
 import { flightLegsUpdateInput, segmentCreateInput } from './validators';
 import type { Segment } from './repo';
@@ -44,8 +46,15 @@ export async function createSegmentAction(
   const parsed = segmentCreateInput.safeParse(raw);
   if (!parsed.success) return err(flattenZod(parsed.error));
 
+  // ADR-0008: flag a manual segment for review when its date lands
+  // outside the trip's ±2 day window — same computation the extraction
+  // bridge runs (segment-link.ts), reusing the existing advisory chip.
+  const trip = await getTripForUser(user.id, tripId);
+  if (!trip) return err({ formMessage: 'Trip not found.' });
+  const needsReview = !isWithinTripWindow(parsed.data.startsAt, trip);
+
   try {
-    const segment = await repo.create(user.id, tripId, parsed.data);
+    const segment = await repo.create(user.id, tripId, parsed.data, { needsReview });
     geocodeOnSegmentChange({ segment });
     revalidateTrip(tripId);
     return ok({ id: segment.id });
@@ -78,7 +87,16 @@ export async function updateSegmentAction(
     return err({ formMessage: 'Segment type cannot be changed after creation.' });
   }
 
-  const updated = await repo.update(user.id, segmentId, parsed.data);
+  // Recompute the ADR-0008 advisory against the segment's own trip
+  // window (window-truth, per the chosen edit semantics): editing a
+  // date into the out-of-window range flags it; fixing it clears the
+  // chip. Resolve the trip from the segment's stored `tripId`, not the
+  // route param, so a mismatched caller can't score against the wrong
+  // trip. A missing trip (FK shouldn't allow it) degrades to no flag.
+  const trip = await getTripForUser(user.id, existing.tripId);
+  const needsReview = trip ? !isWithinTripWindow(parsed.data.startsAt, trip) : false;
+
+  const updated = await repo.update(user.id, segmentId, parsed.data, { needsReview });
   if (!updated) return err({ formMessage: 'Segment not found.' });
 
   geocodeOnSegmentChange({ segment: updated, prior: existing });
@@ -170,8 +188,18 @@ export async function updateFlightLegsAction(
     }
   }
 
+  // Recompute the ADR-0008 advisory per leg against the trip window.
+  // Every leg was just verified to live on `tripId`, so a single trip
+  // fetch covers the whole batch.
+  const trip = await getTripForUser(user.id, tripId);
+  const legs = parsed.data.legs.map((leg) => ({
+    id: leg.id,
+    input: leg.input,
+    needsReview: trip ? !isWithinTripWindow(leg.input.startsAt, trip) : false,
+  }));
+
   try {
-    const rows = await repo.updateMany(user.id, parsed.data.legs);
+    const rows = await repo.updateMany(user.id, legs);
     revalidateTrip(tripId);
     return ok({ ids: rows.map((r) => r.id) });
   } catch (e) {
