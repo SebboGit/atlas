@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 import type {
+  GeocodeWorkerStatus,
   TripMapArc,
   TripMapPin,
   UngeocodedSegment,
@@ -17,6 +18,7 @@ import type {
 import { curvedArcCoords } from './arc-geometry';
 import { buildBasemapStyle } from './basemap-style';
 import { CountryChipStrip } from './country-chip-strip';
+import { GeocodeWorkerBanner } from './geocode-worker-banner';
 import { PinMarker } from './pin-marker';
 import { PinTooltip } from './pin-tooltip';
 import { NotPinnedChip } from './not-pinned-chip';
@@ -49,6 +51,12 @@ interface TripMapProps {
    * persists per-trip in localStorage.
    */
   wishlistPins?: WishlistMapPin[];
+  /**
+   * Whether geocoding can resolve this trip's pending pins. Drives the
+   * banner above the map; `'ok'` (the default) renders nothing. See
+   * issue #24.
+   */
+  geocodeWorkerStatus?: GeocodeWorkerStatus;
 }
 
 interface HoverInfo {
@@ -148,6 +156,7 @@ export function TripMap({
   activeCountry,
   tripId,
   wishlistPins = [],
+  geocodeWorkerStatus = 'ok',
 }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -747,6 +756,8 @@ export function TripMap({
       {showChips && (
         <CountryChipStrip countries={countries} activeCountry={activeCountry} tripId={tripId} />
       )}
+
+      <GeocodeWorkerBanner status={geocodeWorkerStatus} />
 
       <div className="relative w-full">
         {/*

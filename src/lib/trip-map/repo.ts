@@ -7,8 +7,10 @@ import {
   buildGeocodeQuery,
   enqueueGeocodeFetch,
   getCachedMany,
+  getGeocodeWorkerStatus,
   normalizeForGeocoder,
   normalizeQuery,
+  type GeocodeWorkerStatus,
 } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
 import {
@@ -18,6 +20,11 @@ import {
   hotelDataSchema,
 } from '@/lib/segments/validators';
 import * as wishlistRepo from '@/lib/wishlist/repo';
+
+// Re-exported so the client trip-map component can type its prop off
+// the repo barrel (a type-only import) without reaching into the
+// geocoding module directly.
+export type { GeocodeWorkerStatus };
 
 // Plain serialisable fields — these cross the RSC → client boundary.
 // Don't add Map/Set/BigInt or anything Next can't pass over the wire.
@@ -96,6 +103,14 @@ export interface TripMapData {
    * is the most surprising bug class for a map view.
    */
   ungeocoded: UngeocodedSegment[];
+  /**
+   * Whether geocoding looks unable to resolve this trip's pending pins
+   * right now: `'unconfigured'` (NOMINATIM_CONTACT_EMAIL unset) or
+   * `'worker-down'` (the background worker isn't draining the queue).
+   * `'ok'` whenever nothing is pending or the worker is healthy. Drives
+   * the trip-map banner — see issue #24.
+   */
+  geocodeWorkerStatus: GeocodeWorkerStatus;
 }
 
 // Wishlist overlay pin — a muted, toggleable marker layer drawn on
@@ -141,6 +156,10 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
   const pins: TripMapPin[] = [];
   const arcs: TripMapArc[] = [];
   const ungeocoded: UngeocodedSegment[] = [];
+  // Set when at least one segment resolved to a cache MISS (not a null
+  // result, not a no-query row). Only a real miss can be explained by a
+  // down/unconfigured worker, so the banner check is gated on this.
+  let hasPendingMiss = false;
 
   // Flight pins are accumulated keyed by IATA so a transfer airport
   // shared by two consecutive legs (BOS→FRA, FRA→MUC) shows up as a
@@ -301,6 +320,7 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
       // Defensive enqueue handles the second case — the per-process
       // in-flight set in `enqueueGeocodeFetch` keeps rapid page
       // refreshes from fanning out into duplicate calls.
+      hasPendingMiss = true;
       enqueueGeocodeFetch(query);
       ungeocoded.push({
         segmentId: row.id,
@@ -316,7 +336,14 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
   // grouped by kind for callers that scan it.
   for (const pin of flightPinsByAirport.values()) pins.push(pin);
 
-  return { pins, arcs, ungeocoded };
+  // Only probe worker health when there's a pending miss to explain —
+  // an all-resolved (or all-null) trip needs no banner, and this keeps
+  // the env/pg-boss check off the hot path for healthy maps.
+  const geocodeWorkerStatus: GeocodeWorkerStatus = hasPendingMiss
+    ? await getGeocodeWorkerStatus()
+    : 'ok';
+
+  return { pins, arcs, ungeocoded, geocodeWorkerStatus };
 }
 
 function flightLabel(

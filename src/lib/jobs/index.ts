@@ -8,7 +8,14 @@
 import { PgBossJobs } from './pgboss';
 import type { Jobs } from './types';
 
-export type { Jobs, JobHandler, RegisterOptions, ScheduleOptions, SendOptions } from './types';
+export type {
+  Jobs,
+  JobHandler,
+  QueueHealth,
+  RegisterOptions,
+  ScheduleOptions,
+  SendOptions,
+} from './types';
 
 let instance: Jobs | null = null;
 

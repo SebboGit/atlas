@@ -38,6 +38,8 @@ export { getPlaceCoordsMap, getPlaceCoordsView, type PlaceCoordsView } from './p
 
 export { normalizeForGeocoder } from './normalize-for-geocoder';
 
+export { getGeocodeWorkerStatus, type GeocodeWorkerStatus } from './worker-health';
+
 import { createNominatimGeocoder } from './nominatim';
 import { PlaceResolver } from './place-resolver';
 import type { Geocoder } from './types';
