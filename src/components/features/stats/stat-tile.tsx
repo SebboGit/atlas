@@ -44,8 +44,13 @@ export function StatTile({
             </span>
           ) : null}
         </p>
+        {/* Caption is supporting context — dropped entirely on phone, where
+         *  the label + figure carry the tile, and shown from sm: up where
+         *  there's room. */}
         {caption ? (
-          <p className="text-muted-foreground mt-auto text-sm leading-relaxed">{caption}</p>
+          <p className="text-muted-foreground mt-auto hidden text-sm leading-relaxed sm:block">
+            {caption}
+          </p>
         ) : null}
       </CardContent>
     </Card>

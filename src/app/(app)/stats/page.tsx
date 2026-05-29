@@ -4,13 +4,7 @@ import { YearStrip } from '@/components/features/stats/year-strip';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
 import { getStatsDashboardData } from '@/lib/stats';
-import {
-  convertDistance,
-  getDistanceUnit,
-  groupDigits,
-  monthYear,
-  plural,
-} from '@/lib/stats/format';
+import { convertDistance, getDistanceUnit, groupDigits, monthYear } from '@/lib/stats/format';
 
 export const metadata = {
   title: 'Stats · Atlas',
@@ -69,18 +63,18 @@ export default async function StatsPage() {
             <StatTile
               label="Nights away"
               value={groupDigits(lifetime.nightsAway)}
-              caption="Across your logged hotel stays."
+              caption="Across all hotel stays."
             />
             <StatTile
               label="Flights"
               value={groupDigits(lifetime.flightsTaken)}
-              caption={`${plural(lifetime.flightsTaken, 'Leg')} flown — logged or imported.`}
+              caption="Counted by leg."
             />
             <StatTile
               label="Distance flown"
               value={groupDigits(distanceFlown)}
               unit={distanceUnit}
-              caption="Great-circle, airport to airport."
+              caption="Great-circle distance between airports."
             />
           </section>
 
