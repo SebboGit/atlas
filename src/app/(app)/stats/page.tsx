@@ -54,7 +54,7 @@ export default async function StatsPage() {
               value={String(lifetime.countriesVisited)}
               caption={
                 lifetime.newestCountry
-                  ? `Newest: ${lifetime.newestCountry.name}, ${monthYear(
+                  ? `Newest:\n${lifetime.newestCountry.name}, ${monthYear(
                       lifetime.newestCountry.firstVisitAt,
                     )}.`
                   : undefined
