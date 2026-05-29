@@ -1,6 +1,13 @@
 'use client';
 
-import { Menu } from 'lucide-react';
+import {
+  ChartColumn,
+  Luggage,
+  Map as MapIcon,
+  Menu,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as React from 'react';
@@ -21,16 +28,19 @@ import { cn } from '@/lib/utils';
 interface NavRoute {
   href: string;
   label: string;
+  // Shown on the phone hamburger sheet (the laptop inline nav stays
+  // text-only — icons would fight the search/sign-out chrome there).
+  icon: LucideIcon;
 }
 
 // Primary nav surface. Order mirrors the homepage section numerals so
 // users build a single mental map of "where things live" across the
 // home tiles, the topbar, and (on phone) the hamburger sheet.
 const ROUTES: readonly NavRoute[] = [
-  { href: '/trips', label: 'Trips' },
-  { href: '/wishlist', label: 'Wishlist' },
-  { href: '/map', label: 'Map' },
-  { href: '/stats', label: 'Stats' },
+  { href: '/trips', label: 'Trips', icon: Luggage },
+  { href: '/wishlist', label: 'Wishlist', icon: Sparkles },
+  { href: '/map', label: 'Map', icon: MapIcon },
+  { href: '/stats', label: 'Stats', icon: ChartColumn },
 ];
 
 function isActiveRoute(pathname: string | null, href: string): boolean {
@@ -62,24 +72,49 @@ export function Topbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left">
-            <SheetTitle className="mb-1">Atlas</SheetTitle>
-            <SheetDescription className="mb-6">Self-hosted travel log.</SheetDescription>
+            <div className="mb-3 flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/atlas_logo.svg"
+                alt=""
+                aria-hidden
+                width={28}
+                height={28}
+                className="h-7 w-7"
+              />
+              <SheetTitle>Atlas</SheetTitle>
+            </div>
+            <SheetDescription className="mb-5">Self-hosted travel log.</SheetDescription>
+            {/* Full-bleed hairline — reads as a section break between the
+             *  masthead and the route list. */}
+            <div aria-hidden className="bg-foreground/10 -mx-6 mb-4 h-px" />
             <nav aria-label="Mobile main" className="flex flex-col gap-1">
               {ROUTES.map((route) => {
                 const active = isActiveRoute(pathname, route.href);
+                const Icon = route.icon;
                 return (
                   <SheetClose asChild key={route.href}>
                     <Link
                       href={route.href}
                       aria-current={active ? 'page' : undefined}
                       className={cn(
-                        'flex min-h-11 items-center rounded-lg px-3 text-base transition-colors',
+                        'flex min-h-11 items-center gap-3 rounded-xl px-3 text-base transition-colors',
+                        // Hover gated to pointer devices (CLAUDE.md rule 4)
+                        // so it doesn't stick after a tap on this touch surface.
                         active
                           ? 'bg-foreground/8 text-foreground'
-                          : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
+                          : 'text-foreground/80 [@media(hover:hover)]:hover:bg-foreground/5 [@media(hover:hover)]:hover:text-foreground',
                       )}
                     >
-                      {route.label}
+                      <Icon
+                        aria-hidden
+                        className={cn(
+                          'size-[18px] shrink-0',
+                          active ? 'text-primary' : 'text-foreground/45',
+                        )}
+                        strokeWidth={1.75}
+                      />
+                      <span>{route.label}</span>
                     </Link>
                   </SheetClose>
                 );

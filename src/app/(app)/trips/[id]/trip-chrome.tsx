@@ -67,7 +67,7 @@ export function TripChrome({
     <main
       className={cn(
         'mx-auto w-full px-6 pb-24 sm:px-8',
-        isMapView ? 'max-w-6xl pt-8 sm:pt-10' : 'max-w-5xl pt-12 sm:pt-16',
+        isMapView ? 'max-w-6xl pt-6 sm:pt-10' : 'max-w-5xl pt-6 sm:pt-16',
       )}
     >
       {isMapView ? (
@@ -94,7 +94,7 @@ export function TripChrome({
         </>
       ) : (
         <>
-          <div className="atlas-rise mb-8" style={{ animationDelay: '40ms' }}>
+          <div className="atlas-rise mb-5 sm:mb-8" style={{ animationDelay: '40ms' }}>
             <Link
               href="/trips"
               className="text-foreground/70 hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
@@ -104,22 +104,29 @@ export function TripChrome({
             </Link>
           </div>
 
-          <header className="atlas-rise mb-8" style={{ animationDelay: '100ms' }}>
-            <div className="mb-4 flex items-center gap-3">
-              <p className="text-muted-foreground hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
+          <header className="atlas-rise mb-6 sm:mb-8" style={{ animationDelay: '100ms' }}>
+            {/* Eyebrow + status — laptop only. On phone the status pill
+             *  moves into the title row (next to the ⋯ menu) to spend one
+             *  fewer vertical line before the tabs. */}
+            <div className="mb-4 hidden items-center gap-3 sm:flex">
+              <p className="text-muted-foreground flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
                 <span aria-hidden className="bg-foreground/30 h-px w-8" />
                 <span>Trip</span>
               </p>
               <TripStatusBadge status={trip.status} />
             </div>
 
-            {/* Title row — phone tucks a ⋯ overflow menu to the right of
-             *  the title (Upload / Edit / Archive / Delete); laptop hides
-             *  the ⋯ and renders the full action row below. */}
+            {/* Title row — phone tucks the status pill and a ⋯ overflow menu
+             *  to the right of the title (Upload / Edit / Archive / Delete);
+             *  laptop hides both — the badge sits in the eyebrow row above
+             *  and the actions in the inline row below. */}
             <div className="flex items-start gap-3">
               <h1 className="font-display text-foreground flex-1 text-4xl leading-[1.04] font-medium tracking-tight sm:text-6xl">
                 {trip.title}
               </h1>
+              <div className="mt-1 shrink-0 sm:hidden">
+                <TripStatusBadge status={trip.status} />
+              </div>
               <TripOverflowMenu
                 trip={trip}
                 isArchived={isArchived}
@@ -127,13 +134,13 @@ export function TripChrome({
               />
             </div>
 
-            <p className="text-muted-foreground mt-4 font-mono text-xs tracking-wider">
+            <p className="text-muted-foreground mt-3 font-mono text-xs tracking-wider sm:mt-4">
               {dateRange}
             </p>
 
             {/* Phone action row — Map is the only inline primary; the
              *  other maintenance actions live in the ⋯ menu above. */}
-            <div className="mt-6 sm:hidden">
+            <div className="mt-5 sm:hidden">
               <Link
                 href={`/trips/${trip.id}/map`}
                 className={cn(buttonVariants({ variant: 'ink', size: 'sm' }), 'inline-flex')}
@@ -213,9 +220,12 @@ export function TripChrome({
             </div>
           </header>
 
-          <div className="atlas-rule mb-6" aria-hidden />
+          <div className="atlas-rule mb-5 sm:mb-6" aria-hidden />
 
-          <div className="atlas-rise mb-10 flex flex-col gap-4" style={{ animationDelay: '180ms' }}>
+          <div
+            className="atlas-rise mb-6 flex flex-col gap-4 sm:mb-10"
+            style={{ animationDelay: '180ms' }}
+          >
             <TripTabs tripId={trip.id} />
             {hasFilterBar && <TripFilterBar codes={countryCodes} />}
           </div>

@@ -23,6 +23,8 @@ import { formatBytes } from '@/lib/format';
 import {
   DEFAULT_FILE_INPUT_ACCEPT,
   DEFAULT_FILE_INPUT_ACCEPT_HUMAN,
+  DOCUMENTS_ONLY_FILE_INPUT_ACCEPT,
+  DOCUMENTS_ONLY_FILE_INPUT_ACCEPT_HUMAN,
   formatMimeLabel,
 } from '@/lib/storage/mimes';
 
@@ -43,6 +45,22 @@ interface DocumentUploadDialogProps {
 const ACCEPT = DEFAULT_FILE_INPUT_ACCEPT;
 const ACCEPT_HUMAN = DEFAULT_FILE_INPUT_ACCEPT_HUMAN;
 
+// True when the primary pointer is coarse (touch). Subscribed via
+// useSyncExternalStore so the server snapshot is a stable `false` (no
+// hydration mismatch) and the client reflects the live media query
+// without a setState-in-effect.
+function useCoarsePointer(): boolean {
+  return React.useSyncExternalStore(
+    (onStoreChange) => {
+      const mql = window.matchMedia('(pointer: coarse)');
+      mql.addEventListener('change', onStoreChange);
+      return () => mql.removeEventListener('change', onStoreChange);
+    },
+    () => window.matchMedia('(pointer: coarse)').matches,
+    () => false,
+  );
+}
+
 export function DocumentUploadDialog({
   tripId,
   trigger,
@@ -62,6 +80,15 @@ export function DocumentUploadDialog({
   const [selected, setSelected] = React.useState<File | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  // On touch devices, narrow the picker hint to documents only so the
+  // native file browser opens directly — any image/* entry makes iOS (and
+  // some Android pickers) surface the Photos/Camera sheet, burying the
+  // Files location where PDFs and .eml actually sit. Server allowlist is
+  // unchanged: images stay valid, and the desktop picker keeps them.
+  const touchPicker = useCoarsePointer();
+  const accept = touchPicker ? DOCUMENTS_ONLY_FILE_INPUT_ACCEPT : ACCEPT;
+  const acceptHuman = touchPicker ? DOCUMENTS_ONLY_FILE_INPUT_ACCEPT_HUMAN : ACCEPT_HUMAN;
 
   // Reset state when the dialog closes — picking a file in one open
   // session shouldn't leak into the next. Routed through `onOpenChange`
@@ -159,7 +186,7 @@ export function DocumentUploadDialog({
                   id="doc-file"
                   type="file"
                   name="file"
-                  accept={ACCEPT}
+                  accept={accept}
                   onChange={onFileChange}
                   className="sr-only"
                 />
@@ -167,7 +194,7 @@ export function DocumentUploadDialog({
               <p className="text-muted-foreground font-mono text-[10px] tracking-wider break-words">
                 {selected
                   ? `${formatBytes(selected.size)} · ${formatMimeLabel(selected.type)}`
-                  : ACCEPT_HUMAN}
+                  : acceptHuman}
               </p>
             </div>
 

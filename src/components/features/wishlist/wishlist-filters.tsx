@@ -33,12 +33,16 @@ function ChipLink({
       data-active={active || undefined}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'inline-flex shrink-0 snap-start items-baseline gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors',
+        // items-center (not baseline): with a 44px min-height touch target,
+        // baseline alignment parked the label + count at the top of the
+        // pill; centring keeps them vertically middled.
+        'inline-flex shrink-0 snap-start items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors',
         // Tap target on touch per CLAUDE.md.
         'min-h-11',
+        // Hover gated to pointer devices (rule 4) so it doesn't stick on tap.
         active
           ? 'border-foreground/45 bg-foreground/8 text-foreground'
-          : 'border-foreground/15 text-foreground/70 hover:border-foreground/30 hover:text-foreground',
+          : 'border-foreground/15 text-foreground/70 [@media(hover:hover)]:hover:border-foreground/30 [@media(hover:hover)]:hover:text-foreground',
       )}
     >
       <span>{children}</span>

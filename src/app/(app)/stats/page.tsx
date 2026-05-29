@@ -33,7 +33,7 @@ export default async function StatsPage() {
   const distanceFlown = convertDistance(lifetime.distanceFlownKm, distanceUnit);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 pt-16 pb-24 sm:px-8 sm:pt-20">
+    <main className="mx-auto w-full max-w-6xl px-6 pt-8 pb-24 sm:px-8 sm:pt-20">
       <header className="atlas-rise mb-8" style={{ animationDelay: '20ms' }}>
         <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
@@ -60,7 +60,7 @@ export default async function StatsPage() {
               value={String(lifetime.countriesVisited)}
               caption={
                 lifetime.newestCountry
-                  ? `Last new one: ${lifetime.newestCountry.name}, ${monthYear(
+                  ? `Newest: ${lifetime.newestCountry.name}, ${monthYear(
                       lifetime.newestCountry.firstVisitAt,
                     )}.`
                   : undefined
@@ -69,24 +69,18 @@ export default async function StatsPage() {
             <StatTile
               label="Nights away"
               value={groupDigits(lifetime.nightsAway)}
-              caption={`Counted across every hotel ${plural(
-                lifetime.nightsAway,
-                'stay',
-              )} you've logged.`}
+              caption="Across your logged hotel stays."
             />
             <StatTile
               label="Flights"
               value={groupDigits(lifetime.flightsTaken)}
-              caption={`${plural(
-                lifetime.flightsTaken,
-                'Leg',
-              )} flown — boarding passes and manual entries alike.`}
+              caption={`${plural(lifetime.flightsTaken, 'Leg')} flown — logged or imported.`}
             />
             <StatTile
               label="Distance flown"
               value={groupDigits(distanceFlown)}
               unit={distanceUnit}
-              caption="Great-circle distance between airports — the honest minimum."
+              caption="Great-circle, airport to airport."
             />
           </section>
 

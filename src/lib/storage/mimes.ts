@@ -47,10 +47,33 @@ export const DEFAULT_FILE_INPUT_ACCEPT: string = [...DEFAULT_ALLOWED_MIMES, '.pk
 );
 
 /**
+ * Documents-only variant of the accept hint — PDF plus the two
+ * extension-only types, with NO image MIMEs. Used on touch devices: any
+ * `image/*` entry makes iOS (and some Android pickers) open the
+ * Photos/Camera sheet, burying the file browser where PDFs and .eml
+ * actually live. Advertising documents only opens that browser directly.
+ * The server allowlist is unchanged — images are still accepted on upload
+ * and remain selectable from the desktop picker.
+ */
+export const DOCUMENTS_ONLY_FILE_INPUT_ACCEPT: string = [
+  'application/pdf',
+  ...UNSNIFFABLE_MIMES,
+  '.pkpass',
+  '.eml',
+].join(',');
+
+/**
  * Human-readable form for UI hints. Order matches the client picker.
  */
 export const DEFAULT_FILE_INPUT_ACCEPT_HUMAN: string =
   'PDF · JPG · PNG · WebP · HEIC · Apple Wallet · Email';
+
+/**
+ * Documents-only human hint — pairs with DOCUMENTS_ONLY_FILE_INPUT_ACCEPT
+ * on touch devices so the advertised types match what the picker shows
+ * (images are dropped there to open the file browser directly).
+ */
+export const DOCUMENTS_ONLY_FILE_INPUT_ACCEPT_HUMAN: string = 'PDF · Apple Wallet · Email';
 
 /**
  * Friendly label for a MIME type — what users actually expect to read
