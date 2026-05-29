@@ -47,8 +47,11 @@ export function StatTile({
         {/* Caption is supporting context — dropped entirely on phone, where
          *  the label + figure carry the tile, and shown from sm: up where
          *  there's room. */}
+        {/* whitespace-pre-line so a caption can opt into a hard line break
+         *  with "\n" (e.g. the Countries tile's "Newest:" label over its
+         *  value); captions without one wrap normally. */}
         {caption ? (
-          <p className="text-muted-foreground mt-auto hidden text-sm leading-relaxed sm:block">
+          <p className="text-muted-foreground mt-auto hidden text-sm leading-relaxed whitespace-pre-line sm:block">
             {caption}
           </p>
         ) : null}
