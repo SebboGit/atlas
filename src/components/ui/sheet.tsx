@@ -37,9 +37,13 @@ interface SheetContentProps extends React.ComponentPropsWithoutRef<typeof Dialog
   side?: SheetSide;
 }
 
+// Narrow enough that a comfortable strip of the page stays visible beside
+// the drawer — tapping that strip (the overlay) is the primary close
+// gesture on phone, so it shouldn't be a sliver. ~70 % of a 360 px phone,
+// capped at 17rem so it doesn't sprawl on a larger handset.
 const SIDE_POSITIONING: Record<SheetSide, string> = {
-  left: 'inset-y-0 left-0 w-[min(20rem,85vw)] border-r rounded-r-3xl',
-  right: 'inset-y-0 right-0 w-[min(20rem,85vw)] border-l rounded-l-3xl',
+  left: 'inset-y-0 left-0 w-[min(17rem,72vw)] border-r rounded-r-3xl',
+  right: 'inset-y-0 right-0 w-[min(17rem,72vw)] border-l rounded-l-3xl',
 };
 
 const SheetContent = React.forwardRef<

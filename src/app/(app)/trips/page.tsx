@@ -104,7 +104,7 @@ function DashboardLayout({ trips }: { trips: Trip[] }) {
   const undatedStart = cursor;
 
   return (
-    <div className="flex flex-col gap-12 sm:gap-14">
+    <div className="flex flex-col gap-7 sm:gap-10">
       {upcoming.length > 0 && (
         <section aria-label="Active and upcoming trips">
           <ul className="grid gap-2 sm:grid-cols-2 sm:gap-5">

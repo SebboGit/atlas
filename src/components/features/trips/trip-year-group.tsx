@@ -24,8 +24,8 @@ export function TripYearGroup({ label, trips, startIndex }: TripYearGroupProps) 
   if (trips.length === 0) return null;
   const headingId = `year-${label}`;
   return (
-    <section aria-labelledby={headingId} className="mb-10 sm:mb-12">
-      <header className="bg-background/85 supports-[backdrop-filter]:bg-background/55 sticky top-16 z-30 -mx-6 mb-5 px-6 py-3 backdrop-blur-md sm:-mx-8 sm:mb-6 sm:px-8 sm:py-4">
+    <section aria-labelledby={headingId} className="mb-6 sm:mb-8">
+      <header className="bg-background/85 supports-[backdrop-filter]:bg-background/55 sticky top-16 z-30 -mx-6 mb-4 px-6 py-3 backdrop-blur-md sm:-mx-8 sm:mb-5 sm:px-8 sm:py-4">
         <div className="flex items-baseline gap-4">
           <h2
             id={headingId}
