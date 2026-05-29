@@ -51,7 +51,11 @@ export function TripTabs({ tripId }: { tripId: string }) {
               'relative shrink-0 px-1 py-2 font-mono text-xs tracking-[0.16em] uppercase transition-colors sm:px-3 sm:tracking-[0.28em]',
               // Tap target on touch per CLAUDE.md responsive rules.
               'inline-flex min-h-11 items-center',
-              isActive ? 'text-foreground' : 'text-foreground/45 hover:text-foreground/85',
+              // Hover lift gated to pointer devices (CLAUDE.md responsive
+              // rule 4) so it doesn't stick after a tap on touch.
+              isActive
+                ? 'text-foreground'
+                : 'text-foreground/45 [@media(hover:hover)]:hover:text-foreground/85',
             )}
           >
             <span className="text-foreground/40 mr-1.5 normal-case">{tab.numeral}.</span>
