@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { requireUser } from '@/lib/auth/session';
 import { countryName } from '@/lib/countries';
+import { log } from '@/lib/log';
 
 import { getGeocoder } from './index';
 import type { GeocodeCandidate } from './types';
@@ -70,10 +71,20 @@ export async function searchPlaceCandidatesAction(raw: unknown): Promise<PlaceSe
   let geocoder;
   try {
     geocoder = getGeocoder();
-  } catch {
-    // Missing NOMINATIM_CONTACT_EMAIL. Surface as a typed result, not a
-    // 500 — the picker shows "search unavailable" and manual entry of
-    // address / Plus Code still works.
+  } catch (error) {
+    // The expected failure is a missing NOMINATIM_CONTACT_EMAIL (the
+    // factory throws on it). Anything else is an unexpected defect — log
+    // it rather than silently mislabel it as "unconfigured", but still
+    // degrade to the typed result either way: this action is awaited
+    // inside a client transition and must never throw, and "search
+    // unavailable" keeps manual address / Plus Code entry working.
+    const expected = error instanceof Error && error.message.includes('NOMINATIM_CONTACT_EMAIL');
+    if (!expected) {
+      log.error(
+        { reason: error instanceof Error ? error.message : 'unknown' },
+        'geocoding.search.geocoder_unavailable',
+      );
+    }
     return { ok: false, reason: 'unconfigured' };
   }
 
