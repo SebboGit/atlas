@@ -81,7 +81,7 @@ Click a pin to zoom in on a city and see its details.
 
 | Layer         | Choice                                 |
 | ------------- | -------------------------------------- |
-| Framework     | Next.js 15 (App Router, RSC)           |
+| Framework     | Next.js 16 (App Router, RSC)           |
 | Language      | TypeScript (strict)                    |
 | Styling       | Tailwind CSS + shadcn/ui               |
 | Database      | PostgreSQL 18 + Drizzle ORM            |
