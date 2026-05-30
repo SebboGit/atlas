@@ -314,9 +314,16 @@ Order of operations:
    docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile backup up -d
    ```
 
-The GHCR image must already exist for the pull to succeed — it is published
-by the release workflow when a `v*` tag is pushed, so deploy a tagged
-version rather than an unbuilt one.
+A release publishes **two** images from one version, and `ATLAS_IMAGE_TAG`
+drives both: the `app` pulls `ghcr.io/sebbogit/atlas:$ATLAS_IMAGE_TAG` and the
+`worker` pulls the same tag suffixed `-worker`
+(`ghcr.io/sebbogit/atlas:$ATLAS_IMAGE_TAG-worker`). The worker image carries the
+pg-boss process — it runs migrations and the background jobs the app depends on,
+so both must exist for the pull to succeed.
+
+The GHCR images must already exist for the pull to succeed — they are published
+by the release workflow when a `v*` tag is pushed, so deploy a tagged version
+rather than an unbuilt one.
 
 ---
 
