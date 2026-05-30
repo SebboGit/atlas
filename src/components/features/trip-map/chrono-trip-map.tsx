@@ -29,8 +29,6 @@ interface ChronoTripMapProps {
   days: RailDay[];
   /** True only for `trip.status === 'active'`. */
   isActive: boolean;
-  /** Focused day from `?day=YYYY-MM-DD` (server-read), or null. */
-  initialFocusedDayKey: string | null;
 }
 
 /**
@@ -65,18 +63,18 @@ export function ChronoTripMap({
   geocodeWorkerStatus,
   days,
   isActive,
-  initialFocusedDayKey,
 }: ChronoTripMapProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // `?day=` is the single source of truth for the focused day. Read it
-  // live off the URL so back/forward and shared links round-trip — fall
-  // back to the server-read value for the very first paint (the two
-  // agree). A day no longer present in `days` (stale link) resolves to
-  // no focus rather than an empty highlight.
-  const dayParam = searchParams.get('day') ?? initialFocusedDayKey;
+  // The live `?day=` is the single source of truth for the focused day,
+  // read straight off the URL so back/forward, shared links, AND unfocus
+  // (clearing the param) all round-trip — no server-prop fallback, which
+  // would otherwise re-apply a deep-linked day after the user cleared it.
+  // A day not present in `days` (stale link, or a shape-invalid value)
+  // resolves to no focus rather than an empty highlight.
+  const dayParam = searchParams.get('day');
   const focusedDayKey = React.useMemo(
     () => (dayParam && days.some((d) => d.key === dayParam) ? dayParam : null),
     [dayParam, days],

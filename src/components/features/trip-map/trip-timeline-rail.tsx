@@ -160,9 +160,7 @@ function SegmentRailRow({
         aria-pressed={selected}
         className={cn(
           'flex min-h-11 w-full items-start gap-3 rounded-lg px-2 py-1.5 text-left transition-colors',
-          selected
-            ? 'bg-primary/10'
-            : 'hover:bg-foreground/4 [@media(hover:hover)]:hover:bg-foreground/5',
+          selected ? 'bg-primary/10' : '[@media(hover:hover)]:hover:bg-foreground/5',
         )}
       >
         {inner}
@@ -210,7 +208,7 @@ function DayBlock({
         aria-pressed={focused}
         className={cn(
           'group flex min-h-11 w-full items-baseline gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
-          'hover:bg-foreground/4',
+          '[@media(hover:hover)]:hover:bg-foreground/4',
           focused && 'bg-primary/8',
         )}
       >
@@ -269,7 +267,7 @@ function CollapsedPastRow({ days, onExpand }: { days: RailDay[]; onExpand: () =>
       onClick={onExpand}
       aria-expanded={false}
       aria-label={`Show ${days.length} past ${days.length === 1 ? 'day' : 'days'}`}
-      className="group hover:bg-foreground/4 mb-3 flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors"
+      className="group [@media(hover:hover)]:hover:bg-foreground/4 mb-3 flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors"
     >
       <ChevronDown
         aria-hidden
@@ -301,7 +299,7 @@ function ExpandedPastHeader({ onCollapse }: { onCollapse: () => void }) {
       onClick={onCollapse}
       aria-expanded={true}
       aria-label="Collapse past days"
-      className="group hover:bg-foreground/4 mb-2 flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors"
+      className="group [@media(hover:hover)]:hover:bg-foreground/4 mb-2 flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors"
     >
       <ChevronDown
         aria-hidden

@@ -13,22 +13,19 @@ import * as tripsRepo from '@/lib/trips/repo';
 
 interface MapTabPageProps {
   params: Promise<{ id: string }>;
-  // `country` is the spatial filter (chip strip); `day` is the temporal
-  // focus (timeline). Both round-trip on the URL — see ChronoTripMap.
+  // `country` is the spatial filter (chip strip), read here to resolve
+  // the active country + chip names server-side. `day` (the temporal
+  // focus) also round-trips on the URL but is read CLIENT-side via
+  // useSearchParams in ChronoTripMap — the live URL is its single source
+  // of truth, so the server doesn't read it.
   searchParams: Promise<{ country?: string; day?: string }>;
 }
-
-// `YYYY-MM-DD` — the only `day` value the timeline writes. Validate
-// here so a hand-typed / stale query value can't reach the client as a
-// non-day string (it just resolves to "no focus" downstream anyway).
-const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function MapTabPage({ params, searchParams }: MapTabPageProps) {
   const user = await requireUser();
   const { id } = await params;
-  const { country: countryParam, day: dayParam } = await searchParams;
+  const { country: countryParam } = await searchParams;
   const activeCountry = countryParam?.toUpperCase() ?? null;
-  const initialFocusedDayKey = dayParam && DAY_KEY_RE.test(dayParam) ? dayParam : null;
 
   // Layout already 404'd on missing trip — re-fetch for independence.
   const trip = await tripsRepo.getByIdForUser(user.id, id);
@@ -78,7 +75,6 @@ export default async function MapTabPage({ params, searchParams }: MapTabPagePro
       geocodeWorkerStatus={mapData.geocodeWorkerStatus}
       days={railDays}
       isActive={isActive}
-      initialFocusedDayKey={initialFocusedDayKey}
     />
   );
 }
