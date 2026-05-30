@@ -1,13 +1,13 @@
 # Domain Model
 
 > The schema in [`src/db/schema/`](../src/db/schema/) is the source of
-> truth; this file explains the _why_ behind it. Last reviewed: 2026-05-17.
+> truth; this file explains the _why_ behind it. Last reviewed: 2026-05-30.
 
 ## Entities
 
 ### User
 
-- Owns everything. Single-user today, multi-user-ready (every aggregate has `userId`).
+- Identity for sign-in and provenance. Built for one user or a small household; every aggregate carries `userId` / `createdBy`, which records who created a row, not exclusive ownership — see the visibility note under "Out of model".
 - Created **just-in-time** on first successful OIDC sign-in via PocketID. No registration form.
 - Fields: `id`, `sub` (OIDC subject — immutable, unique), `email`, `name`, `groups[]`, `createdAt`, `lastSeenAt`.
 - `email`, `name`, `groups` refreshed from claims on every sign-in.
@@ -35,6 +35,18 @@
 - Stored as `(type, data: jsonb)` plus a few hot-path columns lifted to top-level for indexing: `startsAt`, `endsAt`, `locationName`, `countryCode`, `originCountryCode`.
 - **Country attribution** (see ADR-0005): `countryCode` is the primary country (destination for flights, location country for everything else). `originCountryCode` is set only on flights and carries the origin country. The country filter matches either column, so a flight surfaces under both endpoints.
 - Has many `Document`.
+- `wishlistItemId` is the optional link back to the `WishlistItem` this segment was materialised from. NULL for segments created directly.
+
+### WishlistItem
+
+- The household's reusable, country-scoped place list — food spots and attractions worth coming back to. Independent of any single trip and shared across the household.
+- Two layers of "wishlist" coexist in Atlas, and they are not the same thing:
+  - **`WishlistItem` (this table)** — global, country-scoped, reusable across trips. A Tokyo ramen spot keeps surfacing as a suggestion on every future Japan trip, even after it was scheduled on a previous one.
+  - **A per-trip wishlist `Segment` (`startsAt IS NULL`)** — an undated intention pinned to one trip (see ADR-0003 and the Segment invariant below).
+- Covers only `food` and `activity`. Fields: `id`, `type` (`food` | `activity`), `countryCode` (required — gates the per-trip suggestions panel), `locationName` (pin label, not the venue name), `notes`, `tags[]`, `data: jsonb`, `createdBy`, timestamps.
+- The per-type `data` shape mirrors the matching segment data exactly (`food = { venue, address?, bookingRef? }`, `activity = { title, description?, bookingRef? }`), so materialisation is a verbatim copy. Validated at the application layer via `src/lib/wishlist/validators.ts`, which reuses the segment data shapes.
+- **Materialisation:** adding a `WishlistItem` to a trip creates an undated `Segment` of the matching type with `data` copied across and `segments.wishlistItemId` set as provenance. The wishlist item itself is unchanged and stays available for other trips. Promoting that segment onto the itinerary is then the same single-column `startsAt` update as any other wishlist segment.
+- `createdBy` is provenance only (drives an "added by …" tag), not an auth filter — wishlist items are household-shared per the visibility model.
 
 ### Document
 
@@ -55,7 +67,7 @@
 3. **A Document is immutable in its original form.** New version = new Document row, new `objectKey`. The file on disk is never overwritten.
 4. **Idempotent imports.** `Document.sha256` is unique per user — uploading the same boarding pass twice is a no-op (returns the existing Document).
 5. **A Segment's location data is duplicated to `Location` rows** for map rendering — keeps map queries fast and lets the user add custom pins. Country attribution for _filtering_ lives on `Segment.countryCode` / `originCountryCode` (denormalised from data); `Location.countryCode` remains the source of truth for the map.
-6. **Activity scheduling state is encoded by `startsAt`.** For an `activity` segment, a NULL `startsAt` means the activity is on the trip's wishlist (no date assigned yet). Promotion to scheduled is a single-column `UPDATE`; demotion is the reverse. For non-`activity` types, NULL retains its prior "date not yet specified" meaning. See ADR-0003.
+6. **Per-trip wishlist state is encoded by `startsAt`.** Defined for `activity` (ADR-0003): a NULL `startsAt` means the segment sits on that trip's wishlist (no date assigned yet); a non-NULL value means it is scheduled on the itinerary. Promotion to scheduled is a single-column `UPDATE`; demotion is the reverse. A materialised `WishlistItem` lands the same way — `materialiseToSegment` creates the segment with `startsAt = null` (food or activity), carrying its `wishlistItemId` — so it follows this rule like any other undated segment. For other types, NULL retains its prior "date not yet specified" meaning. This per-trip wishlist is distinct from the global, reusable `WishlistItem` table described above.
 7. **Cascades:** Deleting a Trip **hard-deletes** its Segments (`ON DELETE CASCADE`) and **unlinks** Documents (`tripId` / `segmentId` set to NULL). Unlinked Documents are _orphans_ and retain their files on disk; a periodic job sweeps them after a grace period (see invariant #7). Soft-delete was considered and rejected: it would push `deletedAt IS NULL` filters into every list query and uniqueness check, and Atlas's "operational simplicity wins ties" rule (CLAUDE.md) tips the balance the other way. Trip "undo" can be implemented at the UI layer with a confirm step or by using the existing `archived` trip status.
 8. **File-on-disk lifetime.** A Document row deletion removes the file. A Document row UPDATE never touches the file. Orphaning a Document (unlinking from trip and segment) stamps `orphanedAt` so the periodic sweep can distinguish "just uploaded, not yet linked" from "was linked, parent went away N days ago."
 
@@ -73,4 +85,4 @@ One table = one extraction pipeline, one upload UI, one storage adapter, one bac
 
 - Expenses & budgets — additive later.
 - Itinerary timeline reordering with conflict detection — UI concern when needed.
-- Shared trips — `ownerships` join table when introduced; schema is ready.
+- Per-trip privacy — not modelled. Atlas is full household sharing by default: `userId` / `createdBy` columns are provenance, not ownership. If privacy is ever needed, the only acceptable extension is a `trips.visibility` enum on the existing schema — not an `ownerships` join table.
