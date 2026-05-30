@@ -5,14 +5,16 @@ import type { Segment } from '@/lib/segments';
 import {
   classifyDay,
   classifyDays,
+  continuesThroughDay,
   daysContainSegment,
   findDayKeyForSegment,
   isOngoing,
+  ongoingContinuationsByDayKey,
   splitCollapsedDays,
   summariseLocations,
   type ClassifiedDay,
 } from './day-temporal';
-import type { DayBucket } from './group-by-day';
+import { dayKey, type DayBucket } from './group-by-day';
 
 // Local-midnight Dates throughout — the same shape `groupSegmentsByDay`
 // produces for bucket dates.
@@ -223,65 +225,121 @@ describe('isOngoing', () => {
 });
 
 describe('splitCollapsedDays', () => {
-  // Minimal ClassifiedDay factory — `splitCollapsedDays` reads only
-  // `position` and `segments`, but the cast keeps the call sites honest.
-  function makeDay(position: ClassifiedDay['position'], segments: Segment[] = []): ClassifiedDay {
-    return { date: new Date(), dayNumber: 1, position, segments } as ClassifiedDay;
+  // `splitCollapsedDays` reads only `position` now (past collapses
+  // unconditionally — ongoing stays surface as continuations instead).
+  function makeDay(position: ClassifiedDay['position']): ClassifiedDay {
+    return { date: new Date(), dayNumber: 1, position, segments: [] } as ClassifiedDay;
   }
 
-  it('collapses every pre-today day when none holds an ongoing segment', () => {
+  it('collapses every leading past day', () => {
     const days = [makeDay('past'), makeDay('past'), makeDay('today'), makeDay('future')];
-    const { collapsed, visible } = splitCollapsedDays(days, today);
+    const { collapsed, visible } = splitCollapsedDays(days);
     expect(collapsed).toHaveLength(2);
     expect(visible.map((d) => d.position)).toEqual(['today', 'future']);
   });
 
-  it('stops the collapsed run at a past day holding an ongoing segment', () => {
-    // The repro: day 19 carries a hotel running 19–23 May. Days before
-    // it collapse; day 19, the genuinely-past day 20, today and future
-    // all stay visible — the contiguous live stretch.
-    const ongoingHotel = makeSegment({
-      id: 'hotel',
-      type: 'hotel',
-      startsAt: new Date(2026, 4, 19),
-      endsAt: new Date(2026, 4, 23),
-    });
+  it('collapses a past day even when it holds an ongoing multi-day segment', () => {
+    // Was the old exception: a hotel running over a past day used to keep
+    // it (and every later past day) expanded. Now ALL past days collapse;
+    // the stay re-surfaces as a continuation under today (see
+    // ongoingContinuationsByDayKey).
     const days = [
-      makeDay('past'), // 18 May — collapses
-      makeDay('past', [ongoingHotel]), // 19 May — ongoing, stops the run
-      makeDay('past'), // 20 May — genuinely past but inside the live stretch
+      makeDay('past'),
+      makeDay('past'),
+      makeDay('past'),
       makeDay('today'),
       makeDay('future'),
     ];
-    const { collapsed, visible } = splitCollapsedDays(days, today);
-    expect(collapsed).toHaveLength(1);
-    expect(visible).toHaveLength(4);
-    expect(visible[0]!.segments[0]).toBe(ongoingHotel);
-  });
-
-  it('collapses nothing when the very first day holds an ongoing segment', () => {
-    const ongoingHotel = makeSegment({
-      id: 'hotel',
-      startsAt: new Date(2026, 4, 19),
-      endsAt: new Date(2026, 4, 23),
-    });
-    const days = [makeDay('past', [ongoingHotel]), makeDay('today'), makeDay('future')];
-    const { collapsed, visible } = splitCollapsedDays(days, today);
-    expect(collapsed).toHaveLength(0);
-    expect(visible).toHaveLength(3);
+    const { collapsed, visible } = splitCollapsedDays(days);
+    expect(collapsed).toHaveLength(3);
+    expect(visible.map((d) => d.position)).toEqual(['today', 'future']);
   });
 
   it('collapses nothing when there are no past days', () => {
-    const days = [makeDay('today'), makeDay('future')];
-    const { collapsed, visible } = splitCollapsedDays(days, today);
+    const { collapsed, visible } = splitCollapsedDays([makeDay('today'), makeDay('future')]);
     expect(collapsed).toHaveLength(0);
     expect(visible).toHaveLength(2);
   });
 
-  it('collapses every day for a trip entirely in the past with no ongoing segments', () => {
-    const days = [makeDay('past'), makeDay('past'), makeDay('past')];
-    const { collapsed, visible } = splitCollapsedDays(days, today);
+  it('collapses every day for a trip entirely in the past', () => {
+    const { collapsed, visible } = splitCollapsedDays([
+      makeDay('past'),
+      makeDay('past'),
+      makeDay('past'),
+    ]);
     expect(collapsed).toHaveLength(3);
     expect(visible).toHaveLength(0);
+  });
+});
+
+describe('continuesThroughDay', () => {
+  const hotel = { startsAt: new Date(2026, 4, 28), endsAt: new Date(2026, 5, 1) }; // 28 May – 1 Jun
+
+  it('is true for a day strictly after check-in, up to and incl. check-out', () => {
+    expect(continuesThroughDay(hotel, new Date(2026, 4, 30))).toBe(true); // 30 May
+    expect(continuesThroughDay(hotel, new Date(2026, 5, 1))).toBe(true); // 1 Jun (check-out)
+  });
+
+  it('is false on the check-in day itself and after check-out', () => {
+    expect(continuesThroughDay(hotel, new Date(2026, 4, 28))).toBe(false); // check-in
+    expect(continuesThroughDay(hotel, new Date(2026, 5, 2))).toBe(false); // after check-out
+  });
+
+  it('is false for single-day / open-ended segments', () => {
+    expect(
+      continuesThroughDay({ startsAt: new Date(2026, 4, 28), endsAt: null }, new Date(2026, 4, 30)),
+    ).toBe(false);
+  });
+});
+
+describe('ongoingContinuationsByDayKey', () => {
+  function day(d: number, position: ClassifiedDay['position'], segments: Segment[]): ClassifiedDay {
+    // May = month 4; days within May for simplicity, June where noted.
+    return { date: new Date(2026, 4, d), dayNumber: d, position, segments } as ClassifiedDay;
+  }
+
+  it('surfaces an ongoing stay on today + future spanned days only', () => {
+    const hotel = makeSegment({
+      id: 'hotel',
+      type: 'hotel',
+      startsAt: new Date(2026, 4, 28),
+      endsAt: new Date(2026, 4, 31),
+    });
+    const days = [
+      day(27, 'past', [
+        makeSegment({ id: 'flight', type: 'flight', startsAt: new Date(2026, 4, 27) }),
+      ]),
+      day(28, 'past', [hotel]),
+      day(29, 'past', [makeSegment({ id: 'hike', startsAt: new Date(2026, 4, 29) })]),
+      day(30, 'today', [makeSegment({ id: 'act', startsAt: new Date(2026, 4, 30) })]),
+      day(31, 'future', [
+        makeSegment({ id: 'ferry', type: 'transit', startsAt: new Date(2026, 4, 31) }),
+      ]),
+    ];
+
+    const conts = ongoingContinuationsByDayKey(days);
+
+    // Surfaced under today + the future spanned day…
+    expect(conts.get(dayKey(new Date(2026, 4, 30)))).toEqual([hotel]);
+    expect(conts.get(dayKey(new Date(2026, 4, 31)))).toEqual([hotel]);
+    // …never on its own check-in day or any collapsed past day.
+    expect(conts.has(dayKey(new Date(2026, 4, 28)))).toBe(false);
+    expect(conts.has(dayKey(new Date(2026, 4, 29)))).toBe(false);
+  });
+
+  it('emits nothing for a stay that checks in today (a normal same-day card)', () => {
+    const hotel = makeSegment({
+      id: 'hotel',
+      type: 'hotel',
+      startsAt: new Date(2026, 4, 30),
+      endsAt: new Date(2026, 5, 2),
+    });
+    const days = [day(30, 'today', [hotel]), day(31, 'future', [])];
+    expect(ongoingContinuationsByDayKey(days).size).toBe(0);
+  });
+
+  it('emits nothing when there are no past days', () => {
+    const days = [day(30, 'today', []), day(31, 'future', [])];
+    expect(ongoingContinuationsByDayKey(days).size).toBe(0);
   });
 });

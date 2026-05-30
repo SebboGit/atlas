@@ -2,6 +2,7 @@ import type { LinkedDocument } from '@/lib/documents';
 import type { Segment } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
+import { DayContinuations } from './continuation-row';
 import type { DayPosition } from './day-temporal';
 import { SegmentRow } from './segment-row';
 
@@ -24,6 +25,11 @@ interface DayGroupProps {
   // marker. Defaults to 'future' so the type-specific tabs and any
   // other caller that doesn't classify days render unchanged.
   position?: DayPosition;
+  // Ongoing multi-day stays that checked in on an earlier, collapsed day
+  // and run through this one — rendered as quiet continuation rows above
+  // the day's own segments. Empty / omitted renders nothing extra, so
+  // the type-specific tabs (which never pass it) are unaffected.
+  continuations?: Segment[];
 }
 
 function formatDayLabel(d: Date): string {
@@ -48,6 +54,7 @@ export function DayGroup({
   linkedDocumentsBySegment,
   coordsBySegmentId,
   position = 'future',
+  continuations = [],
 }: DayGroupProps) {
   const dayLabel = String(dayNumber).padStart(2, '0');
   const isToday = position === 'today';
@@ -74,6 +81,15 @@ export function DayGroup({
         )}
         <span aria-hidden className="bg-foreground/20 h-px flex-1" />
       </header>
+
+      {/* Persistent backdrop to the day — ongoing stays that continue
+       *  through it — sits above the day's own segments. Inset to align
+       *  with the cards' left edge on laptop (matching the ol's pl-10). */}
+      {continuations.length > 0 && (
+        <div className="md:pl-10">
+          <DayContinuations continuations={continuations} />
+        </div>
+      )}
 
       <ol className="relative space-y-3 sm:space-y-4 md:pl-10">
         {/* Vertical timeline rail — laptop only, sits within the pl-10 gutter. */}

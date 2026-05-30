@@ -67,6 +67,19 @@ export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetPr
     return () => cancelAnimationFrame(raf);
   }, [hasDays]);
 
+  // Selecting a segment (a tap in the sheet, or a pin under it) pans the
+  // map to it — drop the sheet back to its peek so the focused pin +
+  // tooltip aren't hidden behind it. The Apple/Google-Maps idiom: pick a
+  // result, the sheet collapses to reveal it; drag back up for the list.
+  // Implemented as "adjust state when a prop changes" (compare to the
+  // previous value during render) — React's preferred pattern over a
+  // selection-watching effect.
+  const [prevSelected, setPrevSelected] = React.useState(railProps.selectedSegmentId);
+  if (railProps.selectedSegmentId !== prevSelected) {
+    setPrevSelected(railProps.selectedSegmentId);
+    if (railProps.selectedSegmentId !== null) setSnap(SNAP_PEEK);
+  }
+
   if (!hasDays || !mounted) return null;
 
   const summary = anchorSummary(railProps.days, railProps.isActive);
