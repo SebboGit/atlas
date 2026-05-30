@@ -16,7 +16,8 @@ a major version bump.
 - Issue templates for bug reports and feature requests.
 - Dedicated deployment guide (`docs/DEPLOYMENT.md`) and development guide
   (`docs/DEVELOPMENT.md`).
-- In-stack cron scheduler (`cron` compose service) with nightly DB prune.
+- In-stack scheduler (pg-boss inside the `worker` compose service) with
+  nightly DB prune.
 - Click-a-pin-to-fly-camera interaction on trip-detail map.
 
 ### Changed

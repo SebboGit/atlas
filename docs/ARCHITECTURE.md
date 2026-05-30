@@ -1,7 +1,7 @@
 # Architecture
 
 > Living document. Sections here are binding until superseded by an ADR
-> (see [`adr/`](./adr/)). Last reviewed: 2026-05-17.
+> (see [`adr/`](./adr/)). Last reviewed: 2026-05-30.
 
 ## High-level diagram
 
@@ -109,7 +109,8 @@ lookup — no live flight-metadata API. See ADR-0009 for the rationale.
 
 - **Airline name auto-fill** → `displayCarrier()` against the static
   `iata-airlines.json` snapshot (OpenFlights). Pure-local; no network.
-- **Hotel name/address → country** → provider TBD.
+- **Country auto-fill** → derived from the existing Nominatim geocode of a
+  segment's address (ADR-0010). No new provider.
 
 ## Key non-functional requirements
 
@@ -122,6 +123,6 @@ lookup — no live flight-metadata API. See ADR-0009 for the rationale.
 
 _(Track these as ADRs once decided.)_
 
-- Job queue: in-process (per-request) vs BullMQ + Redis? Defer until extraction work crosses ~5s. When you swap, hide it behind a small `Jobs` interface so feature code doesn't know which.
+- Job queue: **resolved** — pg-boss backs the `Jobs` interface for durable work and in-stack scheduling (ADR-0012).
+- Search: **resolved** — Postgres-native `tsvector` columns on the source tables, no out-of-process search engine (ADR-0013).
 - Image thumbnailing: sharp in-process vs sidecar? Probably in-process — `sharp` is good enough for one user.
-- Search: Postgres FTS vs Meilisearch sidecar for trip notes? Start with FTS.
