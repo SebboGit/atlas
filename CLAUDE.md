@@ -24,7 +24,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 
 | Layer            | Choice                                            | Why                                                                            |
 | ---------------- | ------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Framework        | **Next.js 15** (App Router, RSC)                  | Full-stack TS, mature ecosystem, server actions                                |
+| Framework        | **Next.js 16** (App Router, RSC)                  | Full-stack TS, mature ecosystem, server actions                                |
 | Language         | **TypeScript** (strict mode)                      | Type safety end-to-end                                                         |
 | Styling          | **Tailwind CSS** + **shadcn/ui**                  | Sophisticated default, zero lock-in, fully owned components                    |
 | Database         | **PostgreSQL 18**                                 | JSONB, native UUIDv7, async I/O, FTS, PostGIS-ready                            |
