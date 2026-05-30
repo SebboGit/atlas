@@ -94,6 +94,13 @@ interface TripMapProps {
    * incidental new-array identity an RSC re-render hands `fitToSegmentIds`.
    */
   fitKey?: string | null;
+  /**
+   * Bumped to re-frame the map to its CURRENT context — the focused day
+   * if one is active, else the country/all view. The parent bumps it when
+   * a segment is deselected (a second click on the selected row), so the
+   * camera pulls back out of the segment instead of staying zoomed in.
+   */
+  recenterNonce?: number;
   /** Fired when a pin / flight marker is clicked — reflects into the rail. */
   onPinClick?: (segmentId: string) => void;
   /** Fired on pin hover enter (segmentId) / leave (null) — laptop only. */
@@ -261,6 +268,7 @@ export function TripMap({
   focusNonce = 0,
   fitToSegmentIds = null,
   fitKey = null,
+  recenterNonce = 0,
   onPinClick,
   onPinHover,
   mapHeightClassName,
@@ -888,7 +896,18 @@ export function TripMap({
 
     fitMapToPoints(map, target, firstFitDoneRef.current, { padding: 60, maxZoom: 8 });
     firstFitDoneRef.current = true;
-  }, [pins, arcs, activeCountry, mapReady, showWishlist, wishlistPins, fitToSegmentIds]);
+    // `recenterNonce` retriggers this when a segment is deselected and no
+    // day is focused — pull back out to the country/all frame.
+  }, [
+    pins,
+    arcs,
+    activeCountry,
+    mapReady,
+    showWishlist,
+    wishlistPins,
+    fitToSegmentIds,
+    recenterNonce,
+  ]);
 
   // Timeline day fit — frame the map to exactly the focused day's pins
   // / arc endpoints (issue #9). Keyed ONLY on `fitKey` (the focused day
@@ -921,42 +940,65 @@ export function TripMap({
 
     fitMapToPoints(map, points, firstFitDoneRef.current, { padding: 80, maxZoom: 11 });
     firstFitDoneRef.current = true;
-  }, [fitKey, mapReady]);
+    // `recenterNonce` retriggers this when a segment is deselected while a
+    // day is focused — pull back out to the day frame.
+  }, [fitKey, recenterNonce, mapReady]);
 
-  // Timeline segment focus — pan to a specific segment and open its
-  // tooltip (issue #9). For a flight (arc) we fly to the destination
-  // endpoint; for a pin, the pin itself. Keyed ONLY on `focusNonce` (the
-  // parent bumps it on each explicit segment click) + mapReady, reading
-  // the segment id / pins / arcs off refs — so re-rendering with fresh
-  // pins/arcs (a day click's soft nav) does NOT re-fly to a stale
-  // selection, and clearing the selection (no nonce bump) doesn't move
-  // the camera. Reuses the same flyTo + tooltip path a pin tap takes.
+  // Timeline segment focus — frame a specific segment (issue #9). Keyed
+  // ONLY on `focusNonce` (the parent bumps it on each explicit segment
+  // click) + mapReady, reading the segment id / pins / arcs off refs — so
+  // re-rendering with fresh pins/arcs (a day click's soft nav) does NOT
+  // re-fly to a stale selection.
+  //
+  //   - flight (an arc exists) → fit the WHOLE route, both airport
+  //     endpoints, not a single pin; no tooltip (the IATA label is
+  //     always on);
+  //   - any other pin → fly to it + open its tooltip;
+  //   - deselected (focus id cleared, nonce still bumped) → just close
+  //     the tooltip, leave the camera to the recenter effect.
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || !mapReady) return;
     const focusId = focusSegmentIdRef.current;
-    if (!map || !mapReady || !focusId) return;
+    if (!focusId) {
+      setHover(null);
+      return;
+    }
+
+    // A flight is identified by having an arc — its origin pin shares the
+    // flight's segment id, so checking the arc first (not the pin) is what
+    // frames the route instead of zooming to the origin airport.
+    const arc = arcsRef.current.find((a) => a.segmentId === focusId);
+    if (arc) {
+      fitMapToPoints(
+        map,
+        [
+          { lat: arc.originLat, lng: arc.originLng },
+          { lat: arc.destLat, lng: arc.destLng },
+        ],
+        firstFitDoneRef.current,
+        { padding: 80, maxZoom: 8 },
+      );
+      firstFitDoneRef.current = true;
+      setHover(null);
+      return;
+    }
 
     const pin = pinsRef.current.find((p) => p.segmentId === focusId);
-    const arc = arcsRef.current.find((a) => a.segmentId === focusId);
-    // Prefer a pin (non-flight, or a flight with a single airport pin);
-    // fall back to the arc's destination endpoint for flights.
-    const target = pin
-      ? { lat: pin.lat, lng: pin.lng }
-      : arc
-        ? { lat: arc.destLat, lng: arc.destLng }
-        : null;
-    if (!target) return;
+    if (!pin) {
+      setHover(null);
+      return;
+    }
 
     map.flyTo({
-      center: [target.lng, target.lat],
+      center: [pin.lng, pin.lat],
       zoom: Math.max(map.getZoom(), PIN_CLICK_ZOOM),
       duration: 800,
     });
 
     // Open the floating tooltip for a non-flight pin so the focused
-    // segment is named on the map. Flights skip the card (their IATA
-    // is always-on), matching the pin-tap behaviour.
-    if (pin && pin.kind !== 'flight') {
+    // segment is named on the map. A lone flight pin (no arc) skips it.
+    if (pin.kind !== 'flight') {
       const rect = map.getCanvas().getBoundingClientRect();
       const point = map.project([pin.lng, pin.lat]);
       // The map's 'move' handler reprojects the tooltip every frame
