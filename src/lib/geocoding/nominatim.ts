@@ -130,50 +130,12 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
     await this.acquireSlot();
 
     const queryHash = shortHash(trimmed);
-    const url = this.buildUrl(trimmed);
-
-    // AbortController + setTimeout pair to bound the fetch. Cleared
-    // in `finally` so a fast response doesn't leak a pending timer
-    // until the runtime GCs it.
-    const abort = new AbortController();
-    const timer = setTimeout(() => abort.abort(), this.requestTimeoutMs);
-
-    let res: Response;
-    try {
-      res = await this.fetchImpl(url, {
-        method: 'GET',
-        headers: {
-          'user-agent': this.userAgent,
-          accept: 'application/json',
-          // Nominatim recommends English for canonical display_name
-          // unless the caller has a reason otherwise. Reduces locale
-          // drift on cache keys we look up by normalized query.
-          'accept-language': 'en',
-        },
-        signal: abort.signal,
-      });
-    } catch {
-      // AbortError and any other network failure collapse into the
-      // same log line — callers don't distinguish; the cache layer
-      // applies the negative-hit TTL either way.
-      log.warn({ queryHash, reason: 'network-error' }, 'geocoding.nominatim.failed');
-      return null;
-    } finally {
-      clearTimeout(timer);
-    }
-
-    if (!res.ok) {
-      log.warn({ queryHash, reason: `http-${res.status}` }, 'geocoding.nominatim.failed');
-      return null;
-    }
-
-    let payload: unknown;
-    try {
-      payload = await res.json();
-    } catch {
-      log.warn({ queryHash, reason: 'invalid-json' }, 'geocoding.nominatim.failed');
-      return null;
-    }
+    const payload = await this.fetchJson(
+      this.buildUrl(trimmed),
+      queryHash,
+      'geocoding.nominatim.failed',
+    );
+    if (payload === undefined) return null;
 
     if (!Array.isArray(payload) || payload.length === 0) {
       log.info({ queryHash, found: false }, 'geocoding.nominatim.ok');
@@ -213,41 +175,12 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
     // and misses on the same point. Six decimals ≈ 11 cm, plenty of
     // precision to keep distinct lookups distinct.
     const queryHash = shortHash(`${lat.toFixed(6)},${lng.toFixed(6)}`);
-    const url = this.buildReverseUrl(lat, lng);
-
-    const abort = new AbortController();
-    const timer = setTimeout(() => abort.abort(), this.requestTimeoutMs);
-
-    let res: Response;
-    try {
-      res = await this.fetchImpl(url, {
-        method: 'GET',
-        headers: {
-          'user-agent': this.userAgent,
-          accept: 'application/json',
-          'accept-language': 'en',
-        },
-        signal: abort.signal,
-      });
-    } catch {
-      log.warn({ queryHash, reason: 'network-error' }, 'geocoding.nominatim.reverse_failed');
-      return null;
-    } finally {
-      clearTimeout(timer);
-    }
-
-    if (!res.ok) {
-      log.warn({ queryHash, reason: `http-${res.status}` }, 'geocoding.nominatim.reverse_failed');
-      return null;
-    }
-
-    let payload: unknown;
-    try {
-      payload = await res.json();
-    } catch {
-      log.warn({ queryHash, reason: 'invalid-json' }, 'geocoding.nominatim.reverse_failed');
-      return null;
-    }
+    const payload = await this.fetchJson(
+      this.buildReverseUrl(lat, lng),
+      queryHash,
+      'geocoding.nominatim.reverse_failed',
+    );
+    if (payload === undefined) return null;
 
     // The /reverse endpoint returns a single object (not an array).
     // Out-of-coverage lookups return `{ error: "..." }` with no
@@ -287,41 +220,12 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
     await this.acquireSlot();
 
     const queryHash = shortHash(trimmed);
-    const url = this.buildSearchUrl(trimmed, limit);
-
-    const abort = new AbortController();
-    const timer = setTimeout(() => abort.abort(), this.requestTimeoutMs);
-
-    let res: Response;
-    try {
-      res = await this.fetchImpl(url, {
-        method: 'GET',
-        headers: {
-          'user-agent': this.userAgent,
-          accept: 'application/json',
-          'accept-language': 'en',
-        },
-        signal: abort.signal,
-      });
-    } catch {
-      log.warn({ queryHash, reason: 'network-error' }, 'geocoding.nominatim.search_failed');
-      return [];
-    } finally {
-      clearTimeout(timer);
-    }
-
-    if (!res.ok) {
-      log.warn({ queryHash, reason: `http-${res.status}` }, 'geocoding.nominatim.search_failed');
-      return [];
-    }
-
-    let payload: unknown;
-    try {
-      payload = await res.json();
-    } catch {
-      log.warn({ queryHash, reason: 'invalid-json' }, 'geocoding.nominatim.search_failed');
-      return [];
-    }
+    const payload = await this.fetchJson(
+      this.buildSearchUrl(trimmed, limit),
+      queryHash,
+      'geocoding.nominatim.search_failed',
+    );
+    if (payload === undefined) return [];
 
     if (!Array.isArray(payload)) {
       log.warn({ queryHash, reason: 'not-array' }, 'geocoding.nominatim.search_failed');
@@ -350,6 +254,65 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
     this.nextAvailableAt = startAt + this.minIntervalMs;
     const wait = startAt - now;
     if (wait > 0) await this.sleep(wait);
+  }
+
+  /**
+   * Shared request scaffolding for {@link geocode}, {@link reverse}, and
+   * {@link search}: a timeout-bounded fetch (AbortController + timer,
+   * cleared in `finally` so a fast response doesn't leak a pending
+   * timer), the Nominatim headers, and the failure logging (network /
+   * non-2xx / invalid-JSON) emitted under `failEvent`.
+   *
+   * Returns the parsed JSON payload, or `undefined` to signal failure —
+   * distinct from a parsed `null` body so callers can tell "request
+   * failed" from "body was literally null". Callers keep their own
+   * success logging and payload shaping; the throttle (`acquireSlot`)
+   * stays with the caller so a slot is reserved per logical request.
+   *
+   * `accept-language: en` asks Nominatim for canonical English
+   * display_names, reducing locale drift on the normalized cache keys
+   * the render path looks rows up by.
+   */
+  private async fetchJson(
+    url: string,
+    queryHash: string,
+    failEvent: string,
+  ): Promise<unknown | undefined> {
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), this.requestTimeoutMs);
+
+    let res: Response;
+    try {
+      res = await this.fetchImpl(url, {
+        method: 'GET',
+        headers: {
+          'user-agent': this.userAgent,
+          accept: 'application/json',
+          'accept-language': 'en',
+        },
+        signal: abort.signal,
+      });
+    } catch {
+      // AbortError and any other transport failure collapse into the
+      // same log line — callers don't distinguish; the cache layer
+      // applies the negative-hit TTL either way.
+      log.warn({ queryHash, reason: 'network-error' }, failEvent);
+      return undefined;
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+      log.warn({ queryHash, reason: `http-${res.status}` }, failEvent);
+      return undefined;
+    }
+
+    try {
+      return await res.json();
+    } catch {
+      log.warn({ queryHash, reason: 'invalid-json' }, failEvent);
+      return undefined;
+    }
   }
 
   private buildUrl(query: string): string {
@@ -463,7 +426,12 @@ function defaultSleep(ms: number): Promise<void> {
 function parseCoord(raw: unknown): number | null {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
   if (typeof raw === 'string') {
-    const n = Number(raw);
+    // Guard empty/whitespace strings: `Number('')` is 0 (finite), which
+    // would otherwise pass as a phantom coordinate at the equator /
+    // prime meridian instead of being rejected as a malformed hit.
+    const trimmed = raw.trim();
+    if (trimmed === '') return null;
+    const n = Number(trimmed);
     if (Number.isFinite(n)) return n;
   }
   return null;

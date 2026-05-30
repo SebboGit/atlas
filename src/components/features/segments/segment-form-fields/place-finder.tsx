@@ -56,6 +56,9 @@ type Phase =
   | { status: 'loading' }
   | { status: 'results'; candidates: GeocodeCandidate[] }
   | { status: 'empty' }
+  // Permanent server-config state (NOMINATIM_CONTACT_EMAIL unset). No
+  // retry — it can never succeed; the copy points at manual entry.
+  | { status: 'unavailable' }
   | { status: 'error' };
 
 /**
@@ -80,6 +83,8 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
   }) as unknown;
   const name = typeof nameValue === 'string' ? nameValue.trim() : '';
   const hasName = name !== '';
+  const isDisabled = !hasName || pending;
+  const hintId = `place-finder-hint-${type}`;
 
   function runSearch() {
     setOpen(true);
@@ -103,7 +108,10 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
       });
 
       if (!result.ok) {
-        setPhase({ status: 'error' });
+        // `unconfigured` is permanent (missing env) — a retry can never
+        // succeed, so route it to a no-retry state. `invalid` (rejected
+        // input) keeps the retry path.
+        setPhase({ status: result.reason === 'unconfigured' ? 'unavailable' : 'error' });
         return;
       }
       if (result.candidates.length === 0) {
@@ -117,8 +125,12 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
   function pick(candidate: GeocodeCandidate) {
     // Address: the candidate's full display string. This is the OUTPUT
     // the user chose — display-only once a Plus Code is set, since the
-    // Plus Code wins precedence in buildGeocodeQuery.
-    form.setValue('data.address' as never, candidate.addressLabel as never, {
+    // Plus Code wins precedence in buildGeocodeQuery. Clamped to the
+    // schema's 500-char cap so a very long display_name (deep multi-line
+    // Asian addresses) can't flag a spurious "too long" error; the pin
+    // is unaffected (it rides the Plus Code).
+    const address = candidate.addressLabel.slice(0, 500);
+    form.setValue('data.address' as never, address as never, {
       shouldDirty: true,
       shouldValidate: true,
     });
@@ -158,18 +170,19 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
         variant="outline"
         size="sm"
         onClick={runSearch}
-        disabled={!hasName || pending}
+        disabled={isDisabled}
         // Self-start keeps the button compact on laptop; min-h-11 on
-        // touch devices meets the 44px target.
+        // touch devices meets the 44px target. The native `disabled`
+        // already exposes the state to AT — no redundant aria-disabled;
+        // the reason is wired via aria-describedby to the visible hint.
         className="-mt-1 self-start [@media(hover:none)]:min-h-11"
-        aria-disabled={!hasName || undefined}
-        title={hasName ? undefined : 'Enter a name first'}
+        aria-describedby={!hasName ? hintId : undefined}
       >
         <Search aria-hidden />
         Find location
       </Button>
       {!hasName && (
-        <p className="text-muted-foreground -mt-1 text-xs leading-snug">
+        <p id={hintId} className="text-muted-foreground -mt-1 text-xs leading-snug">
           Add a name to search for this place.
         </p>
       )}
@@ -179,8 +192,9 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
           // Cap the candidate panel; the list scrolls inside if all
           // three rows + chrome exceed the sheet height on a short
           // phone. overflow-x stays locked by DialogContent itself.
+          // No aria-describedby override — the DialogDescription below
+          // auto-associates so screen readers announce the guidance.
           className="sm:max-w-[30rem]"
-          aria-describedby={undefined}
         >
           <DialogHeader>
             <DialogTitle>Find location</DialogTitle>
@@ -218,8 +232,7 @@ function PickerBody({
     return (
       <div className="flex flex-col gap-3 py-2" role="alert">
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Couldn&apos;t reach the search service. You can still enter the address or Plus Code by
-          hand.
+          Couldn&apos;t run the search. You can still enter the address or Plus Code by hand.
         </p>
         <Button type="button" variant="outline" size="sm" onClick={onRetry} className="self-start">
           Try again
@@ -228,9 +241,21 @@ function PickerBody({
     );
   }
 
+  if (phase.status === 'unavailable') {
+    return (
+      <p
+        className="text-muted-foreground py-2 text-sm leading-relaxed"
+        role="status"
+        aria-live="polite"
+      >
+        Search isn&apos;t available. Enter the address or Plus Code by hand.
+      </p>
+    );
+  }
+
   if (phase.status === 'empty') {
     return (
-      <div className="flex flex-col gap-3 py-2">
+      <div className="flex flex-col gap-3 py-2" role="status" aria-live="polite">
         <p className="text-muted-foreground text-sm leading-relaxed">
           No matches. Try a broader name, or set the country and search again.
         </p>
