@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "description": "Self-hosted personal travel companion — trips, flights, hotels, activities, documents, maps.",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Sebastian Theimer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SebboGit/atlas"
+  },
+  "bugs": {
+    "url": "https://github.com/SebboGit/atlas/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=24.0.0"

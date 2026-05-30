@@ -17,6 +17,8 @@ services:
   postgres:
     # Don't expose Postgres on the host in prod
     ports: []
+    # Conservative homelab defaults — tune to your host.
+    mem_limit: 512m
     command:
       - 'postgres'
       - '-c'
@@ -41,21 +43,19 @@ services:
       - ./data/documents:/app/data/documents
       - ./data/tiles:/app/data/tiles:ro
     restart: always
+    # Conservative homelab default — tune to your host.
+    mem_limit: 1g
     environment:
       NODE_ENV: production
 
   worker:
-    # Explicitly pin `dev` even though the base compose already sets it
-    # — the prod Next.js standalone image strips out tsx and our source
-    # tree, which `tsx scripts/worker.ts` needs at runtime. Restating
-    # the target here means a future "use prod image everywhere" edit
-    # to the overlay won't silently break the worker. Image footprint
-    # is a non-issue for a single-instance background process.
+    # Own hardened stage: keeps tsx + our source tree at runtime (the prod
+    # standalone strips both) and runs non-root. Empty volumes = data isolation.
     build:
-      target: dev
+      target: worker
     restart: always
-    # Use the baked image, not the host source mounts the dev compose
-    # uses. Same data isolation rule as `app` above.
     volumes: []
+    # Conservative homelab default — tune to your host.
+    mem_limit: 1g
     environment:
       NODE_ENV: production
