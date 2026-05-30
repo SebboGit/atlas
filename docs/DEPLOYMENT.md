@@ -62,7 +62,7 @@ Skip this step if you run the full Docker Compose stack.
 # Dev / single-machine
 docker compose up -d
 
-# Production overlay (resource limits, healthchecks, restart policies)
+# Production overlay (resource limits, restart policies, prod image targets)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # With scheduled database backups (recommended)
@@ -72,12 +72,38 @@ docker compose --profile backup up -d
 The `app`, `postgres`, and `worker` services come up automatically. The
 `db-backup` service is opt-in via the `backup` profile.
 
-### 4. Run migrations and seed
+The `worker` applies Drizzle migrations automatically on boot, and the `app`
+waits on `worker: service_healthy` before serving requests, so `docker
+compose up -d` is sufficient — there is no separate migration step. Running
+`pnpm db:migrate` by hand is only for bare-metal or CI installs without the
+worker. See [WORKER.md](./WORKER.md) for the full boot sequence.
 
-```bash
-docker compose exec app pnpm db:migrate
-docker compose exec app pnpm db:seed    # optional, dev data only
-```
+To load optional development seed data: `docker compose exec app pnpm db:seed`.
+
+---
+
+## Minimal viable deploy
+
+The smallest working Atlas is four pieces: **Postgres**, the **app**, the
+**worker**, and **PocketID**. With those running you get a fully usable
+install — create trips, add flights and hotels and activities, upload
+documents, and browse the visited-countries world map at `/map`. Everything
+in this section below "Initial setup" is needed for that baseline; the two
+sections after it are opt-in upgrades you can add later.
+
+Two capabilities are deliberately left out of the baseline because each
+carries real setup cost, and each degrades gracefully when absent:
+
+- **Basemap (Protomaps PMTiles)** unlocks the per-trip map at
+  `/trips/[id]/map` — flight arcs and geocoded pins on a real basemap.
+  Skip it and the world `/map` still works, but per-trip maps render pins
+  with no map underneath. Add it when you want trip maps. See
+  [Basemap setup](#basemap-setup-protomaps-pmtiles).
+- **Ollama** unlocks automatic extraction — drop in a boarding pass or
+  hotel confirmation and Atlas fills in the segment for you. Skip it and
+  everything still works through manual entry; you just type the details
+  yourself. Add it when manual entry gets tedious. See
+  [Ollama setup](#ollama-setup).
 
 ---
 
@@ -224,10 +250,10 @@ Docker network on the default deployment.
 
 Two layers, both writing under `./data/backups/`:
 
-| Layer     | Mechanism                               | Schedule        | Retention |
-| --------- | --------------------------------------- | --------------- | --------- |
-| Database  | `nfrastack/container-db-backup` service | Daily 03:30 UTC | 90 days   |
-| Documents | `scripts/backup-documents.sh` (rsync)   | Daily 03:35 UTC | 30 days   |
+| Layer     | Mechanism                               | Schedule        | Retention                                  |
+| --------- | --------------------------------------- | --------------- | ------------------------------------------ |
+| Database  | `nfrastack/container-db-backup` service | Daily 03:30 UTC | 30 days default, 90 under the prod overlay |
+| Documents | `scripts/backup-documents.sh` (rsync)   | Daily 03:35 UTC | 30 days                                    |
 
 Activate the database backup service:
 
@@ -256,6 +282,41 @@ rsync -av data/backups/documents/<timestamp>/ data/documents/
 ```
 
 Test a restore from a real snapshot at least once per quarter.
+
+---
+
+## Deploying on Unraid
+
+Unraid has no native Compose support, so install the **Compose Manager Plus**
+plugin from Community Apps (the older "Docker Compose Manager" plugin is
+deprecated — don't use it). Run Atlas as **one stack with Postgres inside
+it**. Do not split Postgres into its own Unraid container: the worker is the
+single migration authority and the app is gated on `worker: service_healthy`,
+and pulling Postgres out of the stack breaks that health-gating — a green
+Postgres container says nothing about whether migrations have run.
+
+Order of operations:
+
+1. **Install PocketID from Community Apps first, and create the OIDC client.**
+   A running (green) PocketID container is not the same as working sign-in —
+   you need the client created and its ID/secret in hand before Atlas can
+   authenticate anyone. Follow [PocketID setup](#pocketid-setup) above.
+2. **Install the Compose Manager Plus plugin** from Community Apps.
+3. **Create the Atlas stack** and paste in both `docker-compose.yml` and
+   `docker-compose.prod.yml`. Provide a real `.env` (not `.env.example`).
+4. **Point the `data/` bind mounts at `/mnt/user/appdata/atlas`** (or a
+   dedicated cache pool to keep the writes off the array and dodge the
+   mover). This is where documents, tiles, and backups live.
+5. **Set `ATLAS_IMAGE_TAG`** in `.env` to the release you want (e.g.
+   `1.0.0`, or leave it `latest`), then bring the stack up:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile backup pull
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile backup up -d
+   ```
+
+The GHCR image must already exist for the pull to succeed — it is published
+by the release workflow when a `v*` tag is pushed, so deploy a tagged
+version rather than an unbuilt one.
 
 ---
 
@@ -292,11 +353,11 @@ docker compose exec worker pnpm db:prune --apply
 git pull
 docker compose pull
 docker compose up -d
-docker compose exec app pnpm db:migrate
 ```
 
-Migrations are forward-only. Always take a database backup before
-upgrading a production deployment.
+The worker applies any new migrations on boot before the app starts, so no
+manual `db:migrate` step is needed. Migrations are forward-only. Always take
+a database backup before upgrading a production deployment.
 
 ### Logs
 
