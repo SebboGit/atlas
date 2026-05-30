@@ -50,11 +50,18 @@ services:
 
   worker:
     # Own hardened stage: keeps tsx + our source tree at runtime (the prod
-    # standalone strips both) and runs non-root. Empty volumes = data isolation.
+    # standalone strips both) and runs non-root.
     build:
       target: worker
+    # Pull the worker image — same tag as the app, suffixed `-worker`. The
+    # release publishes both from one version; ATLAS_IMAGE_TAG drives both.
+    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}-worker
     restart: always
-    volumes: []
+    # The worker runs document extraction, so it needs the documents mount
+    # (its storage adapter reads files off disk). `!reset` drops the dev
+    # source mounts inherited from the base; tiles stay app-only.
+    volumes: !reset
+      - ./data/documents:/app/data/documents
     # Conservative homelab default — tune to your host.
     mem_limit: 1g
     environment:
