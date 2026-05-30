@@ -66,6 +66,10 @@ CMD ["node", "server.js"]
 # --- Worker runtime (hardened) ----------------------------------------------
 # The prod standalone image strips tsx + our source tree, which the worker
 # needs at runtime (it runs scripts/worker.ts via tsx, non-root). Own stage.
+# INTENTIONAL: this stage keeps the dev dependencies (notably tsx) at runtime
+# because it executes TypeScript directly rather than a compiled bundle. Do
+# NOT switch the deps stage to a `--prod` install for this image without first
+# replacing tsx, or the worker will fail to start.
 FROM base AS worker
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
@@ -78,4 +82,9 @@ COPY --chown=nextjs:nodejs tsconfig.json drizzle.config.ts ./
 COPY --chown=nextjs:nodejs src ./src
 COPY --chown=nextjs:nodejs scripts ./scripts
 USER nextjs
-CMD ["pnpm", "worker"]
+# Invoke the locally-installed tsx loader directly instead of `pnpm worker`.
+# As non-root, `pnpm` via corepack can fail trying to provision itself into a
+# dir it doesn't own; `node --import tsx` sidesteps corepack entirely. Env is
+# injected by compose (no .env file in the container), and worker.ts reads
+# from process.env, so the script's `--env-file-if-exists` flag isn't needed.
+CMD ["node", "--import", "tsx", "scripts/worker.ts"]
