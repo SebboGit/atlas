@@ -53,12 +53,20 @@ const d = (y: number, m: number, day: number, h = 12, min = 0): Date =>
 // auto-scroll-to-today, and per-day focus (issue #9) — are always
 // demonstrable in a dev worktree. `offsetDays` is relative to the UTC
 // start of the day the seed runs.
-const relDay = (offsetDays: number, h = 12, min = 0): Date => {
-  const base = new Date();
-  return new Date(
-    Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + offsetDays, h, min),
+// One base captured at module load, not per call — so every relative
+// row anchors to the SAME "today" even if a seed run happens to straddle
+// UTC midnight.
+const REL_DAY_BASE = new Date();
+const relDay = (offsetDays: number, h = 12, min = 0): Date =>
+  new Date(
+    Date.UTC(
+      REL_DAY_BASE.getUTCFullYear(),
+      REL_DAY_BASE.getUTCMonth(),
+      REL_DAY_BASE.getUTCDate() + offsetDays,
+      h,
+      min,
+    ),
   );
-};
 
 // Countries painted on the world-map choropleth. A believable, well-
 // travelled spread across every continent — all synthetic. JP is also
