@@ -1,6 +1,10 @@
 import { notFound } from 'next/navigation';
 
-import { TripMap } from '@/components/features/trip-map/trip-map';
+import { classifyDays } from '@/components/features/segments/day-temporal';
+import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
+import { buildRailDays } from '@/components/features/trip-map/build-rail-days';
+import { ChronoTripMap } from '@/components/features/trip-map/chrono-trip-map';
+import { indexMapGeometry } from '@/components/features/trip-map/timeline-model';
 import { requireUser } from '@/lib/auth/session';
 import { countryName } from '@/lib/countries';
 import * as segmentsRepo from '@/lib/segments/repo';
@@ -9,23 +13,35 @@ import * as tripsRepo from '@/lib/trips/repo';
 
 interface MapTabPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ country?: string }>;
+  // `country` is the spatial filter (chip strip); `day` is the temporal
+  // focus (timeline). Both round-trip on the URL — see ChronoTripMap.
+  searchParams: Promise<{ country?: string; day?: string }>;
 }
+
+// `YYYY-MM-DD` — the only `day` value the timeline writes. Validate
+// here so a hand-typed / stale query value can't reach the client as a
+// non-day string (it just resolves to "no focus" downstream anyway).
+const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function MapTabPage({ params, searchParams }: MapTabPageProps) {
   const user = await requireUser();
   const { id } = await params;
-  const { country: countryParam } = await searchParams;
+  const { country: countryParam, day: dayParam } = await searchParams;
   const activeCountry = countryParam?.toUpperCase() ?? null;
+  const initialFocusedDayKey = dayParam && DAY_KEY_RE.test(dayParam) ? dayParam : null;
 
   // Layout already 404'd on missing trip — re-fetch for independence.
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
-  const [mapData, allCountryCodes, wishlistPins] = await Promise.all([
+  const [mapData, allCountryCodes, wishlistPins, segments] = await Promise.all([
     tripMapRepo.getTripMapDataForUser(user.id, id),
     segmentsRepo.listCountryCodesForTrip(user.id, id),
     tripMapRepo.getWishlistOverlayForTrip(user.id, id),
+    // The full scheduled segment list backs the timeline. Undated
+    // segments (e.g. wishlist activities) carry no day and don't belong
+    // on a chronological rail, so filter to scheduled here.
+    segmentsRepo.listForTrip(user.id, id, { scheduled: true }),
   ]);
 
   // Country chip strip only matters when the trip touched 2+ places.
@@ -36,19 +52,33 @@ export default async function MapTabPage({ params, searchParams }: MapTabPagePro
     name: countryName(code) ?? code,
   }));
 
-  // No TabHeader on this tab — the chip strip below already carries
-  // the country signal and the count of pins reads as nonsensical
-  // ("Map · 06" — 6 maps?). The map itself is the count.
+  // Shape the timeline: group segments into days, classify each relative
+  // to "now" (so the rail knows past / today / future on first paint),
+  // then join each day's segments to the map's pins / arcs by segmentId
+  // so the rail knows which rows are mappable and where they sit. The
+  // `scheduled: true` filter above means no unscheduled bucket here.
+  const { days } = groupSegmentsByDay(segments);
+  const classified = classifyDays(days, new Date());
+  const geometry = indexMapGeometry(mapData.pins, mapData.arcs);
+  const railDays = buildRailDays(classified, geometry);
+
+  // Collapsed-past + auto-scroll-to-today fire only for an active trip
+  // (issue #8 parity) — passed through to gate them client-side.
+  const isActive = trip.status === 'active';
+
   return (
-    <TripMap
+    <ChronoTripMap
+      tripId={id}
       pins={mapData.pins}
       arcs={mapData.arcs}
       ungeocoded={mapData.ungeocoded}
       countries={countries}
       activeCountry={activeCountry}
-      tripId={id}
       wishlistPins={wishlistPins}
       geocodeWorkerStatus={mapData.geocodeWorkerStatus}
+      days={railDays}
+      isActive={isActive}
+      initialFocusedDayKey={initialFocusedDayKey}
     />
   );
 }

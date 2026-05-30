@@ -14,6 +14,7 @@ import type {
   UngeocodedSegment,
   WishlistMapPin,
 } from '@/lib/trip-map/repo';
+import { cn } from '@/lib/utils';
 
 import { curvedArcCoords } from './arc-geometry';
 import { buildBasemapStyle } from './basemap-style';
@@ -57,6 +58,56 @@ interface TripMapProps {
    * issue #24.
    */
   geocodeWorkerStatus?: GeocodeWorkerStatus;
+  /**
+   * Chronological-map driving props (issue #9). All optional — when
+   * every one is absent / null, TripMap behaves exactly as the
+   * spatial-only map it was: country chips drive dimming and fit, pin
+   * clicks fly + open tooltips, nothing else.
+   *
+   * Segment ids that the timeline is actively highlighting (a focused
+   * or hovered day). Pins / arcs NOT in this set dim, ON TOP OF the
+   * country filter — the two dim sources compose (a pin shows full
+   * opacity only when it passes the country filter AND is in the
+   * highlighted set). `null` means "no day highlight active" — only
+   * the country filter dims.
+   */
+  highlightSegmentIds?: ReadonlySet<string> | null;
+  /**
+   * Pan + open the tooltip for this segment's pin (or fly to a flight
+   * arc's destination). Paired with `focusNonce` so re-selecting the
+   * same segment re-triggers the fly.
+   */
+  focusSegmentId?: string | null;
+  /** Bumped by the parent to retrigger an identical `focusSegmentId`. */
+  focusNonce?: number;
+  /**
+   * Fit the map to exactly these segment ids' pins / arc endpoints (a
+   * focused day). `null` falls back to the country/all fit behaviour.
+   * Paired with `fitNonce` so re-fitting the same set re-triggers.
+   */
+  fitToSegmentIds?: readonly string[] | null;
+  /** Bumped by the parent to retrigger an identical `fitToSegmentIds`. */
+  fitNonce?: number;
+  /** Fired when a pin / flight marker is clicked — reflects into the rail. */
+  onPinClick?: (segmentId: string) => void;
+  /** Fired on pin hover enter (segmentId) / leave (null) — laptop only. */
+  onPinHover?: (segmentId: string | null) => void;
+  /**
+   * Override the map card's height via a className (Tailwind utilities,
+   * incl. responsive variants). The standalone map uses its own inline
+   * `min(calc(100svh - 320px), 520px)`; the chronological layout passes
+   * a responsive class so a SINGLE map instance can be a near-full-
+   * height surface on phone and a rail-matched height on laptop without
+   * mounting two MapLibre contexts. When set, the inline height is
+   * dropped (the class owns it).
+   */
+  mapHeightClassName?: string;
+  /**
+   * Hide the bottom attribution caption. The chronological layout drops
+   * it so the map can run to the foot of the viewport with the sheet
+   * over it.
+   */
+  hideAttribution?: boolean;
 }
 
 interface HoverInfo {
@@ -129,6 +180,82 @@ interface ManagedMarker {
   el: HTMLDivElement;
 }
 
+// Single source of truth for whether a pin is dimmed. Two orthogonal
+// sources compose (issue #9): the country chip strip (spatial) and the
+// timeline day highlight (temporal). A pin shows at full opacity only
+// when it passes BOTH — it's in the active country (or no country is
+// active) AND it's in the highlighted-day set (or no day highlight is
+// active). Either filter failing dims it.
+function isPinDimmed(
+  pin: TripMapPin,
+  activeCountry: string | null,
+  highlightIds: ReadonlySet<string> | null,
+): boolean {
+  if (activeCountry !== null && pin.country !== activeCountry) return true;
+  if (highlightIds !== null && !highlightIds.has(pin.segmentId)) return true;
+  return false;
+}
+
+// Same composition for arcs. An arc dims unless BOTH endpoints sit in
+// the active country (a half-in arc reads as out of focus) AND — when a
+// day highlight is active — its segment is in the highlighted set.
+function isArcDimmed(
+  arc: TripMapArc,
+  activeCountry: string | null,
+  highlightIds: ReadonlySet<string> | null,
+): boolean {
+  if (
+    activeCountry !== null &&
+    (arc.originCountry !== activeCountry || arc.destCountry !== activeCountry)
+  ) {
+    return true;
+  }
+  if (highlightIds !== null && !highlightIds.has(arc.segmentId)) return true;
+  return false;
+}
+
+// A bare lat/lng the camera framing works in. Shared by the country
+// fit and the timeline day fit.
+interface FramePoint {
+  lat: number;
+  lng: number;
+}
+
+// Fits the map to a set of points. Single-point sets stay capped at
+// city scale (maxZoom) so a one-pin day doesn't slam to street level.
+// `animate` is gated on `firstFitDone` so the very first frame snaps
+// instantly (no fly-in on mount) while later fits ease. Returns nothing
+// — pure side effect on the map.
+function fitMapToPoints(
+  map: MapLibreMap,
+  points: FramePoint[],
+  firstFitDone: boolean,
+  opts: { padding: number; maxZoom: number },
+): void {
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
+  for (const point of points) {
+    if (point.lng < minLng) minLng = point.lng;
+    if (point.lat < minLat) minLat = point.lat;
+    if (point.lng > maxLng) maxLng = point.lng;
+    if (point.lat > maxLat) maxLat = point.lat;
+  }
+  map.fitBounds(
+    [
+      [minLng, minLat],
+      [maxLng, maxLat],
+    ] satisfies LngLatBoundsLike,
+    {
+      padding: opts.padding,
+      maxZoom: opts.maxZoom,
+      animate: firstFitDone,
+      duration: firstFitDone ? 600 : 0,
+    },
+  );
+}
+
 function arcsToFeatureCollection(arcs: TripMapArc[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
@@ -157,6 +284,15 @@ export function TripMap({
   tripId,
   wishlistPins = [],
   geocodeWorkerStatus = 'ok',
+  highlightSegmentIds = null,
+  focusSegmentId = null,
+  focusNonce = 0,
+  fitToSegmentIds = null,
+  fitNonce = 0,
+  onPinClick,
+  onPinHover,
+  mapHeightClassName,
+  hideAttribution = false,
 }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -180,6 +316,21 @@ export function TripMap({
   useEffect(() => {
     activeCountryRef.current = activeCountry;
   }, [activeCountry]);
+  // Day-highlight set mirrored into a ref for the same reason — the
+  // once-bound pin hover/click handlers read it to derive dim state
+  // without re-binding when the timeline focus changes.
+  const highlightIdsRef = useRef(highlightSegmentIds);
+  useEffect(() => {
+    highlightIdsRef.current = highlightSegmentIds;
+  }, [highlightSegmentIds]);
+  // Latest pin-interaction callbacks, ref-mirrored so the once-bound
+  // marker DOM handlers always call the current closures.
+  const onPinClickRef = useRef(onPinClick);
+  const onPinHoverRef = useRef(onPinHover);
+  useEffect(() => {
+    onPinClickRef.current = onPinClick;
+    onPinHoverRef.current = onPinHover;
+  }, [onPinClick, onPinHover]);
   // Gated by the map's 'load' event — until the arcs source is added
   // we can't setFeatureState on it.
   const [mapReady, setMapReady] = useState(false);
@@ -260,13 +411,12 @@ export function TripMap({
         const managed = markersRef.current[idx];
         const pin = pinsRef.current[idx];
         if (managed && pin) {
-          const ac = activeCountryRef.current;
           managed.root.render(
             <PinMarker
               kind={pin.kind}
               label={pin.label}
               hovered={false}
-              dimmed={ac !== null && pin.country !== ac}
+              dimmed={isPinDimmed(pin, activeCountryRef.current, highlightIdsRef.current)}
             />,
           );
         }
@@ -434,15 +584,15 @@ export function TripMap({
 
     // Single source of truth for what props a marker should render
     // with, given its current hover state. Dim is derived from the
-    // (ref-mirrored) activeCountry so a country-narrow view stays
-    // consistent across hovers without re-running this effect.
+    // (ref-mirrored) activeCountry AND day-highlight set so a
+    // country-narrow or timeline-focused view stays consistent across
+    // hovers without re-running this effect.
     function renderProps(pin: TripMapPin, hovered: boolean) {
-      const ac = activeCountryRef.current;
       return {
         kind: pin.kind,
         label: pin.label,
         hovered,
-        dimmed: ac !== null && pin.country !== ac,
+        dimmed: isPinDimmed(pin, activeCountryRef.current, highlightIdsRef.current),
       };
     }
 
@@ -500,12 +650,19 @@ export function TripMap({
         });
       }
 
-      el.addEventListener('mouseenter', openTooltip);
+      el.addEventListener('mouseenter', () => {
+        openTooltip();
+        // Reflect the hover into the rail (laptop hover-capable only —
+        // touch devices don't fire a meaningful hover). The callback is
+        // ref-mirrored so it stays current across the once-bound effect.
+        onPinHoverRef.current?.(pin.segmentId);
+      });
 
       el.addEventListener('mouseleave', () => {
         if (hoveredIdxRef.current === idx) hoveredIdxRef.current = null;
         root.render(<PinMarker {...renderProps(pin, false)} />);
         setHover(null);
+        onPinHoverRef.current?.(null);
       });
 
       el.addEventListener('click', (event) => {
@@ -527,6 +684,10 @@ export function TripMap({
           zoom: Math.max(map.getZoom(), PIN_CLICK_ZOOM),
           duration: 800,
         });
+        // Reflect the tap into the rail / sheet so the selected segment
+        // syncs both ways. Ref-mirrored callback — current across the
+        // once-bound effect.
+        onPinClickRef.current?.(pin.segmentId);
       });
 
       return { marker, root, el };
@@ -643,10 +804,11 @@ export function TripMap({
     };
   }, [wishlistPins, showWishlist, mapReady]);
 
-  // Re-apply dimming + re-frame on pin/arc/country changes. Pin
-  // dimming runs through the React root for each managed marker;
-  // arc dimming still uses MapLibre's feature-state (those are
-  // line-layer features, not DOM).
+  // Re-apply dimming on pin/arc/country/day-highlight changes. Pin
+  // dimming runs through the React root for each managed marker; arc
+  // dimming uses MapLibre's feature-state (those are line-layer
+  // features, not DOM). Country (spatial) and timeline (temporal) dim
+  // sources compose via isPinDimmed / isArcDimmed.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -654,30 +816,35 @@ export function TripMap({
     pins.forEach((pin, idx) => {
       const managed = markersRef.current[idx];
       if (!managed) return;
-      const dimmed = activeCountry !== null && pin.country !== activeCountry;
+      const dimmed = isPinDimmed(pin, activeCountry, highlightSegmentIds);
       managed.root.render(<PinMarker kind={pin.kind} label={pin.label} dimmed={dimmed} />);
     });
 
     map.removeFeatureState({ source: ARCS_SOURCE_ID });
-    if (activeCountry) {
-      // Arc dims unless BOTH endpoints are in the active country. An
-      // arc that straddles the active country and another is still
-      // partly off-stage, so we mute it just like a half-on-screen
-      // pin would feel out of focus.
-      arcs.forEach((arc, idx) => {
-        if (arc.originCountry !== activeCountry || arc.destCountry !== activeCountry) {
-          map.setFeatureState({ source: ARCS_SOURCE_ID, id: idx }, { dimmed: true });
-        }
-      });
-    }
+    arcs.forEach((arc, idx) => {
+      if (isArcDimmed(arc, activeCountry, highlightSegmentIds)) {
+        map.setFeatureState({ source: ARCS_SOURCE_ID, id: idx }, { dimmed: true });
+      }
+    });
+  }, [pins, arcs, activeCountry, highlightSegmentIds, mapReady]);
 
-    // fitBounds: prefer the active-country subset, fall back to
-    // everything geographic on the trip (pins + arcs), fall back to
-    // the default world frame.
+  // Country / all framing — the spatial fit. Runs on pin/arc/country/
+  // wishlist changes, but YIELDS to the timeline when a day is focused
+  // (`fitToSegmentIds` non-null): that focused-day fit owns the camera
+  // (see the dedicated effect below), and re-running this would fight
+  // it. When no day is focused, this is the original behaviour: fit to
+  // the active-country subset, else everything, else the world frame.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    // A focused day owns the camera — don't re-frame to the country/all
+    // bounds underneath it.
+    if (fitToSegmentIds !== null) return;
+
     const matchedPins = activeCountry ? pins.filter((p) => p.country === activeCountry) : pins;
     const matchedArcEndpoints = activeCountry
       ? arcs.flatMap((arc) => {
-          const out: Array<{ lat: number; lng: number }> = [];
+          const out: FramePoint[] = [];
           if (arc.originCountry === activeCountry) {
             out.push({ lat: arc.originLat, lng: arc.originLng });
           }
@@ -724,32 +891,90 @@ export function TripMap({
       return;
     }
 
-    let minLng = Infinity;
-    let minLat = Infinity;
-    let maxLng = -Infinity;
-    let maxLat = -Infinity;
-    for (const point of target) {
-      if (point.lng < minLng) minLng = point.lng;
-      if (point.lat < minLat) minLat = point.lat;
-      if (point.lng > maxLng) maxLng = point.lng;
-      if (point.lat > maxLat) maxLat = point.lat;
-    }
-
-    map.fitBounds(
-      [
-        [minLng, minLat],
-        [maxLng, maxLat],
-      ] satisfies LngLatBoundsLike,
-      {
-        padding: 60,
-        // Don't zoom past city-scale for a single-pin country.
-        maxZoom: 8,
-        animate: firstFitDoneRef.current,
-        duration: firstFitDoneRef.current ? 600 : 0,
-      },
-    );
+    fitMapToPoints(map, target, firstFitDoneRef.current, { padding: 60, maxZoom: 8 });
     firstFitDoneRef.current = true;
-  }, [pins, arcs, activeCountry, mapReady, showWishlist, wishlistPins]);
+  }, [pins, arcs, activeCountry, mapReady, showWishlist, wishlistPins, fitToSegmentIds]);
+
+  // Timeline day fit — frame the map to exactly the focused day's pins
+  // / arc endpoints (issue #9). Keyed on `fitNonce` so re-selecting the
+  // same day (identical id set) re-triggers the fit. When
+  // `fitToSegmentIds` is null this effect is inert and the country/all
+  // fit above owns the camera.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    if (fitToSegmentIds === null) return;
+
+    const ids = new Set(fitToSegmentIds);
+    const points: FramePoint[] = [];
+    for (const pin of pins) {
+      if (ids.has(pin.segmentId)) points.push({ lat: pin.lat, lng: pin.lng });
+    }
+    for (const arc of arcs) {
+      if (ids.has(arc.segmentId)) {
+        points.push({ lat: arc.originLat, lng: arc.originLng });
+        points.push({ lat: arc.destLat, lng: arc.destLng });
+      }
+    }
+    // A day with nothing mappable — leave the current frame untouched
+    // rather than snapping to the world. The rail still highlights the
+    // (empty) day; the map just doesn't move.
+    if (points.length === 0) return;
+
+    fitMapToPoints(map, points, firstFitDoneRef.current, { padding: 80, maxZoom: 11 });
+    firstFitDoneRef.current = true;
+    // `fitNonce` is the retrigger key — a dep even though it isn't read
+    // in the body, so re-focusing the same day re-fits.
+  }, [fitToSegmentIds, fitNonce, pins, arcs, mapReady]);
+
+  // Timeline segment focus — pan to a specific segment and open its
+  // tooltip (issue #9). For a flight (arc) we fly to the destination
+  // endpoint; for a pin, the pin itself. Keyed on `focusNonce` so
+  // re-clicking the same segment re-flies. Reuses the same flyTo +
+  // tooltip path a pin tap takes, so reduced-motion (flyTo's instant
+  // collapse) and the tooltip flip logic stay identical.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !focusSegmentId) return;
+
+    const pin = pins.find((p) => p.segmentId === focusSegmentId);
+    const arc = arcs.find((a) => a.segmentId === focusSegmentId);
+    // Prefer a pin (non-flight, or a flight with a single airport pin);
+    // fall back to the arc's destination endpoint for flights.
+    const target = pin
+      ? { lat: pin.lat, lng: pin.lng }
+      : arc
+        ? { lat: arc.destLat, lng: arc.destLng }
+        : null;
+    if (!target) return;
+
+    map.flyTo({
+      center: [target.lng, target.lat],
+      zoom: Math.max(map.getZoom(), PIN_CLICK_ZOOM),
+      duration: 800,
+    });
+
+    // Open the floating tooltip for a non-flight pin so the focused
+    // segment is named on the map. Flights skip the card (their IATA
+    // is always-on), matching the pin-tap behaviour.
+    if (pin && pin.kind !== 'flight') {
+      const rect = map.getCanvas().getBoundingClientRect();
+      const point = map.project([pin.lng, pin.lat]);
+      // The map's 'move' handler reprojects the tooltip every frame
+      // during the fly, so seeding it at the destination coords keeps
+      // it glued to the pin through the animation.
+      setHover({
+        x: point.x,
+        y: point.y,
+        pin,
+        containerWidth: rect.width,
+        containerHeight: rect.height,
+      });
+    } else {
+      setHover(null);
+    }
+    // `focusNonce` is the retrigger key — see the fit effect above.
+  }, [focusSegmentId, focusNonce, pins, arcs, mapReady]);
 
   return (
     <div className="atlas-rise" style={{ animationDelay: '160ms' }}>
@@ -771,15 +996,20 @@ export function TripMap({
         */}
         <div
           ref={containerRef}
-          className="border-foreground/10 bg-card/65 w-full overflow-hidden rounded-2xl border shadow-[0_18px_40px_-28px_rgba(60,40,20,0.25)]"
+          className={cn(
+            'border-foreground/10 bg-card/65 w-full overflow-hidden rounded-2xl border shadow-[0_18px_40px_-28px_rgba(60,40,20,0.25)]',
+            mapHeightClassName,
+          )}
           // 320px reserved leaves comfortable breathing room below the
           // map (attribution + a clear gap to the viewport edge) even
           // on shorter laptops where the calc clamps the height. The
           // 520px cap matches the visible breathing room on tall
           // monitors so the map never sits flush with the page bottom.
           // svh (not dvh) so the map doesn't resize as the mobile URL
-          // bar collapses during scroll.
-          style={{ height: 'min(calc(100svh - 320px), 520px)' }}
+          // bar collapses during scroll. The chronological layout passes
+          // a responsive `mapHeightClassName` instead, so this inline
+          // height is dropped when that's set.
+          style={mapHeightClassName ? undefined : { height: 'min(calc(100svh - 320px), 520px)' }}
           aria-label="Trip map"
         />
         {hover && (
@@ -831,10 +1061,12 @@ export function TripMap({
         )}
       </div>
 
-      <p className="text-muted-foreground mt-6 text-center font-mono text-[10px] tracking-[0.2em] uppercase">
-        Map data © OpenStreetMap contributors · Country shapes © Natural Earth · Geocoding by
-        Nominatim
-      </p>
+      {!hideAttribution && (
+        <p className="text-muted-foreground mt-6 text-center font-mono text-[10px] tracking-[0.2em] uppercase">
+          Map data © OpenStreetMap contributors · Country shapes © Natural Earth · Geocoding by
+          Nominatim
+        </p>
+      )}
     </div>
   );
 }
