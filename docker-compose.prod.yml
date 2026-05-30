@@ -36,10 +36,12 @@ services:
   app:
     build:
       target: prod
-    # Remove source mounts — use the baked image. Keep the data bind
-    # mounts (documents = user-private; tiles = self-hosted basemap
-    # per ADR-0011, regenerable so :ro and excluded from backups).
-    volumes:
+    # `!reset` drops the dev source mounts the base file declares — without it
+    # Compose CONCATENATES the lists and the dev src/public/node_modules/.next
+    # mounts shadow the baked standalone image. Re-add only the data mounts
+    # (documents = user-private; tiles = self-hosted basemap per ADR-0011,
+    # regenerable so :ro and excluded from backups).
+    volumes: !reset
       - ./data/documents:/app/data/documents
       - ./data/tiles:/app/data/tiles:ro
     restart: always
@@ -56,6 +58,9 @@ services:
     # Pull the worker image — same tag as the app, suffixed `-worker`. The
     # release publishes both from one version; ATLAS_IMAGE_TAG drives both.
     image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}-worker
+    # Override the base `pnpm worker` command — corepack as a non-root user can
+    # fail provisioning pnpm at runtime, so invoke tsx directly in prod.
+    command: ['node', '--import', 'tsx', 'scripts/worker.ts']
     restart: always
     # The worker runs document extraction, so it needs the documents mount
     # (its storage adapter reads files off disk). `!reset` drops the dev
