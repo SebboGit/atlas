@@ -10,12 +10,7 @@ import { cn } from '@/lib/utils';
 
 import { continuationsByDayKey } from './continuations';
 import { DayGroup } from './day-group';
-import {
-  daysContainSegment,
-  splitCollapsedDays,
-  summariseLocations,
-  type DayPosition,
-} from './day-temporal';
+import { daysContainSegment, splitCollapsedDays, type DayPosition } from './day-temporal';
 import { useItineraryCollapse } from './use-itinerary-collapse';
 
 const SEG_HASH_PREFIX = '#seg-';
@@ -131,12 +126,10 @@ function formatPastRangeLabel(first: Date, last: Date): string {
 // only appear from `sm:` up.
 function CollapsedPastRow({
   rangeLabel,
-  locationSummary,
   dayCount,
   onExpand,
 }: {
   rangeLabel: string;
-  locationSummary: string | null;
   dayCount: number;
   onExpand: () => void;
 }) {
@@ -162,16 +155,6 @@ function CollapsedPastRow({
       <span className="text-foreground/70 group-hover:text-foreground/85 min-w-0 truncate font-mono text-xs tracking-[0.2em] whitespace-nowrap uppercase transition-colors">
         {rangeLabel}
       </span>
-      {locationSummary && (
-        <>
-          <span aria-hidden className="text-foreground/25 hidden font-mono text-[10px] sm:inline">
-            ·
-          </span>
-          <span className="text-foreground/70 hidden min-w-0 truncate text-sm sm:inline">
-            {locationSummary}
-          </span>
-        </>
-      )}
       <span aria-hidden className="bg-foreground/15 h-px flex-1" />
     </button>
   );
@@ -255,12 +238,6 @@ function PastGroup({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
-  // All past segments flattened, in chronological day-then-segment
-  // order, so the location summary and the total count span the whole
-  // span. `days` is already sorted chronologically by the server page.
-  const allSegments = React.useMemo(() => days.flatMap((d) => d.segments), [days]);
-  const locationSummary = React.useMemo(() => summariseLocations(allSegments), [allSegments]);
-
   const rangeLabel = React.useMemo(() => {
     const first = parseDayKey(days[0]!.dateKey);
     const last = parseDayKey(days[days.length - 1]!.dateKey);
@@ -270,12 +247,7 @@ function PastGroup({
   if (!isExpanded) {
     return (
       <section className="mb-8 sm:mb-10">
-        <CollapsedPastRow
-          rangeLabel={rangeLabel}
-          locationSummary={locationSummary}
-          dayCount={days.length}
-          onExpand={onToggle}
-        />
+        <CollapsedPastRow rangeLabel={rangeLabel} dayCount={days.length} onExpand={onToggle} />
       </section>
     );
   }
