@@ -62,3 +62,20 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS http://localhost:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
+
+# --- Worker runtime (hardened) ----------------------------------------------
+# The prod standalone image strips tsx + our source tree, which the worker
+# needs at runtime (it runs scripts/worker.ts via tsx, non-root). Own stage.
+FROM base AS worker
+ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    mkdir -p /app/data/documents && \
+    chown -R nextjs:nodejs /app/data
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --chown=nextjs:nodejs package.json pnpm-lock.yaml* ./
+COPY --chown=nextjs:nodejs tsconfig.json drizzle.config.ts ./
+COPY --chown=nextjs:nodejs src ./src
+COPY --chown=nextjs:nodejs scripts ./scripts
+USER nextjs
+CMD ["pnpm", "worker"]

@@ -43,6 +43,7 @@ services:
       - atlas
 
   app:
+    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -95,6 +96,7 @@ services:
   # never served against an unmigrated schema.
   # ---------------------------------------------------------------------------
   worker:
+    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
