@@ -271,6 +271,24 @@ describe('NominatimGeocoder.search', () => {
     expect(candidates[0]!.name).toBe('Good place');
   });
 
+  it('skips a hit with an empty-string coordinate rather than pinning it at (0,0)', async () => {
+    // `Number('')` is 0 (finite) — without an explicit guard an empty
+    // lat/lon would pass as a phantom candidate at the equator/meridian.
+    const { fetchImpl } = queuedFetch([
+      () =>
+        jsonResponse([
+          { lat: '', lon: '2', display_name: 'empty lat' },
+          { lat: '5', lon: '   ', display_name: 'whitespace lon' },
+          { lat: '6', lon: '7', display_name: 'Real place' },
+        ]),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const candidates = await geocoder.search('coords');
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({ lat: 6, lng: 7, name: 'Real place' });
+  });
+
   it('caps the returned candidates at the requested limit', async () => {
     const { fetchImpl, calls } = queuedFetch([
       () =>
