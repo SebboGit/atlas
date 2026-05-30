@@ -96,7 +96,7 @@ services:
   # never served against an unmigrated schema.
   # ---------------------------------------------------------------------------
   worker:
-    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}
+    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}-worker
     build:
       context: .
       dockerfile: Dockerfile
@@ -110,6 +110,9 @@ services:
       - .env
     environment:
       DATABASE_URL: postgres://atlas:atlas@postgres:5432/atlas
+      # The worker runs document extraction; point the storage adapter at the
+      # same mount the app uses so the two agree regardless of process CWD.
+      STORAGE_DIR: /app/data/documents
       # Defaults match src/lib/scheduler/index.ts. Override in .env if
       # you need a different run window or non-UTC schedules.
       CRON_PRUNE_SCHEDULE: ${CRON_PRUNE_SCHEDULE:-40 3 * * *}
@@ -119,6 +122,9 @@ services:
       - ./src:/app/src
       - ./scripts:/app/scripts
       - /app/node_modules
+      # Documents bind mount — the worker reads uploaded files during
+      # extraction (orchestrator → storage adapter). Same mount as the app.
+      - ./data/documents:/app/data/documents
     command: ['pnpm', 'worker']
     healthcheck:
       test: ['CMD-SHELL', 'test -f /tmp/atlas-worker-ready']
