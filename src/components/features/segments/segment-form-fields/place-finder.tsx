@@ -137,15 +137,15 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
 
     // Plus Code: encode the exact picked point at sub-3 m precision so
     // the pin lands on it offline. If encode somehow fails (non-finite
-    // coords — shouldn't happen, the searcher validates), we still set
-    // the address; the segment just falls back to address geocoding.
+    // coords — shouldn't happen, the searcher validates), CLEAR any
+    // existing plusCode so a stale value (a prior pick / prefill) can't
+    // win precedence over the address we just set — the segment then
+    // falls back to geocoding the new address.
     const code = encodePlusCode(candidate.lat, candidate.lng, PICK_CODE_LENGTH);
-    if (code) {
-      form.setValue('data.plusCode' as never, code as never, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    }
+    form.setValue('data.plusCode' as never, (code ?? '') as never, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
 
     // Country: fill ONLY if empty — never overwrite a country the user
     // set. Mirrors the flight IATA→country autofill rule.
@@ -288,7 +288,9 @@ function CandidateRow({ candidate, onPick }: { candidate: GeocodeCandidate; onPi
       onClick={onPick}
       className={cn(
         // Full-width, ≥44px touch target, left-aligned multi-line.
-        'border-foreground/12 bg-card/60 hover:bg-card hover:border-foreground/25',
+        // Hover affordance gated to pointer devices so a tap on touch
+        // (which picks + closes) doesn't leave a sticky hover state.
+        'border-foreground/12 bg-card/60 [@media(hover:hover)]:hover:bg-card [@media(hover:hover)]:hover:border-foreground/25',
         'focus-visible:ring-primary/40 focus-visible:ring-offset-background flex w-full',
         'min-h-11 flex-col gap-1 rounded-xl border px-4 py-3 text-left transition-colors',
         'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
