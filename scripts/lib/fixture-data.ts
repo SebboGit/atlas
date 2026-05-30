@@ -47,6 +47,19 @@ export const FIXTURE_EMAIL = 'screenshot@atlas.local';
 const d = (y: number, m: number, day: number, h = 12, min = 0): Date =>
   new Date(Date.UTC(y, m - 1, day, h, min));
 
+// `now`-relative UTC date helper. The screenshots use fixed dates (the
+// hero trip), but the *active* trip below must straddle "today" on
+// every seed run so the chronological-map behaviours — collapsed-past,
+// auto-scroll-to-today, and per-day focus (issue #9) — are always
+// demonstrable in a dev worktree. `offsetDays` is relative to the UTC
+// start of the day the seed runs.
+const relDay = (offsetDays: number, h = 12, min = 0): Date => {
+  const base = new Date();
+  return new Date(
+    Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + offsetDays, h, min),
+  );
+};
+
 // Countries painted on the world-map choropleth. A believable, well-
 // travelled spread across every continent — all synthetic. JP is also
 // trip-derived from the hero trip below; the two sources merge.
@@ -234,11 +247,99 @@ const HERO_SEGMENTS: HeroSegment[] = [
   },
 ];
 
+// --- Active trip: Patagonia, dated relative to "now" ------------------
+//
+// The hero trip is `completed`, so it can't exercise the chronological
+// map's active-trip behaviours (issue #9): collapsed-past, auto-scroll-
+// to-today, and per-day focus all fire ONLY for an `active` trip whose
+// days span past + today + future. This set is dated with `relDay` so
+// it always straddles whatever day the seed runs. It includes a multi-
+// day hotel that started in the past and runs through today (the
+// splitCollapsedDays "ongoing segment" rule) and one ungeocoded item.
+const PATAGONIA_SEGMENTS: HeroSegment[] = [
+  {
+    // Past arrival flight — folds into the collapsed-past pill.
+    type: 'flight',
+    data: {
+      carrier: 'LA',
+      flightNumber: '283',
+      originAirport: 'SCL',
+      destinationAirport: 'PUQ',
+      pnr: 'PATGON',
+      seat: '14C',
+    },
+    startsAt: relDay(-3, 8, 30),
+    endsAt: relDay(-3, 12, 5),
+    countryCode: 'CL',
+    originCountryCode: 'CL',
+  },
+  {
+    // Multi-day hotel: checked in two days ago, checks out in two days.
+    // Ongoing as of today, so splitCollapsedDays keeps its day (and
+    // every later live day) out of the collapsed pill.
+    type: 'hotel',
+    data: {
+      propertyName: 'Hotel Las Torres',
+      address: 'Torres del Paine National Park, Magallanes, Chile',
+      confirmationNumber: 'HLT-5521',
+      roomType: 'Mountain-view double',
+    },
+    startsAt: relDay(-2),
+    endsAt: relDay(2),
+    locationName: 'Torres del Paine',
+    countryCode: 'CL',
+    pin: { lat: -50.9423, lng: -72.9886 },
+  },
+  {
+    // Yesterday — a past day after the hotel check-in, so it stays
+    // visible (part of the live stretch), not collapsed.
+    type: 'activity',
+    data: { title: 'Base Torres day hike' },
+    startsAt: relDay(-1, 7),
+    locationName: 'Torres del Paine',
+    countryCode: 'CL',
+    pin: { lat: -50.9, lng: -72.9 },
+  },
+  {
+    // Today — the auto-scroll-to-today anchor.
+    type: 'activity',
+    data: { title: 'French Valley viewpoint' },
+    startsAt: relDay(0, 8),
+    locationName: 'Valle del Francés',
+    countryCode: 'CL',
+    pin: { lat: -51.0167, lng: -73.0833 },
+  },
+  {
+    // Today, later — an ungeocoded item (no public address) so the
+    // active trip also shows the "not on the map" rail treatment.
+    type: 'activity',
+    data: { title: "Ranger's cabin — gear swap" },
+    startsAt: relDay(0, 18),
+    countryCode: 'CL',
+  },
+  {
+    // Future — a preview day, rendered but past the today anchor.
+    type: 'transit',
+    data: {
+      mode: 'ferry',
+      carrier: 'Hielos Patagónicos',
+      fromName: 'Pudeto',
+      toName: 'Refugio Paine Grande',
+      referenceNumber: 'FERRY-77',
+    },
+    startsAt: relDay(2, 10),
+    endsAt: relDay(2, 10, 30),
+    locationName: 'Lago Pehoé',
+    countryCode: 'CL',
+    pin: { lat: -51.06, lng: -73.07 },
+  },
+];
+
 // Negative geocode-cache rows so the deliberately-ungeocoded segments
 // above never hit Nominatim during fixture rendering. Queries here must
 // match what `buildGeocodeQuery` would produce for the segment above,
 // pre-normalisation. Keep this list aligned with the no-pin entries in
-// HERO_SEGMENTS.
+// HERO_SEGMENTS and PATAGONIA_SEGMENTS.
 const UNGEOCODED_CACHE_NULLS: string[] = [
   // Activity "Friend's place — drinks" — no locationName, so the query
   // is the title alone.
@@ -246,6 +347,9 @@ const UNGEOCODED_CACHE_NULLS: string[] = [
   // Hotel "Guest house — TBC" — no address, so the query is the
   // property name alone.
   'Guest house — TBC',
+  // Patagonia activity "Ranger's cabin — gear swap" — no locationName,
+  // so the query is the title alone.
+  "Ranger's cabin — gear swap",
 ];
 
 // Wishlist items — the household's reusable place list. A few JP food
@@ -427,8 +531,10 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         title: 'Patagonia',
         summary: 'Two weeks in Patagonia, hiking the W trek in Torres del Paine.',
         status: 'active',
-        startDate: d(2026, 5, 15),
-        endDate: d(2026, 5, 27),
+        // `now`-relative so the active trip always straddles today —
+        // see PATAGONIA_SEGMENTS and the `relDay` note above.
+        startDate: relDay(-3),
+        endDate: relDay(2),
       },
       {
         userId,
@@ -452,6 +558,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     ])
     .returning({ id: trips.id, title: trips.title });
   const lisbonTripId = otherTripsInserted.find((t) => t.title === 'Lisbon')?.id;
+  const patagoniaTripId = otherTripsInserted.find((t) => t.title === 'Patagonia')?.id;
 
   // 4) Hero itinerary — segments. RETURNING keeps insert order so we
   //    can wire documents to the right flight / hotel rows below.
@@ -471,6 +578,25 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     )
     .returning({ id: segments.id, type: segments.type });
 
+  // 4b) Active-trip (Patagonia) itinerary — `now`-relative segments so
+  //     the chronological map's active-trip behaviours are demonstrable
+  //     in a worktree. No documents are wired to these; they only need
+  //     to exist on the map + itinerary.
+  if (patagoniaTripId) {
+    await db.insert(segments).values(
+      PATAGONIA_SEGMENTS.map((s) => ({
+        tripId: patagoniaTripId,
+        type: s.type,
+        data: s.data,
+        startsAt: s.startsAt,
+        endsAt: s.endsAt ?? null,
+        locationName: s.locationName ?? null,
+        countryCode: s.countryCode ?? null,
+        originCountryCode: s.originCountryCode ?? null,
+      })),
+    );
+  }
+
   // 5) Geocode cache — positive rows for every pinned segment and
   //    negative rows for the deliberately-ungeocoded edge cases.
   //    Positive TTL matches the production 90d hit TTL, null TTL the
@@ -479,7 +605,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
   //    up means a manual prune on a worktree behaves as documented.
   const positiveExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
   const nullExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  for (const seg of HERO_SEGMENTS) {
+  for (const seg of [...HERO_SEGMENTS, ...PATAGONIA_SEGMENTS]) {
     if (!seg.pin) continue;
     const query = queryForHeroSegment(seg);
     if (!query) continue;
