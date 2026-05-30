@@ -52,23 +52,3 @@ export function GeocodePoller({ pending }: GeocodePollerProps) {
 
   return null;
 }
-
-/**
- * Convenience helper for callers that pass a list of items + the
- * coords map. Counts items whose id isn't in the map AND whose
- * `geocodableIdentity` predicate is true. Kept here so each page
- * doesn't open-code the same filter.
- */
-export function countPendingGeocodes<T extends { id: string }>(
-  items: ReadonlyArray<T>,
-  coordsById: ReadonlyMap<string, unknown>,
-  hasGeocodableIdentity: (item: T) => boolean,
-): number {
-  let count = 0;
-  for (const item of items) {
-    if (coordsById.has(item.id)) continue;
-    if (!hasGeocodableIdentity(item)) continue;
-    count += 1;
-  }
-  return count;
-}
