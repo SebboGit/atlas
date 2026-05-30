@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import type { TransitData } from '@/lib/segments';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
+import { PlaceFinder } from './place-finder';
 import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 
 // Reuses the Zod-inferred TransitData['mode'] union — no second source
@@ -74,6 +75,7 @@ export function TransitFields({ form }: { form: Form }) {
           placeholder="1-9-1 Marunouchi, Chiyoda"
           {...form.register('data.address' as never)}
         />
+        <PlaceFinder form={form} type="transit" />
         <PlusCodeNudge form={form} />
       </div>
       <PlusCodeFields form={form} idPrefix="seg-transit" />

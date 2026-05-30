@@ -3,7 +3,13 @@
 // the provider choice swappable (per ADR-0010) and the cache contract
 // the single source of truth.
 
-export type { Geocoder, GeocodeResult, ReverseGeocoder } from './types';
+export type {
+  Geocoder,
+  GeocodeResult,
+  GeocodeCandidate,
+  GeocodeSearcher,
+  ReverseGeocoder,
+} from './types';
 
 export { normalizeQuery } from './normalize';
 
@@ -42,18 +48,19 @@ export { getGeocodeWorkerStatus, type GeocodeWorkerStatus } from './worker-healt
 
 import { createNominatimGeocoder } from './nominatim';
 import { PlaceResolver } from './place-resolver';
-import type { Geocoder } from './types';
+import type { Geocoder, GeocodeSearcher } from './types';
 
 /**
  * Lazy singleton geocoder. Returns a {@link PlaceResolver} so callers
  * automatically get Plus Code routing on top of free-text Nominatim
- * search. Keeps a single throttle bucket per process (the underlying
- * `NominatimGeocoder` is shared as both forward and reverse). Tests
- * inject their own implementation via vi.mock.
+ * search, plus multi-candidate `search()` for the interactive address
+ * picker. Keeps a single throttle bucket per process (the underlying
+ * `NominatimGeocoder` is shared as forward, reverse, and searcher).
+ * Tests inject their own implementation via vi.mock.
  */
-let instance: Geocoder | null = null;
+let instance: (Geocoder & GeocodeSearcher) | null = null;
 
-export function getGeocoder(): Geocoder {
+export function getGeocoder(): Geocoder & GeocodeSearcher {
   if (!instance) {
     const nominatim = createNominatimGeocoder();
     instance = new PlaceResolver({ forward: nominatim, reverse: nominatim });

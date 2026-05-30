@@ -18,19 +18,28 @@ import {
   tryParsePlusCode,
   type ParsedPlusCode,
 } from './plus-code';
-import type { Geocoder, GeocodeResult, ReverseGeocoder } from './types';
+import type {
+  Geocoder,
+  GeocodeCandidate,
+  GeocodeResult,
+  GeocodeSearcher,
+  ReverseGeocoder,
+} from './types';
 
 /**
  * Anything that can do both forward and reverse Nominatim-style
  * lookups. In production `NominatimGeocoder` implements both; tests
- * pass slim fakes.
+ * pass slim fakes. `forward` optionally also implements
+ * {@link GeocodeSearcher} — when it does, the resolver surfaces
+ * `search()` straight through (the picker never wants Plus Code routing
+ * on a multi-candidate name search).
  */
 export interface PlaceResolverDeps {
-  forward: Geocoder;
+  forward: Geocoder & Partial<GeocodeSearcher>;
   reverse: ReverseGeocoder;
 }
 
-export class PlaceResolver implements Geocoder {
+export class PlaceResolver implements Geocoder, GeocodeSearcher {
   constructor(private readonly deps: PlaceResolverDeps) {}
 
   async geocode(query: string): Promise<GeocodeResult | null> {
@@ -41,6 +50,19 @@ export class PlaceResolver implements Geocoder {
       return this.deps.forward.geocode(query);
     }
     return this.resolvePlusCode(parsed);
+  }
+
+  /**
+   * Multi-candidate search for the interactive picker. Deliberately
+   * does NOT route through the Plus Code pipeline: the picker always
+   * sends a venue/POI name, never a code, and wants the raw candidate
+   * list. Delegates to the forward dependency's `search` when present;
+   * a forward that can't search yields `[]` (graceful degradation, same
+   * as any miss).
+   */
+  async search(query: string, opts?: { limit?: number }): Promise<GeocodeCandidate[]> {
+    if (typeof this.deps.forward.search !== 'function') return [];
+    return this.deps.forward.search(query, opts);
   }
 
   private async resolvePlusCode(parsed: ParsedPlusCode): Promise<GeocodeResult | null> {

@@ -15,10 +15,23 @@ import { createHash } from 'node:crypto';
 
 import { log } from '@/lib/log';
 
-import type { Geocoder, GeocodeResult, ReverseGeocoder } from './types';
+import type {
+  Geocoder,
+  GeocodeCandidate,
+  GeocodeResult,
+  GeocodeSearcher,
+  ReverseGeocoder,
+} from './types';
 
 const DEFAULT_BASE_URL = 'https://nominatim.openstreetmap.org';
 const DEFAULT_MIN_INTERVAL_MS = 1100;
+// Default candidate count for the interactive picker. Three is enough
+// to disambiguate the common "is this the right branch?" case without
+// turning the panel into a scroll exercise. Hard-capped on the way out
+// regardless of what a caller requests, since Nominatim will happily
+// return more.
+const DEFAULT_SEARCH_LIMIT = 3;
+const MAX_SEARCH_LIMIT = 3;
 // Hard ceiling on how long a single fetch can hang before we give up
 // and emit a `network-error`. The public Nominatim endpoint
 // occasionally stalls; default undici fetch timeout is ~5 min, which
@@ -68,7 +81,23 @@ interface NominatimSearchHit {
   display_name?: unknown;
 }
 
-export class NominatimGeocoder implements Geocoder, ReverseGeocoder {
+// Richer hit shape returned when we ask for addressdetails + namedetails.
+// All fields optional / unknown — Nominatim's response is not a contract
+// and we validate field-by-field before trusting anything.
+interface NominatimRichHit {
+  lat?: unknown;
+  lon?: unknown;
+  display_name?: unknown;
+  /** Nominatim feature type, e.g. "restaurant", "hotel". */
+  type?: unknown;
+  /** Nominatim feature class / category, e.g. "amenity", "tourism". */
+  class?: unknown;
+  name?: unknown;
+  namedetails?: { name?: unknown } | null;
+  address?: { country_code?: unknown } | null;
+}
+
+export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSearcher {
   private readonly baseUrl: string;
   private readonly userAgent: string;
   private readonly minIntervalMs: number;
@@ -237,6 +266,79 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder {
     return obj.display_name;
   }
 
+  /**
+   * Multi-candidate forward search for the interactive address picker.
+   * Requests up to `limit` hits (capped at {@link MAX_SEARCH_LIMIT})
+   * with `addressdetails` + `namedetails` so each candidate carries a
+   * short name, a country code, and a feature type for the UI.
+   *
+   * Same throttle, same no-throw contract, same hashed-query-only
+   * logging as {@link geocode}. Every failure mode — empty/garbage
+   * query, network error, 4xx/5xx, non-array body — returns `[]`.
+   * Individual malformed hits are skipped, not fatal, so one bad row
+   * doesn't sink an otherwise-usable result set.
+   */
+  async search(query: string, opts?: { limit?: number }): Promise<GeocodeCandidate[]> {
+    const trimmed = query.trim();
+    if (trimmed.length === 0) return [];
+
+    const limit = clampSearchLimit(opts?.limit);
+
+    await this.acquireSlot();
+
+    const queryHash = shortHash(trimmed);
+    const url = this.buildSearchUrl(trimmed, limit);
+
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), this.requestTimeoutMs);
+
+    let res: Response;
+    try {
+      res = await this.fetchImpl(url, {
+        method: 'GET',
+        headers: {
+          'user-agent': this.userAgent,
+          accept: 'application/json',
+          'accept-language': 'en',
+        },
+        signal: abort.signal,
+      });
+    } catch {
+      log.warn({ queryHash, reason: 'network-error' }, 'geocoding.nominatim.search_failed');
+      return [];
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!res.ok) {
+      log.warn({ queryHash, reason: `http-${res.status}` }, 'geocoding.nominatim.search_failed');
+      return [];
+    }
+
+    let payload: unknown;
+    try {
+      payload = await res.json();
+    } catch {
+      log.warn({ queryHash, reason: 'invalid-json' }, 'geocoding.nominatim.search_failed');
+      return [];
+    }
+
+    if (!Array.isArray(payload)) {
+      log.warn({ queryHash, reason: 'not-array' }, 'geocoding.nominatim.search_failed');
+      return [];
+    }
+
+    const candidates: GeocodeCandidate[] = [];
+    for (const raw of payload) {
+      const candidate = parseCandidate(raw);
+      if (candidate) candidates.push(candidate);
+      if (candidates.length >= limit) break;
+    }
+
+    log.info({ queryHash, count: candidates.length }, 'geocoding.nominatim.search_ok');
+    return candidates;
+  }
+
   // Token-bucket gate. Each call reserves the next slot synchronously
   // (before any `await`), so a burst of concurrent callers fan out as
   // `t`, `t + interval`, `t + 2·interval`, … without two of them
@@ -271,6 +373,87 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder {
     });
     return `${this.baseUrl}/reverse?${params.toString()}`;
   }
+
+  private buildSearchUrl(query: string, limit: number): string {
+    const params = new URLSearchParams({
+      q: query,
+      format: 'jsonv2',
+      limit: String(limit),
+      // addressdetails gives us `address.country_code` for the empty-
+      // country autofill; namedetails gives the short `name` for the
+      // picker's primary line.
+      addressdetails: '1',
+      namedetails: '1',
+    });
+    return `${this.baseUrl}/search?${params.toString()}`;
+  }
+}
+
+function clampSearchLimit(requested: number | undefined): number {
+  if (requested === undefined || !Number.isFinite(requested)) return DEFAULT_SEARCH_LIMIT;
+  const floored = Math.floor(requested);
+  if (floored < 1) return 1;
+  if (floored > MAX_SEARCH_LIMIT) return MAX_SEARCH_LIMIT;
+  return floored;
+}
+
+/**
+ * Map one Nominatim rich hit to a {@link GeocodeCandidate}, or `null` if
+ * the hit lacks usable coordinates (a candidate the user can't pin is
+ * worse than no candidate). Name falls back to the first comma-part of
+ * `display_name`; country_code is uppercased; type/class default to
+ * null when absent.
+ */
+function parseCandidate(raw: unknown): GeocodeCandidate | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const hit = raw as NominatimRichHit;
+
+  const lat = parseCoord(hit.lat);
+  const lng = parseCoord(hit.lon);
+  if (lat === null || lng === null) return null;
+
+  const displayName = typeof hit.display_name === 'string' ? hit.display_name : null;
+  if (displayName === null || displayName === '') return null;
+
+  const name = pickName(hit, displayName);
+  const osmType = typeof hit.type === 'string' && hit.type !== '' ? hit.type : null;
+  const category = typeof hit.class === 'string' && hit.class !== '' ? hit.class : null;
+  const countryCode = pickCountryCode(hit);
+
+  return {
+    lat,
+    lng,
+    displayName,
+    name,
+    addressLabel: displayName,
+    osmType,
+    category,
+    countryCode,
+  };
+}
+
+// Prefer the structured `namedetails.name`, then a top-level `name`,
+// then the first comma-delimited part of `display_name` ("Park Hyatt
+// Tokyo, 3-7-1-2 …" → "Park Hyatt Tokyo"). Always non-empty: the caller
+// guarantees a non-empty `display_name`, so the final fallback can't be
+// blank.
+function pickName(hit: NominatimRichHit, displayName: string): string {
+  const fromDetails = hit.namedetails?.name;
+  if (typeof fromDetails === 'string' && fromDetails.trim() !== '') return fromDetails.trim();
+  if (typeof hit.name === 'string' && hit.name.trim() !== '') return hit.name.trim();
+  const firstPart = displayName.split(',')[0]?.trim();
+  return firstPart && firstPart !== '' ? firstPart : displayName;
+}
+
+// ISO 3166-1 alpha-2 from `address.country_code`, uppercased. Nominatim
+// emits it lowercase; we store/compare uppercase everywhere else. `null`
+// when absent or not a 2-letter code.
+function pickCountryCode(hit: NominatimRichHit): string | null {
+  const cc = hit.address?.country_code;
+  if (typeof cc !== 'string') return null;
+  const trimmed = cc.trim();
+  if (trimmed.length !== 2) return null;
+  return trimmed.toUpperCase();
 }
 
 function defaultSleep(ms: number): Promise<void> {

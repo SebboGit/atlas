@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { PlaceResolver } from './place-resolver';
-import type { Geocoder, GeocodeResult, ReverseGeocoder } from './types';
+import type {
+  Geocoder,
+  GeocodeCandidate,
+  GeocodeResult,
+  GeocodeSearcher,
+  ReverseGeocoder,
+} from './types';
 
 function deps(opts?: {
   forward?: (q: string) => Promise<GeocodeResult | null>;
@@ -105,5 +111,45 @@ describe('PlaceResolver — local Plus Code', () => {
     expect(result).toBeNull();
     expect(forwardSpy).not.toHaveBeenCalled();
     expect(reverseSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('PlaceResolver — search (multi-candidate)', () => {
+  const candidate: GeocodeCandidate = {
+    lat: 35.6585,
+    lng: 139.7454,
+    displayName: 'Park Hyatt Tokyo, Shinjuku, Tokyo, Japan',
+    name: 'Park Hyatt Tokyo',
+    addressLabel: 'Park Hyatt Tokyo, Shinjuku, Tokyo, Japan',
+    osmType: 'hotel',
+    category: 'tourism',
+    countryCode: 'JP',
+  };
+
+  it('delegates to the forward searcher and does NOT route through Plus Code parsing', async () => {
+    const searchSpy = vi.fn(async () => [candidate]);
+    const forward: Geocoder & GeocodeSearcher = {
+      geocode: vi.fn(async () => null),
+      search: searchSpy,
+    };
+    const resolver = new PlaceResolver({ forward, reverse: { reverse: vi.fn(async () => null) } });
+
+    const out = await resolver.search('Park Hyatt Tokyo, Shinjuku, Japan', { limit: 3 });
+
+    expect(out).toEqual([candidate]);
+    expect(searchSpy).toHaveBeenCalledExactlyOnceWith('Park Hyatt Tokyo, Shinjuku, Japan', {
+      limit: 3,
+    });
+    // geocode must not be touched — search is its own path.
+    expect(forward.geocode).not.toHaveBeenCalled();
+  });
+
+  it('returns [] when the forward dependency cannot search (graceful degradation)', async () => {
+    // Plain Geocoder, no `search` method — the picker degrades to empty
+    // rather than throwing.
+    const forward: Geocoder = { geocode: vi.fn(async () => null) };
+    const resolver = new PlaceResolver({ forward, reverse: { reverse: vi.fn(async () => null) } });
+
+    expect(await resolver.search('anything')).toEqual([]);
   });
 });
