@@ -103,28 +103,32 @@ export function ChronoTripMap({
   // The active highlight set: hover wins over focus (a hover is a
   // momentary "preview this day" gesture on top of whatever day is
   // focused). null = no day highlight, so only the country filter dims.
+  // A day with NOTHING mappable (e.g. a notes-only day) also yields null
+  // — highlighting an empty set would dim every pin on the map, and
+  // focusing a day you can't place shouldn't grey the whole world.
   const highlightSegmentIds = React.useMemo<ReadonlySet<string> | null>(() => {
     const key = hoveredDayKey ?? focusedDayKey;
     if (!key) return null;
     const day = dayByKey.get(key);
     if (!day) return null;
-    return new Set(mappableSegmentIds(day));
+    const ids = mappableSegmentIds(day);
+    return ids.length > 0 ? new Set(ids) : null;
   }, [hoveredDayKey, focusedDayKey, dayByKey]);
 
   // The fitBounds target: the focused day's mappable ids (hover does NOT
   // refit — it only dims, so a hover doesn't yank the camera). null when
-  // no day is focused, handing the frame back to TripMap's country/all
-  // fit. `fitNonce` retriggers an identical fit when the user re-focuses
-  // the same day.
+  // no day is focused (or the focused day has nothing mappable), handing
+  // the frame back to TripMap's country/all fit. A fresh array per focus
+  // change is the fit effect's retrigger — no nonce needed (there's no
+  // affordance to re-focus the already-focused day; a repeat click
+  // unfocuses it).
   const fitToSegmentIds = React.useMemo<readonly string[] | null>(() => {
     if (!focusedDayKey) return null;
     const day = dayByKey.get(focusedDayKey);
     if (!day) return null;
-    return mappableSegmentIds(day);
+    const ids = mappableSegmentIds(day);
+    return ids.length > 0 ? ids : null;
   }, [focusedDayKey, dayByKey]);
-  // Bump the fit nonce whenever the focused day changes so re-selecting
-  // the same day (after panning away) re-fits.
-  const fitNonce = useNonce(focusedDayKey);
 
   // Build a `?day=` href that preserves the country filter. Toggling the
   // already-focused day clears the focus (a second click "unfocuses").
@@ -215,7 +219,6 @@ export function ChronoTripMap({
     focusSegmentId,
     focusNonce,
     fitToSegmentIds,
-    fitNonce,
     onPinClick,
     onPinHover,
   };
@@ -232,13 +235,19 @@ export function ChronoTripMap({
         Rendering the map once avoids two live MapLibre WebGL contexts.
       */}
       <div className="flex gap-6">
-        <aside
-          aria-label="Trip timeline"
-          className="border-foreground/10 bg-card/50 hidden w-[360px] shrink-0 overflow-y-auto rounded-2xl border p-3 lg:block xl:w-[400px]"
-          style={{ height: 'min(calc(100svh - 200px), 640px)' }}
-        >
-          <TripTimelineRail {...railProps} />
-        </aside>
+        {/* The rail only earns its column when the trip has dated days.
+            An empty trip (new, or wishlist-only) would otherwise show a
+            blank bordered panel on laptop — so hide it and let the map
+            take the full width, mirroring the sheet's empty-trip null. */}
+        {hasDays && (
+          <aside
+            aria-label="Trip timeline"
+            className="border-foreground/10 bg-card/50 hidden w-[360px] shrink-0 overflow-y-auto rounded-2xl border p-3 lg:block xl:w-[400px]"
+            style={{ height: 'min(calc(100svh - 200px), 640px)' }}
+          >
+            <TripTimelineRail {...railProps} />
+          </aside>
+        )}
         <div className="min-w-0 flex-1">
           <TripMap
             {...mapDrivingProps}
@@ -256,19 +265,4 @@ export function ChronoTripMap({
       <TripTimelineSheet hasDays={hasDays} {...railProps} />
     </>
   );
-}
-
-// A render-stable nonce that increments whenever `key` changes. Lets a
-// child effect retrigger on the SAME prop value (re-focusing the same
-// day) — the value alone wouldn't change, but the nonce does.
-function useNonce(key: string | null): number {
-  const [nonce, setNonce] = React.useState(0);
-  const prevRef = React.useRef<string | null>(key);
-  React.useEffect(() => {
-    if (prevRef.current !== key) {
-      prevRef.current = key;
-      setNonce((n) => n + 1);
-    }
-  }, [key]);
-  return nonce;
 }

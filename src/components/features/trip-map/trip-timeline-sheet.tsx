@@ -83,9 +83,12 @@ export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetPr
       snapPoints={[...SNAP_POINTS]}
       activeSnapPoint={snap}
       setActiveSnapPoint={setSnap}
-      // Drag only via the handle area so a flick inside the scrollable
-      // timeline scrolls the list rather than collapsing the sheet.
-      handleOnly
+      // No `handleOnly`: the whole header (and the sheet body) is
+      // draggable, matching the grab cursor + "Drag to expand" affordance
+      // and the Apple-Maps idiom. vaul still lets the scrollable list
+      // below scroll on its own — it only converts a drag into a sheet
+      // move when the list is already at the top, so a flick inside the
+      // timeline scrolls it rather than collapsing the sheet.
     >
       <Drawer.Portal>
         {/*
@@ -95,7 +98,12 @@ export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetPr
           layout uses the inline rail instead.
         */}
         <Drawer.Content
-          aria-label="Trip timeline"
+          // The accessible name comes from Drawer.Title below (Radix
+          // wires aria-labelledby), so no redundant aria-label. The sheet
+          // carries no description; `aria-describedby={undefined}` opts
+          // out of Radix's description wiring and silences its dev-only
+          // missing-Description warning (same as the segment dialogs).
+          aria-describedby={undefined}
           // Full-viewport height: vaul, for a fractional snap point,
           // translates this `bottom-0` content DOWN by
           // `viewportHeight * (1 - snap)` px, so the top `snap` fraction
@@ -111,9 +119,10 @@ export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetPr
             'outline-none',
           )}
         >
-          {/* Drag handle + peek header. The whole header is the drag
-           *  target (handleOnly), so a press here moves the sheet while
-           *  the list below scrolls freely. */}
+          {/* Drag handle + peek header. Dragging anywhere on the sheet
+           *  moves it; the scrollable list below still scrolls on its own
+           *  (vaul only converts a drag into a sheet move when the list is
+           *  at the top). */}
           <div className="shrink-0 cursor-grab px-4 pt-2 pb-3 active:cursor-grabbing">
             <Drawer.Handle className="bg-foreground/20 mx-auto mb-3 h-1.5 w-10 rounded-full" />
             <div className="flex items-baseline gap-2">

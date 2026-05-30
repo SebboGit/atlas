@@ -77,10 +77,13 @@ export interface TripTimelineRailProps {
   onSelectSegment: (segmentId: string) => void;
 }
 
-// Per-segment summariseLocations expects `Segment[]`; the rail carries
-// the lighter RailItem. Adapt by faking the one field it reads.
+// summariseLocations reads each segment's real `locationName` for the
+// collapsed pill's "where" summary. The rail carries the lighter
+// RailItem, but it now keeps the true locationName (NOT the display
+// label, which is an IATA pair / "A → B" / note preview for several
+// types) so the summary matches the itinerary tab's collapsed pill.
 function railItemsAsLocationCarriers(items: RailItem[]): Pick<Segment, 'locationName'>[] {
-  return items.map((i) => ({ locationName: i.label }));
+  return items.map((i) => ({ locationName: i.locationName }));
 }
 
 // A single tappable segment row. Mappable rows pan the map on click;

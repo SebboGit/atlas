@@ -1,5 +1,6 @@
 import type { ClassifiedDay } from '@/components/features/segments/day-temporal';
 import { dayKey } from '@/components/features/segments/group-by-day';
+import { formatTime } from '@/lib/format';
 import type { Segment } from '@/lib/segments';
 import {
   activityDataSchema,
@@ -84,11 +85,11 @@ function labelForSegment(seg: Segment): string {
 }
 
 // Wall-clock time-of-day for a row, or null for a date-only segment.
-// A segment whose `startsAt` lands exactly on local midnight carries no
-// meaningful clock time (it's a date-only pick — a hotel check-in, an
-// all-day activity), so we suppress the label rather than print a
-// misleading "00:00". UTC-midnight check too: fixture/extracted dates
-// are commonly stored at UTC midnight, which is also "no time set".
+// A date-only pick (a hotel check-in, an all-day activity) carries no
+// meaningful clock time, so we suppress the label rather than print a
+// misleading "00:00". Such picks land on midnight — local midnight for
+// a local-zone date picker, UTC midnight for fixture / extracted dates
+// — so treat either as "no time set".
 function timeLabelFor(seg: Segment): string | null {
   const d = seg.startsAt;
   if (!d) return null;
@@ -100,12 +101,10 @@ function timeLabelFor(seg: Segment): string | null {
     d.getUTCSeconds() === 0 &&
     d.getUTCMilliseconds() === 0;
   if (isLocalMidnight || isUtcMidnight) return null;
-  return d.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  });
+  // Reuse the shared formatter (runtime-local zone) so the rail's time
+  // column agrees with the segment cards, which all render formatTime —
+  // rather than hand-rolling a divergent UTC toLocaleTimeString.
+  return formatTime(d);
 }
 
 // Builds a single rail item, resolving its map presence by segmentId
@@ -123,6 +122,7 @@ function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
       segmentId: seg.id,
       icon,
       label,
+      locationName: seg.locationName,
       timeLabel,
       country: seg.countryCode,
       mapKind: 'none',
@@ -137,6 +137,7 @@ function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
         segmentId: seg.id,
         icon,
         label,
+        locationName: seg.locationName,
         timeLabel,
         // The arc's destination is the flight's primary country
         // (ADR-0005); chip dimming treats the leg by where it lands.
@@ -154,6 +155,7 @@ function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
       segmentId: seg.id,
       icon,
       label,
+      locationName: seg.locationName,
       timeLabel,
       country: pin.country,
       mapKind: 'pin',
@@ -164,6 +166,7 @@ function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
     segmentId: seg.id,
     icon,
     label,
+    locationName: seg.locationName,
     timeLabel,
     country: seg.countryCode,
     mapKind: 'none',

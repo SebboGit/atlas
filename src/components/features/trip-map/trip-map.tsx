@@ -23,6 +23,7 @@ import { GeocodeWorkerBanner } from './geocode-worker-banner';
 import { PinMarker } from './pin-marker';
 import { PinTooltip } from './pin-tooltip';
 import { NotPinnedChip } from './not-pinned-chip';
+import { isArcDimmed, isPinDimmed } from './timeline-model';
 
 // Register the pmtiles:// protocol with MapLibre on module load.
 // MapLibre intercepts source URLs starting with `pmtiles://` and
@@ -83,11 +84,13 @@ interface TripMapProps {
   /**
    * Fit the map to exactly these segment ids' pins / arc endpoints (a
    * focused day). `null` falls back to the country/all fit behaviour.
-   * Paired with `fitNonce` so re-fitting the same set re-triggers.
+   * The parent passes a fresh array on each focus change, so the fit
+   * effect retriggers on array identity — no separate nonce needed
+   * (focusing a different day always yields a new array, and there's no
+   * affordance to re-focus the already-focused day: a repeat click
+   * unfocuses it).
    */
   fitToSegmentIds?: readonly string[] | null;
-  /** Bumped by the parent to retrigger an identical `fitToSegmentIds`. */
-  fitNonce?: number;
   /** Fired when a pin / flight marker is clicked — reflects into the rail. */
   onPinClick?: (segmentId: string) => void;
   /** Fired on pin hover enter (segmentId) / leave (null) — laptop only. */
@@ -180,40 +183,6 @@ interface ManagedMarker {
   el: HTMLDivElement;
 }
 
-// Single source of truth for whether a pin is dimmed. Two orthogonal
-// sources compose (issue #9): the country chip strip (spatial) and the
-// timeline day highlight (temporal). A pin shows at full opacity only
-// when it passes BOTH — it's in the active country (or no country is
-// active) AND it's in the highlighted-day set (or no day highlight is
-// active). Either filter failing dims it.
-function isPinDimmed(
-  pin: TripMapPin,
-  activeCountry: string | null,
-  highlightIds: ReadonlySet<string> | null,
-): boolean {
-  if (activeCountry !== null && pin.country !== activeCountry) return true;
-  if (highlightIds !== null && !highlightIds.has(pin.segmentId)) return true;
-  return false;
-}
-
-// Same composition for arcs. An arc dims unless BOTH endpoints sit in
-// the active country (a half-in arc reads as out of focus) AND — when a
-// day highlight is active — its segment is in the highlighted set.
-function isArcDimmed(
-  arc: TripMapArc,
-  activeCountry: string | null,
-  highlightIds: ReadonlySet<string> | null,
-): boolean {
-  if (
-    activeCountry !== null &&
-    (arc.originCountry !== activeCountry || arc.destCountry !== activeCountry)
-  ) {
-    return true;
-  }
-  if (highlightIds !== null && !highlightIds.has(arc.segmentId)) return true;
-  return false;
-}
-
 // A bare lat/lng the camera framing works in. Shared by the country
 // fit and the timeline day fit.
 interface FramePoint {
@@ -288,7 +257,6 @@ export function TripMap({
   focusSegmentId = null,
   focusNonce = 0,
   fitToSegmentIds = null,
-  fitNonce = 0,
   onPinClick,
   onPinHover,
   mapHeightClassName,
@@ -817,7 +785,14 @@ export function TripMap({
       const managed = markersRef.current[idx];
       if (!managed) return;
       const dimmed = isPinDimmed(pin, activeCountry, highlightSegmentIds);
-      managed.root.render(<PinMarker kind={pin.kind} label={pin.label} dimmed={dimmed} />);
+      // Preserve the actively-hovered marker's scale-up: in chrono mode a
+      // pin hover reflects into the rail, which recomputes highlightSegmentIds
+      // and re-runs this effect — without carrying `hovered` the just-hovered
+      // pin would snap back to its resting size mid-hover.
+      const hovered = hoveredIdxRef.current === idx;
+      managed.root.render(
+        <PinMarker kind={pin.kind} label={pin.label} dimmed={dimmed} hovered={hovered} />,
+      );
     });
 
     map.removeFeatureState({ source: ARCS_SOURCE_ID });
@@ -896,8 +871,8 @@ export function TripMap({
   }, [pins, arcs, activeCountry, mapReady, showWishlist, wishlistPins, fitToSegmentIds]);
 
   // Timeline day fit — frame the map to exactly the focused day's pins
-  // / arc endpoints (issue #9). Keyed on `fitNonce` so re-selecting the
-  // same day (identical id set) re-triggers the fit. When
+  // / arc endpoints (issue #9). Retriggers on `fitToSegmentIds` identity
+  // (the parent passes a fresh array per focus change). When
   // `fitToSegmentIds` is null this effect is inert and the country/all
   // fit above owns the camera.
   useEffect(() => {
@@ -923,9 +898,7 @@ export function TripMap({
 
     fitMapToPoints(map, points, firstFitDoneRef.current, { padding: 80, maxZoom: 11 });
     firstFitDoneRef.current = true;
-    // `fitNonce` is the retrigger key — a dep even though it isn't read
-    // in the body, so re-focusing the same day re-fits.
-  }, [fitToSegmentIds, fitNonce, pins, arcs, mapReady]);
+  }, [fitToSegmentIds, pins, arcs, mapReady]);
 
   // Timeline segment focus — pan to a specific segment and open its
   // tooltip (issue #9). For a flight (arc) we fly to the destination
