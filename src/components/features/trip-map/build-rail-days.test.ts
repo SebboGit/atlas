@@ -11,7 +11,9 @@ function seg(overrides: Partial<Segment> & { id: string; type: Segment['type'] }
   return {
     tripId: 'trip-1',
     data: {},
-    startsAt: new Date(Date.UTC(2025, 9, 5, 9, 12)),
+    // Local 09:12 (not a UTC instant) so the rail's local-zone time label
+    // — `formatTime` — renders "09:12" deterministically on any runner TZ.
+    startsAt: new Date(2025, 9, 5, 9, 12),
     endsAt: null,
     locationName: null,
     countryCode: 'JP',

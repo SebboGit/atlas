@@ -3,12 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { TripMapArc, TripMapPin } from '@/lib/trip-map/repo';
 
 import {
-  dayKeyForSegment,
-  focusPointForItem,
   indexMapGeometry,
+  isArcDimmed,
+  isPinDimmed,
   mappableSegmentIds,
-  pointsForDay,
-  pointsForItem,
   type RailDay,
   type RailItem,
 } from './timeline-model';
@@ -41,6 +39,7 @@ function item(overrides: Partial<RailItem> & { segmentId: string }): RailItem {
   return {
     icon: 'hotel',
     label: 'Row',
+    locationName: null,
     timeLabel: null,
     country: 'JP',
     mapKind: 'pin',
@@ -78,59 +77,6 @@ describe('indexMapGeometry', () => {
   });
 });
 
-describe('pointsForItem', () => {
-  it('yields both endpoints for an arc item', () => {
-    const idx = indexMapGeometry([], [arc({ segmentId: 'f1' })]);
-    const pts = pointsForItem(item({ segmentId: 'f1', mapKind: 'arc' }), idx);
-    expect(pts).toEqual([
-      { lat: 51.47, lng: -0.45 },
-      { lat: 35.55, lng: 139.78 },
-    ]);
-  });
-
-  it('yields one point for a pin item', () => {
-    const idx = indexMapGeometry([pin({ segmentId: 'h1', lat: 35.69, lng: 139.75 })], []);
-    expect(pointsForItem(item({ segmentId: 'h1', mapKind: 'pin' }), idx)).toEqual([
-      { lat: 35.69, lng: 139.75 },
-    ]);
-  });
-
-  it('yields nothing for a none item', () => {
-    const idx = indexMapGeometry([], []);
-    expect(pointsForItem(item({ segmentId: 'n1', mapKind: 'none' }), idx)).toEqual([]);
-  });
-
-  it('yields nothing when geometry is missing for the id', () => {
-    const idx = indexMapGeometry([], []);
-    expect(pointsForItem(item({ segmentId: 'gone', mapKind: 'pin' }), idx)).toEqual([]);
-    expect(pointsForItem(item({ segmentId: 'gone', mapKind: 'arc' }), idx)).toEqual([]);
-  });
-});
-
-describe('focusPointForItem', () => {
-  it('focuses an arc on its destination endpoint', () => {
-    const idx = indexMapGeometry([], [arc({ segmentId: 'f1' })]);
-    expect(focusPointForItem(item({ segmentId: 'f1', mapKind: 'arc' }), idx)).toEqual({
-      lat: 35.55,
-      lng: 139.78,
-    });
-  });
-
-  it('focuses a pin on itself', () => {
-    const idx = indexMapGeometry([pin({ segmentId: 'h1', lat: 1, lng: 2 })], []);
-    expect(focusPointForItem(item({ segmentId: 'h1', mapKind: 'pin' }), idx)).toEqual({
-      lat: 1,
-      lng: 2,
-    });
-  });
-
-  it('returns null for a none item', () => {
-    expect(
-      focusPointForItem(item({ segmentId: 'n1', mapKind: 'none' }), indexMapGeometry([], [])),
-    ).toBeNull();
-  });
-});
-
 describe('mappableSegmentIds', () => {
   it('excludes none items', () => {
     const d = day({
@@ -142,53 +88,57 @@ describe('mappableSegmentIds', () => {
     });
     expect(mappableSegmentIds(d)).toEqual(['a', 'b']);
   });
-});
 
-describe('pointsForDay', () => {
-  it('flattens every mappable item point for the day', () => {
-    const idx = indexMapGeometry(
-      [pin({ segmentId: 'h1', lat: 35.69, lng: 139.75 })],
-      [arc({ segmentId: 'f1' })],
-    );
-    const d = day({
-      items: [
-        item({ segmentId: 'h1', mapKind: 'pin' }),
-        item({ segmentId: 'f1', mapKind: 'arc' }),
-        item({ segmentId: 'n1', mapKind: 'none' }),
-      ],
-    });
-    expect(pointsForDay(d, idx)).toEqual([
-      { lat: 35.69, lng: 139.75 },
-      { lat: 51.47, lng: -0.45 },
-      { lat: 35.55, lng: 139.78 },
-    ]);
+  it('is empty for a day with nothing mappable', () => {
+    const d = day({ items: [item({ segmentId: 'n1', mapKind: 'none' })] });
+    expect(mappableSegmentIds(d)).toEqual([]);
   });
 });
 
-describe('dayKeyForSegment', () => {
-  const days: RailDay[] = [
-    day({
-      key: '2025-10-05',
-      dateKey: '2025-10-05',
-      dayNumber: 1,
-      position: 'past',
-      items: [item({ segmentId: 'a' }), item({ segmentId: 'b' })],
-    }),
-    day({
-      key: '2025-10-06',
-      dateKey: '2025-10-06',
-      dayNumber: 2,
-      position: 'today',
-      items: [item({ segmentId: 'c' })],
-    }),
-  ];
+describe('isPinDimmed (country × day-highlight composition)', () => {
+  const jpPin = pin({ segmentId: 's1', country: 'JP' });
 
-  it('finds the owning day key', () => {
-    expect(dayKeyForSegment(days, 'c')).toBe('2025-10-06');
-    expect(dayKeyForSegment(days, 'a')).toBe('2025-10-05');
+  it('is not dimmed when no country and no day highlight are active', () => {
+    expect(isPinDimmed(jpPin, null, null)).toBe(false);
   });
 
-  it('returns null for an unknown id (e.g. a wishlist-overlay pin)', () => {
-    expect(dayKeyForSegment(days, 'wishlist-x')).toBeNull();
+  it('dims a pin outside the active country', () => {
+    expect(isPinDimmed(jpPin, 'FR', null)).toBe(true);
+    expect(isPinDimmed(jpPin, 'JP', null)).toBe(false);
+  });
+
+  it('dims a pin not in the active day-highlight set', () => {
+    expect(isPinDimmed(jpPin, null, new Set(['other']))).toBe(true);
+    expect(isPinDimmed(jpPin, null, new Set(['s1']))).toBe(false);
+  });
+
+  it('requires passing BOTH filters to stay un-dimmed', () => {
+    // In-country but not in the highlighted day → dimmed.
+    expect(isPinDimmed(jpPin, 'JP', new Set(['other']))).toBe(true);
+    // In the highlighted day but wrong country → dimmed.
+    expect(isPinDimmed(jpPin, 'FR', new Set(['s1']))).toBe(true);
+    // Passes both → not dimmed.
+    expect(isPinDimmed(jpPin, 'JP', new Set(['s1']))).toBe(false);
+  });
+});
+
+describe('isArcDimmed (country × day-highlight composition)', () => {
+  const gbJpArc = arc({ segmentId: 'f1', originCountry: 'GB', destCountry: 'JP' });
+
+  it('is not dimmed with neither filter active', () => {
+    expect(isArcDimmed(gbJpArc, null, null)).toBe(false);
+  });
+
+  it('dims unless BOTH endpoints sit in the active country', () => {
+    expect(isArcDimmed(gbJpArc, 'JP', null)).toBe(true); // origin GB is out
+    expect(isArcDimmed(gbJpArc, 'GB', null)).toBe(true); // dest JP is out
+    expect(
+      isArcDimmed(arc({ segmentId: 'f2', originCountry: 'JP', destCountry: 'JP' }), 'JP', null),
+    ).toBe(false);
+  });
+
+  it('dims an arc not in the active day-highlight set', () => {
+    expect(isArcDimmed(gbJpArc, null, new Set(['other']))).toBe(true);
+    expect(isArcDimmed(gbJpArc, null, new Set(['f1']))).toBe(false);
   });
 });

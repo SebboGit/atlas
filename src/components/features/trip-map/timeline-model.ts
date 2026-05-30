@@ -31,6 +31,14 @@ export interface RailItem {
   /** Headline label (venue / title / IATA pair / note preview). */
   label: string;
   /**
+   * The segment's real `locationName` (a place — "Shibuya", "Paris"), or
+   * null. Distinct from `label`: for flights/transit/notes the label is
+   * an IATA pair / "A → B" / body preview, none of which is a place, so
+   * the collapsed-past pill summarises off this field instead (matching
+   * the itinerary tab).
+   */
+  locationName: string | null;
+  /**
    * Wall-clock time-of-day for the row ("09:12"), or null for a
    * date-only segment (a hotel check-in stored at local midnight has
    * no meaningful clock time to show).
@@ -67,17 +75,11 @@ export interface RailDay {
   spans: Array<{ startsAt: Date | null; endsAt: Date | null }>;
 }
 
-// A geographic point the map can fit to or pan to.
-export interface MapPoint {
-  lat: number;
-  lng: number;
-}
-
 // Index of a trip's pins and arcs by segment id, so the rail-builder
-// (and the client focus/fit resolvers) can look up geometry without
-// re-scanning the arrays. Flight pins dedupe by airport and key to the
-// first leg's segmentId, so a flight segment may have an arc entry but
-// no pin entry under its own id — the resolvers handle both.
+// can look up geometry without re-scanning the arrays. Flight pins
+// dedupe by airport and key to the first leg's segmentId, so a flight
+// segment may have an arc entry but no pin entry under its own id — the
+// builder handles both.
 export interface MapGeometryIndex {
   pinBySegmentId: Map<string, TripMapPin>;
   arcBySegmentId: Map<string, TripMapArc>;
@@ -98,45 +100,6 @@ export function indexMapGeometry(pins: TripMapPin[], arcs: TripMapArc[]): MapGeo
   return { pinBySegmentId, arcBySegmentId };
 }
 
-// Resolves the geographic point(s) a single rail item focuses / fits
-// to. A `pin` item yields its one coordinate; an `arc` item yields
-// both endpoints (so a flight frames its whole leg, not just one end);
-// a `none` item yields nothing. Pure — the same function backs both
-// the per-item pan and the per-day fitBounds.
-export function pointsForItem(item: RailItem, geometry: MapGeometryIndex): MapPoint[] {
-  if (item.mapKind === 'arc') {
-    const arc = geometry.arcBySegmentId.get(item.segmentId);
-    if (!arc) return [];
-    return [
-      { lat: arc.originLat, lng: arc.originLng },
-      { lat: arc.destLat, lng: arc.destLng },
-    ];
-  }
-  if (item.mapKind === 'pin') {
-    const pin = geometry.pinBySegmentId.get(item.segmentId);
-    if (!pin) return [];
-    return [{ lat: pin.lat, lng: pin.lng }];
-  }
-  return [];
-}
-
-// The single point the map pans to when a specific item is clicked.
-// For an arc, that's the destination endpoint (where the leg lands —
-// the place you're arriving at, which reads as "this flight's
-// location"); for a pin, the pin itself. Null when the item isn't
-// mappable.
-export function focusPointForItem(item: RailItem, geometry: MapGeometryIndex): MapPoint | null {
-  if (item.mapKind === 'arc') {
-    const arc = geometry.arcBySegmentId.get(item.segmentId);
-    return arc ? { lat: arc.destLat, lng: arc.destLng } : null;
-  }
-  if (item.mapKind === 'pin') {
-    const pin = geometry.pinBySegmentId.get(item.segmentId);
-    return pin ? { lat: pin.lat, lng: pin.lng } : null;
-  }
-  return null;
-}
-
 // The set of segment ids the map should highlight for a focused or
 // hovered day — every mappable item in the day. Items the map can't
 // place (`none`) are excluded so they never carry a phantom highlight.
@@ -144,20 +107,37 @@ export function mappableSegmentIds(day: RailDay): string[] {
   return day.items.filter((i) => i.mapKind !== 'none').map((i) => i.segmentId);
 }
 
-// All geographic points for a day — used to fitBounds the map onto a
-// focused day. Flattens every mappable item's point(s). Empty when the
-// day holds nothing mappable (the caller then leaves the frame alone).
-export function pointsForDay(day: RailDay, geometry: MapGeometryIndex): MapPoint[] {
-  return day.items.flatMap((item) => pointsForItem(item, geometry));
+// Whether a pin renders dimmed. Two orthogonal dim sources compose
+// (issue #9): the country chip strip (spatial) and the timeline day
+// highlight (temporal). A pin shows at full opacity only when it passes
+// BOTH — it's in the active country (or no country is active) AND it's
+// in the highlighted-day set (or no day highlight is active). Either
+// filter failing dims it. Pure + exported so the composition the map
+// hinges on is unit-tested without a live MapLibre instance.
+export function isPinDimmed(
+  pin: TripMapPin,
+  activeCountry: string | null,
+  highlightIds: ReadonlySet<string> | null,
+): boolean {
+  if (activeCountry !== null && pin.country !== activeCountry) return true;
+  if (highlightIds !== null && !highlightIds.has(pin.segmentId)) return true;
+  return false;
 }
 
-// Finds the day owning a given segment id — used to resolve which day a
-// map-tap selects (so a pin click reflects back into the rail / sheet).
-// Returns null for an id not present in any day (e.g. a wishlist-overlay
-// pin, which has no rail row).
-export function dayKeyForSegment(days: RailDay[], segmentId: string): string | null {
-  for (const day of days) {
-    if (day.items.some((i) => i.segmentId === segmentId)) return day.key;
+// Same composition for arcs. An arc dims unless BOTH endpoints sit in
+// the active country (a half-in arc reads as out of focus) AND — when a
+// day highlight is active — its segment is in the highlighted set.
+export function isArcDimmed(
+  arc: TripMapArc,
+  activeCountry: string | null,
+  highlightIds: ReadonlySet<string> | null,
+): boolean {
+  if (
+    activeCountry !== null &&
+    (arc.originCountry !== activeCountry || arc.destCountry !== activeCountry)
+  ) {
+    return true;
   }
-  return null;
+  if (highlightIds !== null && !highlightIds.has(arc.segmentId)) return true;
+  return false;
 }
