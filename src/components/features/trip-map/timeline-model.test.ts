@@ -53,7 +53,6 @@ function day(overrides: Partial<RailDay> & { items: RailItem[] }): RailDay {
     dateKey: '2025-10-05',
     dayNumber: 1,
     position: 'today',
-    spans: overrides.items.map(() => ({ startsAt: null, endsAt: null })),
     ...overrides,
   };
 }

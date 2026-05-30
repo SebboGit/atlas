@@ -8,6 +8,7 @@ import type { LinkedDocument } from '@/lib/documents';
 import type { Segment } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
+import { continuationsByDayKey } from './continuations';
 import { DayGroup } from './day-group';
 import {
   daysContainSegment,
@@ -331,20 +332,26 @@ export function ItineraryDayList({
   const hasScrolledRef = React.useRef(false);
 
   // Split the days into the leading collapsible run and everything that
-  // must stay expanded. `collapsed` is the run of pre-today days holding
-  // no still-ongoing segment; `visible` is the first day that is
-  // today/future OR carries an ongoing segment, plus all days after it.
-  // This is why a multi-day hotel that started in the past but runs
-  // through today keeps its day bucket — and every later live day —
-  // expanded, instead of vanishing into the collapsed pill. Inactive
-  // trips skip this entirely (see the early return).
+  // must stay expanded, and compute the ongoing-stay continuations to
+  // surface on the visible days. `collapsed` is the ENTIRE leading run of
+  // past days (a still-ongoing multi-day stay no longer force-expands its
+  // check-in day); `visible` is today + every future day. A stay that
+  // began in a collapsed past day but runs through today/future is
+  // re-surfaced as a quiet continuation row under each day it spans —
+  // `continuations` maps a day's `key` to those segments.
   //
-  // `today` is recomputed on the client rather than threaded down from
-  // the server: `splitCollapsedDays` short-circuits on the server-set
-  // `position`, and `isOngoing` compares on calendar-day boundaries, so
-  // a fresh `new Date()` here agrees with the server's classification.
-  const { collapsed: pastDays, visible: restDays } = React.useMemo(
-    () => splitCollapsedDays(days, new Date()),
+  // Both derive from the SAME server-set `position` field: the split
+  // collapses the leading `past` run, and a continuation is gated on its
+  // check-in day's `position` being `past` (i.e. that card collapsed).
+  // That shared signal — not a re-derived client clock — is what keeps
+  // them consistent: a continuation can only ever land on a day whose own
+  // check-in actually collapsed.
+  const {
+    collapsed: pastDays,
+    visible: restDays,
+    continuations,
+  } = React.useMemo(
+    () => ({ ...splitCollapsedDays(days), continuations: continuationsByDayKey(days) }),
     [days],
   );
 
@@ -512,6 +519,7 @@ export function ItineraryDayList({
               linkedDocumentsBySegment={linkedDocumentsBySegment}
               coordsBySegmentId={coordsBySegmentId}
               position={day.position}
+              continuations={continuations.get(day.key)}
             />
           </div>
         </div>

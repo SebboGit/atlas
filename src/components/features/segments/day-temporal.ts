@@ -1,6 +1,6 @@
 import type { Segment } from '@/lib/segments';
 
-import type { DayBucket } from './group-by-day';
+import { dayKey, type DayBucket } from './group-by-day';
 
 // Where a calendar day sits relative to "now". Past days are reference
 // material, today is the focus, future days are a preview — the
@@ -72,41 +72,90 @@ export function classifyDays(days: DayBucket[], today: Date): ClassifiedDay[] {
   }));
 }
 
-// Splits classified days into the leading run that may collapse and
-// the remainder that must render expanded.
+// Splits classified days into the leading run that collapses and the
+// remainder that renders expanded.
 //
-// `collapsed` is the *leading contiguous run* of day buckets that are
-// both (a) dated before today and (b) free of any segment ongoing as of
-// today. The first bucket that is today/future — or that holds an
-// ongoing segment — ends the run; that bucket and everything after it
-// land in `visible`.
+// `collapsed` is every `past` day (they always form the leading run —
+// past days sort before today/future). The first `today`/`future` day
+// ends the run; it and everything after land in `visible`.
 //
-// Consequence: a genuinely-past day that falls after the earliest
-// ongoing segment's start day stays in `visible` too. That is intended
-// — it belongs to the current live stretch, and it keeps the collapsed
-// group a single contiguous pill. Non-contiguous past runs are not
-// collapsed.
+// Past days collapse UNCONDITIONALLY — a fully-concluded single-day
+// event (a past day hike) is reference material even if some unrelated
+// multi-day stay happens to span its date. A stay still ongoing today
+// is NOT kept visible by force-expanding its check-in day (which would
+// drag every later past day along to stay contiguous); instead it is
+// surfaced as a continuation under today + the future days it spans —
+// see `ongoingContinuationsByDayKey`. That keeps the past a clean pill
+// AND keeps the current stay visible where you are.
 //
-// Days that take a `today` or `future` position never collapse — the
-// run ends at the first such day. There is no requirement for a `today`
-// anchor to exist: a trip made up entirely of `past` days (with no
-// ongoing segment) collapses *every* day into `collapsed`, leaving
-// `visible` empty. A trip with no `past` days yields an empty
-// `collapsed` instead.
-//
-// Typed structurally — it needs only a `position` and the day's
-// `segments` — so both the server-side `ClassifiedDay` and the client's
-// serialised `ItineraryDay` flow through unchanged.
-export function splitCollapsedDays<
-  D extends { position: DayPosition; segments: Pick<Segment, 'startsAt' | 'endsAt'>[] },
->(days: D[], today: Date): { collapsed: D[]; visible: D[] } {
+// A trip made entirely of `past` days collapses every day, leaving
+// `visible` empty; a trip with no `past` days yields an empty
+// `collapsed`. Typed structurally on `position` only, so both the
+// server-side `ClassifiedDay` and the client's serialised `ItineraryDay`
+// flow through unchanged.
+export function splitCollapsedDays<D extends { position: DayPosition }>(
+  days: D[],
+): { collapsed: D[]; visible: D[] } {
   let runEnd = 0;
   for (const day of days) {
     if (day.position !== 'past') break;
-    if (day.segments.some((s) => isOngoing(s, today))) break;
     runEnd += 1;
   }
   return { collapsed: days.slice(0, runEnd), visible: days.slice(runEnd) };
+}
+
+// True when a segment spans `dayDate` from an EARLIER check-in: it began
+// strictly before that calendar day and ends on or after it. A
+// single-day or open-ended segment (missing either endpoint) never
+// continues. This is the per-day test behind surfacing a multi-day stay
+// on the days after its check-in.
+export function continuesThroughDay(
+  segment: Pick<Segment, 'startsAt' | 'endsAt'>,
+  dayDate: Date,
+): boolean {
+  if (!segment.startsAt || !segment.endsAt) return false;
+  const start = startOfLocalDay(segment.startsAt);
+  const end = startOfLocalDay(segment.endsAt);
+  const day = startOfLocalDay(dayDate);
+  return start < day && end >= day;
+}
+
+// For each TODAY/FUTURE day, the segments that continue through it from a
+// COLLAPSED (past) check-in bucket — the "you're still here"
+// continuations to surface once the past collapses. Keyed by the day's
+// stable `dayKey`.
+//
+// Position-driven, NOT clock-driven: a segment qualifies iff its check-in
+// day is `past` (so its primary card collapsed) and it `continuesThroughDay`
+// the visible day. The server-set `position` is the exact signal
+// `splitCollapsedDays` reads, so a continuation can never disagree with
+// the split — no `today` input, no client/server clock-skew window. A
+// segment never appears as a continuation on its own check-in day, and
+// none are emitted for `past` days (they're collapsed).
+//
+// The itinerary's `continuationsByDayKey` mirrors this over the serialised
+// `ItineraryDay` shape; this variant runs over the rail's `ClassifiedDay`.
+export function ongoingContinuationsByDayKey(days: ClassifiedDay[]): Map<string, Segment[]> {
+  const fromCollapsed: Array<{ seg: Segment; bucketKey: string }> = [];
+  for (const day of days) {
+    if (day.position !== 'past') continue;
+    const k = dayKey(day.date);
+    for (const seg of day.segments) fromCollapsed.push({ seg, bucketKey: k });
+  }
+  if (fromCollapsed.length === 0) return new Map();
+
+  const byDay = new Map<string, Segment[]>();
+  for (const day of days) {
+    if (day.position === 'past') continue;
+    const k = dayKey(day.date);
+    const conts: Segment[] = [];
+    for (const { seg, bucketKey } of fromCollapsed) {
+      if (bucketKey === k) continue;
+      if (continuesThroughDay(seg, day.date)) conts.push(seg);
+    }
+    if (conts.length > 0) byDay.set(k, conts);
+  }
+  return byDay;
 }
 
 // Resolves which day (by its stable `key`) owns a given segment id.

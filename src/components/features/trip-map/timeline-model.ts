@@ -53,6 +53,15 @@ export interface RailItem {
    * rows.
    */
   offMapReason?: string;
+  /**
+   * True when this row is a multi-day stay surfaced on a day AFTER its
+   * check-in (its primary card lives on the collapsed check-in day). The
+   * rail renders it quietly — a "staying" backdrop to the day, not a
+   * fresh event. Still mapKind-driven so tapping it focuses the same pin.
+   */
+  continuation?: boolean;
+  /** Check-in date label for a continuation row (e.g. "28 May"). */
+  continuationSince?: string | null;
 }
 
 export interface RailDay {
@@ -63,16 +72,6 @@ export interface RailDay {
   dayNumber: number;
   position: DayPosition;
   items: RailItem[];
-  /**
-   * Per-segment date spans for this day, in item order. Drives the
-   * client-side collapsed-past split: `splitCollapsedDays` reads
-   * `startsAt` / `endsAt` to break the collapsed run at the first day
-   * holding a segment still ongoing as of *today* (the multi-day-hotel
-   * rule — see day-temporal.ts). Carried separately from `items` so a
-   * rail row stays a light display shape; Next serialises the Date
-   * values across the RSC boundary (same as `TripMapPin.date`).
-   */
-  spans: Array<{ startsAt: Date | null; endsAt: Date | null }>;
 }
 
 // Index of a trip's pins and arcs by segment id, so the rail-builder

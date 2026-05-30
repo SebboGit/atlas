@@ -1,4 +1,7 @@
-import type { ClassifiedDay } from '@/components/features/segments/day-temporal';
+import {
+  ongoingContinuationsByDayKey,
+  type ClassifiedDay,
+} from '@/components/features/segments/day-temporal';
 import { dayKey } from '@/components/features/segments/group-by-day';
 import { formatTime } from '@/lib/format';
 import type { Segment } from '@/lib/segments';
@@ -174,20 +177,48 @@ function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
   };
 }
 
+// Check-in date label for a continuation row ("28 May"). Server-local
+// zone, matching the rail's local day grouping + the day-header labels.
+function formatSince(d: Date): string {
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+// A multi-day stay surfaced on a day AFTER its check-in. Reuses the
+// segment's normal label / icon / map presence (so tapping focuses the
+// same pin), but carries no time-of-day and is flagged `continuation`
+// with the check-in date for the rail's quiet "staying" treatment.
+function buildContinuationItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
+  return {
+    ...buildRailItem(seg, geometry),
+    timeLabel: null,
+    continuation: true,
+    continuationSince: seg.startsAt ? formatSince(seg.startsAt) : null,
+  };
+}
+
 // Joins the server-classified days to the trip's map geometry, yielding
 // the serialisable rail-day structure. Order is preserved — days are
 // already chronological, and each day's segments keep their
-// chronological-then-creation order from the repo query.
+// chronological-then-creation order from the repo query. Each visible
+// (today/future) day is PREFIXED with continuation rows for any multi-day
+// stay still running from a collapsed past check-in, so the stay stays
+// visible where you are once the past folds (see
+// `ongoingContinuationsByDayKey`).
 export function buildRailDays(days: ClassifiedDay[], geometry: MapGeometryIndex): RailDay[] {
-  return days.map((day) => ({
-    key: dayKey(day.date),
-    dateKey: dayKey(day.date),
-    dayNumber: day.dayNumber,
-    position: day.position,
-    items: day.segments.map((seg) => buildRailItem(seg, geometry)),
-    // Date spans (item order) so the client-side collapsed-past split
-    // can apply the ongoing-segment rule. Only the two date fields are
-    // carried — the rail rows themselves stay date-free.
-    spans: day.segments.map((seg) => ({ startsAt: seg.startsAt, endsAt: seg.endsAt })),
-  }));
+  const continuations = ongoingContinuationsByDayKey(days);
+  return days.map((day) => {
+    const key = dayKey(day.date);
+    const contItems = (continuations.get(key) ?? []).map((seg) =>
+      buildContinuationItem(seg, geometry),
+    );
+    return {
+      key,
+      dateKey: key,
+      dayNumber: day.dayNumber,
+      position: day.position,
+      // Continuations lead the day (a persistent backdrop), then the
+      // day's own segments.
+      items: [...contItems, ...day.segments.map((seg) => buildRailItem(seg, geometry))],
+    };
+  });
 }

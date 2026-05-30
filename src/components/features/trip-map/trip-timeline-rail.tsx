@@ -100,6 +100,7 @@ function SegmentRailRow({
 }) {
   const Icon = ICON_BY_KIND[item.icon];
   const mappable = item.mapKind !== 'none';
+  const continuation = item.continuation === true;
 
   const inner = (
     <>
@@ -110,6 +111,9 @@ function SegmentRailRow({
           item.icon === 'food'
             ? 'border-accent/30 bg-accent/10 text-accent'
             : 'border-primary/25 bg-primary/8 text-primary',
+          // A continuation is a quiet backdrop, not a fresh event — mute
+          // its glyph regardless of type.
+          continuation && 'border-foreground/15 bg-foreground/5 text-foreground/45',
           !mappable && 'border-foreground/15 bg-foreground/5 text-foreground/45',
         )}
       >
@@ -125,13 +129,23 @@ function SegmentRailRow({
           <span
             className={cn(
               'min-w-0 flex-1 truncate text-sm',
-              mappable ? 'text-foreground/90' : 'text-foreground/55',
+              mappable && !continuation ? 'text-foreground/90' : 'text-foreground/55',
             )}
           >
             {item.label}
           </span>
+          {continuation && (
+            <span className="border-foreground/20 text-foreground/50 shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.16em] uppercase">
+              Staying
+            </span>
+          )}
         </span>
-        {!mappable && item.offMapReason && (
+        {continuation && item.continuationSince && (
+          <span className="text-foreground/40 mt-0.5 block text-xs">
+            since {item.continuationSince}
+          </span>
+        )}
+        {!mappable && !continuation && item.offMapReason && (
           <span className="text-foreground/40 mt-0.5 flex items-center gap-1 text-xs">
             <MapPinOff aria-hidden className="size-3 shrink-0" strokeWidth={1.5} />
             <span className="truncate">{item.offMapReason}</span>
@@ -343,18 +357,16 @@ export function TripTimelineRail({
   const todayRef = React.useRef<HTMLDivElement | null>(null);
   const hasScrolledRef = React.useRef(false);
 
-  // Split the leading collapsible past run from the rest. Recomputed
-  // client-side with a fresh `new Date()` — agrees with the server's
-  // `position` because splitCollapsedDays short-circuits on it.
-  //
-  // splitCollapsedDays reads each day's `segments[].startsAt/endsAt` for
-  // the ongoing-segment rule; RailDay carries those as `spans`. Alias
-  // `spans` to `segments` so the generic infers the full RailDay shape
-  // and the returned `collapsed` / `visible` keep every RailDay field.
-  const { collapsed: pastDays, visible: restDays } = React.useMemo(() => {
-    const withSegments = days.map((day) => ({ ...day, segments: day.spans }));
-    return splitCollapsedDays(withSegments, new Date());
-  }, [days]);
+  // Split the leading run of past days (which collapse) from the rest.
+  // Position-driven — splitCollapsedDays reads only each day's server-set
+  // `position`, so the client split agrees with the server classification
+  // by construction. Ongoing multi-day stays are surfaced as continuation
+  // rows (baked into the visible days server-side), not by keeping their
+  // check-in day expanded.
+  const { collapsed: pastDays, visible: restDays } = React.useMemo(
+    () => splitCollapsedDays(days),
+    [days],
+  );
 
   const storedExpanded = collapse.isExpanded(RAIL_PAST_GROUP_KEY, false);
 
