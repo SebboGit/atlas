@@ -34,9 +34,7 @@ export default async function HomePage() {
         style={{ animationDelay: '160ms' }}
       />
 
-      {/* Four primary surfaces. Trips, Map, and Stats are live; Documents
-       *  is an intentionally inert tile that holds a place in the layout
-       *  without lying about being clickable. */}
+      {/* Four primary surfaces, all live: Trips, Wishlist, Map, Stats. */}
       <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/trips"
