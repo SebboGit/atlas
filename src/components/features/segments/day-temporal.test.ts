@@ -11,7 +11,6 @@ import {
   isOngoing,
   ongoingContinuationsByDayKey,
   splitCollapsedDays,
-  summariseLocations,
   type ClassifiedDay,
 } from './day-temporal';
 import { dayKey, type DayBucket } from './group-by-day';
@@ -146,37 +145,6 @@ describe('daysContainSegment', () => {
 
   it('returns false when there are no past days', () => {
     expect(daysContainSegment([], 'past-a')).toBe(false);
-  });
-});
-
-describe('summariseLocations', () => {
-  it('returns null when no segment has a location', () => {
-    expect(summariseLocations([makeSegment({}), makeSegment({ locationName: '  ' })])).toBeNull();
-  });
-
-  it('returns a single location name', () => {
-    expect(summariseLocations([makeSegment({ locationName: 'Paris' })])).toBe('Paris');
-  });
-
-  it('joins up to two distinct locations in segment order', () => {
-    const segments = [
-      makeSegment({ id: 'a', locationName: 'Paris' }),
-      makeSegment({ id: 'b', locationName: 'Versailles' }),
-      makeSegment({ id: 'c', locationName: 'Giverny' }),
-    ];
-    expect(summariseLocations(segments)).toBe('Paris, Versailles');
-  });
-
-  it('de-duplicates repeated location names', () => {
-    const segments = [
-      makeSegment({ id: 'a', locationName: 'Paris' }),
-      makeSegment({ id: 'b', locationName: 'Paris' }),
-    ];
-    expect(summariseLocations(segments)).toBe('Paris');
-  });
-
-  it('trims whitespace around location names', () => {
-    expect(summariseLocations([makeSegment({ locationName: '  Kyoto  ' })])).toBe('Kyoto');
   });
 });
 

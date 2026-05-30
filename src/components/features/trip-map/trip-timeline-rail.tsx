@@ -13,13 +13,9 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
-import {
-  splitCollapsedDays,
-  summariseLocations,
-} from '@/components/features/segments/day-temporal';
+import { splitCollapsedDays } from '@/components/features/segments/day-temporal';
 import { useItineraryCollapse } from '@/components/features/segments/use-itinerary-collapse';
 import { parseDateString } from '@/components/ui/date-picker';
-import type { Segment } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
 import type { RailDay, RailItem, RailItemIcon } from './timeline-model';
@@ -75,15 +71,6 @@ export interface TripTimelineRailProps {
   onHoverDay: (dayKey: string | null) => void;
   /** Select a single mappable segment — pans the map + opens its tooltip. */
   onSelectSegment: (segmentId: string) => void;
-}
-
-// summariseLocations reads each segment's real `locationName` for the
-// collapsed pill's "where" summary. The rail carries the lighter
-// RailItem, but it now keeps the true locationName (NOT the display
-// label, which is an IATA pair / "A → B" / note preview for several
-// types) so the summary matches the itinerary tab's collapsed pill.
-function railItemsAsLocationCarriers(items: RailItem[]): Pick<Segment, 'locationName'>[] {
-  return items.map((i) => ({ locationName: i.locationName }));
 }
 
 // A single tappable segment row. Mappable rows pan the map on click;
@@ -271,8 +258,6 @@ function CollapsedPastRow({ days, onExpand }: { days: RailDay[]; onExpand: () =>
   const first = parseDayKey(days[0]!.dateKey);
   const last = parseDayKey(days[days.length - 1]!.dateKey);
   const rangeLabel = formatPastRangeLabel(first, last);
-  const allItems = days.flatMap((d) => d.items);
-  const locationSummary = summariseLocations(railItemsAsLocationCarriers(allItems) as Segment[]);
 
   return (
     <button
@@ -290,11 +275,6 @@ function CollapsedPastRow({ days, onExpand }: { days: RailDay[]; onExpand: () =>
       <span className="text-foreground/65 group-hover:text-foreground/85 min-w-0 truncate font-mono text-[10px] tracking-[0.16em] uppercase">
         {rangeLabel}
       </span>
-      {locationSummary && (
-        <span className="text-foreground/55 hidden min-w-0 truncate text-xs sm:inline">
-          {locationSummary}
-        </span>
-      )}
       <span aria-hidden className="bg-foreground/12 h-px flex-1" />
     </button>
   );

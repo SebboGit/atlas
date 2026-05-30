@@ -185,19 +185,3 @@ export function daysContainSegment<D extends { segments: Segment[] }>(
 ): boolean {
   return days.some((day) => day.segments.some((s) => s.id === segmentId));
 }
-
-// Up to two distinct location names drawn from a day's segments, in
-// segment order, used as the collapsed pill's "where" summary (e.g.
-// "Paris" or "Paris, Versailles"). Segments without a `locationName`
-// (notes, untagged flights) are skipped. Returns null when the day has
-// no usable location — the pill then renders date + count only.
-export function summariseLocations(segments: Segment[]): string | null {
-  const seen = new Set<string>();
-  for (const s of segments) {
-    const name = s.locationName?.trim();
-    if (name) seen.add(name);
-    if (seen.size === 2) break;
-  }
-  if (seen.size === 0) return null;
-  return Array.from(seen).join(', ');
-}
