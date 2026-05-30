@@ -84,13 +84,16 @@ interface TripMapProps {
   /**
    * Fit the map to exactly these segment ids' pins / arc endpoints (a
    * focused day). `null` falls back to the country/all fit behaviour.
-   * The parent passes a fresh array on each focus change, so the fit
-   * effect retriggers on array identity — no separate nonce needed
-   * (focusing a different day always yields a new array, and there's no
-   * affordance to re-focus the already-focused day: a repeat click
-   * unfocuses it).
+   * Read off a ref at fire time, NOT a dep — see `fitKey`.
    */
   fitToSegmentIds?: readonly string[] | null;
+  /**
+   * Stable trigger for the day fit: the focused day key (or null). The
+   * day-fit effect keys on THIS, not on `fitToSegmentIds`, so it fires
+   * exactly when the user changes the focused day — never on the
+   * incidental new-array identity an RSC re-render hands `fitToSegmentIds`.
+   */
+  fitKey?: string | null;
   /** Fired when a pin / flight marker is clicked — reflects into the rail. */
   onPinClick?: (segmentId: string) => void;
   /** Fired on pin hover enter (segmentId) / leave (null) — laptop only. */
@@ -257,6 +260,7 @@ export function TripMap({
   focusSegmentId = null,
   focusNonce = 0,
   fitToSegmentIds = null,
+  fitKey = null,
   onPinClick,
   onPinHover,
   mapHeightClassName,
@@ -310,15 +314,31 @@ export function TripMap({
   useEffect(() => {
     hoverRef.current = hover;
   }, [hover]);
-  // pins mirrored into a ref for the same reason: when the dismissal
-  // path inside the once-bound move/click handler needs to reset the
-  // active pin's React root back to the non-hovered visual, it reads
-  // the current pin data from here without re-binding on every prop
-  // change.
+  // pins / arcs / the current focus target / the current day-fit target
+  // mirrored into refs, assigned DURING render. Two consumers read them:
+  // the once-bound move/click handlers (which need current pin data
+  // without re-binding), and — crucially — the trigger-keyed camera
+  // effects below (day fit, segment focus). Those effects must NOT list
+  // pins/arcs in their deps: a focused-day click does a soft nav, the
+  // RSC re-renders with fresh pins/arcs arrays, and any camera effect
+  // depending on that identity would re-fire — flying the map back to a
+  // stale selected segment (masking the new day's fit / the unfocus
+  // zoom-out). Keying on explicit triggers (focusNonce / fitKey) + ref
+  // reads ties every camera move to a real user action.
   const pinsRef = useRef(pins);
+  const arcsRef = useRef(arcs);
+  const focusSegmentIdRef = useRef(focusSegmentId);
+  const fitTargetRef = useRef(fitToSegmentIds);
+  // Mirrored in one effect, declared BEFORE the camera effects below so
+  // it commits first: when a focused-day click or segment click triggers
+  // a re-render, the refs hold the fresh values by the time the
+  // trigger-keyed (fitKey / focusNonce) camera effects read them.
   useEffect(() => {
     pinsRef.current = pins;
-  }, [pins]);
+    arcsRef.current = arcs;
+    focusSegmentIdRef.current = focusSegmentId;
+    fitTargetRef.current = fitToSegmentIds;
+  }, [pins, arcs, focusSegmentId, fitToSegmentIds]);
 
   const showChips = countries.length >= 2;
   const showEmptyState = pins.length === 0 && arcs.length === 0 && ungeocoded.length === 0;
@@ -871,21 +891,24 @@ export function TripMap({
   }, [pins, arcs, activeCountry, mapReady, showWishlist, wishlistPins, fitToSegmentIds]);
 
   // Timeline day fit — frame the map to exactly the focused day's pins
-  // / arc endpoints (issue #9). Retriggers on `fitToSegmentIds` identity
-  // (the parent passes a fresh array per focus change). When
-  // `fitToSegmentIds` is null this effect is inert and the country/all
+  // / arc endpoints (issue #9). Keyed ONLY on `fitKey` (the focused day
+  // key) + mapReady, reading the target / pins / arcs off refs, so it
+  // fires when the user changes the focused day and NOT on the new-array
+  // identity an unrelated RSC re-render hands it. When the focused day
+  // has no target (`fitTargetRef` null) this is inert and the country/all
   // fit above owns the camera.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    if (fitToSegmentIds === null) return;
+    const target = fitTargetRef.current;
+    if (target === null) return;
 
-    const ids = new Set(fitToSegmentIds);
+    const ids = new Set(target);
     const points: FramePoint[] = [];
-    for (const pin of pins) {
+    for (const pin of pinsRef.current) {
       if (ids.has(pin.segmentId)) points.push({ lat: pin.lat, lng: pin.lng });
     }
-    for (const arc of arcs) {
+    for (const arc of arcsRef.current) {
       if (ids.has(arc.segmentId)) {
         points.push({ lat: arc.originLat, lng: arc.originLng });
         points.push({ lat: arc.destLat, lng: arc.destLng });
@@ -898,20 +921,23 @@ export function TripMap({
 
     fitMapToPoints(map, points, firstFitDoneRef.current, { padding: 80, maxZoom: 11 });
     firstFitDoneRef.current = true;
-  }, [fitToSegmentIds, pins, arcs, mapReady]);
+  }, [fitKey, mapReady]);
 
   // Timeline segment focus — pan to a specific segment and open its
   // tooltip (issue #9). For a flight (arc) we fly to the destination
-  // endpoint; for a pin, the pin itself. Keyed on `focusNonce` so
-  // re-clicking the same segment re-flies. Reuses the same flyTo +
-  // tooltip path a pin tap takes, so reduced-motion (flyTo's instant
-  // collapse) and the tooltip flip logic stay identical.
+  // endpoint; for a pin, the pin itself. Keyed ONLY on `focusNonce` (the
+  // parent bumps it on each explicit segment click) + mapReady, reading
+  // the segment id / pins / arcs off refs — so re-rendering with fresh
+  // pins/arcs (a day click's soft nav) does NOT re-fly to a stale
+  // selection, and clearing the selection (no nonce bump) doesn't move
+  // the camera. Reuses the same flyTo + tooltip path a pin tap takes.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !focusSegmentId) return;
+    const focusId = focusSegmentIdRef.current;
+    if (!map || !mapReady || !focusId) return;
 
-    const pin = pins.find((p) => p.segmentId === focusSegmentId);
-    const arc = arcs.find((a) => a.segmentId === focusSegmentId);
+    const pin = pinsRef.current.find((p) => p.segmentId === focusId);
+    const arc = arcsRef.current.find((a) => a.segmentId === focusId);
     // Prefer a pin (non-flight, or a flight with a single airport pin);
     // fall back to the arc's destination endpoint for flights.
     const target = pin
@@ -946,8 +972,7 @@ export function TripMap({
     } else {
       setHover(null);
     }
-    // `focusNonce` is the retrigger key — see the fit effect above.
-  }, [focusSegmentId, focusNonce, pins, arcs, mapReady]);
+  }, [focusNonce, mapReady]);
 
   return (
     <div className="atlas-rise" style={{ animationDelay: '160ms' }}>

@@ -146,7 +146,12 @@ export function ChronoTripMap({
 
   const onFocusDay = React.useCallback(
     (dayKey: string) => {
-      // Re-focusing the focused day unfocuses it (back to country/all).
+      // Focusing (or unfocusing) a day clears any segment selection — a
+      // previously-clicked pin shouldn't linger as the map's focus and
+      // yank the camera back to it instead of framing the day (or zooming
+      // out on unfocus). Re-focusing the focused day unfocuses it.
+      setSelectedSegmentId(null);
+      setFocusSegmentId(null);
       writeDay(focusedDayKey === dayKey ? null : dayKey);
     },
     [writeDay, focusedDayKey],
@@ -217,6 +222,7 @@ export function ChronoTripMap({
     focusSegmentId,
     focusNonce,
     fitToSegmentIds,
+    fitKey: focusedDayKey,
     onPinClick,
     onPinHover,
   };
