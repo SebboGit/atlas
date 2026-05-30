@@ -8,6 +8,10 @@ import {
   tryParsePlusCode,
 } from './plus-code';
 
+// Approximate metres-per-degree near the equator. Used to assert the
+// length-11 picker code round-trips within a few metres.
+const METRES_PER_DEG = 111_320;
+
 describe('tryParsePlusCode', () => {
   it('recognises a full code', () => {
     expect(tryParsePlusCode('8Q7XMPWG+5V')).toEqual({ kind: 'full', code: '8Q7XMPWG+5V' });
@@ -145,6 +149,55 @@ describe('decodePlusCode + encodePlusCode round-trip', () => {
 
   it('returns null for garbage decode input', () => {
     expect(decodePlusCode('not a code')).toBeNull();
+  });
+});
+
+describe('encodePlusCode at picker precision (length 11)', () => {
+  // The interactive address picker encodes a picked candidate's exact
+  // coordinates at length 11 (sub-~3 m) so the map pin lands on the
+  // point with no second geocode. These guard that round trip.
+  const POINTS: ReadonlyArray<{ name: string; lat: number; lng: number }> = [
+    { name: 'Tokyo', lat: 35.6585, lng: 139.7454 },
+    { name: 'Kuala Lumpur', lat: 3.1478, lng: 101.7117 },
+    { name: 'near equator/prime meridian', lat: 0.001, lng: 0.001 },
+    { name: 'southern hemisphere', lat: -33.8688, lng: 151.2093 },
+  ];
+
+  for (const { name, lat, lng } of POINTS) {
+    it(`encodes ${name} to a valid full code that decodes within a few metres`, () => {
+      const code = encodePlusCode(lat, lng, 11);
+      expect(code).not.toBeNull();
+
+      // A length-11 full code is 8 alphabet chars + '+' + 3 chars, so
+      // it passes the schema-side full-code shape check (which the
+      // segment validator runs on `data.plusCode`).
+      expect(isValidPlusCodeShape(code!)).toBe(true);
+      expect(tryParsePlusCode(code!)).toEqual({ kind: 'full', code: code! });
+
+      const back = decodePlusCode(code!);
+      expect(back).not.toBeNull();
+
+      // Length-11 OLC cell is ~3.5×2.8 m. Allow a generous 5 m so the
+      // assertion isn't brittle on the longitude axis at higher
+      // latitudes while still proving sub-decametre precision.
+      const dLatM = Math.abs(back!.lat - lat) * METRES_PER_DEG;
+      const dLngM = Math.abs(back!.lng - lng) * METRES_PER_DEG * Math.cos((lat * Math.PI) / 180);
+      expect(dLatM).toBeLessThan(5);
+      expect(dLngM).toBeLessThan(5);
+    });
+  }
+
+  it('length-11 codes are materially more precise than the default length-10', () => {
+    const lat = 35.6585;
+    const lng = 139.7454;
+    const long = decodePlusCode(encodePlusCode(lat, lng, 11)!)!;
+    const short = decodePlusCode(encodePlusCode(lat, lng)!)!;
+    const longErr = Math.abs(long.lat - lat) + Math.abs(long.lng - lng);
+    const shortErr = Math.abs(short.lat - lat) + Math.abs(short.lng - lng);
+    // Not strictly guaranteed for every point, but for a point near a
+    // cell edge the finer grid is at least as close — assert ≤ to keep
+    // the intent (more digits never makes it worse) without flaking.
+    expect(longErr).toBeLessThanOrEqual(shortErr + 1e-9);
   });
 });
 

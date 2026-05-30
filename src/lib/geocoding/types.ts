@@ -40,6 +40,67 @@ export interface Geocoder {
 }
 
 /**
+ * A single candidate from a multi-result search. Richer than
+ * {@link GeocodeResult} because the interactive address picker needs to
+ * show the user enough to disambiguate three near-identical hits — the
+ * place name on its own line, the full address underneath, and an
+ * OSM-type chip ("restaurant", "hotel") for a glanceable category.
+ *
+ * Kept separate from `GeocodeResult` on purpose: the render path
+ * (`Geocoder.geocode`) only ever needs `{ lat, lng, displayName }`, and
+ * bloating that shape would push the extra fields through the cache and
+ * the trip-map repo where they're dead weight. This shape exists solely
+ * for the button-triggered picker.
+ */
+export interface GeocodeCandidate {
+  lat: number;
+  lng: number;
+  /** OSM `display_name` — the full canonical address string. */
+  displayName: string;
+  /**
+   * Short place name (e.g. "Park Hyatt Tokyo"). From Nominatim
+   * `namedetails.name` when present, else the first comma-part of
+   * `display_name`. Drives the picker's primary line.
+   */
+  name: string;
+  /**
+   * The address line shown beneath the name. Today this is the full
+   * `display_name`; kept as its own field so the picker's secondary
+   * line has a stable contract independent of the primary name source.
+   */
+  addressLabel: string;
+  /**
+   * Coarse OSM feature type — Nominatim's `type` (e.g. "restaurant",
+   * "hotel", "attraction"). Surfaced as a chip. `null` when the hit
+   * carries no recognisable type.
+   */
+  osmType: string | null;
+  /**
+   * Nominatim's `class` / `category` (e.g. "amenity", "tourism").
+   * Carried alongside `osmType` for callers that want a coarser bucket;
+   * `null` when absent.
+   */
+  category: string | null;
+  /**
+   * ISO 3166-1 alpha-2, uppercased, from `address.country_code`. Used
+   * to autofill an empty country dropdown on pick. `null` when the hit
+   * carries no country code.
+   */
+  countryCode: string | null;
+}
+
+/**
+ * Multi-candidate forward search. Distinct from {@link Geocoder.geocode}
+ * (which returns the single best hit for the render path): this returns
+ * up to `limit` candidates for the interactive picker. Same no-throw /
+ * no-leak contract — any failure mode returns `[]`, never throws, and
+ * the raw query / response body are never logged.
+ */
+export interface GeocodeSearcher {
+  search(query: string, opts?: { limit?: number }): Promise<GeocodeCandidate[]>;
+}
+
+/**
  * Reverse lookup: coordinates → human-friendly place name. Used by the
  * Plus Code path so a decoded code carries an OSM `display_name` rather
  * than a synthesised label. Same no-throw / no-leak contract as

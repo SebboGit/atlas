@@ -110,12 +110,18 @@ export function recoverPlusCode(localCode: string, refLat: number, refLng: numbe
  * Encode coordinates as a full Plus Code. Used to render the badge for
  * segments whose coordinates came from a free-text address (so the
  * Plus Code identifier surfaces uniformly, regardless of how the
- * coords were obtained). Default 10-char precision — building-sized
- * (~14×14 m at the equator), matches the precision a user would type.
+ * coords were obtained), and by the interactive address picker to
+ * capture a picked candidate's exact point.
+ *
+ * `codeLength` controls precision. The OLC default (10) is building-
+ * sized (~14×14 m at the equator) — fine for a user-typed code. The
+ * picker passes 11 for sub-~3 m precision so the pin lands exactly on
+ * the candidate Nominatim returned, with no rounding drift. Returns
+ * `null` if the library rejects the input.
  */
-export function encodePlusCode(lat: number, lng: number): string | null {
+export function encodePlusCode(lat: number, lng: number, codeLength?: number): string | null {
   try {
-    return olc.encode(lat, lng);
+    return codeLength === undefined ? olc.encode(lat, lng) : olc.encode(lat, lng, codeLength);
   } catch {
     return null;
   }

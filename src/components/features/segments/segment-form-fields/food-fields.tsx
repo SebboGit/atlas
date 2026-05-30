@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
+import { PlaceFinder } from './place-finder';
 import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 
 // Food-segment fields. Deliberately light per the food-segment-type
@@ -36,6 +37,7 @@ export function FoodFields({ form }: { form: Form }) {
           placeholder="2-6-15 Minami-Aoyama, Minato"
           {...form.register('data.address' as never)}
         />
+        <PlaceFinder form={form} type="food" />
         <PlusCodeNudge form={form} />
       </div>
       <PlusCodeFields form={form} idPrefix="seg-food" />

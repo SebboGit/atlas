@@ -4,6 +4,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
+import { PlaceFinder } from './place-finder';
 import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 
 export function ActivityFields({ form }: { form: Form }) {
@@ -40,6 +41,7 @@ export function ActivityFields({ form }: { form: Form }) {
           placeholder="6-1-16 Toyosu, Koto"
           {...form.register('data.address' as never)}
         />
+        <PlaceFinder form={form} type="activity" />
         <PlusCodeNudge form={form} />
       </div>
       <PlusCodeFields form={form} idPrefix="seg-activity" />

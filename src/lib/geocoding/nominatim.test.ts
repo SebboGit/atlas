@@ -159,6 +159,203 @@ describe('NominatimGeocoder.geocode', () => {
   });
 });
 
+describe('NominatimGeocoder.search', () => {
+  it('maps rich hits to candidates: name/addressLabel/osmType/category/countryCode', async () => {
+    const { fetchImpl, calls } = queuedFetch([
+      () =>
+        jsonResponse([
+          {
+            lat: '35.6585',
+            lon: '139.7454',
+            display_name: 'Park Hyatt Tokyo, 3-7-1-2 Nishi-Shinjuku, Shinjuku, Tokyo, Japan',
+            type: 'hotel',
+            class: 'tourism',
+            namedetails: { name: 'Park Hyatt Tokyo' },
+            address: { country_code: 'jp' },
+          },
+        ]),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const candidates = await geocoder.search('Park Hyatt Tokyo');
+
+    expect(candidates).toEqual([
+      {
+        lat: 35.6585,
+        lng: 139.7454,
+        displayName: 'Park Hyatt Tokyo, 3-7-1-2 Nishi-Shinjuku, Shinjuku, Tokyo, Japan',
+        name: 'Park Hyatt Tokyo',
+        addressLabel: 'Park Hyatt Tokyo, 3-7-1-2 Nishi-Shinjuku, Shinjuku, Tokyo, Japan',
+        osmType: 'hotel',
+        category: 'tourism',
+        countryCode: 'JP',
+      },
+    ]);
+    // Search-specific params present.
+    expect(calls[0]!.url).toContain('addressdetails=1');
+    expect(calls[0]!.url).toContain('namedetails=1');
+    expect(calls[0]!.url).toContain('format=jsonv2');
+    expect(calls[0]!.url).toContain('limit=3');
+  });
+
+  it('falls back to the first comma-part of display_name when namedetails is absent', async () => {
+    const { fetchImpl } = queuedFetch([
+      () =>
+        jsonResponse([
+          {
+            lat: '3.1478',
+            lon: '101.7117',
+            display_name: 'Damascus, Bukit Bintang, Kuala Lumpur, Malaysia',
+            type: 'restaurant',
+            class: 'amenity',
+            address: { country_code: 'my' },
+          },
+        ]),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const [first] = await geocoder.search('Damascus, Bukit Bintang');
+
+    expect(first!.name).toBe('Damascus');
+    expect(first!.osmType).toBe('restaurant');
+    expect(first!.category).toBe('amenity');
+    expect(first!.countryCode).toBe('MY');
+  });
+
+  it('uppercases the country_code and tolerates a missing one (null)', async () => {
+    const { fetchImpl } = queuedFetch([
+      () =>
+        jsonResponse([
+          {
+            lat: '1',
+            lon: '2',
+            display_name: 'Somewhere',
+            type: 'attraction',
+            class: 'tourism',
+            // no address block at all
+          },
+        ]),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const [first] = await geocoder.search('somewhere');
+    expect(first!.countryCode).toBeNull();
+    expect(first!.name).toBe('Somewhere');
+  });
+
+  it('sets osmType/category to null when the hit omits type/class', async () => {
+    const { fetchImpl } = queuedFetch([
+      () => jsonResponse([{ lat: '1', lon: '2', display_name: 'Plain place' }]),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const [first] = await geocoder.search('plain');
+    expect(first!.osmType).toBeNull();
+    expect(first!.category).toBeNull();
+    expect(first!.name).toBe('Plain place');
+  });
+
+  it('skips malformed hits (missing coords / display_name) but keeps usable ones', async () => {
+    const { fetchImpl } = queuedFetch([
+      () =>
+        jsonResponse([
+          { lat: 'not-a-number', lon: '2', display_name: 'bad coords' },
+          { lat: '1', lon: '2' }, // missing display_name
+          { lat: '3', lon: '4', display_name: 'Good place', type: 'cafe', class: 'amenity' },
+        ]),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const candidates = await geocoder.search('mixed');
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]!.name).toBe('Good place');
+  });
+
+  it('caps the returned candidates at the requested limit', async () => {
+    const { fetchImpl, calls } = queuedFetch([
+      () =>
+        jsonResponse([
+          { lat: '1', lon: '1', display_name: 'A' },
+          { lat: '2', lon: '2', display_name: 'B' },
+          { lat: '3', lon: '3', display_name: 'C' },
+        ]),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const candidates = await geocoder.search('many', { limit: 2 });
+    expect(candidates).toHaveLength(2);
+    expect(calls[0]!.url).toContain('limit=2');
+  });
+
+  it('clamps an over-large limit to the hard ceiling of 3', async () => {
+    const { fetchImpl, calls } = queuedFetch([() => jsonResponse([])]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    await geocoder.search('anything', { limit: 50 });
+    expect(calls[0]!.url).toContain('limit=3');
+  });
+
+  it('returns [] for empty / whitespace-only queries without calling fetch', async () => {
+    const { fetchImpl, calls } = queuedFetch([]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    expect(await geocoder.search('')).toEqual([]);
+    expect(await geocoder.search('   ')).toEqual([]);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('returns [] for an empty result array', async () => {
+    const { fetchImpl } = queuedFetch([() => jsonResponse([])]);
+    const geocoder = makeGeocoder({ fetchImpl });
+    expect(await geocoder.search('jdklajdklaj')).toEqual([]);
+  });
+
+  it('returns [] on a non-array (garbage) body', async () => {
+    const { fetchImpl } = queuedFetch([() => jsonResponse({ error: 'oops' })]);
+    const geocoder = makeGeocoder({ fetchImpl });
+    expect(await geocoder.search('anywhere')).toEqual([]);
+  });
+
+  it('returns [] on non-2xx response', async () => {
+    const { fetchImpl } = queuedFetch([() => jsonResponse({ error: 'rate-limited' }, 429)]);
+    const geocoder = makeGeocoder({ fetchImpl });
+    expect(await geocoder.search('anywhere')).toEqual([]);
+  });
+
+  it('returns [] on network error', async () => {
+    const fetchImpl: typeof fetch = async () => {
+      throw new Error('ECONNREFUSED');
+    };
+    const geocoder = makeGeocoder({ fetchImpl });
+    expect(await geocoder.search('anywhere')).toEqual([]);
+  });
+
+  it('returns [] on non-JSON body', async () => {
+    const { fetchImpl } = queuedFetch([() => new Response('<!doctype html>', { status: 200 })]);
+    const geocoder = makeGeocoder({ fetchImpl });
+    expect(await geocoder.search('anywhere')).toEqual([]);
+  });
+
+  it('shares the throttle bucket with geocode()', async () => {
+    const { fetchImpl } = queuedFetch([() => jsonResponse([]), () => jsonResponse([])]);
+    const FIXED_NOW = 1_000_000;
+    const sleeps: number[] = [];
+    const geocoder = makeGeocoder({
+      fetchImpl,
+      minIntervalMs: 1100,
+      now: () => FIXED_NOW,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    await Promise.all([geocoder.geocode('a'), geocoder.search('b')]);
+
+    const nonZero = sleeps.filter((s) => s > 0);
+    expect(nonZero).toEqual([1100]);
+  });
+});
+
 describe('NominatimGeocoder.reverse', () => {
   it('returns display_name from the /reverse endpoint payload', async () => {
     const { fetchImpl, calls } = queuedFetch([
