@@ -100,6 +100,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── documents/       # Document repo + server actions (upload/list/delete)
 │   │   ├── trips/           # Trip repo + server actions
 │   │   ├── segments/        # Flight/hotel/activity/transit/food/note repo + actions
+│   │   ├── wishlist/        # Reusable household place list (food + activity), materialised onto trips
 │   │   ├── trip-map/        # Per-trip map data shaping (flight arcs, geocoded pins)
 │   │   ├── geocoding/       # Nominatim client + DB-cached lookup (ADR-0010)
 │   │   ├── airlines/        # Reference data — static IATA → airline-name lookup (OpenFlights snapshot)
