@@ -91,6 +91,10 @@ export function ChronoTripMap({
   // the same segment id is re-selected.
   const [focusNonce, setFocusNonce] = React.useState(0);
   const [focusSegmentId, setFocusSegmentId] = React.useState<string | null>(null);
+  // Bumped on DESELECT so TripMap re-frames to the current context (the
+  // focused day, else country/all) instead of staying zoomed into the
+  // just-cleared segment.
+  const [recenterNonce, setRecenterNonce] = React.useState(0);
 
   const dayByKey = React.useMemo(() => {
     const m = new Map<string, RailDay>();
@@ -109,9 +113,26 @@ export function ChronoTripMap({
     if (!key) return null;
     const day = dayByKey.get(key);
     if (!day) return null;
-    const ids = mappableSegmentIds(day);
-    return ids.length > 0 ? new Set(ids) : null;
-  }, [hoveredDayKey, focusedDayKey, dayByKey]);
+    const baseIds = mappableSegmentIds(day);
+    if (baseIds.length === 0) return null;
+    const ids = new Set(baseIds);
+    // A flight must un-dim BOTH its airport pins. Flight pins dedupe by
+    // airport, so the destination pin can carry a different segment id
+    // than the flight (a return leg sharing the airport keyed it first) —
+    // it wouldn't be in the day's mappable ids. Match pins to the flight
+    // arc's endpoints (pin coords and arc endpoints both come from the
+    // same airport snapshot, so they're equal) and add those pin ids.
+    for (const id of baseIds) {
+      const arc = arcs.find((a) => a.segmentId === id);
+      if (!arc) continue;
+      for (const pin of pins) {
+        const atOrigin = pin.lat === arc.originLat && pin.lng === arc.originLng;
+        const atDest = pin.lat === arc.destLat && pin.lng === arc.destLng;
+        if (atOrigin || atDest) ids.add(pin.segmentId);
+      }
+    }
+    return ids;
+  }, [hoveredDayKey, focusedDayKey, dayByKey, pins, arcs]);
 
   // The fitBounds target: the focused day's mappable ids (hover does NOT
   // refit — it only dims, so a hover doesn't yank the camera). null when
@@ -161,13 +182,25 @@ export function ChronoTripMap({
     setHoveredDayKey(dayKey);
   }, []);
 
-  // Select a single segment — pan the map + open its tooltip. Bumping
-  // the nonce forces a re-fly even if it's the same id.
-  const onSelectSegment = React.useCallback((segmentId: string) => {
-    setSelectedSegmentId(segmentId);
-    setFocusSegmentId(segmentId);
-    setFocusNonce((n) => n + 1);
-  }, []);
+  // Select a single segment — frame it on the map + open its tooltip.
+  // Clicking the ALREADY-selected segment toggles it off: deselect, close
+  // the tooltip, and pull the camera back out to the current context
+  // (focused day, else country/all) — symmetric with the day toggle.
+  const onSelectSegment = React.useCallback(
+    (segmentId: string) => {
+      if (selectedSegmentId === segmentId) {
+        setSelectedSegmentId(null);
+        setFocusSegmentId(null);
+        setFocusNonce((n) => n + 1); // focus effect closes the tooltip
+        setRecenterNonce((n) => n + 1); // re-frame the day / country view
+        return;
+      }
+      setSelectedSegmentId(segmentId);
+      setFocusSegmentId(segmentId);
+      setFocusNonce((n) => n + 1);
+    },
+    [selectedSegmentId],
+  );
 
   // Map-pin tap → reflect into the rail's selection (no extra fly: the
   // map already flew on its own click). We deliberately don't bump the
@@ -223,6 +256,7 @@ export function ChronoTripMap({
     focusNonce,
     fitToSegmentIds,
     fitKey: focusedDayKey,
+    recenterNonce,
     onPinClick,
     onPinHover,
   };

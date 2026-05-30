@@ -273,7 +273,6 @@ function CollapsedPastRow({ days, onExpand }: { days: RailDay[]; onExpand: () =>
   const rangeLabel = formatPastRangeLabel(first, last);
   const allItems = days.flatMap((d) => d.items);
   const locationSummary = summariseLocations(railItemsAsLocationCarriers(allItems) as Segment[]);
-  const stopCount = allItems.length;
 
   return (
     <button
@@ -297,9 +296,6 @@ function CollapsedPastRow({ days, onExpand }: { days: RailDay[]; onExpand: () =>
         </span>
       )}
       <span aria-hidden className="bg-foreground/12 h-px flex-1" />
-      <span className="text-foreground/40 shrink-0 font-mono text-[9px] tracking-[0.16em] uppercase">
-        {stopCount} {stopCount === 1 ? 'stop' : 'stops'}
-      </span>
     </button>
   );
 }

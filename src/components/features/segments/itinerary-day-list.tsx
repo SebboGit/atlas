@@ -132,13 +132,11 @@ function formatPastRangeLabel(first: Date, last: Date): string {
 function CollapsedPastRow({
   rangeLabel,
   locationSummary,
-  segmentCount,
   dayCount,
   onExpand,
 }: {
   rangeLabel: string;
   locationSummary: string | null;
-  segmentCount: number;
   dayCount: number;
   onExpand: () => void;
 }) {
@@ -175,16 +173,6 @@ function CollapsedPastRow({
         </>
       )}
       <span aria-hidden className="bg-foreground/15 h-px flex-1" />
-      <span className="text-foreground/45 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
-        {/* "N days" is secondary to the date range — laptop only. */}
-        <span className="hidden sm:inline">
-          {dayCount} {dayCount === 1 ? 'day' : 'days'}
-          <span aria-hidden className="text-foreground/25 mx-1.5">
-            ·
-          </span>
-        </span>
-        {segmentCount} {segmentCount === 1 ? 'stop' : 'stops'}
-      </span>
     </button>
   );
 }
@@ -285,7 +273,6 @@ function PastGroup({
         <CollapsedPastRow
           rangeLabel={rangeLabel}
           locationSummary={locationSummary}
-          segmentCount={allSegments.length}
           dayCount={days.length}
           onExpand={onToggle}
         />
