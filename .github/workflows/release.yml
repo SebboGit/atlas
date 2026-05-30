@@ -1,4 +1,10 @@
-# Release — build + push the multi-arch Atlas image to GHCR.
+# Release — build + push the multi-arch Atlas images to GHCR.
+#
+# One version drives TWO images via a build matrix: the app (unsuffixed) and
+# the pg-boss worker (suffixed `-worker`), e.g. `1.2.3` + `1.2.3-worker`,
+# `latest` + `latest-worker`. A pull-based deploy needs both — the compose
+# `worker` service runs migrations and writes the readiness marker the `app`
+# gates on, so without a worker image the stack can't come up.
 #
 # Triggers on `v*` tags only (plus a manual dispatch), so it stays off the
 # 2k-min/mo budget on normal pushes — a tag is the deliberate "cut a release"
@@ -27,9 +33,17 @@ permissions:
 
 jobs:
   release:
-    name: Build · Push (linux/amd64, linux/arm64)
+    name: Build · Push ${{ matrix.target }} (linux/amd64, linux/arm64)
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
+    strategy:
+      matrix:
+        include:
+          - target: prod
+            suffix: ''
+          - target: worker
+            suffix: '-worker'
 
     steps:
       - name: Checkout
@@ -58,18 +72,26 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
             type=raw,value=${{ inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+          # `suffix` is appended to every derived tag; `onlatest=true` extends
+          # it to `latest` too. `latest` is enabled only on real tag pushes.
+          # Net result per leg: app → `1.2.3` / `latest`; worker → `1.2.3-worker`
+          # / `latest-worker`. The two image names never collide.
+          flavor: |
+            suffix=${{ matrix.suffix }},onlatest=true
+            latest=${{ github.ref_type == 'tag' }}
 
       - name: Build and push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6
         with:
           context: .
           file: ./Dockerfile
-          target: prod
+          target: ${{ matrix.target }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Scope the cache per target so the two parallel matrix legs don't
+          # clobber each other's gha cache entries.
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
