@@ -12,6 +12,7 @@
 import { getCachedMany } from './cache';
 import { normalizeQuery } from './normalize';
 import { normalizeForGeocoder } from './normalize-for-geocoder';
+import { decodePlusCode, tryParsePlusCode } from './plus-code';
 import { buildGeocodeQuery, type PlaceLike } from './segment-query';
 
 /**
@@ -55,18 +56,32 @@ export interface PlaceCoordsView {
 export async function getPlaceCoordsView(
   places: ReadonlyArray<PlaceLike & { id: string }>,
 ): Promise<PlaceCoordsView> {
+  const coordsById = new Map<string, { lat: number; lng: number }>();
   const queries: { id: string; key: string }[] = [];
   for (const place of places) {
     const raw = buildGeocodeQuery(place);
     if (raw === null) continue;
+    // A FULL Plus Code is self-contained — decode it OFFLINE here
+    // (microseconds, no cache, no worker round-trip). This is what makes
+    // a just-picked / just-typed full code render its badge immediately
+    // on save, instead of waiting for the background geocode to populate
+    // the cache (and the poller to refresh). Local codes (which need an
+    // anchor lookup) and plain addresses still flow through the cache.
+    const parsed = tryParsePlusCode(raw);
+    if (parsed?.kind === 'full') {
+      const coords = decodePlusCode(parsed.code);
+      if (coords) {
+        coordsById.set(place.id, coords);
+        continue;
+      }
+    }
     const key = normalizeForGeocoder(raw);
     if (key === '') continue;
     queries.push({ id: place.id, key });
   }
-  if (queries.length === 0) return { coordsById: new Map(), pendingCount: 0 };
+  if (queries.length === 0) return { coordsById, pendingCount: 0 };
 
   const cache = await getCachedMany(queries.map((q) => q.key));
-  const coordsById = new Map<string, { lat: number; lng: number }>();
   let pendingCount = 0;
   for (const { id, key } of queries) {
     const cached = cache.get(normalizeQuery(key));

@@ -136,6 +136,32 @@ describe('getPlaceCoordsMap', () => {
     expect(result.get('hotel-1')).toEqual({ lat: 35.6968, lng: 139.7536 });
   });
 
+  it('decodes a FULL Plus Code offline — coords present with no cache row, not pending', async () => {
+    // A picked candidate (or a typed full code) stores a self-contained
+    // full Plus Code. Even with NO cache row (worker hasn't run yet), the
+    // badge must resolve immediately — so this decodes offline and never
+    // counts toward pending. Contrast: 'act-pending' below, an address
+    // with no row, IS absent + pending.
+    const view = await getPlaceCoordsView([
+      {
+        id: 'food-pluscode',
+        type: 'food',
+        data: { venue: 'Some Place', plusCode: '8Q7XMPWG+5V' },
+        locationName: null,
+      },
+    ]);
+
+    expect(view.coordsById.has('food-pluscode')).toBe(true);
+    expect(view.pendingCount).toBe(0);
+    const coords = view.coordsById.get('food-pluscode')!;
+    expect(Number.isFinite(coords.lat)).toBe(true);
+    expect(Number.isFinite(coords.lng)).toBe(true);
+    expect(coords.lat).toBeGreaterThanOrEqual(-90);
+    expect(coords.lat).toBeLessThanOrEqual(90);
+    expect(coords.lng).toBeGreaterThanOrEqual(-180);
+    expect(coords.lng).toBeLessThanOrEqual(180);
+  });
+
   it('omits places whose cache row is a null-result (Nominatim gave up)', async () => {
     dbState.rows.push({
       queryNormalized: "friend's place — drinks",
