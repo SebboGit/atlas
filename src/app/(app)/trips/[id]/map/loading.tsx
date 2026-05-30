@@ -3,9 +3,12 @@
 // doesn't jump.
 export default function TripMapLoading() {
   return (
-    <div className="bg-muted/40 atlas-rise relative flex min-h-[70vh] w-full flex-1 items-center justify-center overflow-hidden">
-      <div aria-hidden className="bg-muted/55 absolute inset-0 animate-pulse" />
-      <div className="relative flex flex-col items-center gap-4 text-center">
+    <div className="bg-muted/40 atlas-rise relative flex h-[calc(100svh-180px)] w-full items-center justify-center overflow-hidden lg:h-[min(calc(100svh-200px),640px)]">
+      <div
+        aria-hidden
+        className="bg-muted/55 absolute inset-0 animate-pulse motion-reduce:animate-none"
+      />
+      <div aria-hidden className="relative flex flex-col items-center gap-4 text-center">
         <span className="border-foreground/25 text-foreground/70 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]">
           ø
         </span>
@@ -13,7 +16,9 @@ export default function TripMapLoading() {
           Loading map
         </p>
       </div>
-      <span className="sr-only">Loading trip map…</span>
+      <span role="status" className="sr-only">
+        Loading trip map…
+      </span>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,14 @@ export default function AppError({ error, reset }: AppErrorProps) {
               Try again
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/trips">Back to trips</Link>
+              {/*
+                Hard nav, not a soft <Link>: this boundary wraps everything below
+                the app shell, so a client-side nav can re-mount the broken
+                subtree and re-throw. A full document load forces a fresh server
+                render — the reliable recovery path from an error boundary.
+              */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+              <a href="/trips">Back to trips</a>
             </Button>
           </div>
         </CardContent>

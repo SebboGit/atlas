@@ -3,6 +3,8 @@
 import { Fraunces, Hanken_Grotesk, IBM_Plex_Mono } from 'next/font/google';
 import { useEffect } from 'react';
 
+import { Button } from '@/components/ui/button';
+
 import './globals.css';
 
 // global-error replaces the root layout, so it owns its own <html>/<body>
@@ -33,10 +35,12 @@ const ibmMono = IBM_Plex_Mono({
 
 type GlobalErrorProps = {
   error: Error & { digest?: string };
+  // Next.js passes a reset() here, but the root layout itself failed in this
+  // path — a soft retry can't recover it, so we hard-reload instead (below).
   reset: () => void;
 };
 
-export default function GlobalError({ error, reset }: GlobalErrorProps) {
+export default function GlobalError({ error }: GlobalErrorProps) {
   useEffect(() => {
     // Client component — the server logger isn't importable here.
     // Surface to the browser console; never render the stack in the UI.
@@ -61,13 +65,9 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               Ref {error.digest}
             </p>
           ) : null}
-          <button
-            type="button"
-            onClick={() => reset()}
-            className="bg-primary text-primary-foreground hover:bg-primary/92 focus-visible:ring-primary/40 focus-visible:ring-offset-background mt-6 inline-flex h-9 items-center justify-center rounded-full px-4 text-[13px] font-medium tracking-tight transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:translate-y-[0.5px]"
-          >
+          <Button size="sm" className="mt-6" onClick={() => window.location.reload()}>
             Reload
-          </button>
+          </Button>
         </main>
       </body>
     </html>

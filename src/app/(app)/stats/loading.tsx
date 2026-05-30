@@ -8,7 +8,7 @@ export default function StatsLoading() {
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Logbook</span>
         </p>
-        <div className="bg-muted/70 h-12 w-64 max-w-full animate-pulse rounded-lg sm:h-14 sm:w-80" />
+        <div className="bg-muted/70 h-12 w-64 max-w-full animate-pulse rounded-lg motion-reduce:animate-none sm:h-14 sm:w-80" />
       </header>
 
       <div className="atlas-rule mb-10" aria-hidden />
@@ -22,12 +22,14 @@ export default function StatsLoading() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="border-foreground/10 bg-card/40 h-32 animate-pulse rounded-2xl border"
+            className="border-foreground/10 bg-card/40 h-32 animate-pulse rounded-2xl border motion-reduce:animate-none"
           />
         ))}
       </div>
 
-      <span className="sr-only">Loading stats…</span>
+      <span role="status" className="sr-only">
+        Loading stats…
+      </span>
     </main>
   );
 }
