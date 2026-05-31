@@ -109,31 +109,31 @@ function SegmentRailRow({
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           {item.timeLabel && (
-            <span className="text-foreground/45 shrink-0 font-mono text-[10px] tracking-[0.14em] tabular-nums">
+            <span className="text-foreground/70 shrink-0 font-mono text-[10px] tracking-[0.14em] tabular-nums">
               {item.timeLabel}
             </span>
           )}
           <span
             className={cn(
               'min-w-0 flex-1 truncate text-sm',
-              mappable && !continuation ? 'text-foreground/90' : 'text-foreground/55',
+              mappable && !continuation ? 'text-foreground/90' : 'text-foreground/70',
             )}
           >
             {item.label}
           </span>
           {continuation && (
-            <span className="border-foreground/20 text-foreground/50 shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.16em] uppercase">
+            <span className="border-foreground/20 text-foreground/70 shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.16em] uppercase">
               Staying
             </span>
           )}
         </span>
         {continuation && item.continuationSince && (
-          <span className="text-foreground/40 mt-0.5 block text-xs">
+          <span className="text-foreground/70 mt-0.5 block text-xs">
             since {item.continuationSince}
           </span>
         )}
         {!mappable && !continuation && item.offMapReason && (
-          <span className="text-foreground/40 mt-0.5 flex items-center gap-1 text-xs">
+          <span className="text-foreground/70 mt-0.5 flex items-center gap-1 text-xs">
             <MapPinOff aria-hidden className="size-3 shrink-0" strokeWidth={1.5} />
             <span className="truncate">{item.offMapReason}</span>
           </span>
@@ -216,17 +216,12 @@ function DayBlock({
         <span
           className={cn(
             'font-mono text-[11px] tracking-[0.16em] uppercase transition-colors',
-            isToday ? 'text-primary' : isPast ? 'text-foreground/45' : 'text-foreground/80',
+            isToday ? 'text-primary' : isPast ? 'text-foreground/70' : 'text-foreground/80',
           )}
         >
           Day {String(day.dayNumber).padStart(2, '0')}
         </span>
-        <span
-          className={cn(
-            'font-mono text-[10px] tracking-[0.14em] whitespace-nowrap uppercase transition-colors',
-            isPast ? 'text-foreground/35' : 'text-foreground/55',
-          )}
-        >
+        <span className="text-foreground/70 font-mono text-[10px] tracking-[0.14em] whitespace-nowrap uppercase transition-colors">
           {formatDayLabel(date)}
         </span>
         {isToday && (
@@ -237,7 +232,10 @@ function DayBlock({
         <span aria-hidden className="bg-foreground/12 h-px flex-1 self-center" />
       </button>
 
-      <ol className={cn('mt-1 mb-4 space-y-0.5', isPast && 'opacity-70')}>
+      {/* Past rows keep their meaning at full opacity (WCAG 1.4.3); the
+          quieter-past feel comes from the collapsed-past pill, not a blanket
+          dim that would pull the dates/names below contrast. */}
+      <ol className="mt-1 mb-4 space-y-0.5">
         {day.items.map((item) => (
           <SegmentRailRow
             key={item.segmentId}
@@ -272,7 +270,7 @@ function CollapsedPastRow({ days, onExpand }: { days: RailDay[]; onExpand: () =>
         strokeWidth={1.75}
         className="text-foreground/35 group-hover:text-foreground/70 size-3.5 shrink-0 -rotate-90 transition-[transform,color]"
       />
-      <span className="text-foreground/65 group-hover:text-foreground/85 min-w-0 truncate font-mono text-[10px] tracking-[0.16em] uppercase">
+      <span className="text-foreground/70 group-hover:text-foreground/85 min-w-0 truncate font-mono text-[10px] tracking-[0.16em] uppercase">
         {rangeLabel}
       </span>
       <span aria-hidden className="bg-foreground/12 h-px flex-1" />
@@ -296,7 +294,7 @@ function ExpandedPastHeader({ onCollapse }: { onCollapse: () => void }) {
         strokeWidth={1.75}
         className="text-foreground/35 group-hover:text-foreground/70 size-3.5 shrink-0 transition-colors"
       />
-      <span className="text-foreground/65 group-hover:text-foreground/85 font-mono text-[10px] tracking-[0.2em] uppercase">
+      <span className="text-foreground/70 group-hover:text-foreground/85 font-mono text-[10px] tracking-[0.2em] uppercase">
         Earlier
       </span>
       <span aria-hidden className="bg-foreground/12 h-px flex-1" />

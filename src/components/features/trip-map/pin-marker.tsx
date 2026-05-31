@@ -86,7 +86,7 @@ export function PinMarker({ kind, label, hovered, dimmed }: PinMarkerProps) {
           hovered && 'scale-[1.15] shadow-[0_6px_16px_-3px_rgba(60,40,20,0.6)]',
         )}
       >
-        <Icon className="size-3.5" strokeWidth={2.2} />
+        <Icon aria-hidden className="size-3.5" strokeWidth={2.2} />
       </div>
     </div>
   );

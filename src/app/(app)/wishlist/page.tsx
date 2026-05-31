@@ -126,7 +126,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
         <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
           {filtered
             ? 'Try a different filter, or clear them all to see everything.'
-            : 'Drop a place worth remembering. It will keep surfacing as a suggestion on every trip that touches its country — even after you add it to one.'}
+            : 'Drop a place worth coming back to.'}
         </p>
         {!filtered && <WishlistFormDialog trigger={<Button size="sm">Add your first</Button>} />}
       </CardContent>

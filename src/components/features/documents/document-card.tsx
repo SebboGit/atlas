@@ -56,7 +56,7 @@ export function DocumentCard({ document, tripId }: DocumentCardProps) {
               <p className="text-muted-foreground font-mono text-[10px] tracking-wider">
                 Added {formatRelative(document.createdAt)}
                 {document.linkedSegmentCount > 0 && (
-                  <span className="text-foreground/40"> · linked</span>
+                  <span className="text-foreground/70"> · linked</span>
                 )}
               </p>
             </div>
@@ -69,7 +69,7 @@ export function DocumentCard({ document, tripId }: DocumentCardProps) {
             />
             <a
               href={`/api/documents/${document.id}?disposition=attachment`}
-              className="text-foreground/45 hover:text-foreground inline-flex h-8 items-center justify-center rounded-full px-3 font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
+              className="text-foreground/70 hover:text-foreground inline-flex h-8 items-center justify-center rounded-full px-3 font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
             >
               Download
             </a>

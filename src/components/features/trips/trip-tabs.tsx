@@ -55,7 +55,7 @@ export function TripTabs({ tripId }: { tripId: string }) {
               // rule 4) so it doesn't stick after a tap on touch.
               isActive
                 ? 'text-foreground'
-                : 'text-foreground/45 [@media(hover:hover)]:hover:text-foreground/85',
+                : 'text-foreground/70 [@media(hover:hover)]:hover:text-foreground/85',
             )}
           >
             <span className="text-foreground/40 mr-1.5 normal-case">{tab.numeral}.</span>
