@@ -595,6 +595,13 @@ export function TripMap({
     const managed: ManagedMarker[] = pins.map((pin, idx) => {
       const el = document.createElement('div');
       el.style.cursor = 'pointer';
+      // Give the marker an accessible name — otherwise it's an unlabelled
+      // icon, invisible to assistive tech. Mirrors the wishlist-pin pattern
+      // below; keyboard operation is provided by the timeline rail, which
+      // drives the same map selection.
+      const kindNoun = pin.kind.charAt(0).toUpperCase() + pin.kind.slice(1);
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', pin.label ? `${kindNoun}: ${pin.label}` : kindNoun);
       const root = createRoot(el);
       root.render(<PinMarker {...renderProps(pin, false)} />);
 

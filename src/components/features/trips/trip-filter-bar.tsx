@@ -73,7 +73,7 @@ function FilterChip({
         'min-h-11',
         active
           ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-foreground/20 text-foreground/65 hover:border-foreground/40 hover:text-foreground',
+          : 'border-foreground/20 text-foreground/70 hover:border-foreground/40 hover:text-foreground',
       )}
     >
       {children}
