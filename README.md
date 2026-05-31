@@ -103,83 +103,15 @@ Decisions of consequence are recorded as ADRs in [`docs/adr/`](./docs/adr/).
 
 ### Run the published images (Docker Compose)
 
-**Requires:** Docker with Compose v2. No source checkout or Node toolchain
-needed — this pulls the released images from GHCR.
-
 Each release publishes **two** images from one version: the app at
 `ghcr.io/sebbogit/atlas` and the pg-boss worker at
-`ghcr.io/sebbogit/atlas:<tag>-worker`. You need both — the worker runs database
-migrations on boot and the app waits for it before serving.
+`ghcr.io/sebbogit/atlas:<tag>-worker`.
 
 Create a `.env` (start from [`.env.example`](./.env.example)) with at least a
 `POSTGRES_PASSWORD`, your PocketID OIDC settings, and `ATLAS_IMAGE_TAG` (pin a
-release, e.g. `1.0.0`). Then drop this `compose.yaml` next to it:
+release, e.g. `1.0.0`).
 
-```yaml
-services:
-  postgres:
-    image: postgres:18-alpine
-    environment:
-      POSTGRES_USER: atlas
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: atlas
-    volumes:
-      - postgres-data:/var/lib/postgresql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U atlas -d atlas']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  worker:
-    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}-worker
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file: [.env]
-    environment:
-      DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD}@postgres:5432/atlas
-      STORAGE_DIR: /app/data/documents
-    volumes:
-      - ./data/documents:/app/data/documents
-    healthcheck:
-      test: ['CMD-SHELL', 'test -f /tmp/atlas-worker-ready']
-      interval: 5s
-      timeout: 2s
-      retries: 60
-      start_period: 5s
-
-  app:
-    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      # Wait for the worker to finish migrations before serving requests.
-      worker:
-        condition: service_healthy
-    env_file: [.env]
-    environment:
-      DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD}@postgres:5432/atlas
-      STORAGE_DIR: /app/data/documents
-      TILES_DIR: /app/data/tiles
-    ports:
-      - '127.0.0.1:3000:3000'
-    volumes:
-      - ./data/documents:/app/data/documents
-      - ./data/tiles:/app/data/tiles:ro
-
-volumes:
-  postgres-data:
-```
-
-```bash
-docker compose up -d
-```
-
-Open http://localhost:3000. The map stays blank until you fetch the basemap,
-and extraction needs an Ollama host — both are covered in the deploy guide.
-
-This is the minimal shape. The repo also ships the real
+The repo ships a
 [`docker-compose.yml`](./docker-compose.yml) plus a hardened
 [`docker-compose.prod.yml`](./docker-compose.prod.yml) overlay (resource limits,
 runtime confinement, scheduled backups). For a production deployment, use those
@@ -189,6 +121,9 @@ Ollama, reverse proxy, backups):
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile backup up -d
 ```
+
+Open http://localhost:3000. The map stays blank until you fetch the basemap,
+and extraction needs an Ollama host — both are covered in the deploy guide.
 
 ### Develop from source
 
