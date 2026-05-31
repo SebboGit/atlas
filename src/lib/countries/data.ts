@@ -5,7 +5,8 @@
 // requested the change.
 //
 // Reference data — used by:
-//   - scripts/seed.ts                    (Postgres source of truth)
+//   - src/lib/countries/seed.ts          (Postgres source of truth;
+//                                         seeded on worker boot + db:seed)
 //   - src/components/ui/country-select.tsx (form dropdown)
 //
 // Kept as a static TS module rather than fetched from the DB on the

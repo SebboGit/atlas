@@ -1,11 +1,9 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import { countries } from '../src/db/schema/countries';
-// Full ISO 3166-1 alpha-2 list lives at src/lib/countries/data.ts so
-// the seed and the form's country dropdown stay in lockstep. Adding a
-// country = edit one file.
-import { ISO_COUNTRIES } from '../src/lib/countries/data';
+// Shared with the worker's boot-time seed (scripts/worker.ts) so a Docker
+// deploy and a bare-metal `pnpm db:seed` load identical reference data.
+import { seedCountries } from '../src/lib/countries/seed';
 
 async function main() {
   const url = process.env.DATABASE_URL;
@@ -14,14 +12,9 @@ async function main() {
   const pool = new Pool({ connectionString: url, max: 1 });
   const db = drizzle(pool);
 
-  console.log(`▸ seeding ${ISO_COUNTRIES.length} countries…`);
-  // Spread the readonly tuple — Drizzle's `.values()` expects a
-  // mutable array shape.
-  await db
-    .insert(countries)
-    .values([...ISO_COUNTRIES])
-    .onConflictDoNothing();
-  console.log('▸ seed complete');
+  console.log('▸ seeding countries…');
+  const count = await seedCountries(db);
+  console.log(`▸ seed complete (${count} countries)`);
 
   await pool.end();
 }

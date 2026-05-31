@@ -29,18 +29,23 @@ the rationale; the worker container is its concrete form.
    the app container's `depends_on` keeps it from serving requests until
    the worker is healthy, which means no race between two containers both
    trying to migrate.
-3. Calls `getJobs().start()`, which boots pg-boss and creates or migrates
+3. Seeds the ISO country reference table (`src/lib/countries/seed.ts`).
+   Required, not optional demo data: `trip_countries` and
+   `user_visited_countries` rows reference `countries.code`, so a fresh
+   deploy with an empty table can't mark a country visited. The insert is `on conflict do nothing`, so
+   re-seeding on every boot is free.
+4. Calls `getJobs().start()`, which boots pg-boss and creates or migrates
    the `pgboss.*` schema in the same database.
-4. Runs the trip-status sweep once. This is a catch-up backfill so trips
+5. Runs the trip-status sweep once. This is a catch-up backfill so trips
    that went stale before the worker existed (or before its last restart)
    get classified before the next scheduled firing.
-5. Verifies the Protomaps PMTiles file exists at `TILES_DIR`. Non-fatal —
+6. Verifies the Protomaps PMTiles file exists at `TILES_DIR`. Non-fatal —
    the worker only warns and points at `pnpm tiles:fetch`. The basemap
    isn't a worker concern, but it's the most convenient place to surface
    missing-file errors at boot.
-6. Calls `registerWorkerJobs(jobs, db)` (in [`src/lib/scheduler/index.ts`])
+7. Calls `registerWorkerJobs(jobs, db)` (in [`src/lib/scheduler/index.ts`])
    to register every handler and schedule pg-boss is expected to run.
-7. Writes `/tmp/atlas-worker-ready` so the compose healthcheck flips to
+8. Writes `/tmp/atlas-worker-ready` so the compose healthcheck flips to
    `healthy` and the `app` container is released to start serving.
 
 [`src/lib/scheduler/index.ts`]: ../src/lib/scheduler/index.ts

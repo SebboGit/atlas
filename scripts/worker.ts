@@ -16,20 +16,26 @@
 //   2. Drizzle migrations        forward-only application schema migrations;
 //                                the worker is the single source of truth
 //                                so the app process never races to migrate
-//   3. pg-boss start             installs/migrates the `pgboss.*` schema
+//   3. Reference-data seed       idempotently load the ISO country table.
+//                                Required, not optional: trip + visited-
+//                                country rows FK to `countries.code`, so an
+//                                empty table breaks "mark country visited"
+//                                on a fresh deploy. onConflictDoNothing,
+//                                so re-running every boot is harmless.
+//   4. pg-boss start             installs/migrates the `pgboss.*` schema
 //                                and starts the supervision loop
-//   4. Boot-time status sweep    catches up trips that were `planned` /
+//   5. Boot-time status sweep    catches up trips that were `planned` /
 //                                `active` before this worker version
 //                                landed (idempotent — running once at
 //                                boot + nightly is harmless)
-//   5. PMTiles existence check   non-fatal warn if the bind-mount is
+//   6. PMTiles existence check   non-fatal warn if the bind-mount is
 //                                missing; the map silently breaks
 //                                otherwise and the cause is opaque
-//   6. registerWorkerJobs        wire pg-boss handlers + schedules
-//   7. Hold the process alive    until SIGTERM / SIGINT, then graceful
+//   7. registerWorkerJobs        wire pg-boss handlers + schedules
+//   8. Hold the process alive    until SIGTERM / SIGINT, then graceful
 //                                stop so in-flight handlers finish
 //
-// If step 2 or 3 fails the process exits non-zero and the orchestrator
+// If step 2, 3, or 4 fails the process exits non-zero and the orchestrator
 // restarts us — `pg_isready`-style behaviour for the worker.
 
 process.env.JOBS_ROLE = 'worker';
@@ -40,6 +46,7 @@ import { resolve } from 'node:path';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 
 import { db } from '../src/db/client';
+import { seedCountries } from '../src/lib/countries/seed';
 import { getJobs } from '../src/lib/jobs';
 import { log } from '../src/lib/log';
 import { runStatusSweep, registerWorkerJobs } from '../src/lib/scheduler';
@@ -59,6 +66,13 @@ async function runMigrations(): Promise<void> {
   log.info({}, 'worker.migrate.started');
   await migrate(db, { migrationsFolder: './src/db/migrations' });
   log.info({ durationMs: Date.now() - startedAt }, 'worker.migrate.completed');
+}
+
+async function seedReferenceData(): Promise<void> {
+  const startedAt = Date.now();
+  log.info({}, 'worker.seed.started');
+  const count = await seedCountries(db);
+  log.info({ count, durationMs: Date.now() - startedAt }, 'worker.seed.completed');
 }
 
 async function runBootStatusSweep(): Promise<void> {
@@ -130,6 +144,10 @@ async function main(): Promise<void> {
   await rm(READY_MARKER_PATH, { force: true });
 
   await runMigrations();
+
+  // Reference data the app can't function without — seed before anything
+  // serves requests. Idempotent, so running it on every boot is cheap.
+  await seedReferenceData();
 
   const jobs = getJobs();
   await jobs.start();

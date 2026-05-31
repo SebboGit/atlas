@@ -86,6 +86,10 @@ const config = [
       'src/lib/auth/**/*.ts',
       'src/lib/extraction/flight-cache.ts',
       'src/lib/geocoding/cache.ts',
+      // Reference-data seed (ISO countries). Takes a db argument so the
+      // one-shot `pnpm db:seed` script and the worker's boot-time seed
+      // share one idempotent insert. Not a request-scoped repo.
+      'src/lib/countries/seed.ts',
       // Maintenance owns cross-table cleanup (sessions, tokens, geocode
       // cache) and the auto-status sweep. Shared by `pnpm db:prune` /
       // the worker's boot-time backfill and the scheduled jobs.

@@ -72,13 +72,16 @@ docker compose --profile backup up -d
 The `app`, `postgres`, and `worker` services come up automatically. The
 `db-backup` service is opt-in via the `backup` profile.
 
-The `worker` applies Drizzle migrations automatically on boot, and the `app`
-waits on `worker: service_healthy` before serving requests, so `docker
-compose up -d` is sufficient — there is no separate migration step. Running
-`pnpm db:migrate` by hand is only for bare-metal or CI installs without the
-worker. See [WORKER.md](./WORKER.md) for the full boot sequence.
+The `worker` applies Drizzle migrations and seeds the country reference table
+automatically on boot, and the `app` waits on `worker: service_healthy`
+before serving requests, so `docker compose up -d` is sufficient — there is
+no separate migration or seed step. Running `pnpm db:setup` by hand is only
+for bare-metal or CI installs without the worker. See [WORKER.md](./WORKER.md)
+for the full boot sequence.
 
-To load optional development seed data: `docker compose exec app pnpm db:seed`.
+To populate a fresh instance with a demo trip and sample documents for
+evaluation, run `docker compose exec app pnpm seed:dev`; skip it on a real
+install.
 
 ---
 
