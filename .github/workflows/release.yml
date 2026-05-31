@@ -10,6 +10,10 @@
 # 2k-min/mo budget on normal pushes — a tag is the deliberate "cut a release"
 # signal. arm64 is built via QEMU emulation, which is slow, but only ever
 # runs on a release so the cost is bounded and rare.
+#
+# The published images are PUBLIC. A manual dispatch is therefore restricted to
+# `main` (see the job `if:`) so a WIP feature branch can't be pushed out as a
+# publicly-pullable `:edge` image — only tag pushes and main-dispatch publish.
 name: Release
 
 on:
@@ -18,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Image tag for a manual build (no git tag is created)'
+        description: 'Image tag for a manual build from main (no git tag is created)'
         required: false
         default: edge
 
@@ -35,6 +39,11 @@ jobs:
   release:
     name: Build · Push ${{ matrix.target }} (linux/amd64, linux/arm64)
     runs-on: ubuntu-latest
+    # Tag pushes (`event_name == 'push'`) always publish. Manual dispatch only
+    # publishes from `main` — never a feature branch — since the image is public.
+    # NB: a bare `github.ref == 'refs/heads/main'` would skip tag releases,
+    # because on a tag push `github.ref` is `refs/tags/v*`, not a branch.
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     timeout-minutes: 60
 
     strategy:
