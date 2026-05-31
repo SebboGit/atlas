@@ -30,6 +30,23 @@ services:
       - 'shared_buffers=256MB'
       - '-c'
       - 'max_connections=50'
+    # Runtime confinement (safe set — rootfs stays writable). The official
+    # Postgres entrypoint starts as root to fix PGDATA and socket-dir
+    # permissions and then drops to the `postgres` user, so it keeps a minimal
+    # capability allowlist rather than running fully unprivileged.
+    # no-new-privileges still applies: dropping privileges (gosu) is allowed;
+    # gaining them is not.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN # chown PGDATA + socket dir to the postgres user
+      - DAC_OVERRIDE # adjust file perms during initdb
+      - FOWNER # chmod files it owns
+      - SETGID # drop root -> postgres group
+      - SETUID # drop root -> postgres user
+    pids_limit: 512
 
   db-backup:
     environment:
@@ -54,6 +71,14 @@ services:
     mem_limit: 1g
     environment:
       NODE_ENV: production
+    # Runtime confinement (safe set — rootfs stays writable). The app runs
+    # non-root (uid 1001, baked into the prod image) on a high port, so it
+    # needs no Linux capabilities at all.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
 
   worker:
     # Own hardened stage: keeps tsx + our source tree at runtime (the prod
@@ -76,3 +101,11 @@ services:
     mem_limit: 1g
     environment:
       NODE_ENV: production
+    # Runtime confinement (safe set — rootfs stays writable). The worker runs
+    # non-root (uid 1001, baked into the worker image) and needs no Linux
+    # capabilities.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
