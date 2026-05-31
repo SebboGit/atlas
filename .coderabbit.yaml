@@ -2,7 +2,7 @@
 language: en-US
 
 reviews:
-  # Solo pre-1.0 project — keep reviews substantive, not nitpicky.
+  # Solo project — keep reviews substantive, not nitpicky.
   profile: chill
   high_level_summary: true
   # No poem on every review.
