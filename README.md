@@ -104,7 +104,7 @@ Decisions of consequence are recorded as ADRs in [`docs/adr/`](./docs/adr/).
 **Requires:** Node.js 24, pnpm 9.15+, Docker with Compose v2.
 
 ```bash
-git clone <repository-url> atlas
+git clone https://github.com/SebboGit/atlas.git
 cd atlas
 pnpm install
 cp .env.example .env
@@ -146,6 +146,7 @@ data/
 | [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md)   | Dev setup, quality gates, conventions, git workflow                      |
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | High-level system design                                                 |
 | [`docs/DOMAIN_MODEL.md`](./docs/DOMAIN_MODEL.md) | Entities, relationships, invariants                                      |
+| [`docs/THREAT_MODEL.md`](./docs/THREAT_MODEL.md) | Assets, trust boundaries, and the threats Atlas defends against          |
 | [`docs/adr/`](./docs/adr/)                       | Architecture Decision Records                                            |
 | [`CLAUDE.md`](./CLAUDE.md)                       | Canonical rules and conventions (the source of truth)                    |
 
