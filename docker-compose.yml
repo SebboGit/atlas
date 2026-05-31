@@ -21,7 +21,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: atlas
-      POSTGRES_PASSWORD: atlas
+      # Defaults to `atlas` for zero-config local dev; override via .env
+      # (the prod overlay requires a non-default value). Compose reads
+      # POSTGRES_PASSWORD from ./.env for interpolation.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas}
       POSTGRES_DB: atlas
       POSTGRES_INITDB_ARGS: '--data-checksums'
     volumes:
@@ -61,7 +64,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://atlas:atlas@postgres:5432/atlas
+      DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas}@postgres:5432/atlas
       STORAGE_DIR: /app/data/documents
       TILES_DIR: /app/data/tiles
     volumes:
@@ -109,7 +112,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://atlas:atlas@postgres:5432/atlas
+      DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas}@postgres:5432/atlas
       # The worker runs document extraction; point the storage adapter at the
       # same mount the app uses so the two agree regardless of process CWD.
       STORAGE_DIR: /app/data/documents
@@ -161,7 +164,7 @@ services:
       DB01_HOST: postgres
       DB01_NAME: atlas
       DB01_USER: atlas
-      DB01_PASS: atlas
+      DB01_PASS: ${POSTGRES_PASSWORD:-atlas}
       DB01_PORT: '5432'
       # Daily at 03:30 (HHMM). Use a cron expression for finer control.
       DB01_BACKUP_BEGIN: '0330'

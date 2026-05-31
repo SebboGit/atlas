@@ -17,6 +17,11 @@ services:
   postgres:
     # Don't expose Postgres on the host in prod
     ports: []
+    environment:
+      # Fail fast unless the operator set a real password in .env — never
+      # ship production on the `atlas` dev default. The base file's
+      # interpolation picks up the same value for the connection strings.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env for production}
     # Conservative homelab defaults — tune to your host.
     mem_limit: 512m
     command:
