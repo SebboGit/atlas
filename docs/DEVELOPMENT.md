@@ -20,7 +20,7 @@ work in this codebase. The architectural conventions and rules live in
 ## First-run setup
 
 ```bash
-git clone <repository-url> atlas
+git clone https://github.com/SebboGit/atlas.git
 cd atlas
 pnpm install
 cp .env.example .env

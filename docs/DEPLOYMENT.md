@@ -34,7 +34,7 @@ to the public internet.
 ### 1. Clone and configure
 
 ```bash
-git clone <repository-url> atlas
+git clone https://github.com/SebboGit/atlas.git
 cd atlas
 cp .env.example .env
 ```
@@ -47,6 +47,11 @@ openssl rand -base64 32
 
 Paste it into `.env` as `AUTH_SECRET`. The full set of environment
 variables is documented inline in [`.env.example`](../.env.example).
+
+For a production deployment, also set a strong `POSTGRES_PASSWORD` in `.env`.
+The compose files default it to `atlas` so local dev works with no setup, but
+the production overlay refuses to start until you've changed it — generate one
+with `openssl rand -base64 24`.
 
 ### 2. Install dependencies (bare-metal only)
 
@@ -122,7 +127,9 @@ for the rationale.
    - **Name:** `atlas`
    - **Callback URL:** `${AUTH_URL}/api/auth/callback/pocket-id`
    - **Scopes:** `openid profile email groups`
-   - **(Optional) Group restriction:** `atlas-users` or similar
+   - **Group restriction (recommended):** `atlas-users` or similar — on a
+     multi-person PocketID instance this is your only gate on who can sign in
+     (see [First sign-in](#first-sign-in)).
 3. Copy the generated Client ID and Client Secret into `.env`:
    ```bash
    OIDC_ISSUER_URL=https://id.your-domain.tld
@@ -136,6 +143,19 @@ for the rationale.
 > pointing at the Caddy root certificate. Mount it into the container
 > and set the variable in `docker-compose.prod.yml` — not `.env` — so
 > Node picks it up at process start.
+
+### First sign-in
+
+Atlas has no registration form and no admin bootstrap. The first person to
+authenticate with a PocketID passkey is created just in time, keyed by the
+OIDC `sub` claim, and that's your account — nothing to seed.
+
+Every subsequent PocketID identity that signs in is also created just in time,
+and Atlas shares trips, documents, and the wishlist across the whole household
+by default (a `userId` records who added a row, not who may see it). So decide
+**who is allowed to sign in** at the PocketID layer — the group restriction in
+step 2 above — rather than expecting Atlas to keep accounts apart. Anyone who
+can get a token from your PocketID instance gets a full household account.
 
 ---
 

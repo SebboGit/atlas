@@ -316,7 +316,7 @@ This is a personal app but contains travel documents (passports, boarding passes
 - **Backups:** see the `atlas-backups` skill. Test restore from a real snapshot at least once per quarter.
 - **Dependencies:** Dependabot handles updates. `pnpm audit` in CI as a soft signal.
 - **Secret scanning:** gitleaks blocks credentials at three layers — a pre-commit hook, a CI job, and GitHub's server-side push protection. Rules and the allowlist live in `.gitleaks.toml`.
-- **Threat model:** A one-pager lives in `docs/THREAT_MODEL.md` (to be written). Update when adding features that touch auth, file uploads, or external services.
+- **Threat model:** A one-pager lives in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). Update when adding features that touch auth, file uploads, or external services.
 
 ---
 
