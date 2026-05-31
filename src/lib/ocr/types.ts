@@ -2,13 +2,15 @@
 //
 // Atlas's extraction pipeline is layered: cheap → expensive.
 //   1. PdfTextExtractor   — pulls the embedded text layer out of a PDF
-//   2. EmlExtractor       — parses uploaded .eml email confirmations
-//   3. TesseractOcr       — falls back to image OCR
+//   2. TesseractOcr       — falls back to image OCR
+//   3. EmlExtractor       — parses uploaded .eml email confirmations
 //   4. (future) PaddleOCR — denser image OCR for low-quality scans
 //
 // Every implementation conforms to {@link TextExtractor}. The
-// orchestrator (commit #4) iterates implementations in priority order
-// and stops at the first one that returns a non-null result.
+// orchestrator iterates them in registration order (see
+// `getDefaultExtractors`) and stops at the first non-null result — but
+// each is MIME-gated via `canHandle`, so at most one runs for any given
+// input and the order never changes the outcome.
 //
 // Implementations MUST:
 //   - Never throw across the boundary — return `null` on any failure.
