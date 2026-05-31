@@ -1,4 +1,5 @@
 import { and, asc, eq, getTableColumns, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { cache } from 'react';
 
 import { db } from '@/db/client';
 import { documentSegments, documents, segments, trips, type Segment } from '@/db/schema';
@@ -71,23 +72,27 @@ export async function getByIdForUser(userId: string, id: string): Promise<Segmen
 // Cardinality here is tiny (segments per trip, two columns each), so
 // we fetch the two columns and dedupe in JS rather than building a
 // raw-SQL UNION. The query hits the (trip_id, ...) index either way.
-export async function listCountryCodesForTrip(userId: string, tripId: string): Promise<string[]> {
-  const rows = await db
-    .select({
-      countryCode: segments.countryCode,
-      originCountryCode: segments.originCountryCode,
-    })
-    .from(segments)
-    .innerJoin(trips, eq(segments.tripId, trips.id))
-    .where(and(eq(segments.tripId, tripId), eq(trips.userId, userId)));
+// React.cache: the trip layout and the itinerary/map tab pages all request
+// the trip's country codes in the same render pass — dedupe to one query.
+export const listCountryCodesForTrip = cache(
+  async (userId: string, tripId: string): Promise<string[]> => {
+    const rows = await db
+      .select({
+        countryCode: segments.countryCode,
+        originCountryCode: segments.originCountryCode,
+      })
+      .from(segments)
+      .innerJoin(trips, eq(segments.tripId, trips.id))
+      .where(and(eq(segments.tripId, tripId), eq(trips.userId, userId)));
 
-  const codes = new Set<string>();
-  for (const row of rows) {
-    if (row.countryCode) codes.add(row.countryCode);
-    if (row.originCountryCode) codes.add(row.originCountryCode);
-  }
-  return Array.from(codes).sort();
-}
+    const codes = new Set<string>();
+    for (const row of rows) {
+      if (row.countryCode) codes.add(row.countryCode);
+      if (row.originCountryCode) codes.add(row.originCountryCode);
+    }
+    return Array.from(codes).sort();
+  },
+);
 
 export interface CreateOptions {
   /**
