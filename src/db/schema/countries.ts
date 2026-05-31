@@ -3,7 +3,8 @@ import { char, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg
 import { trips } from './trips';
 import { users } from './users';
 
-// Reference data — ISO 3166-1 alpha-2. Seeded by scripts/seed.ts.
+// Reference data — ISO 3166-1 alpha-2. Seeded on worker boot and by
+// `pnpm db:seed`, both via src/lib/countries/seed.ts.
 export const countries = pgTable('countries', {
   code: char('code', { length: 2 }).primaryKey(),
   name: text('name').notNull(),
