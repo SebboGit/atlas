@@ -58,8 +58,11 @@ COPY --from=build --chown=nextjs:nodejs /app/public ./public
 USER nextjs
 EXPOSE 3000
 
+# Use Node (always present in this stage) rather than curl — the prod stage is
+# FROM node:24-alpine directly, NOT FROM base, so it never gets the curl that
+# base installs. Node 24 ships a global fetch, so this needs no extra package.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS http://localhost:3000/api/health || exit 1
+  CMD ["node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
 
 CMD ["node", "server.js"]
 
