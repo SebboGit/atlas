@@ -1,4 +1,4 @@
-import { integer, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { users } from './users';
 
@@ -27,13 +27,20 @@ export const accounts = pgTable(
   (account) => [primaryKey({ columns: [account.provider, account.providerAccountId] })],
 );
 
-export const sessions = pgTable('sessions', {
-  sessionToken: text('sessionToken').primaryKey(),
-  userId: uuid('userId')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  expires: timestamp('expires', { mode: 'date' }).notNull(),
-});
+// The nightly prune (src/lib/maintenance/prune.ts) deletes expired rows
+// with `WHERE expires < now()`. Index the predicate so the sweep doesn't
+// seq-scan the table as sessions accumulate.
+export const sessions = pgTable(
+  'sessions',
+  {
+    sessionToken: text('sessionToken').primaryKey(),
+    userId: uuid('userId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expires: timestamp('expires', { mode: 'date' }).notNull(),
+  },
+  (s) => [index('sessions_expires_idx').on(s.expires)],
+);
 
 export const verificationTokens = pgTable(
   'verificationTokens',
@@ -42,5 +49,9 @@ export const verificationTokens = pgTable(
     token: text('token').notNull(),
     expires: timestamp('expires', { mode: 'date' }).notNull(),
   },
-  (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
+  (vt) => [
+    primaryKey({ columns: [vt.identifier, vt.token] }),
+    // Same nightly-prune predicate as sessions.expires.
+    index('verification_tokens_expires_idx').on(vt.expires),
+  ],
 );
