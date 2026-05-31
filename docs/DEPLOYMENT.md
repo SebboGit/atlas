@@ -12,16 +12,16 @@ external services (PocketID, Ollama, basemap tiles), and production posture
 
 ## Prerequisites
 
-| Component     | Minimum          | Notes                                                |
-| ------------- | ---------------- | ---------------------------------------------------- |
-| Host          | 4 vCPU, 8 GB RAM | LLM extraction is the main load                      |
-| Disk          | 100 GB available | ~33 GB for the basemap, rest for docs + backups      |
-| OS            | Linux x86_64     | Tested on Debian 12 and Ubuntu 24.04                 |
-| Node.js       | 24.x             | Only required for bare-metal install                 |
-| pnpm          | 9.15+            | Bare-metal only                                      |
-| Docker Engine | 24+              | With Compose v2.24+ (the prod overlay uses `!reset`) |
-| PocketID      | Latest           | OIDC provider for authentication                     |
-| Ollama        | 0.3+             | Local LLM for document extraction                    |
+| Component     | Minimum               | Notes                                                |
+| ------------- | --------------------- | ---------------------------------------------------- |
+| Host          | 4 vCPU, 8 GB RAM      | LLM extraction is the main load                      |
+| Disk          | 100 GB available      | ~33 GB for the basemap, rest for docs + backups      |
+| OS            | Linux x86_64 or arm64 | Tested on Debian 12 and Ubuntu 24.04                 |
+| Node.js       | 24.x                  | Only required for bare-metal install                 |
+| pnpm          | 9.15+                 | Bare-metal only                                      |
+| Docker Engine | 24+                   | With Compose v2.24+ (the prod overlay uses `!reset`) |
+| PocketID      | Latest                | OIDC provider for authentication                     |
+| Ollama        | 0.3+                  | Local LLM for document extraction                    |
 
 A reverse proxy (Caddy or Nginx) and a private network layer (Tailscale,
 WireGuard, or VPN) are strongly recommended — Atlas should not be exposed
@@ -358,8 +358,8 @@ docker compose exec worker pnpm db:prune --apply
 
 ```bash
 git pull
-docker compose pull
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
 The worker applies any new migrations on boot before the app starts, so no
