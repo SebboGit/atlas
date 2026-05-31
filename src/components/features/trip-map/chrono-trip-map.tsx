@@ -33,10 +33,11 @@ interface ChronoTripMapProps {
 
 // How long to defer CLEARING the ephemeral hover highlight (laptop). Long
 // enough to bridge the cursor crossing the dead gap between two adjacent
-// day blocks (or two map pins) without the highlight strobing back to the
-// resting "everything bright" state mid-sweep; short enough that parking
-// off the rail still reads as an immediate un-highlight. ~one to two frames.
-const HOVER_CLEAR_DELAY_MS = 70;
+// day blocks (or two map pins) — even at an unhurried sweep speed — without
+// the highlight strobing back to the resting "everything bright" state mid-
+// sweep; short enough that parking off the rail still reads as an immediate
+// un-highlight.
+const HOVER_CLEAR_DELAY_MS = 140;
 
 /**
  * Chronological trip-map orchestrator (issue #9). Evolves the existing
