@@ -2,9 +2,9 @@
 
 ## Supported versions
 
-Atlas is pre-1.0 and developed on a rolling basis. Security fixes land on
-`main`; there are no backported release branches yet. Run the latest `main`
-(or the latest published image once 1.0 ships).
+Atlas is developed on a rolling basis: only the latest release is supported,
+and security fixes land on `main` and ship in the next tagged release. There
+are no backported release branches. Run the latest published image, or `main`.
 
 ## Reporting a vulnerability
 

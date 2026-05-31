@@ -9,7 +9,7 @@ Trips, flights, hotels, activities, documents and maps.
 [![CI](https://github.com/SebboGit/atlas/actions/workflows/ci.yml/badge.svg)](https://github.com/SebboGit/atlas/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-24.x-339933?logo=node.js&logoColor=white)](.nvmrc)
 [![License: PolyForm NC 1.0.0](https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue.svg)](./LICENSE)
-[![Status: Pre-1.0](https://img.shields.io/badge/status-pre--1.0-orange.svg)]()
+[![Release](https://img.shields.io/github/v/release/SebboGit/atlas?sort=semver)](https://github.com/SebboGit/atlas/releases)
 
 <br />
 
@@ -154,9 +154,10 @@ data/
 
 ## Status
 
-Atlas is pre-1.0. The trip, segment, document, and map layers are
-implemented. Notifications and household-sharing are on the roadmap.
-Breaking changes can still land on `main`.
+Atlas is stable. Trips, segments, documents and extraction, both map surfaces,
+search, stats, and the wishlist are all implemented, and releases follow
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). Push notifications
+(ntfy) are the next planned addition.
 
 ## License
 
