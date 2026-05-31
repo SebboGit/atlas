@@ -31,6 +31,13 @@ interface ChronoTripMapProps {
   isActive: boolean;
 }
 
+// How long to defer CLEARING the ephemeral hover highlight (laptop). Long
+// enough to bridge the cursor crossing the dead gap between two adjacent
+// day blocks (or two map pins) without the highlight strobing back to the
+// resting "everything bright" state mid-sweep; short enough that parking
+// off the rail still reads as an immediate un-highlight. ~one to two frames.
+const HOVER_CLEAR_DELAY_MS = 70;
+
 /**
  * Chronological trip-map orchestrator (issue #9). Evolves the existing
  * `/trips/[id]/map` surface from spatial-only into temporal-primary:
@@ -83,6 +90,40 @@ export function ChronoTripMap({
   // Ephemeral hover (laptop hover-capable only). Never written to the
   // URL — it's a transient highlight, not shareable state.
   const [hoveredDayKey, setHoveredDayKey] = React.useState<string | null>(null);
+
+  // Set the hover immediately, but CLEAR it on a short delay. Both the
+  // rail's day blocks and the map's pins clear by calling this with `null`
+  // on mouseleave, and between two adjacent day blocks (or two map pins)
+  // there's a gap the cursor crosses where nothing is hovered. Without the
+  // delay that gap commits a `null` highlight mid-sweep, repainting the
+  // resting "everything bright" map for a frame or two before the next
+  // hover re-dims — a visible strobe of every flight arc. Deferring the
+  // clear lets the next hover cancel it first, so a sweep across the gap
+  // never paints the bright state. A genuine leave (cursor parks off the
+  // rail / off all pins) still clears once the timer fires.
+  const hoverClearTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setHoveredDay = React.useCallback((dayKey: string | null) => {
+    if (hoverClearTimerRef.current !== null) {
+      clearTimeout(hoverClearTimerRef.current);
+      hoverClearTimerRef.current = null;
+    }
+    if (dayKey !== null) {
+      setHoveredDayKey(dayKey);
+      return;
+    }
+    hoverClearTimerRef.current = setTimeout(() => {
+      setHoveredDayKey(null);
+      hoverClearTimerRef.current = null;
+    }, HOVER_CLEAR_DELAY_MS);
+  }, []);
+  // Drop a pending clear on unmount so the timer can't fire into a torn-
+  // down tree.
+  React.useEffect(
+    () => () => {
+      if (hoverClearTimerRef.current !== null) clearTimeout(hoverClearTimerRef.current);
+    },
+    [],
+  );
 
   // The selected segment (clicked rail row or tapped map pin). Drives
   // the map focus (pan + tooltip) and the rail's pressed state.
@@ -178,9 +219,12 @@ export function ChronoTripMap({
     [writeDay, focusedDayKey],
   );
 
-  const onHoverDay = React.useCallback((dayKey: string | null) => {
-    setHoveredDayKey(dayKey);
-  }, []);
+  const onHoverDay = React.useCallback(
+    (dayKey: string | null) => {
+      setHoveredDay(dayKey);
+    },
+    [setHoveredDay],
+  );
 
   // Select a single segment — frame it on the map + open its tooltip.
   // Clicking the ALREADY-selected segment toggles it off: deselect, close
@@ -222,9 +266,9 @@ export function ChronoTripMap({
   }, [days]);
   const onPinHover = React.useCallback(
     (segmentId: string | null) => {
-      setHoveredDayKey(segmentId ? (segmentToDayKey.get(segmentId) ?? null) : null);
+      setHoveredDay(segmentId ? (segmentToDayKey.get(segmentId) ?? null) : null);
     },
-    [segmentToDayKey],
+    [segmentToDayKey, setHoveredDay],
   );
 
   const hasDays = days.length > 0;
