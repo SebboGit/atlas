@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { cache } from 'react';
 
 import { db } from '@/db/client';
 import { trips, type Trip } from '@/db/schema';
@@ -41,14 +42,19 @@ export async function listForUser(
     .limit(LIST_LIMIT);
 }
 
-export async function getByIdForUser(userId: string, id: string): Promise<Trip | null> {
+// Wrapped in React.cache so the trip-detail layout and the active tab page
+// — both Server Components rendering in the same request — share a single
+// PK lookup instead of each issuing it. Mirrors getCurrentUser in
+// src/lib/auth/session.ts. No worker/job reaches this, so the request-scoped
+// cache is the only context it runs in.
+export const getByIdForUser = cache(async (userId: string, id: string): Promise<Trip | null> => {
   const rows = await db
     .select()
     .from(trips)
     .where(and(eq(trips.id, id), eq(trips.userId, userId)))
     .limit(1);
   return rows[0] ?? null;
-}
+});
 
 export async function create(userId: string, input: TripCreateInput): Promise<Trip> {
   const [row] = await db

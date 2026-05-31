@@ -29,10 +29,9 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
   const { id } = await params;
   const { country } = await searchParams;
 
-  // Re-fetched here in addition to the layout's fetch. The layout
-  // already 404'd on missing, but this page also needs the summary.
-  // The lookup is by primary key — cheap; revisit with React cache()
-  // if it ever shows up in a flamegraph.
+  // Re-fetched here in addition to the layout's fetch — this page needs
+  // the trip summary too. getByIdForUser is React.cache-wrapped, so the
+  // layout's lookup and this one collapse to a single query per request.
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
