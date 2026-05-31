@@ -19,6 +19,7 @@ Runs as the `db-backup` service in compose.
 - **Output:** `./data/backups/db/` on the host.
 - **Profile:** opt-in (`--profile backup`) in dev; activated in prod via the same flag.
 - **Restores:** enter the container and run `restore` for an interactive wizard. Document any restoration drills in `docs/OPERATIONS.md` when it's written.
+- **PGDATA ownership after hardening:** the `restore` wizard above is a logical restore (`pg_dump` replayed into a running Postgres), so it is unaffected by anything here. The prod overlay (`docker-compose.prod.yml`) does run Postgres with a trimmed capability set, so it can no longer fix ownership on a data directory whose files belong to a uid other than 70 (the image's `postgres` user). If you ever relocate the raw PGDATA — off the Docker named volume onto a host bind mount, or from a filesystem snapshot/rsync — `chown -R 70:70` it before the first boot. Normal named-volume operation never triggers this.
 
 ## 2. Documents → `scripts/backup-documents.sh`
 
