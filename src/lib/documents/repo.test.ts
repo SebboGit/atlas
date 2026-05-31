@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { documents, trips, users } from '@/db/schema';
 
-import { create, type CreateDocumentInput } from './repo';
+import { create, getByIdForUser, type CreateDocumentInput } from './repo';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -166,5 +166,61 @@ describeIfDb('documents.repo.create — ON CONFLICT idempotency', () => {
     expect(b.isNew).toBe(false);
     expect(b.document.id).toBe(a.document.id);
     expect(b.document.originalName).toBe(a.document.originalName); // unchanged
+  });
+});
+
+describeIfDb('documents.repo.getByIdForUser — user scoping', () => {
+  // This is the access-control predicate behind the /api/documents/[id]
+  // download route: the route 404s whenever this returns null, so the
+  // `WHERE user_id = ...` clause is the only thing stopping one user from
+  // pulling another user's file by guessing its id. The route's own test
+  // (src/app/api/documents/[id]/route.test.ts) mocks this out; here we
+  // exercise the real SQL.
+  let pool: Pool;
+  let db: ReturnType<typeof drizzle>;
+
+  beforeAll(async () => {
+    pool = new Pool({ connectionString: DATABASE_URL, max: 2 });
+    db = drizzle(pool);
+    await pool.query('SELECT 1');
+  });
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  async function makeUserWithTrip(): Promise<{ userId: string; tripId: string }> {
+    const [u] = await db
+      .insert(users)
+      .values({ email: `docs-scope-${randomUUID()}@example.invalid` })
+      .returning({ id: users.id });
+    const [t] = await db
+      .insert(trips)
+      .values({ userId: u!.id, title: `scope ${randomUUID()}` })
+      .returning({ id: trips.id });
+    return { userId: u!.id, tripId: t!.id };
+  }
+
+  it('returns the document for its owner but null for another user', async () => {
+    const owner = await makeUserWithTrip();
+    const stranger = await makeUserWithTrip();
+    const { document } = await create(owner.userId, {
+      tripId: owner.tripId,
+      objectKey: uniqueObjectKey(),
+      mime: 'application/pdf',
+      bytes: 1234,
+      sha256: uniqueSha(),
+      originalName: 'boarding-pass.pdf',
+    });
+
+    expect((await getByIdForUser(owner.userId, document.id))?.id).toBe(document.id);
+    // The whole point: a different user gets nothing back, even with the
+    // real document id — so the route can only ever 404 for them.
+    expect(await getByIdForUser(stranger.userId, document.id)).toBeNull();
+  });
+
+  it('returns null for an id that does not exist', async () => {
+    const owner = await makeUserWithTrip();
+    expect(await getByIdForUser(owner.userId, randomUUID())).toBeNull();
   });
 });
