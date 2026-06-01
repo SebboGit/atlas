@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-01
+
+### Fixed
+
+- **Container healthcheck** — the production app image reported `unhealthy` in
+  `docker ps` and dashboards despite serving requests normally. The baked
+  healthcheck shelled out to `curl`, which the slim production image doesn't
+  ship; it now uses Node's built-in `fetch`. No functional impact — the app
+  served correctly throughout — but container status now reflects reality.
+
 ## [1.0.0] - 2026-05-31
 
 First stable release. From this version on, Atlas follows Semantic Versioning.
@@ -39,5 +49,6 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/SebboGit/atlas/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/SebboGit/atlas/releases/tag/v1.0.0
