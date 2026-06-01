@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import type { LinkedDocument } from '@/lib/documents';
 import type { Segment } from '@/lib/segments';
 import { cn } from '@/lib/utils';
@@ -75,9 +76,9 @@ export function DayGroup({
           <span className="tracking-[0.14em] sm:tracking-[0.2em]">{formatDayLabel(date)}</span>
         </p>
         {isToday && (
-          <span className="bg-primary/12 text-primary border-primary/25 rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.2em] uppercase">
+          <Badge variant="primary" size="sm" className="bg-primary/10">
             Today
-          </span>
+          </Badge>
         )}
         <span aria-hidden className="bg-foreground/20 h-px flex-1" />
       </header>
@@ -92,18 +93,29 @@ export function DayGroup({
       )}
 
       <ol className="relative space-y-3 sm:space-y-4 md:pl-10">
-        {/* Vertical timeline rail — laptop only, sits within the pl-10 gutter. */}
+        {/* Vertical timeline rail — laptop only, sits within the pl-10
+         *  gutter. Today's rail picks up a faint terracotta wash so the
+         *  focal day reads as a connected through-line behind its dots;
+         *  other days stay a neutral hairline. */}
         <span
           aria-hidden
-          className="bg-foreground/15 absolute inset-y-8 left-4 hidden w-px md:block"
+          className={cn(
+            'absolute inset-y-8 left-4 hidden w-px md:block',
+            isToday ? 'bg-primary/30' : 'bg-foreground/15',
+          )}
         />
         {segments.map((s) => (
           <li key={s.id} className="relative">
             {/* Dot marker — also laptop only. Sits at left:16px in the
-             *  parent ol, which matches the rail's centre. */}
+             *  parent ol, which matches the rail's centre. Today's rail
+             *  reads as the single terracotta focal point (filled dot);
+             *  every other day stays a quiet hollow ink marker. */}
             <span
               aria-hidden
-              className="border-foreground/35 bg-card absolute top-7 hidden h-2 w-2 rounded-full border md:block"
+              className={cn(
+                'absolute top-7 hidden h-2 w-2 rounded-full border md:block',
+                isToday ? 'border-primary bg-primary' : 'border-foreground/35 bg-card',
+              )}
               style={{ left: '-28px' }}
             />
             <SegmentRow

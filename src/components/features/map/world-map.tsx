@@ -7,6 +7,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { VisitedCountry } from '@/lib/countries/repo';
 import { cn } from '@/lib/utils';
 
+import { VisitedPanel } from './visited-panel';
+
 interface VisitedCountryWithName extends VisitedCountry {
   name: string;
 }
@@ -55,6 +57,10 @@ export function WorldMap({ visited }: WorldMapProps) {
     for (const c of visited) m.set(c.code.toUpperCase(), c);
     return m;
   }, [visited]);
+
+  // Visited ISO codes, fed to the overlay panel for the country count +
+  // client-side continent tally. Stable across hover-driven re-renders.
+  const visitedCodes = useMemo(() => visited.map((c) => c.code), [visited]);
 
   // Mount the map exactly once. No data-bound logic here — that lives in
   // a separate effect that re-binds whenever `visited` changes, so the
@@ -251,6 +257,18 @@ export function WorldMap({ visited }: WorldMapProps) {
         style={{ height: 'min(calc(100svh - 320px), 560px)' }}
         aria-label="World map of visited countries"
       />
+      {/* Engraved corner plate — echoes the sign-in "Vol. I" and the
+          header's "Section 03 · Map". Faint, non-interactive chrome. */}
+      <span
+        aria-hidden
+        className="text-foreground/35 pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.28em] uppercase select-none"
+      >
+        Plate 03 · World
+      </span>
+      {/* Bottom-left visited legend: terracotta swatch + count + a
+          client-side continent breakdown. Hidden until there's at least
+          one country so an empty map stays clean. */}
+      {visitedCodes.length > 0 && <VisitedPanel codes={visitedCodes} />}
       {hover && (
         <MapTooltip
           x={hover.x}

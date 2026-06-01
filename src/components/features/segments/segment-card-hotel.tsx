@@ -59,6 +59,7 @@ export function SegmentCardHotel({
 
   return (
     <SegmentCardShell
+      type="hotel"
       glyph={<BedDouble className="size-4" strokeWidth={1.5} />}
       typeLabel="Hotel"
       title={propertyName}

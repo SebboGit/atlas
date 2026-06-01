@@ -29,6 +29,8 @@ interface ChronoTripMapProps {
   days: RailDay[];
   /** True only for `trip.status === 'active'`. */
   isActive: boolean;
+  /** Trip title — drives the map's engraved corner plate caption. */
+  tripTitle: string;
 }
 
 // How long to defer CLEARING the ephemeral hover highlight (laptop). Long
@@ -71,6 +73,7 @@ export function ChronoTripMap({
   geocodeWorkerStatus,
   days,
   isActive,
+  tripTitle,
 }: ChronoTripMapProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -304,6 +307,7 @@ export function ChronoTripMap({
     recenterNonce,
     onPinClick,
     onPinHover,
+    plateLabel: tripTitle,
   };
 
   return (

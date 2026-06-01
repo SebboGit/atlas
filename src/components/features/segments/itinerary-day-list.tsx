@@ -10,7 +10,12 @@ import { cn } from '@/lib/utils';
 
 import { continuationsByDayKey } from './continuations';
 import { DayGroup } from './day-group';
-import { daysContainSegment, splitCollapsedDays, type DayPosition } from './day-temporal';
+import {
+  classifyDay,
+  daysContainSegment,
+  splitCollapsedDays,
+  type DayPosition,
+} from './day-temporal';
 import { useItineraryCollapse } from './use-itinerary-collapse';
 
 const SEG_HASH_PREFIX = '#seg-';
@@ -65,6 +70,19 @@ function getHashServerSnapshot(): string {
 // `hashchange`, so any derived deep-link state stays current.
 function useLocationHash(): string {
   return React.useSyncExternalStore(subscribeToHash, getHashSnapshot, getHashServerSnapshot);
+}
+
+// True only after hydration. Lets the day classification run in the
+// client's timezone without a setState-in-effect — getServerSnapshot
+// returns false so SSR + the first client paint agree, then it flips true
+// on mount and the timezone-aware split resolves.
+const emptySubscribe = () => () => {};
+function useMounted(): boolean {
+  return React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 }
 
 // Plain, serialisable shape the server page hands down. The page
@@ -146,13 +164,13 @@ function CollapsedPastRow({
     >
       <ChevronDown
         aria-hidden
-        strokeWidth={1.75}
-        className="text-foreground/35 group-hover:text-foreground/70 size-3.5 shrink-0 -rotate-90 transition-[transform,color] duration-150"
+        strokeWidth={2.25}
+        className="text-primary size-4 shrink-0 -rotate-90 transition-transform duration-150"
       />
       {/* `min-w-0` + `truncate` let the range ellipsise rather than
        *  force a horizontal scroll if the viewport is narrower than the
        *  full label — the count below stays pinned and readable. */}
-      <span className="text-foreground/70 group-hover:text-foreground/85 min-w-0 truncate font-mono text-xs tracking-[0.2em] whitespace-nowrap uppercase transition-colors">
+      <span className="text-foreground/85 min-w-0 truncate font-mono text-xs tracking-[0.2em] whitespace-nowrap uppercase">
         {rangeLabel}
       </span>
       <span aria-hidden className="bg-foreground/15 h-px flex-1" />
@@ -190,12 +208,8 @@ function ExpandedPastGroup({
           aria-label="Collapse past days"
           className="group flex min-h-[44px] w-full items-center gap-3 py-2 text-left transition-colors"
         >
-          <ChevronDown
-            aria-hidden
-            strokeWidth={1.75}
-            className="text-foreground/35 group-hover:text-foreground/70 size-3.5 shrink-0 transition-colors"
-          />
-          <span className="text-foreground/70 group-hover:text-foreground/85 font-mono text-xs tracking-[0.28em] uppercase transition-colors">
+          <ChevronDown aria-hidden strokeWidth={2.25} className="text-primary size-4 shrink-0" />
+          <span className="text-foreground/85 font-mono text-xs tracking-[0.28em] uppercase">
             Earlier
           </span>
           <span
@@ -290,6 +304,16 @@ export function ItineraryDayList({
   const todayRef = React.useRef<HTMLDivElement | null>(null);
   const hasScrolledRef = React.useRef(false);
 
+  // The past/today/future split happens in the VIEWER's timezone, resolved
+  // on mount — the server's clock isn't the user's, so "today" must be the
+  // client's. `null` until mounted: the first (SSR-matching) render shows
+  // every day expanded; the collapse + today anchor apply once it lands.
+  // (Inactive trips skip this entirely — they have no "today" to place.)
+  // Memoised on `mounted` so the date identity is stable across re-renders
+  // (the split useMemo and the scroll effect depend on it).
+  const mounted = useMounted();
+  const clientToday = React.useMemo(() => (mounted ? new Date() : null), [mounted]);
+
   // Split the days into the leading collapsible run and everything that
   // must stay expanded, and compute the ongoing-stay continuations to
   // surface on the visible days. `collapsed` is the ENTIRE leading run of
@@ -309,10 +333,28 @@ export function ItineraryDayList({
     collapsed: pastDays,
     visible: restDays,
     continuations,
-  } = React.useMemo(
-    () => ({ ...splitCollapsedDays(days), continuations: continuationsByDayKey(days) }),
-    [days],
-  );
+  } = React.useMemo(() => {
+    if (!clientToday) {
+      // Pre-mount, SSR-stable: nothing collapsed, every day visible and
+      // un-highlighted (position neutralised), so the first paint never
+      // shows a server-timezone guess.
+      return {
+        collapsed: [] as ItineraryDay[],
+        visible: days.map((d) => ({ ...d, position: 'future' as DayPosition })),
+        continuations: new Map<string, Segment[]>(),
+      };
+    }
+    // Re-derive each day's position from its stable date token against the
+    // client's "today", then split + compute continuations from that.
+    const classified = days.map((d) => ({
+      ...d,
+      position: classifyDay(parseDayKey(d.dateKey), clientToday),
+    }));
+    return {
+      ...splitCollapsedDays(classified),
+      continuations: continuationsByDayKey(classified),
+    };
+  }, [days, clientToday]);
 
   // The live location hash. Subscribed via `useSyncExternalStore`, so a
   // `#seg-…` deep link that arrives *after* mount (the Cmd+K palette can
@@ -375,7 +417,9 @@ export function ItineraryDayList({
       el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
     });
     return () => cancelAnimationFrame(raf);
-  }, [isActive]);
+    // `clientToday` is a dep so the scroll fires once the today anchor
+    // exists — it only resolves after the timezone-aware classification.
+  }, [isActive, clientToday]);
 
   // Inactive trip — render every day plainly, fully expanded, with no
   // collapse affordance and no auto-scroll. This is the pre-#14

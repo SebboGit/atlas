@@ -66,6 +66,7 @@ export function SegmentCardTransit({
 
   return (
     <SegmentCardShell
+      type="transit"
       glyph={<Icon className="size-4" strokeWidth={1.5} />}
       typeLabel={label}
       title={title}

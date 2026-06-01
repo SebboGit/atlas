@@ -1,7 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { CornerDownLeft, History } from 'lucide-react';
+import {
+  ChartColumn,
+  CornerDownLeft,
+  History,
+  Luggage,
+  Map as MapIcon,
+  Sparkles,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
@@ -20,6 +27,18 @@ import type { SearchResultRow, SearchResults } from '@/lib/search/types';
 import { SearchResultsView } from './search-results';
 import { useRecentSearches } from './use-recent-searches';
 import { useSearchHotkey } from './use-search-hotkey';
+
+// The four top-level destinations the topbar links to. Surfaced in the
+// palette's empty state so Cmd+K reaches Map / Stats without a mouse —
+// the icons mirror the topbar's so the rows read as the same places.
+// Module-scoped so the icon components are stable references (the
+// `react-hooks/static-components` rule flags components built in render).
+const GO_TO: ReadonlyArray<{ label: string; href: string; Icon: typeof MapIcon }> = [
+  { label: 'Trips', href: '/trips', Icon: Luggage },
+  { label: 'Wishlist', href: '/wishlist', Icon: Sparkles },
+  { label: 'Map', href: '/map', Icon: MapIcon },
+  { label: 'Stats', href: '/stats', Icon: ChartColumn },
+];
 
 type Ctx = {
   open: boolean;
@@ -116,6 +135,17 @@ export function SearchPalette() {
     setQuery(value);
   }, []);
 
+  // Plain route navigation for the "Go to" rows — same close-then-push
+  // mechanism the result rows use, minus the recent-search push and the
+  // segment-hash nudge (destinations are full pathnames, never fragments).
+  const handleGoTo = React.useCallback(
+    (href: string) => {
+      handleOpenChange(false);
+      router.push(href);
+    },
+    [handleOpenChange, router],
+  );
+
   const showRecent = !enabled && recent.length > 0;
   const totalResults = data ? totalCount(data) : 0;
   const showEmpty = enabled && !isFetching && !isError && data !== undefined && totalResults === 0;
@@ -131,17 +161,27 @@ export function SearchPalette() {
       />
       <CommandList>
         {/* CommandEmpty is cmdk's empty-state slot — it renders ONLY when
-            no items match. Recent items count as items, so this fires
-            on the typed-but-no-matches path, which is what we want. */}
+            no items match. The "Go to" rows below count as items, so on
+            the empty-query path this never fires; it's left for the
+            typed-but-no-matches and error paths. */}
         <CommandEmpty>
-          {!enabled
-            ? 'Start typing to search.'
-            : isError
-              ? "Couldn't search right now. Try again in a moment."
-              : showEmpty
-                ? `No matches for "${trimmed}".`
-                : null}
+          {isError
+            ? "Couldn't search right now. Try again in a moment."
+            : showEmpty
+              ? `No matches for "${trimmed}".`
+              : null}
         </CommandEmpty>
+
+        {!enabled ? (
+          <CommandGroup heading="Go to">
+            {GO_TO.map(({ label, href, Icon }) => (
+              <CommandItem key={href} value={`goto:${href}`} onSelect={() => handleGoTo(href)}>
+                <Icon className="text-foreground/70 size-4 shrink-0" aria-hidden />
+                <span className="text-foreground truncate text-sm">{label}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        ) : null}
 
         {showRecent ? (
           <CommandGroup heading="Recent">
@@ -173,14 +213,30 @@ export function SearchPalette() {
         {liveMessage}
       </div>
 
+      {/* Footer legend — advertises the keyboard contract: the global
+          "/" hotkey that opens this palette, ↵ to select the highlighted
+          row, esc to close. Mono micro-label register, terse glyph + verb. */}
       <div
         aria-hidden="true"
         className="border-foreground/10 text-muted-foreground flex items-center justify-between gap-3 border-t px-4 py-2 font-mono text-[10px] tracking-[0.18em] uppercase"
       >
-        <span>
-          <CornerDownLeft className="-mt-0.5 mr-1 inline size-3" /> open
+        <span className="flex items-center gap-1.5">
+          <kbd className="border-foreground/15 text-foreground/70 rounded border px-1 py-px not-italic">
+            /
+          </kbd>
+          search
         </span>
-        <span>esc to close</span>
+        <span className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5">
+            <CornerDownLeft className="size-3" /> select
+          </span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="border-foreground/15 text-foreground/70 rounded border px-1 py-px not-italic">
+              esc
+            </kbd>
+            close
+          </span>
+        </span>
       </div>
     </CommandDialog>
   );

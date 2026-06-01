@@ -1,6 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { BedDouble, Plane, Sparkles, StickyNote, UtensilsCrossed, Waypoints } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import * as React from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
@@ -10,10 +12,10 @@ import {
   DialogStickyFooter,
   dialogScrollContainer,
 } from '@/components/ui/dialog';
-import { Select } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SEGMENT_TYPES, segmentCreateInput, type SegmentType } from '@/lib/segments';
 import type { FormError } from '@/lib/segments/actions';
+import { cn } from '@/lib/utils';
 import type { Result } from '@/types/result';
 
 import { ActivityFields } from './segment-form-fields/activity-fields';
@@ -33,6 +35,19 @@ const TYPE_LABELS: Record<SegmentType, string> = {
   transit: 'Transit',
   food: 'Food',
   note: 'Note',
+};
+
+// The same lucide glyphs the cards use, so the picker reads as a preview
+// of what each segment will look like. Transit takes the generic
+// Waypoints mark (the card swaps in a mode-specific icon once a mode is
+// picked); the rest match their card variant one-for-one.
+const TYPE_GLYPH: Record<SegmentType, LucideIcon> = {
+  flight: Plane,
+  hotel: BedDouble,
+  activity: Sparkles,
+  transit: Waypoints,
+  food: UtensilsCrossed,
+  note: StickyNote,
 };
 
 interface SegmentFormProps {
@@ -108,7 +123,7 @@ export function SegmentForm({
       } as FormInput),
   });
 
-  const { register, handleSubmit, setError, setValue, control } = form;
+  const { handleSubmit, setError, setValue, control } = form;
 
   const currentType = useWatch({ control, name: 'type' }) as SegmentType;
 
@@ -129,6 +144,25 @@ export function SegmentForm({
       shouldValidate: false,
     });
   }, [currentType, setValue]);
+
+  // WAI-ARIA radio-group keyboard model for the type chips: the group is a
+  // single tab stop (roving tabindex), and Arrow/Home/End move *and* select
+  // within it — the roles promise this, so it has to actually work.
+  const chipRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const onTypeKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const handled = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+    if (!handled.includes(e.key)) return;
+    e.preventDefault();
+    const n = SEGMENT_TYPES.length;
+    const idx = SEGMENT_TYPES.indexOf(currentType);
+    let next: number;
+    if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = n - 1;
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % n;
+    else next = (idx - 1 + n) % n;
+    setValue('type', SEGMENT_TYPES[next]!, { shouldDirty: true, shouldValidate: true });
+    chipRefs.current[next]?.focus();
+  };
 
   function applyServerErrors(error: FormError) {
     setFormError(error.formMessage ?? null);
@@ -152,14 +186,53 @@ export function SegmentForm({
       <DialogScrollableBody>
         {!typeLocked && (
           <div className="flex flex-col gap-2">
-            <Label htmlFor="seg-type">Type</Label>
-            <Select id="seg-type" {...register('type')}>
-              {SEGMENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {TYPE_LABELS[t]}
-                </option>
-              ))}
-            </Select>
+            <Label id="seg-type-label">Type</Label>
+            {/* One-tap chip row replacing the native <Select> — no
+             *  dropdown round-trip on the highest-traffic add action.
+             *  Radiogroup semantics keep it keyboard- and
+             *  screen-reader-accessible; selection writes the same
+             *  `type` field the resolver reads, so the per-type data
+             *  reset (see the effect above) still fires on switch. */}
+            <div
+              role="radiogroup"
+              aria-labelledby="seg-type-label"
+              onKeyDown={onTypeKeyDown}
+              className="-mx-0.5 flex flex-wrap gap-2"
+            >
+              {SEGMENT_TYPES.map((t, i) => {
+                const Glyph = TYPE_GLYPH[t];
+                const selected = currentType === t;
+                return (
+                  <button
+                    key={t}
+                    ref={(el) => {
+                      chipRefs.current[i] = el;
+                    }}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => setValue('type', t, { shouldDirty: true, shouldValidate: true })}
+                    className={cn(
+                      // ≥44px touch target via min-height; chips wrap to
+                      // a second row at 360px rather than scrolling.
+                      'inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium tracking-tight transition-[background-color,border-color,color] duration-150',
+                      'focus-visible:ring-primary/40 focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+                      '[&_svg]:size-4 [&_svg]:shrink-0',
+                      selected
+                        ? 'border-primary/55 bg-primary/8 text-primary'
+                        : 'border-foreground/15 bg-card/60 text-foreground/70 hover:border-foreground/30 hover:text-foreground',
+                    )}
+                  >
+                    <Glyph
+                      strokeWidth={1.5}
+                      className={selected ? 'text-primary' : 'text-foreground/55'}
+                    />
+                    {TYPE_LABELS[t]}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 

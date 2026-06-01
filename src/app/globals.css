@@ -18,7 +18,7 @@
 
   /* Quiet tones */
   --color-muted: hsl(38 26% 84%);
-  --color-muted-foreground: hsl(28 14% 38%);
+  --color-muted-foreground: hsl(28 14% 34%);
   --color-border: hsl(34 22% 74%);
   --color-input: hsl(34 22% 74%);
 
@@ -26,8 +26,8 @@
   --color-primary: hsl(18 52% 36%);
   --color-primary-foreground: hsl(42 50% 96%);
 
-  /* Quiet support — sage olive */
-  --color-accent: hsl(82 18% 38%);
+  /* Quiet support — sage olive (34% L clears AA for accent text on cream) */
+  --color-accent: hsl(82 18% 34%);
   --color-accent-foreground: hsl(42 50% 96%);
 
   /* Warning ink — a darker rust than primary, used only for destructive paths */
@@ -42,6 +42,12 @@
   --font-mono: var(--font-mono-ibm), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --radius: 0.875rem;
+
+  /* Warm-ink elevation — one ink (40 28 18), three depths. Replaces the
+   * hand-built shadow strings that drifted across three different inks. */
+  --shadow-paper: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 18px 40px -24px rgb(40 28 18 / 0.2);
+  --shadow-lifted: 0 30px 60px -30px rgb(40 28 18 / 0.25), 0 8px 20px -12px rgb(40 28 18 / 0.15);
+  --shadow-overlay: 0 40px 80px -40px rgb(40 28 18 / 0.42), 0 12px 32px -16px rgb(40 28 18 / 0.22);
 }
 
 /*
@@ -89,17 +95,51 @@ body {
 /* Display utility for the Fraunces wordmark — used sparingly. */
 .font-display {
   font-family: var(--font-display);
-  font-feature-settings:
-    'ss01',
-    'ss03',
-    'opsz' on;
+  font-feature-settings: 'ss01', 'ss03';
   font-optical-sizing: auto;
+  /* Fraunces' SOFT axis is downloaded via next/font `axes` but sits at 0
+   * (sharp) until asked for. Nudging it rounds the terminals just enough to
+   * read engraved-warm rather than sharp. opsz is deliberately NOT pinned
+   * here so `font-optical-sizing: auto` keeps refining large display sizes. */
+  font-variation-settings: 'SOFT' 50;
   letter-spacing: -0.02em;
 }
 
 .font-mono {
   font-family: var(--font-mono);
   font-feature-settings: 'ss03';
+}
+
+/*
+ * Display heading rungs — three locked tiers so titles stop drifting
+ * screen-to-screen. Each carries the full Fraunces voice (SOFT axis,
+ * stylistic sets) so a heading is one class, not a copy-pasted
+ * `font-display text-Nxl leading-… tracking-tight` string. opsz stays on
+ * auto for size-aware refinement. Sizes are fluid (clamp) so the same rung
+ * reads intentional at 360px and 1440px without breakpoint soup.
+ */
+.heading-page,
+.heading-section,
+.heading-card {
+  font-family: var(--font-display);
+  font-feature-settings: 'ss01', 'ss03';
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 50;
+  color: var(--color-foreground);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.heading-page {
+  font-size: clamp(2.25rem, 1.55rem + 3.1vw, 3rem);
+  line-height: 1.04;
+}
+.heading-section {
+  font-size: clamp(1.5rem, 1.2rem + 1.3vw, 1.875rem);
+  line-height: 1.15;
+}
+.heading-card {
+  font-size: 1.25rem;
+  line-height: 1.3;
 }
 
 /*

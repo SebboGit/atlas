@@ -60,6 +60,7 @@ export function SegmentCardFood({
 
   return (
     <SegmentCardShell
+      type="food"
       glyph={<UtensilsCrossed className="size-4" strokeWidth={1.5} />}
       typeLabel="Food"
       title={title}

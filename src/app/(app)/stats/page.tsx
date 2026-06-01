@@ -1,6 +1,7 @@
 import { RecordsPanel } from '@/components/features/stats/records-panel';
 import { StatTile } from '@/components/features/stats/stat-tile';
 import { YearStrip } from '@/components/features/stats/year-strip';
+import { SectionEyebrow } from '@/components/section-eyebrow';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
 import { getStatsDashboardData } from '@/lib/stats';
@@ -17,10 +18,6 @@ export default async function StatsPage() {
   // sharing) — see src/lib/stats/visibility.ts.
   const { lifetime, yearOverYear, records, isEmpty } = await getStatsDashboardData(user.id);
 
-  const stampDate = new Date()
-    .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    .toUpperCase();
-
   // Distance is computed in km server-side (haversineKm); convert to the
   // operator-chosen display unit here, before render. Var unset → km.
   const distanceUnit = getDistanceUnit();
@@ -29,16 +26,11 @@ export default async function StatsPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-6 pt-8 pb-24 sm:px-8 sm:pt-20">
       <header className="atlas-rise mb-8" style={{ animationDelay: '20ms' }}>
-        <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
-          <span aria-hidden className="bg-foreground/30 h-px w-8" />
-          <span>Logbook · {stampDate}</span>
-        </p>
-        <h1 className="font-display text-foreground text-5xl leading-[1.02] font-medium tracking-tight sm:text-6xl">
-          The tally so far.
-        </h1>
+        <SectionEyebrow>Section 04 · Stats</SectionEyebrow>
+        <h1 className="heading-page">The tally so far.</h1>
       </header>
 
-      <div className="atlas-rule mb-10" aria-hidden />
+      <div className="atlas-rule-double mb-10" aria-hidden />
 
       {isEmpty ? (
         <EmptyState />

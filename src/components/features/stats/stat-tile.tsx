@@ -44,6 +44,9 @@ export function StatTile({
             </span>
           ) : null}
         </p>
+        {/* A short terracotta baseline under the figure — the ruled line of a
+         *  ledger entry, not a KPI box. One focal stroke per tile. */}
+        <span aria-hidden className="bg-primary h-px w-8" />
         {/* Caption is supporting context — dropped entirely on phone, where
          *  the label + figure carry the tile, and shown from sm: up where
          *  there's room. */}

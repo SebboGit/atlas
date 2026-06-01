@@ -130,7 +130,7 @@ export function Topbar() {
           </SheetContent>
         </Sheet>
 
-        <Link href="/" className="group flex items-center gap-3">
+        <Link href="/" className="group flex shrink-0 items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/atlas_logo.svg"
@@ -138,16 +138,25 @@ export function Topbar() {
             aria-hidden
             width={36}
             height={36}
-            className="relative -top-[2px] h-9 w-9 transition-opacity group-hover:opacity-80"
+            className="h-9 w-9 transition-opacity group-hover:opacity-80"
           />
-          <span className="font-display text-foreground text-[1.35rem] leading-none font-medium tracking-tight transition-opacity group-hover:opacity-80">
-            Atlas
+          <span className="flex flex-col leading-none transition-opacity group-hover:opacity-80">
+            <span className="font-display text-foreground text-[1.5rem] font-medium">Atlas</span>
+            {/* The masthead caption — stitches the sign-in "Vol. I" voice
+             *  into the chrome. Hidden below sm: where the bar is tight; the
+             *  hamburger sheet carries the same caption on phone. */}
+            <span className="text-muted-foreground mt-1 hidden font-mono text-[9px] tracking-[0.26em] uppercase sm:block">
+              Self-hosted · Vol. I
+            </span>
           </span>
         </Link>
 
         {/* Laptop inline nav — hidden below sm:, where the hamburger
          *  carries the same routes. */}
-        <nav aria-label="Main" className="hidden flex-1 items-center justify-center gap-1 sm:flex">
+        <nav
+          aria-label="Main"
+          className="ml-2 hidden flex-1 items-center justify-start gap-1 sm:flex lg:ml-4"
+        >
           {ROUTES.map((route) => {
             const active = isActiveRoute(pathname, route.href);
             return (
@@ -156,10 +165,14 @@ export function Topbar() {
                 href={route.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'rounded-lg px-3 py-1.5 text-sm transition-colors',
+                  // A 2px terracotta underline marks the active section —
+                  // wayfinding finally uses the brand color (was a near-
+                  // invisible opacity bump on the same ink).
+                  'relative rounded-lg px-3 py-1.5 text-sm transition-colors',
+                  'after:bg-primary after:absolute after:inset-x-3 after:-bottom-0.5 after:h-0.5 after:rounded-full after:transition-opacity',
                   active
-                    ? 'text-foreground'
-                    : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground',
+                    ? 'text-foreground after:opacity-100'
+                    : 'text-foreground/70 hover:text-foreground after:opacity-0',
                 )}
               >
                 {route.label}
@@ -168,10 +181,7 @@ export function Topbar() {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 sm:ml-0 sm:gap-5">
-          <span className="text-muted-foreground hidden font-mono text-[10px] tracking-[0.2em] uppercase lg:inline">
-            est. homelab · vol. i
-          </span>
+        <div className="ml-auto flex items-center gap-3 sm:gap-5">
           <SearchTrigger />
           {/* Laptop sign-out — inline in the topbar. Phone users reach
            *  sign-out via the hamburger sheet above. */}
