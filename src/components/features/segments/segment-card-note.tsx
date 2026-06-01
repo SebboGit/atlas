@@ -3,6 +3,9 @@ import { StickyNote } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Segment } from '@/lib/segments';
 import { noteDataSchema } from '@/lib/segments';
+import { cn } from '@/lib/utils';
+
+import { GLYPH_ACCENT } from './segment-card-shell';
 
 // Notes get a slightly different shell: no oversized Fraunces title,
 // because the body IS the content. Body is line-clamped at four lines
@@ -16,7 +19,12 @@ export function SegmentCardNote({ segment }: { segment: Segment }) {
       <CardContent className="flex gap-4 px-5 py-5 sm:gap-5 sm:px-6 sm:py-6">
         <div
           aria-hidden
-          className="border-foreground/25 text-foreground/75 mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
+          className={cn(
+            'mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border',
+            // Notes take the muted ink accent from the shared glyph map —
+            // same source of truth as the shell-based cards.
+            GLYPH_ACCENT.note,
+          )}
         >
           <StickyNote className="size-5" strokeWidth={1.5} />
         </div>

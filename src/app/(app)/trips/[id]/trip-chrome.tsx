@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 
 interface TripChromeProps {
   trip: Trip;
-  countryCodes: string[];
+  countries: { code: string; name: string }[];
   attachedDocumentCount: number;
   children: React.ReactNode;
 }
@@ -47,16 +47,11 @@ interface TripChromeProps {
  * server-side chrome switch would stay stuck on the initial path.
  * The data fetch still happens once on the server.
  */
-export function TripChrome({
-  trip,
-  countryCodes,
-  attachedDocumentCount,
-  children,
-}: TripChromeProps) {
+export function TripChrome({ trip, countries, attachedDocumentCount, children }: TripChromeProps) {
   const pathname = usePathname();
   const isMapView = pathname === `/trips/${trip.id}/map`;
   const isArchived = trip.status === 'archived';
-  const hasFilterBar = countryCodes.length >= 2;
+  const hasFilterBar = countries.length >= 2;
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
 
   // Cmd+K palette deep-links into segment rows via `#seg-<id>`. The hook
@@ -227,7 +222,7 @@ export function TripChrome({
             style={{ animationDelay: '180ms' }}
           >
             <TripTabs tripId={trip.id} />
-            {hasFilterBar && <TripFilterBar codes={countryCodes} />}
+            {hasFilterBar && <TripFilterBar countries={countries} />}
           </div>
         </>
       )}

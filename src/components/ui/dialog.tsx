@@ -46,7 +46,7 @@ const DialogContent = React.forwardRef<
         // dialog overflows horizontally. min-w-0 lets the track shrink
         // and the existing truncate/break-words on inner elements does
         // its job.
-        'atlas-sheet bg-card text-card-foreground fixed z-50 grid w-full gap-6 border shadow-[0_40px_80px_-40px_rgba(40,28,18,0.45),0_12px_32px_-16px_rgba(40,28,18,0.25)] [&>*]:min-w-0',
+        'atlas-sheet bg-card text-card-foreground fixed z-50 grid w-full gap-6 border shadow-[var(--shadow-overlay)] [&>*]:min-w-0',
         'border-foreground/12 backdrop-blur-2xl',
         // Mobile bottom sheet — content can scroll inside if the form
         // is tall (date pickers, status, etc.). Top capped so the close

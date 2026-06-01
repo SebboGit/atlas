@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { requireUser } from '@/lib/auth/session';
+import { countryName } from '@/lib/countries';
 import * as documentsRepo from '@/lib/documents/repo';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
@@ -33,12 +34,12 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
   // to also remove the documents (rows + files) when destroying a trip.
   const attachedDocumentCount = await documentsRepo.countForTrip(user.id, id);
 
+  // Resolve display names server-side (keeps the ISO_COUNTRIES list off the
+  // client bundle) so the filter chips read "United Kingdom", not "GB".
+  const countries = countryCodes.map((code) => ({ code, name: countryName(code) ?? code }));
+
   return (
-    <TripChrome
-      trip={trip}
-      countryCodes={countryCodes}
-      attachedDocumentCount={attachedDocumentCount}
-    >
+    <TripChrome trip={trip} countries={countries} attachedDocumentCount={attachedDocumentCount}>
       {children}
     </TripChrome>
   );

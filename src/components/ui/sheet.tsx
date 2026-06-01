@@ -55,7 +55,7 @@ const SheetContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'atlas-sheet bg-card text-card-foreground fixed z-50 flex flex-col overflow-y-auto border shadow-[0_40px_80px_-40px_rgba(40,28,18,0.45),0_12px_32px_-16px_rgba(40,28,18,0.25)]',
+        'atlas-sheet bg-card text-card-foreground fixed z-50 flex flex-col overflow-y-auto border shadow-[var(--shadow-overlay)]',
         'border-foreground/12 backdrop-blur-2xl',
         // Safe-area padding so the drawer's top/bottom don't tuck under
         // iOS chrome on a notched phone.

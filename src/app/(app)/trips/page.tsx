@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { TripFormDialog } from '@/components/features/trips/trip-form-dialog';
 import { TripListCard } from '@/components/features/trips/trip-list-card';
 import { TripYearGroup } from '@/components/features/trips/trip-year-group';
+import { SectionEyebrow } from '@/components/section-eyebrow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
@@ -25,20 +26,17 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 pt-8 pb-24 sm:px-8 sm:pt-20">
-      <header className="atlas-rise mb-10" style={{ animationDelay: '40ms' }}>
-        <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
-          <span aria-hidden className="bg-foreground/30 h-px w-8" />
-          <span>Section 01 · Trips</span>
-        </p>
+      <header className="atlas-rise mb-8" style={{ animationDelay: '40ms' }}>
+        <SectionEyebrow>
+          {showingArchived ? 'Section 01 · Archived' : 'Section 01 · Trips'}
+        </SectionEyebrow>
         <div className="flex flex-wrap items-end justify-between gap-6">
-          <h1 className="font-display text-foreground text-5xl leading-[1.02] font-medium tracking-tight sm:text-6xl">
-            {showingArchived ? 'Archived.' : 'Trips.'}
-          </h1>
+          <h1 className="heading-page">{showingArchived ? 'Archived.' : 'Trips.'}</h1>
           <TripFormDialog mode="create" trigger={<Button size="default">New trip</Button>} />
         </div>
       </header>
 
-      <div className="atlas-rule mb-8" aria-hidden />
+      <div className="atlas-rule-double mb-8" aria-hidden />
 
       {/* Quiet filter strip — current view + the toggle to the other one */}
       <div

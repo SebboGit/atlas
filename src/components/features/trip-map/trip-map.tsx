@@ -20,6 +20,7 @@ import { curvedArcCoords } from './arc-geometry';
 import { buildBasemapStyle } from './basemap-style';
 import { CountryChipStrip } from './country-chip-strip';
 import { GeocodeWorkerBanner } from './geocode-worker-banner';
+import { PinLegendChip } from './pin-legend-chip';
 import { PinMarker } from './pin-marker';
 import { PinTooltip } from './pin-tooltip';
 import { NotPinnedChip } from './not-pinned-chip';
@@ -121,6 +122,13 @@ interface TripMapProps {
    * over it.
    */
   hideAttribution?: boolean;
+  /**
+   * Trip title for the engraved corner plate caption ("PLATE · KYOTO").
+   * Echoes the sign-in "Vol. I" mark — a faint, low-opacity mono
+   * caption in the map's top-left corner that frames the surface as a
+   * logbook plate. Omitted → no caption.
+   */
+  plateLabel?: string;
 }
 
 interface HoverInfo {
@@ -139,6 +147,12 @@ const COUNTRIES_FILL_LAYER_ID = 'country-fill';
 const COUNTRIES_LINE_LAYER_ID = 'country-line';
 const ARCS_SOURCE_ID = 'trip-arcs';
 const ARCS_LAYER_ID = 'trip-arcs-lines';
+// Endpoint dots sit on the same arc source but key off the dedicated
+// `endpoints` GeoJSON below — one small terracotta mark per airport so a
+// flight reads as a plotted course (origin → stitched line → destination),
+// not an anonymous great-circle hairline.
+const ARC_ENDPOINTS_SOURCE_ID = 'trip-arc-endpoints';
+const ARC_ENDPOINTS_LAYER_ID = 'trip-arc-endpoints-dots';
 
 // Background colour for the area outside the basemap's data extent
 // (or when the tile file is missing). Matches the Protomaps White
@@ -254,6 +268,30 @@ function arcsToFeatureCollection(arcs: TripMapArc[]): GeoJSON.FeatureCollection 
   };
 }
 
+// One point feature per airport endpoint. Carries the owning arc's
+// `idx` so the dot dims in lockstep with its line via the same
+// feature-state the arc layer uses. Deduping isn't worth it — a shared
+// airport just stacks two coincident dots at the same pixel, invisible.
+function arcEndpointsToFeatureCollection(arcs: TripMapArc[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: arcs.flatMap((arc, idx) => [
+      {
+        type: 'Feature' as const,
+        id: idx * 2,
+        geometry: { type: 'Point' as const, coordinates: [arc.originLng, arc.originLat] },
+        properties: { idx },
+      },
+      {
+        type: 'Feature' as const,
+        id: idx * 2 + 1,
+        geometry: { type: 'Point' as const, coordinates: [arc.destLng, arc.destLat] },
+        properties: { idx },
+      },
+    ]),
+  };
+}
+
 export function TripMap({
   pins,
   arcs,
@@ -273,6 +311,7 @@ export function TripMap({
   onPinHover,
   mapHeightClassName,
   hideAttribution = false,
+  plateLabel,
 }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -350,6 +389,14 @@ export function TripMap({
 
   const showChips = countries.length >= 2;
   const showEmptyState = pins.length === 0 && arcs.length === 0 && ungeocoded.length === 0;
+  // The pin kinds actually present on this trip — drives the legend's
+  // contents (it lists only what's on the map). Memoised so the legend
+  // chip's `kinds` prop is stable across the map's frequent re-renders.
+  const presentPinKinds = React.useMemo(() => {
+    const set = new Set<TripMapPin['kind']>();
+    for (const pin of pins) set.add(pin.kind);
+    return set;
+  }, [pins]);
 
   // Mount the map exactly once. Data-bound logic lives in separate
   // effects so this stays stable across pin/country changes.
@@ -518,14 +565,51 @@ export function TripMap({
         id: ARCS_LAYER_ID,
         type: 'line',
         source: ARCS_SOURCE_ID,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        layout: { 'line-cap': 'butt', 'line-join': 'round' },
         paint: {
           'line-color': primary,
           'line-width': 1.5,
+          // Stitched, not solid — a dashed thread reads as a plotted
+          // course on a logbook chart, the one geometry unique to a
+          // travel map. [2,2] = dash length 2, gap 2 (× line-width), the
+          // tightest stitch that still resolves as dashes at our widths.
+          // `line-cap: butt` (above) keeps each dash a clean tick;
+          // `round` would bleed the gaps shut.
+          'line-dasharray': [2, 2],
           // Dimmed = arc isn't fully within the active country (when a
           // chip is active). Otherwise a soft default so arcs read as
           // connective tissue, not the headline.
           'line-opacity': ['case', ['boolean', ['feature-state', 'dimmed'], false], 0.12, 0.55],
+        },
+      });
+
+      // Terracotta endpoint dots — the start/end marks of each plotted
+      // course. Drawn just above the line so they cap the stitched
+      // thread at every airport. Their feature-state `dimmed` is set
+      // from the SAME arc idx as the line, so a country filter fades a
+      // route's dots and thread together.
+      map.addSource(ARC_ENDPOINTS_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      map.addLayer({
+        id: ARC_ENDPOINTS_LAYER_ID,
+        type: 'circle',
+        source: ARC_ENDPOINTS_SOURCE_ID,
+        paint: {
+          'circle-radius': 2.6,
+          'circle-color': primary,
+          // A hairline ivory ring lifts the dot off a dark coastline or
+          // the dashed line crossing under it.
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255, 253, 248, 0.9)',
+          'circle-opacity': ['case', ['boolean', ['feature-state', 'dimmed'], false], 0.15, 0.9],
+          'circle-stroke-opacity': [
+            'case',
+            ['boolean', ['feature-state', 'dimmed'], false],
+            0.15,
+            0.9,
+          ],
         },
       });
 
@@ -711,8 +795,12 @@ export function TripMap({
     const map = mapRef.current;
     if (!map || !mapReady) return;
     const source = map.getSource(ARCS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-    if (!source) return;
-    source.setData(arcsToFeatureCollection(arcs));
+    if (source) source.setData(arcsToFeatureCollection(arcs));
+    // Keep the endpoint dots in lockstep with the threads.
+    const endpoints = map.getSource(ARC_ENDPOINTS_SOURCE_ID) as
+      | maplibregl.GeoJSONSource
+      | undefined;
+    if (endpoints) endpoints.setData(arcEndpointsToFeatureCollection(arcs));
   }, [arcs, mapReady]);
 
   // Wishlist overlay markers. Independent of the main pin lifecycle —
@@ -831,9 +919,14 @@ export function TripMap({
     });
 
     map.removeFeatureState({ source: ARCS_SOURCE_ID });
+    map.removeFeatureState({ source: ARC_ENDPOINTS_SOURCE_ID });
     arcs.forEach((arc, idx) => {
       if (isArcDimmed(arc, activeCountry, highlightSegmentIds)) {
         map.setFeatureState({ source: ARCS_SOURCE_ID, id: idx }, { dimmed: true });
+        // The two endpoint dots for this arc carry ids idx*2 / idx*2+1
+        // (see arcEndpointsToFeatureCollection) — fade them with the thread.
+        map.setFeatureState({ source: ARC_ENDPOINTS_SOURCE_ID, id: idx * 2 }, { dimmed: true });
+        map.setFeatureState({ source: ARC_ENDPOINTS_SOURCE_ID, id: idx * 2 + 1 }, { dimmed: true });
       }
     });
   }, [pins, arcs, activeCountry, highlightSegmentIds, mapReady]);
@@ -1059,6 +1152,17 @@ export function TripMap({
           style={mapHeightClassName ? undefined : { height: 'min(calc(100svh - 320px), 520px)' }}
           aria-label="Trip map"
         />
+        {plateLabel && (
+          // Engraved corner plate — faint, non-interactive, echoes the
+          // sign-in "Vol. I". Top-left is the only free corner (wishlist
+          // toggle top-right, chips bottom-left). aria-hidden: pure chrome.
+          <span
+            aria-hidden
+            className="text-foreground/35 pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.28em] uppercase select-none"
+          >
+            Plate · {plateLabel}
+          </span>
+        )}
         {hover && (
           <PinTooltip
             x={hover.x}
@@ -1076,6 +1180,19 @@ export function TripMap({
           </div>
         )}
         {ungeocoded.length > 0 && <NotPinnedChip items={ungeocoded} />}
+        {/* Pin legend — bottom-left like NotPinnedChip, but stacked one
+            row up when both are present so they never overlap. NotPinnedChip
+            sits at bottom-3 and is up to 44px tall on touch, so clearing it
+            needs ≈12px + 44px + an 8px gap = ~4rem. Its own wrapper owns the
+            absolute position; the chip inside mirrors NotPinnedChip's
+            geometry one tier higher. */}
+        {presentPinKinds.size > 0 && (
+          <div
+            className={cn('absolute left-3 z-10', ungeocoded.length > 0 ? 'bottom-16' : 'bottom-3')}
+          >
+            <PinLegendChip kinds={presentPinKinds} />
+          </div>
+        )}
         {wishlistPins.length > 0 && (
           <button
             type="button"

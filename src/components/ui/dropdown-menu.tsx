@@ -46,8 +46,7 @@ const DropdownMenuSubContent = React.forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      'border-foreground/12 bg-card text-card-foreground supports-[backdrop-filter]:bg-card/85 z-50 min-w-[10rem] overflow-hidden rounded-xl border p-1.5 shadow-[0_24px_48px_-24px_rgba(40,28,18,0.35),0_8px_18px_-12px_rgba(40,28,18,0.18)] backdrop-blur-xl',
-      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+      'atlas-popover border-foreground/12 bg-card text-card-foreground supports-[backdrop-filter]:bg-card/85 z-50 min-w-[10rem] overflow-hidden rounded-xl border p-1.5 shadow-[var(--shadow-lifted)] backdrop-blur-xl',
       className,
     )}
     {...props}
@@ -64,8 +63,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'border-foreground/12 bg-card text-card-foreground supports-[backdrop-filter]:bg-card/85 z-50 min-w-[11rem] overflow-hidden rounded-xl border p-1.5 shadow-[0_24px_48px_-24px_rgba(40,28,18,0.35),0_8px_18px_-12px_rgba(40,28,18,0.18)] backdrop-blur-xl',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+        'atlas-popover border-foreground/12 bg-card text-card-foreground supports-[backdrop-filter]:bg-card/85 z-50 min-w-[11rem] overflow-hidden rounded-xl border p-1.5 shadow-[var(--shadow-lifted)] backdrop-blur-xl',
         className,
       )}
       {...props}

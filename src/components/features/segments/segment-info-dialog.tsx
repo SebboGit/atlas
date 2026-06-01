@@ -4,6 +4,7 @@ import {
   BedDouble,
   Bus,
   Car,
+  Pencil,
   Plane,
   Ship,
   Sparkles,
@@ -15,6 +16,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -39,10 +41,19 @@ import {
 import { cn } from '@/lib/utils';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { SegmentFormDialog } from './segment-form-dialog';
 
 interface SegmentInfoDialogProps {
   segment: Segment;
+  // Needed to wire the inspector's Edit affordance to the existing edit
+  // flow (SegmentFormDialog → updateSegmentAction).
+  tripId: string;
   linkedDocuments?: LinkedDocument[];
+  /**
+   * Cached coordinates, threaded from the row — forwarded to the edit
+   * flow so the Plus Code field prefills to match the card badge.
+   */
+  coords?: { lat: number; lng: number } | null;
   children: React.ReactNode;
 }
 
@@ -52,7 +63,9 @@ interface SegmentInfoDialogProps {
 // ignored so those affordances keep their own behaviour.
 export function SegmentInfoDialog({
   segment,
+  tripId,
   linkedDocuments = [],
+  coords,
   children,
 }: SegmentInfoDialogProps) {
   const [open, setOpen] = React.useState(false);
@@ -108,6 +121,35 @@ export function SegmentInfoDialog({
           className="gap-5 sm:p-6"
         >
           <SegmentInfoBody segment={segment} linkedDocuments={linkedDocuments} />
+          {/* Edit affordance — the read-only inspector otherwise
+           *  dead-ends on the dominant tap. Opens the existing edit
+           *  flow (SegmentFormDialog in edit mode, wired to
+           *  updateSegmentAction); the info dialog closes as the edit
+           *  dialog opens so the two never stack. The close is deferred
+           *  a tick so the edit dialog claims the focus trap first —
+           *  closing the parent synchronously would bounce focus back
+           *  to the card before the edit dialog mounts. The hairline
+           *  matches the InfoSection rhythm. */}
+          <div className="border-foreground/10 -mt-1 flex justify-end border-t pt-4">
+            <SegmentFormDialog
+              tripId={tripId}
+              editingSegment={segment}
+              coords={coords}
+              trigger={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setTimeout(() => setOpen(false), 0);
+                  }}
+                >
+                  <Pencil strokeWidth={1.75} />
+                  Edit
+                </Button>
+              }
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </>
@@ -456,7 +498,7 @@ function NoteInfoBody({ segment }: { segment: Segment }) {
         <DialogEyebrow>
           <StickyNote className="size-3.5" strokeWidth={1.5} />
           <span>Note</span>
-          {when && <span className="text-foreground/45">{formatInstant(when)}</span>}
+          {when && <span className="text-foreground/70">{formatInstant(when)}</span>}
         </DialogEyebrow>
       </DialogHeader>
       <p className="text-foreground/90 text-base leading-relaxed whitespace-pre-wrap">
@@ -666,7 +708,7 @@ function FlightLeg({
                   <span className="text-foreground/35"> · </span>
                   {instant.time}
                   {instant.zone && (
-                    <span className="text-foreground/45 ml-1 text-[10px]">{instant.zone}</span>
+                    <span className="text-foreground/70 ml-1 text-[10px]">{instant.zone}</span>
                   )}
                 </>
               ) : null}

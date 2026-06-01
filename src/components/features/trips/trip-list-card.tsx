@@ -2,26 +2,9 @@ import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
 import type { Trip, TripStatus } from '@/lib/trips';
+import { formatTripDateRange } from '@/lib/trips/format';
 
 import { TripStatusBadge } from './trip-status-badge';
-
-function formatDateRange(start: Date | null, end: Date | null): string {
-  if (!start && !end) return 'Dates to come';
-
-  const fmtDay = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  const fmtYear = (d: Date) => d.getUTCFullYear().toString();
-  const fmtFull = (d: Date) =>
-    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-
-  if (start && end) {
-    const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
-    return sameYear
-      ? `${fmtDay(start)} – ${fmtDay(end)} ${fmtYear(end)}`
-      : `${fmtFull(start)} – ${fmtFull(end)}`;
-  }
-  if (start) return `From ${fmtFull(start)}`;
-  return `Until ${fmtFull(end!)}`;
-}
 
 // Compact phone-only form. Tight single-line row reads at-a-glance — the
 // laptop card's chrome (corner stamp, summary, hover gradient) is
@@ -56,7 +39,7 @@ const STATUS_DOT_COLOR: Record<TripStatus, string> = {
 
 export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
   const indexLabel = String(index + 1).padStart(2, '0');
-  const range = formatDateRange(trip.startDate, trip.endDate);
+  const range = formatTripDateRange(trip.startDate, trip.endDate);
   const compactRange = formatCompactRange(trip.startDate, trip.endDate);
   const isArchived = trip.status === 'archived';
 

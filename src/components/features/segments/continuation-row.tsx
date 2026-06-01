@@ -88,14 +88,14 @@ function ContinuationRow({ segment }: { segment: Segment }) {
       </span>
       <span
         aria-hidden
-        className="border-accent/25 text-accent/80 shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase"
+        className="border-accent/45 text-accent shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase"
       >
         Staying
       </span>
       {since && (
         <span
           aria-hidden
-          className="text-accent/70 shrink-0 font-mono text-[10px] tracking-[0.12em] whitespace-nowrap"
+          className="text-accent shrink-0 font-mono text-[10px] tracking-[0.12em] whitespace-nowrap"
         >
           since {since}
         </span>

@@ -9,10 +9,10 @@ const inputClasses =
   // focus halo in primary terracotta. Type sits in the display serif so
   // the form feels handwritten, not corporate.
   'flex h-11 w-full rounded-xl border border-foreground/15 bg-card/70 px-4 py-2 text-[15px] text-foreground placeholder:text-muted-foreground/70 ' +
-  'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(60,40,20,0.04)] backdrop-blur-sm ' +
+  'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(60,40,20,0.04)] ' +
   'transition-[border-color,box-shadow] duration-200 ' +
   'focus-visible:outline-none focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_hsl(18_52%_36%/0.16),0_1px_0_rgba(255,255,255,0.7)_inset] ' +
-  'disabled:cursor-not-allowed disabled:opacity-60 ' +
+  'disabled:cursor-not-allowed disabled:bg-muted/50 disabled:text-muted-foreground disabled:shadow-none ' +
   'aria-[invalid=true]:border-destructive/60 aria-[invalid=true]:focus-visible:shadow-[0_0_0_3px_hsl(0_65%_45%/0.18)]';
 
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(

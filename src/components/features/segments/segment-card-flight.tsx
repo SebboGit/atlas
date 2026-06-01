@@ -150,6 +150,7 @@ export function SegmentCardFlight({
 
   return (
     <SegmentCardShell
+      type="flight"
       glyph={<Plane className="size-4" strokeWidth={1.5} />}
       typeLabel="Flight"
       title={title}

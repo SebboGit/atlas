@@ -4,6 +4,7 @@ import { GeocodePoller } from '@/components/features/segments/geocode-poller';
 import { WishlistCard } from '@/components/features/wishlist/wishlist-card';
 import { WishlistFilters } from '@/components/features/wishlist/wishlist-filters';
 import { WishlistFormDialog } from '@/components/features/wishlist/wishlist-form-dialog';
+import { SectionEyebrow } from '@/components/section-eyebrow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
@@ -62,24 +63,15 @@ export default async function WishlistPage({ searchParams }: WishlistPageProps) 
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 pt-8 pb-24 sm:px-8 sm:pt-20">
-      <header className="atlas-rise mb-6 sm:mb-8" style={{ animationDelay: '40ms' }}>
-        <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
-          <span aria-hidden className="bg-foreground/30 h-px w-8" />
-          <span>Section 04 · Wishlist</span>
-        </p>
+      <header className="atlas-rise mb-8" style={{ animationDelay: '40ms' }}>
+        <SectionEyebrow>Section 02 · Wishlist</SectionEyebrow>
         <div className="flex flex-wrap items-end justify-between gap-6">
-          <h1 className="font-display text-foreground text-5xl leading-[1.02] font-medium tracking-tight sm:text-6xl">
-            Wishlist.
-          </h1>
+          <h1 className="heading-page">Wishlist.</h1>
           <WishlistFormDialog trigger={<Button size="default">New wishlist item</Button>} />
         </div>
-        <p className="text-muted-foreground mt-3 max-w-2xl text-sm leading-relaxed">
-          Food and activities worth coming back to — they resurface on every trip that touches their
-          country.
-        </p>
       </header>
 
-      <div className="atlas-rule mb-8" aria-hidden />
+      <div className="atlas-rule-double mb-8" aria-hidden />
 
       <div className="atlas-rise mb-8" style={{ animationDelay: '100ms' }}>
         <WishlistFilters

@@ -1,5 +1,6 @@
 import { ManageCountriesPopover } from '@/components/features/map/manage-countries-popover';
 import { WorldMap } from '@/components/features/map/world-map';
+import { SectionEyebrow } from '@/components/section-eyebrow';
 import { requireUser } from '@/lib/auth/session';
 import { countryName } from '@/lib/countries';
 import {
@@ -30,14 +31,9 @@ export default async function MapPage() {
     // the standard generous header.
     <main className="mx-auto w-full max-w-6xl px-6 pt-8 pb-24 sm:px-8 sm:pt-10">
       <header className="atlas-rise mb-5" style={{ animationDelay: '40ms' }}>
-        <p className="text-muted-foreground mb-3 hidden items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase sm:flex">
-          <span aria-hidden className="bg-foreground/30 h-px w-8" />
-          <span>Section 03 · Map</span>
-        </p>
+        <SectionEyebrow className="mb-3">Section 03 · Map</SectionEyebrow>
         <div className="flex flex-wrap items-end justify-between gap-6">
-          <h1 className="font-display text-foreground text-4xl leading-[1.02] font-medium tracking-tight sm:text-5xl">
-            Where you&apos;ve been.
-          </h1>
+          <h1 className="heading-page">Where you&apos;ve been.</h1>
           <div className="flex items-center gap-5">
             <p className="text-muted-foreground font-mono text-[11px] tracking-[0.2em] uppercase">
               {totalCountries} {totalCountries === 1 ? 'country' : 'countries'}
@@ -47,7 +43,7 @@ export default async function MapPage() {
         </div>
       </header>
 
-      <div className="atlas-rule mb-5" aria-hidden />
+      <div className="atlas-rule-double mb-5" aria-hidden />
 
       <div className="atlas-rise" style={{ animationDelay: '160ms' }}>
         <WorldMap visited={enriched} />

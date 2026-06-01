@@ -1,5 +1,6 @@
 import { Sparkles } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import type { LinkedDocument } from '@/lib/documents';
 import { formatTime } from '@/lib/format';
 import type { Segment } from '@/lib/segments';
@@ -29,9 +30,9 @@ export function SegmentCardActivity({
   const isWishlist = segment.startsAt === null;
 
   const meta = isWishlist ? (
-    <span className="border-foreground/25 text-foreground/70 inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[9px] tracking-[0.24em] uppercase">
+    <Badge variant="default" size="sm">
       Wishlist
-    </span>
+    </Badge>
   ) : segment.startsAt ? (
     <div className="text-foreground/75 font-mono text-[11px] leading-tight tracking-wider">
       <div>{formatTime(segment.startsAt)}</div>
@@ -49,6 +50,7 @@ export function SegmentCardActivity({
 
   return (
     <SegmentCardShell
+      type="activity"
       glyph={<Sparkles className="size-4" strokeWidth={1.5} />}
       typeLabel="Activity"
       title={title}

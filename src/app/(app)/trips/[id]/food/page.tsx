@@ -5,12 +5,14 @@ import { SegmentFormDialog } from '@/components/features/segments/segment-form-d
 import { SegmentRow } from '@/components/features/segments/segment-row';
 import { TabEmpty } from '@/components/features/segments/tab-empty';
 import { TabHeader } from '@/components/features/segments/tab-header';
+import { WishlistSuggestionsPanel } from '@/components/features/wishlist/wishlist-suggestions-panel';
 import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/session';
 import * as documentsRepo from '@/lib/documents/repo';
 import { getPlaceCoordsView } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
+import * as wishlistRepo from '@/lib/wishlist/repo';
 
 interface FoodTabPageProps {
   params: Promise<{ id: string }>;
@@ -36,15 +38,27 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
-  const [food, linkedDocsBySegment] = await Promise.all([
+  const [food, linkedDocsBySegment, tripCountries] = await Promise.all([
     segmentsRepo.listForTrip(user.id, id, {
       type: 'food',
       countryCode: country?.toUpperCase(),
     }),
     documentsRepo.listLinkedDocumentsByTripSegment(user.id, id),
+    segmentsRepo.listCountryCodesForTrip(user.id, id),
   ]);
 
-  const { coordsById: coordsBySegmentId, pendingCount } = await getPlaceCoordsView(food);
+  // Suggestions + coords are fetched TOGETHER — not as a third sequential
+  // `await`. An extra await boundary on a Server Component page shifts
+  // React 19's useId tree-context counter, which desyncs the SegmentRow
+  // dialogs' ids between server and client and throws a hydration mismatch.
+  // `listForCountries` returns [] for an empty country list, so no guard.
+  const [suggestions, { coordsById: coordsBySegmentId, pendingCount }] = await Promise.all([
+    wishlistRepo.listForCountries(tripCountries, {
+      type: 'food',
+      excludeMaterialisedOnTrip: id,
+    }),
+    getPlaceCoordsView(food),
+  ]);
 
   const addButton = (
     <SegmentFormDialog
@@ -57,6 +71,8 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
   return (
     <>
       <TabHeader eyebrow="Food" count={food.length} action={addButton} />
+
+      <WishlistSuggestionsPanel tripId={id} items={suggestions} />
 
       {food.length === 0 ? (
         <TabEmpty

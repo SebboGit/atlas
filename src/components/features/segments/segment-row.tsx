@@ -56,7 +56,12 @@ export function SegmentRow({
         chips inside the card body are detected via closest('a, button')
         so the chips keep their default navigation behaviour.
       */}
-      <SegmentInfoDialog segment={segment} linkedDocuments={linkedDocuments}>
+      <SegmentInfoDialog
+        segment={segment}
+        tripId={tripId}
+        linkedDocuments={linkedDocuments}
+        coords={coords}
+      >
         <SegmentCard segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
       </SegmentInfoDialog>
       <div className="absolute top-3 right-3 flex items-center gap-0.5">

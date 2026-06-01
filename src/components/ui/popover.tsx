@@ -20,7 +20,7 @@ const PopoverContent = React.forwardRef<
       sideOffset={sideOffset}
       className={cn(
         'atlas-popover bg-card text-card-foreground z-50 rounded-2xl border',
-        'border-foreground/12 shadow-[0_30px_60px_-30px_rgba(60,40,20,0.32),0_8px_22px_-12px_rgba(60,40,20,0.16)]',
+        'border-foreground/12 shadow-[var(--shadow-lifted)]',
         'backdrop-blur-2xl',
         'outline-none',
         className,

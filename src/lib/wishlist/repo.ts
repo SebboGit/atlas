@@ -48,6 +48,8 @@ export interface SuggestionFilter {
    * is per-trip, not per-item.
    */
   excludeMaterialisedOnTrip?: string;
+  /** Restrict to a single wishlist type — drives the per-tab panels. */
+  type?: WishlistItem['type'];
 }
 
 // Suggestions panel query: items in any of the trip's countries,
@@ -61,6 +63,8 @@ export async function listForCountries(
   if (countryCodes.length === 0) return [];
 
   const conditions = [inArray(wishlistItems.countryCode, [...countryCodes])];
+
+  if (filter.type) conditions.push(eq(wishlistItems.type, filter.type));
 
   if (filter.excludeMaterialisedOnTrip) {
     // NOT EXISTS anti-join — proper shape for a "rows without a match"

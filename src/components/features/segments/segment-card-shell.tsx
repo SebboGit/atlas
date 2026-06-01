@@ -1,7 +1,29 @@
 import { Card, CardContent } from '@/components/ui/card';
+import type { SegmentType } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
+// Per-type accent for the glyph circle ONLY — its border + icon colour.
+// One map, one source of truth, so a day's shape stays legible at a
+// glance without tinting the whole card. Flights carry the single
+// terracotta brand accent (the signature segment); every other dated
+// type takes the quiet sage register; notes stay muted ink.
+//
+// Keep this scoped to the circle: title, meta, spacing, and rhythm are
+// byte-identical across types by design (see SegmentCardShell's body).
+export const GLYPH_ACCENT: Record<SegmentType, string> = {
+  flight: 'border-primary/40 text-primary',
+  hotel: 'border-accent/40 text-accent',
+  activity: 'border-accent/40 text-accent',
+  food: 'border-accent/40 text-accent',
+  transit: 'border-accent/40 text-accent',
+  note: 'border-foreground/15 text-foreground/45',
+};
+
 interface SegmentCardShellProps {
+  // Drives the glyph circle's accent (border + icon colour) via the
+  // GLYPH_ACCENT map. The only per-type visual difference on the card —
+  // everything else stays identical across types.
+  type: SegmentType;
   glyph: React.ReactNode;
   typeLabel: string;
   title: React.ReactNode;
@@ -31,6 +53,7 @@ interface SegmentCardShellProps {
 // visual rhythm identical across types so the itinerary reads as one
 // coherent column rather than five.
 export function SegmentCardShell({
+  type,
   glyph,
   typeLabel,
   title,
@@ -72,7 +95,10 @@ export function SegmentCardShell({
       >
         <div
           aria-hidden
-          className="border-foreground/25 text-foreground/75 mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [&_svg]:size-5"
+          className={cn(
+            'mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [&_svg]:size-5',
+            GLYPH_ACCENT[type],
+          )}
         >
           {glyph}
         </div>

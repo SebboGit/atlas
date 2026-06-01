@@ -75,6 +75,7 @@ export default async function MapTabPage({ params, searchParams }: MapTabPagePro
       geocodeWorkerStatus={mapData.geocodeWorkerStatus}
       days={railDays}
       isActive={isActive}
+      tripTitle={trip.title}
     />
   );
 }
