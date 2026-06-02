@@ -1,13 +1,8 @@
-import { CalendarClock, Pencil } from 'lucide-react';
-
 import type { LinkedDocument } from '@/lib/documents';
 import type { Segment } from '@/lib/segments';
 
-import { ScheduleActivityDialog } from './schedule-activity-dialog';
 import { SegmentCard } from './segment-card';
-import { SegmentDeleteButton } from './segment-delete-button';
-import { SegmentFormDialog } from './segment-form-dialog';
-import { SegmentInfoDialog } from './segment-info-dialog';
+import { SegmentRowSurface } from './segment-row-surface';
 
 interface SegmentRowProps {
   segment: Segment;
@@ -29,12 +24,11 @@ interface SegmentRowProps {
   showScheduleAction?: boolean;
 }
 
-// Wraps a SegmentCard with a small actions cluster (delete, optionally
-// schedule). Actions are absolutely positioned in the card's top-right
-// so they don't compete with the card's own meta area on the right.
-// They're always visible — subtle ink-tint icons sit comfortably in
-// the warm-sand palette and disappearing them behind hover would hide
-// them from touch users entirely.
+// A SegmentCard plus its interactive layer (the read-only info dialog and the
+// edit / schedule / delete cluster). The card is server-rendered; the
+// interactive layer is mounted client-only by SegmentRowSurface so its Radix
+// dialogs stay out of SSR and can't drift the useId counter — see that file
+// and #68.
 export function SegmentRow({
   segment,
   tripId,
@@ -48,88 +42,14 @@ export function SegmentRow({
     // browser scrolls to the anchor. The flash animation hooks via the
     // data-seg-flash attribute set by use-segment-scroll-flash.
     <div id={`seg-${segment.id}`} className="relative scroll-mt-24">
-      {/*
-        The card surface itself is the open trigger for a read-only
-        info dialog. The dialog wrapper handles click filtering — any
-        click that lands on the action cluster (sibling, not a
-        descendant) is naturally ignored, and clicks on document
-        chips inside the card body are detected via closest('a, button')
-        so the chips keep their default navigation behaviour.
-      */}
-      <SegmentInfoDialog
+      <SegmentRowSurface
         segment={segment}
         tripId={tripId}
         linkedDocuments={linkedDocuments}
         coords={coords}
-      >
-        <SegmentCard segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
-      </SegmentInfoDialog>
-      <div className="absolute top-3 right-3 flex items-center gap-0.5">
-        {/*
-          Every Radix Dialog sibling in this cluster carries an
-          explicit `key`. Without all three keyed, React's mixed
-          keys-and-position reconciliation can pair the wrong
-          siblings across renders — the symptom is a structurally-
-          similar Dialog "absorbing" its neighbour's trigger content,
-          which manifests as the Edit pencil vanishing after tab
-          navigation when the schedule slot was present on one route
-          but absent on the next (activity on Activities tab vs the
-          same activity on Itinerary). See
-          [[bug-segment-row-hydration-mismatch]] — same root cause,
-          extended past the SSR symptom to post-navigation renders.
-        */}
-        {showScheduleAction && segment.type === 'activity' && (
-          <ScheduleActivityDialog
-            key="schedule"
-            tripId={tripId}
-            segmentId={segment.id}
-            currentStart={segment.startsAt}
-            trigger={
-              <button
-                type="button"
-                aria-label={segment.startsAt ? 'Reschedule activity' : 'Schedule activity'}
-                // 44px touch hit-area; the glyph is unboxed, so the larger
-                // target stays invisible. Shrinks to 28px on pointer devices.
-                className="text-foreground/40 hover:text-foreground/85 inline-flex size-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:size-7"
-              >
-                <CalendarClock className="size-3.5" strokeWidth={1.5} />
-              </button>
-            }
-          />
-        )}
-        <SegmentFormDialog
-          key="edit"
-          tripId={tripId}
-          editingSegment={segment}
-          coords={coords}
-          trigger={
-            <button
-              type="button"
-              aria-label={`Edit ${segment.type}`}
-              // Edit is the primary maintenance action and should
-              // read as such — a persistent pill behind the glyph
-              // (vs the muted icon-only treatment of delete /
-              // reschedule) makes the affordance discoverable
-              // without resorting to hover-only reveal, which would
-              // hide it from touch users. The button is the 44px
-              // touch hit-area; the visible pill is the inner span,
-              // held at 28px so the cluster looks identical on phone
-              // and pointer.
-              className="group/edit inline-flex size-11 items-center justify-center [@media(hover:hover)]:size-7"
-            >
-              <span className="border-foreground/15 bg-card/70 text-foreground/70 group-hover/edit:bg-card group-hover/edit:text-foreground group-hover/edit:border-foreground/30 inline-flex size-7 items-center justify-center rounded-full border transition-colors">
-                <Pencil className="size-3.5" strokeWidth={1.75} />
-              </span>
-            </button>
-          }
-        />
-        <SegmentDeleteButton
-          key="delete"
-          tripId={tripId}
-          segmentId={segment.id}
-          noun={segment.type}
-        />
-      </div>
+        showScheduleAction={showScheduleAction}
+        card={<SegmentCard segment={segment} linkedDocuments={linkedDocuments} coords={coords} />}
+      />
     </div>
   );
 }
