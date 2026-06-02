@@ -3,6 +3,7 @@
 import { ChevronDown } from 'lucide-react';
 import * as React from 'react';
 
+import { useMounted } from '@/components/client-only';
 import { parseDateString } from '@/components/ui/date-picker';
 import type { LinkedDocument } from '@/lib/documents';
 import type { Segment } from '@/lib/segments';
@@ -72,18 +73,10 @@ function useLocationHash(): string {
   return React.useSyncExternalStore(subscribeToHash, getHashSnapshot, getHashServerSnapshot);
 }
 
-// True only after hydration. Lets the day classification run in the
-// client's timezone without a setState-in-effect — getServerSnapshot
-// returns false so SSR + the first client paint agree, then it flips true
-// on mount and the timezone-aware split resolves.
-const emptySubscribe = () => () => {};
-function useMounted(): boolean {
-  return React.useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false,
-  );
-}
+// Day classification runs in the client's timezone only after hydration
+// (via the shared useMounted gate) — getServerSnapshot keeps SSR and the
+// first client paint agreeing, then it flips true on mount and the
+// timezone-aware split resolves, with no setState-in-effect.
 
 // Plain, serialisable shape the server page hands down. The page
 // classifies days server-side (it already knows `today`), so the
