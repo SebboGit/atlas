@@ -11,7 +11,7 @@ import { TripCountdown } from './trip-countdown';
 // rendered as a wide bookplate with a terracotta countdown. Fed by the
 // same tripsRepo + partitionForDashboard the trips page already uses.
 
-export function NextTripHero({ trip, index = '01' }: { trip: Trip; index?: string }) {
+export function NextTripHero({ trip }: { trip: Trip }) {
   const range = formatTripDateRange(trip.startDate, trip.endDate);
 
   return (
@@ -28,7 +28,7 @@ export function NextTripHero({ trip, index = '01' }: { trip: Trip; index?: strin
           aria-hidden
           className="border-primary/40 text-primary/80 absolute top-5 right-5 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
         >
-          {index}
+          01
         </span>
 
         <CardContent className="flex flex-col gap-6 px-6 py-7 sm:flex-row sm:items-stretch sm:gap-10 sm:px-8 sm:py-8">
