@@ -1,5 +1,6 @@
 import { Pencil, Sparkles, UtensilsCrossed } from 'lucide-react';
 
+import { ClientOnly } from '@/components/client-only';
 import { PlusCodeBadge } from '@/components/features/segments/plus-code-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { countryName } from '@/lib/countries';
@@ -62,22 +63,28 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
       {/* Action cluster — edit + delete sit absolutely positioned so
        *  they don't compete with the card's title row. Hit area is
        *  44×44 on touch (CLAUDE.md) and visually 28×28 elsewhere so the
-       *  card chrome stays quiet. */}
-      <div className="absolute top-2 right-2 flex items-center gap-1">
-        <WishlistFormDialog
-          editingItem={item}
-          trigger={
-            <button
-              type="button"
-              aria-label="Edit this wishlist item"
-              className="text-foreground/70 hover:text-foreground hover:bg-foreground/5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
-            >
-              <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden />
-            </button>
-          }
-        />
-        <WishlistDeleteButton itemId={item.id} noun={isFood ? 'food spot' : 'attraction'} />
-      </div>
+       *  card chrome stays quiet. Mounted client-only: both are Radix
+       *  Dialogs whose useId-based ids drift between the server and client
+       *  renders of the wishlist page, so SSR-ing them produced an
+       *  aria-controls hydration mismatch (#68). Absolutely positioned, so
+       *  deferring them to mount causes no layout shift. */}
+      <ClientOnly>
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          <WishlistFormDialog
+            editingItem={item}
+            trigger={
+              <button
+                type="button"
+                aria-label="Edit this wishlist item"
+                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
+              >
+                <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden />
+              </button>
+            }
+          />
+          <WishlistDeleteButton itemId={item.id} noun={isFood ? 'food spot' : 'attraction'} />
+        </div>
+      </ClientOnly>
 
       <CardContent className="flex gap-4 py-5 pr-28 pl-5 sm:gap-5 sm:py-6 sm:pl-6">
         <div
