@@ -5,10 +5,18 @@
 export function formatTripDateRange(start: Date | null, end: Date | null): string {
   if (!start && !end) return 'Dates to come';
 
-  const fmtDay = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  // Date-only inputs are stored as UTC midnight (see toYmd below), so format
+  // in UTC too — otherwise a viewer west of Greenwich sees the prior day.
+  const fmtDay = (d: Date) =>
+    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   const fmtYear = (d: Date) => d.getUTCFullYear().toString();
   const fmtFull = (d: Date) =>
-    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    d.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
 
   if (start && end) {
     const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
