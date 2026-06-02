@@ -16,6 +16,13 @@ import { seedActivitySegment, seedTrip, seedWishlistActivity } from './fixtures/
 // Zod input shape is already unit-tested at src/lib/wishlist/validators.ts.
 // What's load-bearing for E2E is the surfaces and the cross-trip
 // suggestion logic, not the form widget.
+//
+// Activity suggestions live in a collapsed-by-default disclosure at the
+// top of the Activities tab (food suggestions sit on the Food tab). The
+// helper below opens that disclosure; the "From your wishlist" toggle is
+// always present once a trip has at least one suggestion.
+
+const SUGGESTIONS_TOGGLE = /from your wishlist/i;
 
 test.describe('wishlist', () => {
   test('seeded item appears on /wishlist', async ({ authedPage, authedUser }) => {
@@ -51,9 +58,12 @@ test.describe('wishlist', () => {
       countryCode: 'JP',
     });
 
-    await authedPage.goto(`/trips/${tripId}/itinerary`);
-    const suggestionsHeader = authedPage.getByText(/from your wishlist/i);
-    await expect(suggestionsHeader).toBeVisible();
+    await authedPage.goto(`/trips/${tripId}/activities`);
+    // The disclosure is collapsed by default; its toggle is always
+    // present when the trip has suggestions. Expand it to reveal the rows.
+    const suggestionsToggle = authedPage.getByRole('button', { name: SUGGESTIONS_TOGGLE });
+    await expect(suggestionsToggle).toBeVisible();
+    await suggestionsToggle.click();
     await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
   });
 
@@ -78,7 +88,8 @@ test.describe('wishlist', () => {
       countryCode: 'JP',
     });
 
-    await authedPage.goto(`/trips/${tripId}/itinerary`);
+    await authedPage.goto(`/trips/${tripId}/activities`);
+    await authedPage.getByRole('button', { name: SUGGESTIONS_TOGGLE }).click();
     // Suggestion present.
     await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
 
@@ -88,19 +99,21 @@ test.describe('wishlist', () => {
 
     // Wait on the deterministic post-action state — the suggestion's
     // "Add to trip" button disappears once the RSC payload from the
-    // action's revalidatePath lands. The component's transient "Added
+    // action's revalidatePath lands. It was the only suggestion, so the
+    // whole panel collapses to nothing. The component's transient "Added
     // to Activities" confirmation chip races the same revalidate, so
     // checking it directly is flaky; the button-gone state is not.
     await expect(authedPage.getByRole('button', { name: /add to trip/i })).toHaveCount(0);
 
-    // Activities tab shows the materialised segment.
-    await authedPage.goto(`/trips/${tripId}/activities`);
+    // The materialised segment now renders as a regular activity card on
+    // this same tab.
     await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
 
-    // Back on the itinerary, the suggestion stays gone (excluded by
-    // excludeMaterialisedOnTrip in wishlist/repo).
-    await authedPage.goto(`/trips/${tripId}/itinerary`);
-    await expect(authedPage.getByText(wishlistTitle)).toHaveCount(0);
+    // Reloading keeps the suggestion gone (excluded by
+    // excludeMaterialisedOnTrip in wishlist/repo) while the card stays.
+    await authedPage.goto(`/trips/${tripId}/activities`);
+    await expect(authedPage.getByRole('button', { name: /add to trip/i })).toHaveCount(0);
+    await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
   });
 
   test('same item still suggests on a different same-country trip', async ({
@@ -136,7 +149,8 @@ test.describe('wishlist', () => {
     });
 
     // Add to trip A.
-    await authedPage.goto(`/trips/${tripAId}/itinerary`);
+    await authedPage.goto(`/trips/${tripAId}/activities`);
+    await authedPage.getByRole('button', { name: SUGGESTIONS_TOGGLE }).click();
     await authedPage.getByRole('button', { name: /add to trip/i }).click();
     // Wait for the action's revalidate to land — the suggestion's
     // "Add to trip" button disappears on this trip once materialised.
@@ -144,7 +158,8 @@ test.describe('wishlist', () => {
 
     // Trip B's suggestion panel still surfaces the same item — the
     // exclusion is per-trip, not global.
-    await authedPage.goto(`/trips/${tripBId}/itinerary`);
+    await authedPage.goto(`/trips/${tripBId}/activities`);
+    await authedPage.getByRole('button', { name: SUGGESTIONS_TOGGLE }).click();
     await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
   });
 
@@ -170,13 +185,13 @@ test.describe('wishlist', () => {
     });
 
     // Materialise the wishlist item onto the trip via UI.
-    await authedPage.goto(`/trips/${tripId}/itinerary`);
+    await authedPage.goto(`/trips/${tripId}/activities`);
+    await authedPage.getByRole('button', { name: SUGGESTIONS_TOGGLE }).click();
     await authedPage.getByRole('button', { name: /add to trip/i }).click();
     // Wait for the action's revalidate to land before navigating away.
     await expect(authedPage.getByRole('button', { name: /add to trip/i })).toHaveCount(0);
 
-    // Confirm the segment exists on the activities tab.
-    await authedPage.goto(`/trips/${tripId}/activities`);
+    // Confirm the segment exists on the activities tab (materialised card).
     await expect(authedPage.getByText(wishlistTitle)).toBeVisible();
 
     // Delete the wishlist item via the /wishlist UI.
