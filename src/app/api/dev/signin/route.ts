@@ -58,14 +58,26 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Always the dev cookie name — the route is dev-only, so the
-  // `__Secure-` prefix that prod uses doesn't apply.
   const next = req.nextUrl.searchParams.get('next') ?? '/';
   const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/';
-  const res = NextResponse.redirect(new URL(safeNext, req.nextUrl.origin));
-  res.cookies.set('authjs.session-token', token, {
+  // Relative Location so the browser resolves it against the host it actually
+  // used. Building an absolute URL from `req.nextUrl.origin` breaks behind a
+  // reverse proxy (Caddy): dev's origin collapses to `localhost:3000`, which an
+  // external client can't reach. A relative redirect needs no forwarded-host
+  // trust to land on the right place.
+  const res = new NextResponse(null, { status: 307, headers: { Location: safeNext } });
+
+  // Match the cookie name Auth.js will read. With AUTH_TRUST_HOST it derives
+  // `useSecureCookies` from the forwarded proto, so a dev instance served over
+  // HTTPS through a reverse proxy expects the `__Secure-` prefix; bare-localhost
+  // HTTP expects the unprefixed name. Setting the wrong one means the session
+  // silently fails to resolve and the page bounces to /signin.
+  const isSecure = req.headers.get('x-forwarded-proto') === 'https';
+  const cookieName = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
+  res.cookies.set(cookieName, token, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: isSecure,
     path: '/',
     maxAge: Math.max(1, Math.floor((row.expires.getTime() - Date.now()) / 1000)),
   });
