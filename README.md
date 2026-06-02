@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./public/atlas_logo.svg" alt="Atlas logo" width="96" height="96" />
+
 # Atlas
 
 **Self-hosted personal travel companion.**
