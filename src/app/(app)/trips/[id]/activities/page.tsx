@@ -18,7 +18,7 @@ import * as wishlistRepo from '@/lib/wishlist/repo';
 
 interface ActivitiesTabPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ country?: string }>;
+  searchParams: Promise<{ country?: string | string[] }>;
 }
 
 // Dual-state surface — scheduled activities first, wishlist below.
@@ -27,7 +27,11 @@ interface ActivitiesTabPageProps {
 export default async function ActivitiesTabPage({ params, searchParams }: ActivitiesTabPageProps) {
   const user = await requireUser();
   const { id } = await params;
-  const { country } = await searchParams;
+  // Next.js hands repeated query params (?country=a&country=b) as an
+  // array; collapse to the first so a hand-edited URL can't throw. Matches
+  // the Food tab.
+  const { country: rawCountry } = await searchParams;
+  const country = Array.isArray(rawCountry) ? rawCountry[0] : rawCountry;
 
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
