@@ -39,8 +39,10 @@ export function WishlistSuggestionsPanel({ tripId, items }: WishlistSuggestionsP
     <section className="atlas-rise mb-8" style={{ animationDelay: '220ms' }}>
       <button
         type="button"
+        id="wishlist-suggestions-toggle"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-controls="wishlist-suggestions-panel"
         className="group flex min-h-11 w-full items-center gap-3 text-left"
       >
         <ChevronDown
@@ -64,7 +66,12 @@ export function WishlistSuggestionsPanel({ tripId, items }: WishlistSuggestionsP
       </button>
 
       {open && (
-        <div className="border-foreground/12 mt-4 border-b pb-8">
+        <div
+          id="wishlist-suggestions-panel"
+          role="region"
+          aria-labelledby="wishlist-suggestions-toggle"
+          className="border-foreground/12 mt-4 border-b pb-8"
+        >
           <ul className="grid gap-3 sm:grid-cols-2">
             {items.map((item) => {
               const isFood = item.type === 'food';

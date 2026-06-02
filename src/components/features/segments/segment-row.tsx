@@ -88,7 +88,9 @@ export function SegmentRow({
               <button
                 type="button"
                 aria-label={segment.startsAt ? 'Reschedule activity' : 'Schedule activity'}
-                className="text-foreground/40 hover:text-foreground/85 inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors"
+                // 44px touch hit-area; the glyph is unboxed, so the larger
+                // target stays invisible. Shrinks to 28px on pointer devices.
+                className="text-foreground/40 hover:text-foreground/85 inline-flex size-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:size-7"
               >
                 <CalendarClock className="size-3.5" strokeWidth={1.5} />
               </button>
@@ -109,10 +111,15 @@ export function SegmentRow({
               // (vs the muted icon-only treatment of delete /
               // reschedule) makes the affordance discoverable
               // without resorting to hover-only reveal, which would
-              // hide it from touch users.
-              className="border-foreground/15 bg-card/70 text-foreground/70 hover:bg-card hover:text-foreground hover:border-foreground/30 inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors"
+              // hide it from touch users. The button is the 44px
+              // touch hit-area; the visible pill is the inner span,
+              // held at 28px so the cluster looks identical on phone
+              // and pointer.
+              className="group/edit inline-flex size-11 items-center justify-center [@media(hover:hover)]:size-7"
             >
-              <Pencil className="size-3.5" strokeWidth={1.75} />
+              <span className="border-foreground/15 bg-card/70 text-foreground/70 group-hover/edit:bg-card group-hover/edit:text-foreground group-hover/edit:border-foreground/30 inline-flex size-7 items-center justify-center rounded-full border transition-colors">
+                <Pencil className="size-3.5" strokeWidth={1.75} />
+              </span>
             </button>
           }
         />

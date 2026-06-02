@@ -21,12 +21,14 @@ export function formatTripDateRange(start: Date | null, end: Date | null): strin
 }
 
 // A date's calendar day as a timezone-independent `YYYY-MM-DD` token.
-// Date-only inputs are stored as local midnight (see trips/validators), so
-// the server's local Y/M/D is the intended calendar date — safe to hand to
-// the client, which does the relative-day math against the VIEWER's own
-// "today". Relative-day displays (countdown, day-of-trip) are computed
-// client-side on purpose: the server's timezone isn't the viewer's.
+// Date-only inputs are stored as UTC midnight (trips/validators parses the
+// 'yyyy-mm-dd' form via `new Date('yyyy-mm-dd')`, which is UTC), so the UTC
+// Y/M/D is the intended calendar date — read it with the UTC getters so the
+// token is independent of the server's timezone. Safe to hand to the client,
+// which does the relative-day math against the VIEWER's own "today".
+// Relative-day displays (countdown, day-of-trip) are computed client-side on
+// purpose: the server's timezone isn't the viewer's.
 export function toYmd(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`;
 }

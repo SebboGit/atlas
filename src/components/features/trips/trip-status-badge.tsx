@@ -6,7 +6,7 @@ const STYLES: Record<TripStatus, string> = {
   active: 'border-primary/60 text-primary bg-primary/12',
   completed: 'border-accent/55 text-accent bg-accent/12',
   archived:
-    'border-foreground/20 text-foreground/50 bg-transparent line-through decoration-foreground/30',
+    'border-foreground/20 text-foreground/70 bg-transparent line-through decoration-foreground/30',
 };
 
 const LABELS: Record<TripStatus, string> = {

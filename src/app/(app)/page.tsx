@@ -51,11 +51,7 @@ export default async function HomePage() {
         style={{ animationDelay: '140ms' }}
       />
 
-      {nextTrip ? (
-        <NextTripHero trip={nextTrip} index="01" />
-      ) : (
-        <NoUpcoming hasTrips={trips.length > 0} />
-      )}
+      {nextTrip ? <NextTripHero trip={nextTrip} /> : <NoUpcoming hasTrips={trips.length > 0} />}
 
       <section className="mt-6 grid gap-5 sm:grid-cols-3">
         {TILES.map((t, i) => (

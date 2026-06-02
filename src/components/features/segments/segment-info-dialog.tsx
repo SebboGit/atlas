@@ -495,6 +495,10 @@ function NoteInfoBody({ segment }: { segment: Segment }) {
   return (
     <>
       <DialogHeader className="gap-2">
+        {/* The eyebrow carries the visible "Note" label; Radix still
+         *  needs a DialogTitle for the dialog's accessible name, so a
+         *  visually-hidden one rides alongside it. */}
+        <DialogTitle className="sr-only">Note</DialogTitle>
         <DialogEyebrow>
           <StickyNote className="size-3.5" strokeWidth={1.5} />
           <span>Note</span>

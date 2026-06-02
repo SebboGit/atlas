@@ -5,12 +5,11 @@
  *
  * Stacking label-over-value — rather than flinging them to opposite
  * edges of a wide row — keeps each record tight, so the eye never has
- * to travel, and lets the panel lay the entries out in a grid that
- * uses the full card width. The voice is a logbook entry, not a metric.
+ * to travel. The voice is a logbook entry, not a metric.
  *
- * Renders a plain block — the panel owns the `<li>` wrapper so it can
- * pair two entries (Furthest north / south) inside a single grid cell
- * without nesting list items.
+ * Renders a plain block; RecordsPanel arranges the entries into two flex
+ * columns (the non-latitude records on the left, the furthest north /
+ * south pair kept together on the right).
  */
 export function RecordEntry({
   label,
