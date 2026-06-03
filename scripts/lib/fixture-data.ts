@@ -577,6 +577,10 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         title: 'Dolomites',
         summary: 'A week hiking hut to hut in the Dolomites.',
         status: 'completed',
+        // Opted out of household sharing (ADR-0015) so the dev view shows
+        // the "Private" badge + the form's Private state. Every other
+        // trip keeps the default 'household' visibility.
+        visibility: 'private',
         startDate: d(2025, 6, 13),
         endDate: d(2025, 6, 21),
       },

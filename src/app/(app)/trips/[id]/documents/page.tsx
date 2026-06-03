@@ -22,6 +22,11 @@ export default async function DocumentsTabPage({ params }: DocumentsTabPageProps
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
+  // Documents stay uploader-scoped (ADR-0015): a household member can see
+  // and edit a shared trip's segments, but its documents belong to the
+  // member who uploaded them. So a non-owner gets an empty list and no
+  // upload affordance here.
+  const isOwner = trip.userId === user.id;
   const docs = await documentsRepo.listForTrip(user.id, id);
 
   // Poll the RSC while at least one doc is mid-extraction. Stale rows
@@ -31,9 +36,9 @@ export default async function DocumentsTabPage({ params }: DocumentsTabPageProps
   // confined to that one module.
   const anyExtracting = docs.some((d) => isExtractionFresh(d));
 
-  const uploadButton = (
+  const uploadButton = isOwner ? (
     <DocumentUploadDialog tripId={id} trigger={<Button size="sm">+ Upload</Button>} />
-  );
+  ) : null;
 
   return (
     <>
@@ -42,8 +47,15 @@ export default async function DocumentsTabPage({ params }: DocumentsTabPageProps
 
       {docs.length === 0 ? (
         <TabEmpty
-          title="No documents yet."
-          hint="Drop a boarding pass, hotel reservation, or ticket. Atlas verifies the file type and stores the original on disk."
+          // Title tracks the audience: "yet" implies none exist (true for
+          // the owner); a non-owner's empty tab means none are shared with
+          // them, not that none exist.
+          title={isOwner ? 'No documents yet.' : 'Nothing shared here.'}
+          hint={
+            isOwner
+              ? 'Drop a boarding pass, hotel reservation, or ticket. Atlas verifies the file type and stores the original on disk.'
+              : "Documents stay with the member who uploaded them — ask the trip's owner."
+          }
           action={uploadButton}
         />
       ) : (

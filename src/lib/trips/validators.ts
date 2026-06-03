@@ -7,6 +7,13 @@ export const TRIP_STATUSES = ['planned', 'active', 'completed', 'archived'] as c
 export const tripStatusEnum = z.enum(TRIP_STATUSES);
 export type TripStatus = z.infer<typeof tripStatusEnum>;
 
+// Mirrors the `trip_visibility` Postgres enum (ADR-0015). 'household' =
+// shared with every household member; 'private' = creator-only. Default
+// 'household' keeps the full-sharing model unless the owner opts out.
+export const TRIP_VISIBILITIES = ['household', 'private'] as const;
+export const tripVisibilityEnum = z.enum(TRIP_VISIBILITIES);
+export type TripVisibility = z.infer<typeof tripVisibilityEnum>;
+
 // Native <input type="date"> submits 'yyyy-mm-dd'. Empty strings come in
 // when the user clears the field. Normalize both to Date | null before
 // the cross-field refine runs.
@@ -39,6 +46,7 @@ const baseFields = z.object({
   title: z.string().trim().min(1, 'Title is required').max(200, 'Title is too long'),
   summary: summaryInput,
   status: tripStatusEnum.default('planned'),
+  visibility: tripVisibilityEnum.default('household'),
   startDate: dateInput,
   endDate: dateInput,
 });

@@ -2,6 +2,7 @@ import { and, eq, isNotNull, lte, ne, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { segments, trips, userVisitedCountries } from '@/db/schema';
+import { tripVisibleToViewer } from '@/lib/trips/repo';
 
 // Plain Date fields are safe to cross the RSC → client boundary
 // (Next serialises them with date-fns-style support). Don't introduce
@@ -39,6 +40,12 @@ export interface VisitedCountry {
  * `manuallyMarked: true`. Both sources independently make a country
  * "visited"; neither overrides the other.
  *
+ * Visibility (ADR-0015): the trip-derived source respects
+ * `tripVisibleToViewer` — household trips count for every member, but
+ * another member's *private* trip never paints a country here. Manual
+ * marks stay a per-viewer personal overlay (keyed by `userId`) — "places
+ * I'd been before Atlas" is personal, not shared.
+ *
  * See ADR-0005 for the per-segment country attribution rationale.
  */
 export async function listVisitedCountriesForUser(userId: string): Promise<VisitedCountry[]> {
@@ -55,7 +62,7 @@ export async function listVisitedCountriesForUser(userId: string): Promise<Visit
       .innerJoin(trips, eq(segments.tripId, trips.id))
       .where(
         and(
-          eq(trips.userId, userId),
+          tripVisibleToViewer(userId),
           isNotNull(trips.startDate),
           lte(trips.startDate, sql`now()`),
           ne(segments.type, 'flight'),

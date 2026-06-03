@@ -25,6 +25,12 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
+  // getByIdForUser returns household trips created by anyone (ADR-0015),
+  // so the viewer isn't necessarily the owner. Trip-row actions
+  // (edit/archive/delete/upload/visibility) stay owner-only, so the
+  // chrome hides those controls for a non-owner viewing a shared trip.
+  const isOwner = trip.userId === user.id;
+
   // Country codes drawn from actual segment attribution (see ADR-0005).
   // The filter bar auto-hides when fewer than two distinct countries
   // exist on this trip, so a brand-new or single-country trip never
@@ -39,7 +45,12 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
   const countries = countryCodes.map((code) => ({ code, name: countryName(code) ?? code }));
 
   return (
-    <TripChrome trip={trip} countries={countries} attachedDocumentCount={attachedDocumentCount}>
+    <TripChrome
+      trip={trip}
+      isOwner={isOwner}
+      countries={countries}
+      attachedDocumentCount={attachedDocumentCount}
+    >
       {children}
     </TripChrome>
   );

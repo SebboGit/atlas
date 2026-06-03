@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { db } from '@/db/client';
 import { documentSegments, documents, segments, trips, type Segment } from '@/db/schema';
 import { equivalentCarrierForms } from '@/lib/airlines';
+import { tripVisibleToViewer } from '@/lib/trips/repo';
 
 import type { SegmentCreateInput, SegmentListFilters } from './validators';
 
@@ -11,9 +12,10 @@ import type { SegmentCreateInput, SegmentListFilters } from './validators';
 // @/db/* itself. Type-only — erased at compile time, no runtime cost.
 export type { Segment };
 
-// Projects only segment columns even though we join through trips for
-// ownership. Without this, Drizzle returns a `{ segments, trips }`
-// nested shape which the call sites don't want.
+// Projects only segment columns even though we join through trips to
+// apply the visibility gate (tripVisibleToViewer). Without this, Drizzle
+// returns a `{ segments, trips }` nested shape which the call sites
+// don't want.
 const segmentCols = getTableColumns(segments);
 
 // Hard cap — the personal-app assumption. When we routinely exceed this
@@ -25,7 +27,7 @@ export async function listForTrip(
   tripId: string,
   filters: SegmentListFilters = {},
 ): Promise<Segment[]> {
-  const conditions = [eq(segments.tripId, tripId), eq(trips.userId, userId)];
+  const conditions = [eq(segments.tripId, tripId), tripVisibleToViewer(userId)];
 
   if (filters.type) conditions.push(eq(segments.type, filters.type));
   if (filters.countryCode) {
@@ -59,7 +61,7 @@ export async function getByIdForUser(userId: string, id: string): Promise<Segmen
     .select(segmentCols)
     .from(segments)
     .innerJoin(trips, eq(segments.tripId, trips.id))
-    .where(and(eq(segments.id, id), eq(trips.userId, userId)))
+    .where(and(eq(segments.id, id), tripVisibleToViewer(userId)))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -83,7 +85,7 @@ export const listCountryCodesForTrip = cache(
       })
       .from(segments)
       .innerJoin(trips, eq(segments.tripId, trips.id))
-      .where(and(eq(segments.tripId, tripId), eq(trips.userId, userId)));
+      .where(and(eq(segments.tripId, tripId), tripVisibleToViewer(userId)));
 
     const codes = new Set<string>();
     for (const row of rows) {
@@ -106,9 +108,10 @@ export interface CreateOptions {
   needsReview?: boolean;
 }
 
-// Verifies the trip belongs to the user, then writes the segment row.
-// Throws on missing trip — the action layer translates that into a
-// user-facing Result.
+// Verifies the user can reach the trip (owns it, or it's a household
+// trip) — segment writes follow trip access, so any household member can
+// add to a shared trip (ADR-0015). Throws on no-access/missing trip; the
+// action layer translates that into a user-facing Result.
 export async function create(
   userId: string,
   tripId: string,
@@ -118,7 +121,7 @@ export async function create(
   const [owned] = await db
     .select({ id: trips.id })
     .from(trips)
-    .where(and(eq(trips.id, tripId), eq(trips.userId, userId)))
+    .where(and(eq(trips.id, tripId), tripVisibleToViewer(userId)))
     .limit(1);
   if (!owned) throw new Error('TRIP_NOT_FOUND');
 
@@ -206,7 +209,7 @@ export async function findFlightByKey(
     .where(
       and(
         eq(segments.tripId, tripId),
-        eq(trips.userId, userId),
+        tripVisibleToViewer(userId),
         eq(segments.type, 'flight'),
         carrierMatch,
         eq(sql`${segments.data}->>'flightNumber'`, key.flightNumber),
@@ -270,7 +273,7 @@ export async function update(
     .where(
       and(
         eq(segments.id, segmentId),
-        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${trips.userId} = ${userId})`,
+        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${tripVisibleToViewer(userId)})`,
       ),
     )
     .returning();
@@ -350,7 +353,7 @@ export async function updateForActiveExtractionClaim(
       .select({ updatedAt: segments.updatedAt })
       .from(segments)
       .innerJoin(trips, eq(segments.tripId, trips.id))
-      .where(and(eq(segments.id, segmentId), eq(trips.userId, userId)))
+      .where(and(eq(segments.id, segmentId), tripVisibleToViewer(userId)))
       .limit(1);
     if (!seg) return { outcome: 'not-found' };
     if (seg.updatedAt > claim.startedAt) return { outcome: 'user-edited' };
@@ -361,7 +364,7 @@ export async function updateForActiveExtractionClaim(
       .where(
         and(
           eq(segments.id, segmentId),
-          sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${trips.userId} = ${userId})`,
+          sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${tripVisibleToViewer(userId)})`,
         ),
       )
       .returning();
@@ -373,11 +376,11 @@ export async function updateForActiveExtractionClaim(
 
 // Atomic batch update for the multi-leg flight-edit dialog. All N
 // leg updates land in a single transaction — if any leg's
-// ownership-scoped UPDATE returns zero rows (segment vanished
-// mid-edit, or never owned by this user), the whole batch rolls back
-// and the action returns a generic "Segment not found." Single-user
-// app today, but the user-scoped predicate matters either way: a
-// future household-sharing path would still be safe.
+// visibility-scoped UPDATE returns zero rows (segment vanished
+// mid-edit, or sits on a trip this viewer can't reach), the whole batch
+// rolls back and the action returns a generic "Segment not found." The
+// predicate is tripVisibleToViewer, so a household member can batch-edit
+// legs on a shared trip (ADR-0015).
 //
 // Order is preserved in the returned array — the action layer relies
 // on `legs[i]` ↔ `result[i]` to map per-leg field errors back to the
@@ -399,7 +402,7 @@ export async function updateMany(
         .where(
           and(
             eq(segments.id, leg.id),
-            sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${trips.userId} = ${userId})`,
+            sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${tripVisibleToViewer(userId)})`,
           ),
         )
         .returning();
@@ -487,7 +490,7 @@ export async function listFlightLegGroup(userId: string, segmentId: string): Pro
     .select(segmentCols)
     .from(segments)
     .innerJoin(trips, eq(segments.tripId, trips.id))
-    .where(and(eq(trips.userId, userId), eq(segments.type, 'flight'), combined))
+    .where(and(tripVisibleToViewer(userId), eq(segments.type, 'flight'), combined))
     .orderBy(sql`${segments.startsAt} asc nulls last`, asc(segments.createdAt));
 
   // Defensive: if for any reason `self` didn't come back through the
@@ -509,7 +512,7 @@ export async function hardDelete(userId: string, id: string): Promise<boolean> {
         // Subquery: trip belongs to user. Drizzle's `inArray(subquery)`
         // would compile this to a single round-trip; we keep it inline
         // for clarity.
-        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${trips.userId} = ${userId})`,
+        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${tripVisibleToViewer(userId)})`,
       ),
     )
     .returning({ id: segments.id });
@@ -543,7 +546,7 @@ export async function scheduleSegment(
       and(
         eq(segments.id, id),
         eq(segments.type, type),
-        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${trips.userId} = ${userId})`,
+        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${tripVisibleToViewer(userId)})`,
       ),
     )
     .returning();
@@ -565,7 +568,7 @@ export async function unscheduleSegment(
       and(
         eq(segments.id, id),
         eq(segments.type, type),
-        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${trips.userId} = ${userId})`,
+        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${tripVisibleToViewer(userId)})`,
       ),
     )
     .returning();

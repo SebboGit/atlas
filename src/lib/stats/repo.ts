@@ -12,9 +12,9 @@ import {
   normalizeQuery,
 } from '@/lib/geocoding';
 import { flightDataSchema } from '@/lib/segments/validators';
+import { tripVisibleToViewer } from '@/lib/trips/repo';
 
 import { haversineKm } from './geo';
-import { visibleTripsPredicate } from './visibility';
 
 // ─── Public shapes ───────────────────────────────────────────────────
 // Every field below is a plain serialisable primitive or a Date, so the
@@ -75,13 +75,15 @@ export interface StatsDashboardData {
 const segmentCols = getTableColumns(segments);
 
 /**
- * Trips in scope for this viewer. Today {@link visibleTripsPredicate}
- * is a no-op (full household sharing), so this is every trip — but the
- * predicate is threaded through so per-viewer privacy is a one-line
- * change when `trips.visibility` lands. See visibility.ts.
+ * Trips in scope for this viewer's stats: the viewer's own trips plus
+ * every household trip, never another member's private trip. This is the
+ * shared {@link tripVisibleToViewer} boundary (ADR-0015) — the same
+ * predicate the trip/segment/map reads use — folded into both the trips
+ * query and the segment join below so every tally (countries, nights,
+ * flights, distance, records) respects it.
  */
 function tripsScope(currentUserId: string) {
-  return visibleTripsPredicate(currentUserId);
+  return tripVisibleToViewer(currentUserId);
 }
 
 // Nights between two timestamps, floored, never negative. A hotel

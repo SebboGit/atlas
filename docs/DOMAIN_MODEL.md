@@ -85,4 +85,4 @@ One table = one extraction pipeline, one upload UI, one storage adapter, one bac
 
 - Expenses & budgets — additive later.
 - Itinerary timeline reordering with conflict detection — UI concern when needed.
-- Per-trip privacy — not modelled. Atlas is full household sharing by default: `userId` / `createdBy` columns are provenance, not ownership. If privacy is ever needed, the only acceptable extension is a `trips.visibility` enum on the existing schema — not an `ownerships` join table.
+- Per-trip privacy — modelled via `trips.visibility` (`household` | `private`, ADR-0015). Default `household`: `userId` / `createdBy` stay provenance for reads, and one predicate (`tripVisibleToViewer`) gates every content read/write. A trip's creator can mark it `private` (owner-only); trip-row mutations stay owner-only; documents stay uploader-scoped. A further tier (per-member ACLs) would need a join table and a new ADR — not modelled.

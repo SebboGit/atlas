@@ -10,6 +10,8 @@ import {
   type Segment,
 } from '@/db/schema';
 
+import { tripVisibleToViewer } from '@/lib/trips/repo';
+
 import type {
   WishlistItemCreateInput,
   WishlistItemUpdateInput,
@@ -167,15 +169,14 @@ export async function materialiseOnTrip(
 ): Promise<MaterialisedResult> {
   // Single transaction so a concurrent delete between the item read
   // and the segment insert can't leave a segment pointing at a row
-  // that's about to be removed. Trip ownership uses the existing
-  // per-user gate; the household-visibility migration will flip this
-  // and the segments equivalent together (see the visibility-predicate
-  // -inert note).
+  // that's about to be removed. Trip access uses tripVisibleToViewer
+  // (ADR-0015): materialising a wishlist place onto a trip is a content
+  // write, so a household member can drop a pick onto a shared trip.
   return db.transaction(async (tx) => {
     const [owned] = await tx
       .select({ id: trips.id })
       .from(trips)
-      .where(and(eq(trips.id, tripId), eq(trips.userId, userId)))
+      .where(and(eq(trips.id, tripId), tripVisibleToViewer(userId)))
       .limit(1);
     if (!owned) throw new Error('TRIP_NOT_FOUND');
 

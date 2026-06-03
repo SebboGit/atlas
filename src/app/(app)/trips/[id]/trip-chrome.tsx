@@ -1,6 +1,6 @@
 'use client';
 
-import { Map as MapIcon, MoreHorizontal } from 'lucide-react';
+import { Lock, Map as MapIcon, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as React from 'react';
@@ -27,6 +27,13 @@ import { cn } from '@/lib/utils';
 
 interface TripChromeProps {
   trip: Trip;
+  /**
+   * True when the viewer created this trip. Household trips render for
+   * every member (ADR-0015), but trip-row actions stay owner-only, so a
+   * non-owner sees the read surfaces without the Edit/Archive/Delete/
+   * Upload controls.
+   */
+  isOwner: boolean;
   countries: { code: string; name: string }[];
   attachedDocumentCount: number;
   children: React.ReactNode;
@@ -47,7 +54,14 @@ interface TripChromeProps {
  * server-side chrome switch would stay stuck on the initial path.
  * The data fetch still happens once on the server.
  */
-export function TripChrome({ trip, countries, attachedDocumentCount, children }: TripChromeProps) {
+export function TripChrome({
+  trip,
+  isOwner,
+  countries,
+  attachedDocumentCount,
+  children,
+}: TripChromeProps) {
+  const isPrivate = trip.visibility === 'private';
   const pathname = usePathname();
   const isMapView = pathname === `/trips/${trip.id}/map`;
   const isArchived = trip.status === 'archived';
@@ -109,6 +123,7 @@ export function TripChrome({ trip, countries, attachedDocumentCount, children }:
                 <span>Trip</span>
               </p>
               <TripStatusBadge status={trip.status} />
+              {isPrivate && <PrivateBadge />}
             </div>
 
             {/* Title row — phone tucks the status pill and a ⋯ overflow menu
@@ -119,14 +134,17 @@ export function TripChrome({ trip, countries, attachedDocumentCount, children }:
               <h1 className="font-display text-foreground flex-1 text-4xl leading-[1.04] font-medium tracking-tight sm:text-6xl">
                 {trip.title}
               </h1>
-              <div className="mt-1 shrink-0 sm:hidden">
+              <div className="mt-1 flex shrink-0 items-center gap-2 sm:hidden">
+                {isPrivate && <PrivateBadge />}
                 <TripStatusBadge status={trip.status} />
               </div>
-              <TripOverflowMenu
-                trip={trip}
-                isArchived={isArchived}
-                attachedDocumentCount={attachedDocumentCount}
-              />
+              {isOwner && (
+                <TripOverflowMenu
+                  trip={trip}
+                  isArchived={isArchived}
+                  attachedDocumentCount={attachedDocumentCount}
+                />
+              )}
             </div>
 
             <p className="text-muted-foreground mt-3 font-mono text-xs tracking-wider sm:mt-4">
@@ -150,10 +168,12 @@ export function TripChrome({ trip, countries, attachedDocumentCount, children }:
              *  so it carries the same visual weight as its peers; the
              *  bare-text variant was a phone-only special case at most. */}
             <div className="mt-7 hidden flex-wrap items-center gap-3 sm:flex">
-              <DocumentUploadDialog
-                tripId={trip.id}
-                trigger={<Button size="sm">+ Upload</Button>}
-              />
+              {isOwner && (
+                <DocumentUploadDialog
+                  tripId={trip.id}
+                  trigger={<Button size="sm">+ Upload</Button>}
+                />
+              )}
               {/*
                 Render the Link directly with `buttonVariants` instead
                 of wrapping it in `<Button asChild>`. The Slot+Link
@@ -174,44 +194,51 @@ export function TripChrome({ trip, countries, attachedDocumentCount, children }:
                 <MapIcon className="size-3.5" strokeWidth={1.75} />
                 <span>View map</span>
               </Link>
-              <TripFormDialog
-                mode="edit"
-                trip={trip}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    Edit trip
-                  </Button>
-                }
-              />
-              {isArchived ? (
-                <UnarchiveButton tripId={trip.id} />
-              ) : (
-                <DeleteTripDialog
-                  tripId={trip.id}
-                  tripTitle={trip.title}
-                  mode="archive"
-                  trigger={
-                    <Button variant="outline" size="sm">
-                      Archive
-                    </Button>
-                  }
-                />
+              {/* Trip-row maintenance is owner-only (ADR-0015). A household
+                  member viewing a shared trip gets the read surfaces plus
+                  "View map" — Edit/Archive/Delete don't render for them. */}
+              {isOwner && (
+                <>
+                  <TripFormDialog
+                    mode="edit"
+                    trip={trip}
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        Edit trip
+                      </Button>
+                    }
+                  />
+                  {isArchived ? (
+                    <UnarchiveButton tripId={trip.id} />
+                  ) : (
+                    <DeleteTripDialog
+                      tripId={trip.id}
+                      tripTitle={trip.title}
+                      mode="archive"
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          Archive
+                        </Button>
+                      }
+                    />
+                  )}
+                  <DeleteTripDialog
+                    tripId={trip.id}
+                    tripTitle={trip.title}
+                    mode="delete"
+                    attachedDocumentCount={attachedDocumentCount}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-destructive/30 text-destructive hover:bg-destructive/8 hover:text-destructive"
+                      >
+                        Delete forever
+                      </Button>
+                    }
+                  />
+                </>
               )}
-              <DeleteTripDialog
-                tripId={trip.id}
-                tripTitle={trip.title}
-                mode="delete"
-                attachedDocumentCount={attachedDocumentCount}
-                trigger={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-destructive/30 text-destructive hover:bg-destructive/8 hover:text-destructive"
-                  >
-                    Delete forever
-                  </Button>
-                }
-              />
             </div>
           </header>
 
@@ -338,6 +365,19 @@ function TripOverflowMenu({
         onOpenChange={setDeleteOpen}
       />
     </>
+  );
+}
+
+// Marks a trip the owner has opted out of household sharing. Only the
+// owner ever reaches a private trip, so this never renders for anyone
+// else. Field-notebook styling — the muted /50 ink is the deliberate
+// sub-AA register used across the trip chrome.
+function PrivateBadge() {
+  return (
+    <span className="border-foreground/20 text-foreground/55 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.18em] uppercase">
+      <Lock className="size-2.5" strokeWidth={2} aria-hidden />
+      Private
+    </span>
   );
 }
 

@@ -71,7 +71,20 @@ type Row = {
   href: string;
 };
 
-export async function searchAll(query: string): Promise<SearchResults> {
+// `currentUserId` scopes results to the viewer (ADR-0015): each entity
+// CTE folds in the visibility boundary. Trips and segments are returned
+// when the trip is household-shared OR the viewer created it; documents
+// stay uploader-scoped (`d.user_id = viewer`), so a private trip's
+// boarding pass never surfaces to another member and every hit the
+// viewer sees is one they can actually open. Wishlist is fully
+// household-shared, so it carries no per-viewer filter.
+//
+// The `visibility = 'household' OR user_id = …` clauses below are the
+// raw-SQL mirror of `tripVisibleToViewer` (src/lib/trips/repo.ts) — they
+// can't reuse it directly because this is a hand-written CTE over table
+// aliases, so keep them in sync if the canonical predicate changes.
+// `repo.visibility.test.ts` guards against drift against a real DB.
+export async function searchAll(query: string, currentUserId: string): Promise<SearchResults> {
   const q = query.trim();
   if (q.length < 1) return { trips: [], segments: [], documents: [], wishlist: [] };
 
@@ -122,8 +135,9 @@ export async function searchAll(query: string): Promise<SearchResults> {
         '/trips/' || t.id::text AS href,
         ts_rank_cd(t.search_tsv, q.tsq) * 2 + similarity(t.search_text, q.s) AS rank
       FROM trips t, q
-      WHERE t.search_tsv @@ q.tsq
-         OR similarity(t.search_text, q.s) > ${TRIGRAM_SIMILARITY}
+      WHERE (t.search_tsv @@ q.tsq
+         OR similarity(t.search_text, q.s) > ${TRIGRAM_SIMILARITY})
+        AND (t.visibility = 'household' OR t.user_id = ${currentUserId}::uuid)
       ORDER BY rank DESC
       LIMIT ${PER_GROUP_LIMIT}
     ),
@@ -212,8 +226,9 @@ export async function searchAll(query: string): Promise<SearchResults> {
           ) AS subtype_rn
         FROM segments s
         JOIN trips tr ON tr.id = s.trip_id, q
-        WHERE s.search_tsv @@ q.tsq
-           OR similarity(s.search_text, q.s) > ${TRIGRAM_SIMILARITY}
+        WHERE (s.search_tsv @@ q.tsq
+           OR similarity(s.search_text, q.s) > ${TRIGRAM_SIMILARITY})
+          AND (tr.visibility = 'household' OR tr.user_id = ${currentUserId}::uuid)
       ) ranked
       WHERE subtype_rn <= ${PER_SUBTYPE_LIMIT}
       ORDER BY rank DESC
@@ -235,6 +250,7 @@ export async function searchAll(query: string): Promise<SearchResults> {
       FROM documents d
       JOIN trips tr ON tr.id = d.trip_id, q
       WHERE d.trip_id IS NOT NULL
+        AND d.user_id = ${currentUserId}::uuid
         AND (d.search_tsv @@ q.tsq
              OR similarity(d.search_text, q.s) > ${TRIGRAM_SIMILARITY})
       ORDER BY rank DESC
