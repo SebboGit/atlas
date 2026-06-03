@@ -9,37 +9,27 @@ const FLIGHT_BASE = {
 };
 
 describe('segmentCreateInput — dateInput timezone parsing', () => {
-  it("'yyyy-mm-dd' parses to local-midnight (not UTC midnight)", () => {
-    // Regression for the TZ inconsistency fix: `new Date('2026-06-12')`
-    // is UTC midnight which becomes the previous day's evening in
-    // UTC-12 timezones. We parse explicitly with the local-Date
-    // constructor so the wall-clock day matches what the user picked.
+  it("'yyyy-mm-dd' parses to UTC midnight (floating local time)", () => {
+    // Floating local time (ADR-0014): a no-timezone wall-clock is
+    // interpreted at UTC, so the stored instant's UTC wall-clock equals
+    // what the user picked — deterministic on any runner timezone, and a
+    // date-only pick lands on UTC midnight (read as "no time component").
     const result = segmentCreateInput.safeParse({ ...FLIGHT_BASE, startsAt: '2026-06-12' });
     expect(result.success).toBe(true);
     if (!result.success) return;
     const d = result.data.startsAt!;
     expect(d).toBeInstanceOf(Date);
-    expect(d.getFullYear()).toBe(2026);
-    expect(d.getMonth()).toBe(5); // June (zero-indexed)
-    expect(d.getDate()).toBe(12);
-    expect(d.getHours()).toBe(0);
-    expect(d.getMinutes()).toBe(0);
-    expect(d.getSeconds()).toBe(0);
+    expect(d.toISOString()).toBe('2026-06-12T00:00:00.000Z');
   });
 
-  it("'yyyy-mm-ddThh:mm' parses to the wall-clock time (local)", () => {
+  it("'yyyy-mm-ddThh:mm' parses the wall-clock at UTC", () => {
     const result = segmentCreateInput.safeParse({
       ...FLIGHT_BASE,
       startsAt: '2026-06-12T10:40',
     });
     expect(result.success).toBe(true);
     if (!result.success) return;
-    const d = result.data.startsAt!;
-    expect(d.getFullYear()).toBe(2026);
-    expect(d.getMonth()).toBe(5);
-    expect(d.getDate()).toBe(12);
-    expect(d.getHours()).toBe(10);
-    expect(d.getMinutes()).toBe(40);
+    expect(result.data.startsAt!.toISOString()).toBe('2026-06-12T10:40:00.000Z');
   });
 
   it('empty string and null both normalise to null', () => {
@@ -58,6 +48,16 @@ describe('segmentCreateInput — dateInput timezone parsing', () => {
     });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.startsAt).toBeNull();
+  });
+
+  it('rejects out-of-range date fields as null (no silent rollover)', () => {
+    // The shape regex passes "2026-13-40" but the values overflow; the
+    // parser must reject rather than let Date.UTC roll it into 2027.
+    for (const bad of ['2026-13-40', '2026-02-30', '2026-06-12T25:00']) {
+      const result = segmentCreateInput.safeParse({ ...FLIGHT_BASE, startsAt: bad });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.startsAt).toBeNull();
+    }
   });
 
   it('accepts a Date instance as-is', () => {

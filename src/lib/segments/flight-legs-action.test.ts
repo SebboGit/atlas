@@ -36,8 +36,8 @@ vi.mock('./repo', () => ({
   // so the module loads without exploding.
   update: vi.fn(),
   hardDelete: vi.fn(),
-  scheduleActivity: vi.fn(),
-  unscheduleActivity: vi.fn(),
+  scheduleSegment: vi.fn(),
+  unscheduleSegment: vi.fn(),
   create: vi.fn(),
 }));
 vi.mock('@/lib/trips/repo', () => ({ getByIdForUser: mocks.getTripForUser }));

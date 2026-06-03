@@ -1,6 +1,6 @@
 import type { Segment } from '@/lib/segments';
 
-import { dayKey, type DayBucket } from './group-by-day';
+import { type DayBucket } from './group-by-day';
 
 // Where a calendar day sits relative to "now". Past days are reference
 // material, today is the focus, future days are a preview — the
@@ -139,7 +139,7 @@ export function ongoingContinuationsByDayKey(days: ClassifiedDay[]): Map<string,
   const fromCollapsed: Array<{ seg: Segment; bucketKey: string }> = [];
   for (const day of days) {
     if (day.position !== 'past') continue;
-    const k = dayKey(day.date);
+    const k = day.key;
     for (const seg of day.segments) fromCollapsed.push({ seg, bucketKey: k });
   }
   if (fromCollapsed.length === 0) return new Map();
@@ -147,7 +147,7 @@ export function ongoingContinuationsByDayKey(days: ClassifiedDay[]): Map<string,
   const byDay = new Map<string, Segment[]>();
   for (const day of days) {
     if (day.position === 'past') continue;
-    const k = dayKey(day.date);
+    const k = day.key;
     const conts: Segment[] = [];
     for (const { seg, bucketKey } of fromCollapsed) {
       if (bucketKey === k) continue;

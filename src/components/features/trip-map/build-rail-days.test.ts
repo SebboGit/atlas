@@ -11,9 +11,10 @@ function seg(overrides: Partial<Segment> & { id: string; type: Segment['type'] }
   return {
     tripId: 'trip-1',
     data: {},
-    // Local 09:12 (not a UTC instant) so the rail's local-zone time label
-    // — `formatTime` — renders "09:12" deterministically on any runner TZ.
-    startsAt: new Date(2025, 9, 5, 9, 12),
+    // UTC 09:12 — non-flight times are floating-UTC wall-clocks (ADR-0014),
+    // so the rail renders the label in UTC; an explicit UTC instant makes
+    // the "09:12" assertion deterministic on any runner timezone.
+    startsAt: new Date(Date.UTC(2025, 9, 5, 9, 12)),
     endsAt: null,
     locationName: null,
     countryCode: 'JP',
@@ -30,6 +31,7 @@ function seg(overrides: Partial<Segment> & { id: string; type: Segment['type'] }
 
 function classifiedDay(segments: Segment[]): ClassifiedDay {
   return {
+    key: '2025-10-05',
     date: new Date(2025, 9, 5),
     dayNumber: 1,
     position: 'today',

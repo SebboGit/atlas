@@ -28,7 +28,7 @@ import { displayCarrier, formatFlightNumber } from '@/lib/airlines';
 import { getAirportTimezone } from '@/lib/airports';
 import { countryName } from '@/lib/countries';
 import type { LinkedDocument } from '@/lib/documents';
-import { formatTimeWithZone } from '@/lib/format';
+import { formatTime, formatTimeWithZone } from '@/lib/format';
 import type { Segment, TransitData } from '@/lib/segments';
 import {
   activityDataSchema,
@@ -313,23 +313,15 @@ function ActivityInfoBody({
   const description = parse.success ? parse.data.description : undefined;
   const bookingRef = parse.success ? parse.data.bookingRef : undefined;
 
-  const isWishlist = segment.startsAt === null;
+  // ADR-0003: an undated activity (null startsAt) simply has no "When"
+  // section — the absence of a date IS the signal, no badge needed
+  // (matches the flat Activities tab card, which drops the badge too).
   const startsAt = describeInstant(segment.startsAt, null);
   const endsAt = describeInstant(segment.endsAt, null);
 
   return (
     <>
-      <InfoHeader
-        eyebrow="Activity"
-        title={title}
-        subtitle={
-          isWishlist ? (
-            <span className="border-foreground/25 text-foreground/65 inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.24em] uppercase">
-              Wishlist
-            </span>
-          ) : undefined
-        }
-      />
+      <InfoHeader eyebrow="Activity" title={title} />
 
       {description && (
         <InfoSection title="Details">
@@ -339,7 +331,7 @@ function ActivityInfoBody({
         </InfoSection>
       )}
 
-      {!isWishlist && (startsAt || endsAt) && (
+      {(startsAt || endsAt) && (
         <InfoSection title="When">
           <InfoRow label="Start" value={formatInstant(startsAt)} mono />
           <InfoRow label="End" value={formatInstant(endsAt)} mono />
@@ -632,11 +624,15 @@ function hasTimeComponent(d: Date): boolean {
   return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
 }
 
+// Non-flight (tz-less) dates render in UTC — floating local time
+// (ADR-0014): the wall-clock day the user typed, shown unchanged for
+// everyone. Flights pass their airport tz and take the branch below.
 const DATE_FMT = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
   year: 'numeric',
+  timeZone: 'UTC',
 });
 
 function describeInstant(d: Date | null, tz: string | null): InstantParts | null {
@@ -655,9 +651,10 @@ function describeInstant(d: Date | null, tz: string | null): InstantParts | null
     const { time, zone } = formatTimeWithZone(d, { timeZone: tz });
     return { date, time, zone };
   }
+  // Non-flight: render the stored wall-clock in UTC (floating local time).
   return {
     date,
-    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    time: formatTime(d, { timeZone: 'UTC' }),
     zone: null,
   };
 }

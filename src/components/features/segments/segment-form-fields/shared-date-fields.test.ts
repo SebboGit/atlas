@@ -20,16 +20,15 @@ describe('hasEndDateField', () => {
   );
 });
 
-// The optional start field's placeholder is type-aware: an undated
-// activity is the wishlist state (ADR-0003) and the copy invites it;
-// an undated food entry just sits undated on the flat Food tab, so
-// food shows no placeholder.
+// Activities and food can both be left undated (ADR-0003) and live on
+// their flat tabs; the "(optional)" label marker already says the field
+// can be left empty, so neither shows a placeholder.
 describe('startPlaceholderFor', () => {
   it('shows no placeholder for food', () => {
     expect(startPlaceholderFor('food')).toBe('');
   });
 
-  it('uses wishlist copy for activity', () => {
-    expect(startPlaceholderFor('activity')).toBe('Leave empty for wishlist');
+  it('shows no placeholder for activity', () => {
+    expect(startPlaceholderFor('activity')).toBe('');
   });
 });

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 
 import { classifyDays } from '@/components/features/segments/day-temporal';
 import { GeocodePoller } from '@/components/features/segments/geocode-poller';
-import { dayKey, groupSegmentsByDay } from '@/components/features/segments/group-by-day';
+import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
 import {
   ItineraryDayList,
   type ItineraryDay,
@@ -64,11 +64,12 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
   // derived from this — see ItineraryDayList.
   const classified = classifyDays(days, new Date());
   const itineraryDays: ItineraryDay[] = classified.map((day) => ({
-    key: dayKey(day.date),
-    // Timezone-stable `YYYY-MM-DD` token. A UTC ISO instant reparsed on
-    // a client in a different timezone than the server can render the
-    // wrong calendar day — the day token always parses as a local date.
-    dateKey: dayKey(day.date),
+    // The bucket's UTC calendar-day token (see `groupSegmentsByDay`).
+    // Timezone-stable `YYYY-MM-DD` — a UTC ISO instant reparsed on a
+    // client in a different timezone than the server can render the
+    // wrong calendar day; this token always parses as a local date.
+    key: day.key,
+    dateKey: day.key,
     dayNumber: day.dayNumber,
     position: day.position,
     segments: day.segments,

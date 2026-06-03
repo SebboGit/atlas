@@ -40,10 +40,17 @@ function renderIcon(segment: Segment) {
   return <Icon aria-hidden strokeWidth={1.5} className="size-3.5 shrink-0" />;
 }
 
-// "28 May" — the check-in date a continuing stay began on. Local
-// formatting matches the day-group date labels.
+// "28 May" — the check-in date a continuing stay began on. Read in UTC
+// (floating local time, ADR-0014) so it names the same calendar day as
+// the segment's day-group header and the trip-map rail's twin label,
+// instead of the viewer-local day of the raw instant.
+const SINCE_FMT = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
 function formatSinceDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return SINCE_FMT.format(d);
 }
 
 // A continuation: a multi-day segment (a hotel stay, almost always) that

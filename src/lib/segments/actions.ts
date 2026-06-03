@@ -10,7 +10,7 @@ import { err, ok, type Result } from '@/types/result';
 
 import { isWithinTripWindow } from './date-window';
 import * as repo from './repo';
-import { flightLegsUpdateInput, segmentCreateInput } from './validators';
+import { flightLegsUpdateInput, segmentCreateInput, wallClockToUtc } from './validators';
 import type { Segment } from './repo';
 
 // Same shape as trips/actions.ts so client form code (RHF setError
@@ -234,14 +234,20 @@ export async function deleteSegmentAction(
   return ok(null);
 }
 
-// Promotion / demotion validators are intentionally small and inline:
-// the inputs are a single date or nothing. No need to mint a separate
-// schema module for this.
+// Schedule / unschedule validators are intentionally small and inline:
+// the inputs are a single wall-clock (date or date+time) or nothing.
+// Wall-clock strings carry no timezone and are interpreted at UTC —
+// floating local time, the same contract as `dateInput` (ADR-0014) — so
+// a reschedule never shifts the typed time.
 const scheduleInput = z
   .object({
     startsAt: z
       .union([z.string(), z.date()])
-      .transform((v) => (v instanceof Date ? v : new Date(v)))
+      // The dialog only ever sends a no-tz wall-clock string (or a Date).
+      // Interpret it at UTC; an unparseable / out-of-range string becomes
+      // an invalid Date the refine below rejects — never a silently
+      // rolled-over one (`new Date('2026-02-30')` → 2 Mar).
+      .transform((v) => (v instanceof Date ? v : (wallClockToUtc(v) ?? new Date(NaN))))
       .refine((d) => !Number.isNaN(d.getTime()), 'Pick a date'),
     endsAt: z
       .union([z.string(), z.date(), z.null()])
@@ -249,8 +255,8 @@ const scheduleInput = z
       .transform((v) => {
         if (v === null || v === undefined || v === '') return null;
         if (v instanceof Date) return v;
-        const d = new Date(v);
-        return Number.isNaN(d.getTime()) ? null : d;
+        // null (no end) for an unparseable / out-of-range end string.
+        return wallClockToUtc(v);
       }),
   })
   .refine((v) => v.endsAt === null || v.endsAt >= v.startsAt, {
@@ -258,7 +264,12 @@ const scheduleInput = z
     message: 'End must be on or after start',
   });
 
-export async function scheduleActivityAction(
+// Sets / changes the date (and optional end) of an activity or food
+// segment — the quick reschedule affordance on the Activities and Food
+// tabs. The segment's type is verified here at the trust boundary (only
+// activities and food are reschedulable) so a crafted request can't
+// restamp a flight / hotel / transit / note.
+export async function scheduleSegmentAction(
   tripId: string,
   id: string,
   raw: unknown,
@@ -267,24 +278,39 @@ export async function scheduleActivityAction(
   const parsed = scheduleInput.safeParse(raw);
   if (!parsed.success) return err(flattenZod(parsed.error));
 
-  const segment = await repo.scheduleActivity(
+  const existing = await repo.getByIdForUser(user.id, id);
+  if (!existing) return err({ formMessage: 'Segment not found.' });
+  if (existing.type !== 'activity' && existing.type !== 'food') {
+    return err({ formMessage: 'This segment can’t be rescheduled.' });
+  }
+
+  const segment = await repo.scheduleSegment(
     user.id,
     id,
+    existing.type,
     parsed.data.startsAt,
     parsed.data.endsAt,
   );
-  if (!segment) return err({ formMessage: 'Activity not found.' });
+  if (!segment) return err({ formMessage: 'Segment not found.' });
   revalidateTrip(tripId);
   return ok({ id: segment.id });
 }
 
-export async function unscheduleActivityAction(
+// Clears the date of an activity or food segment, returning it to its
+// undated state. Same trust-boundary type check as scheduleSegmentAction.
+export async function unscheduleSegmentAction(
   tripId: string,
   id: string,
 ): Promise<Result<{ id: string }, FormError>> {
   const user = await requireUser();
-  const segment = await repo.unscheduleActivity(user.id, id);
-  if (!segment) return err({ formMessage: 'Activity not found.' });
+  const existing = await repo.getByIdForUser(user.id, id);
+  if (!existing) return err({ formMessage: 'Segment not found.' });
+  if (existing.type !== 'activity' && existing.type !== 'food') {
+    return err({ formMessage: 'This segment can’t be rescheduled.' });
+  }
+
+  const segment = await repo.unscheduleSegment(user.id, id, existing.type);
+  if (!segment) return err({ formMessage: 'Segment not found.' });
   revalidateTrip(tripId);
   return ok({ id: segment.id });
 }

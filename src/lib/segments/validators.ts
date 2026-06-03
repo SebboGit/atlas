@@ -25,31 +25,62 @@ const countryCode = z
   })
   .refine((s) => s === null || s.length === 2, 'Choose a valid country');
 
-// Date / date-time input. The form layer hands us:
+// Wall-clock string with no timezone, as the form hands it to us:
 //   - 'yyyy-mm-dd'        → date-only pick from DatePicker
 //   - 'yyyy-mm-ddThh:mm'  → date+time from DateTimeField
-//   - Date | null | ''    → already-parsed or empty
 //
-// ECMAScript parses date-only ISO strings as UTC midnight and the
-// without-TZ datetime form as local. That mismatch put a date-only
-// pick into a different calendar day than a date+time pick of the
-// same wall-clock day — fixed here by parsing date-only as local
-// midnight too.
-const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+// Floating local time (ADR-0014): a non-flight segment stores the
+// wall-clock the user typed VERBATIM, interpreted at UTC, so the stored
+// instant's UTC wall-clock equals what they typed and renders back
+// unchanged for every viewer ("20:00" → 20:00Z → shown as 20:00).
+// Date-only lands on UTC midnight, which the cards read as "no time
+// component". Returns null on malformed input.
+const WALL_CLOCK_RE = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/;
+export function wallClockToUtc(s: string): Date | null {
+  const m = WALL_CLOCK_RE.exec(s);
+  if (!m) return null;
+  const [, y, mo, d, hh, mi] = m;
+  const year = Number(y);
+  const month = Number(mo) - 1;
+  const day = Number(d);
+  const hour = hh ? Number(hh) : 0;
+  const minute = mi ? Number(mi) : 0;
+  const date = new Date(Date.UTC(year, month, day, hour, minute, 0));
+  if (Number.isNaN(date.getTime())) return null;
+  // The regex checks digit count, not value range. `Date.UTC` silently
+  // rolls over out-of-range fields (month 13, day 40, hour 25), so verify
+  // the instant round-trips what was parsed — anything that shifted was
+  // malformed. Keeps the null-on-malformed contract honest at the
+  // schedule-action trust boundary.
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month ||
+    date.getUTCDate() !== day ||
+    date.getUTCHours() !== hour ||
+    date.getUTCMinutes() !== minute
+  ) {
+    return null;
+  }
+  return date;
+}
+
+// Date / date-time input. The form layer hands us a wall-clock string
+// (date-only or date+time), an already-parsed Date (flights resolve
+// their airport-tz instant before submit), or null / ''.
 const dateInput = z
   .union([z.string(), z.date(), z.null()])
   .optional()
   .transform((v) => {
     if (v === null || v === undefined || v === '') return null;
     if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
-    const dateOnly = DATE_ONLY_RE.exec(v);
-    if (dateOnly) {
-      const [, y, m, d] = dateOnly;
-      // Local-midnight Date — same day in the user's wall clock as
-      // what they picked, regardless of timezone.
-      return new Date(Number(y), Number(m) - 1, Number(d));
-    }
-    // ISO without TZ suffix → local. ISO with TZ → as specified.
+    // No-timezone wall-clock → interpret at UTC (floating local time).
+    const utc = wallClockToUtc(v);
+    if (utc) return utc;
+    // A wall-clock-shaped string that didn't parse is out-of-range — reject
+    // it rather than let the `new Date` fallback below silently roll it over
+    // (e.g. `new Date('2026-02-30')` → 2 Mar).
+    if (WALL_CLOCK_RE.test(v)) return null;
+    // Some other ISO string (explicit offset / Z) → respect it as given.
     const parsed = new Date(v);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   });
@@ -233,7 +264,7 @@ export type FlightLegsUpdateInput = z.infer<typeof flightLegsUpdateInput>;
 // List filters used by the repo and by the trip-detail tabs / country
 // filter. `scheduled` is tri-state on purpose:
 //   true       → only segments with a date  (chronological views)
-//   false      → only segments without a date (wishlist; see ADR-0003)
+//   false      → only segments without a date (undated; see ADR-0003)
 //   undefined  → both (default)
 export const segmentListFilters = z.object({
   type: segmentTypeEnum.optional(),

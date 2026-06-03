@@ -1,18 +1,28 @@
 import type { Segment } from '@/lib/segments';
 
-// Local-date key so segments in the same calendar day group together
-// regardless of timezone offset. The choice is "local to the server"
-// — good enough for a single-user homelab; can revisit if/when trips
-// cross hemispheres in production. Exported so the itinerary's collapse
-// persistence can key its localStorage overrides off the same value.
+// UTC calendar-day key. Non-flight segment times are floating-UTC
+// wall-clocks (ADR-0014), so the day a segment "reads" is its UTC
+// calendar day — not the server's local interpretation of the instant.
+// Reading in UTC keeps grouping identical on any server timezone
+// (dev/prod parity). Exported so the itinerary's collapse persistence
+// can key its localStorage overrides off the same value.
 export function dayKey(d: Date): string {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
 export interface DayBucket {
+  // UTC calendar-day token (`YYYY-MM-DD`) computed from the segment's
+  // instant via `dayKey`. Carried on the bucket — rather than re-derived
+  // with `dayKey(date)` downstream — so the token (UTC) and the display
+  // `date` (local midnight, below) never disagree on a non-UTC server.
+  key: string;
+  // Local midnight of the UTC calendar day. Day labels
+  // (`toLocaleDateString`) and viewer-relative classification
+  // (`startOfLocalDay`) read it with LOCAL getters, so it must be a
+  // local-midnight Date carrying the right calendar-day digits.
   date: Date;
   segments: Segment[];
 }
@@ -33,9 +43,15 @@ export function groupSegmentsByDay(segments: Segment[]): DayGrouping {
     const key = dayKey(s.startsAt);
     let bucket = map.get(key);
     if (!bucket) {
-      const date = new Date(s.startsAt);
-      date.setHours(0, 0, 0, 0);
-      bucket = { date, segments: [] };
+      // Local midnight of the UTC calendar day: same calendar-day digits
+      // as `key`, expressed in local time so label/classification (which
+      // use local getters) read the day the segment was grouped under.
+      const date = new Date(
+        s.startsAt.getUTCFullYear(),
+        s.startsAt.getUTCMonth(),
+        s.startsAt.getUTCDate(),
+      );
+      bucket = { key, date, segments: [] };
       map.set(key, bucket);
     }
     bucket.segments.push(s);

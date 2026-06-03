@@ -39,10 +39,11 @@ export const segments = pgTable(
     // Hot-path columns lifted out of `data` for indexing. Keep these in
     // sync with `data` on every write — repo layer's job.
     //
-    // For `activity` segments, a NULL `startsAt` is the **wishlist** state:
+    // For `activity` segments, a NULL `startsAt` is the **undated** state:
     // the activity belongs to the trip but isn't pinned to a date yet.
     // For other segment types, NULL means "date not yet specified" / TBD.
-    // See ADR-0003.
+    // See ADR-0003 (the term "wishlist" for this state is retired from the
+    // UI — that name now refers only to the household wishlist feature).
     startsAt: timestamp('starts_at', { withTimezone: true, mode: 'date' }),
     endsAt: timestamp('ends_at', { withTimezone: true, mode: 'date' }),
     locationName: text('location_name'),

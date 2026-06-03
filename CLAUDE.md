@@ -466,6 +466,7 @@ Architectural decisions live in `docs/adr/` as numbered ADRs.
 - **ADR-0011** — Self-hosted Protomaps PMTiles basemap (bind-mounted, byte-range served, no third-party tile origins). Accepted.
 - **ADR-0012** — pg-boss for durable jobs and in-stack scheduling (graduates `Jobs` and the `worker` service from their minimal in-process implementations). Accepted.
 - **ADR-0013** — Postgres-native search via generated `tsvector` columns directly on source tables (no central `search_index`, no out-of-process search engine). Accepted.
+- **ADR-0014** — Floating local time for non-flight segment times: store and display the typed wall-clock verbatim (interpret at UTC, render in UTC), server-side and deterministic. Flights keep airport-tz; today/countdown stay viewer-relative. Accepted.
 
 When making a non-obvious choice (a library, a pattern, a tradeoff), write a short ADR. Template in `docs/adr/0000-template.md`.
 

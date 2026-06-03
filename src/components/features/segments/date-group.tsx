@@ -12,8 +12,10 @@ interface DateGroupProps {
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
   /** Trip-wide segmentId → cached coordinates map. Drives the Plus Code badge. */
   coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
-  // Forwarded to SegmentRow — Activities tab uses this so the
-  // reschedule affordance sits on each card.
+  // Forwarded to SegmentRow — surfaces the reschedule affordance on
+  // activity / food cards. The flat Activity and Food tabs render rows
+  // directly (not via DateGroup), so today this stays off here; kept for
+  // any future day-grouped surface that wants it.
   showScheduleAction?: boolean;
 }
 

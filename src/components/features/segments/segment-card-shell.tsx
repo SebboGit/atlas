@@ -28,8 +28,8 @@ interface SegmentCardShellProps {
   typeLabel: string;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
-  // Top-right slot — typically a stacked time pair (depart / arrive) or
-  // a small status chip ("Wishlist").
+  // Top-right slot — a stacked time pair (flight depart / arrive) or the
+  // segment's date+time (SegmentTimeMeta on activity / food / transit).
   meta?: React.ReactNode;
   // Bottom slot — typically a row of document chips. Renders only when
   // provided; the divider is part of the slot, not a peer.
@@ -43,7 +43,8 @@ interface SegmentCardShellProps {
   // Opt-in for variants whose `meta` is too dense to share a row with
   // the title at mobile widths — currently just flights, whose meta
   // is a two-line stacked time block that crowds the route headline.
-  // Other variants (hotel chip, activity status) stay right-aligned.
+  // Other variants (hotel check-in, activity / food date+time) stay
+  // right-aligned.
   stackMetaOnMobile?: boolean;
   className?: string;
 }

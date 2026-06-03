@@ -6,9 +6,9 @@ import type { Segment, TransitData } from '@/lib/segments';
 import { transitDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
-import { LocalTime } from './local-time';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
+import { SegmentTimeMeta } from './segment-time-meta';
 
 const MODE_ICON: Record<TransitData['mode'], LucideIcon> = {
   train: TrainFront,
@@ -47,18 +47,7 @@ export function SegmentCardTransit({
   const title =
     titleParts.length === 2 ? `${titleParts[0]} → ${titleParts[1]}` : (titleParts[0] ?? label);
 
-  const meta = segment.startsAt ? (
-    <div className="text-foreground/75 font-mono text-[11px] leading-tight tracking-wider">
-      <div>
-        <LocalTime date={segment.startsAt} />
-      </div>
-      {segment.endsAt && (
-        <div className="text-foreground/45 mt-0.5">
-          → <LocalTime date={segment.endsAt} />
-        </div>
-      )}
-    </div>
-  ) : null;
+  const meta = <SegmentTimeMeta startsAt={segment.startsAt} endsAt={segment.endsAt} />;
 
   const subtitle = subtitleWithPlusCodeBadge({
     parts: [data.carrier, data.referenceNumber],

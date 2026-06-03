@@ -4,7 +4,8 @@ import * as React from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
-import { DatePicker, parseDateString, toDateString } from '@/components/ui/date-picker';
+import { parseDateString } from '@/components/ui/date-picker';
+import { DateTimeField } from '@/components/ui/date-time-field';
 import {
   Dialog,
   DialogContent,
@@ -18,15 +19,31 @@ import {
   dialogScrollContainer,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { scheduleActivityAction, unscheduleActivityAction } from '@/lib/segments/actions';
+import { scheduleSegmentAction, unscheduleSegmentAction } from '@/lib/segments/actions';
 
-interface ScheduleActivityDialogProps {
+import {
+  hasEndDateField,
+  labelsFor,
+  toDateTimeValue,
+} from './segment-form-fields/shared-date-fields';
+
+// The reschedule dialog handles the two schedulable types: activities and
+// food. Both can be undated (a candidate the user hasn't pinned to a day)
+// and both carry a wall-clock time — a restaurant reservation, an
+// activity's start. Other types set their dates only through the full
+// edit form.
+type SchedulableType = 'activity' | 'food';
+
+interface ScheduleSegmentDialogProps {
   tripId: string;
   segmentId: string;
-  // null/undefined means promoting (wishlist → scheduled). A Date means
-  // editing the currently-scheduled date (and offers an "unschedule"
-  // path).
+  segmentType: SchedulableType;
+  // null `currentStart` means promoting (undated → dated). A Date means
+  // editing the current schedule (and offers a "Clear date" path).
+  // `currentEnd` is carried so a reschedule preserves an activity's end
+  // instead of dropping it; food has no end.
   currentStart: Date | null;
+  currentEnd: Date | null;
   trigger: React.ReactNode;
 }
 
@@ -35,37 +52,33 @@ interface FormShape {
   endsAt: string;
 }
 
-function toDateInputValue(d: Date | string | null | undefined): string {
-  if (!d) return '';
-  const date = d instanceof Date ? d : new Date(d);
-  if (Number.isNaN(date.getTime())) return '';
-  // Use the same local-time formatter the DatePicker parses with
-  // (date-picker.tsx#toDateString). Mixing UTC formatting with local
-  // parsing put scheduled activities on the wrong wall-clock day for
-  // anyone whose timezone wasn't UTC.
-  return toDateString(date);
-}
-
-// Tiny dialog with just a date picker (and an optional end date).
-// Wishlist promotion ("Schedule" CTA on a wishlist card) opens it with
-// no current value; a scheduled activity opens it pre-filled and also
-// gets a "Move to wishlist" button that calls unscheduleActivityAction.
-export function ScheduleActivityDialog({
+// Quick date+time editor for an activity / food segment. Promotion (the
+// "Schedule" CTA on an undated card) opens it empty; a dated segment
+// opens it pre-filled and also gets a "Clear date" button that calls
+// unscheduleSegmentAction. Food shows a single "Reservation" field (no
+// end); activities show start + optional end. Times are floating local
+// (ADR-0014) — the wall-clock typed is stored and shown verbatim, so a
+// reschedule never shifts the time.
+export function ScheduleSegmentDialog({
   tripId,
   segmentId,
+  segmentType,
   currentStart,
+  currentEnd,
   trigger,
-}: ScheduleActivityDialogProps) {
+}: ScheduleSegmentDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
 
   const isScheduled = currentStart !== null;
+  const hasEnd = hasEndDateField(segmentType);
+  const labels = labelsFor(segmentType);
 
   const form = useForm<FormShape>({
     defaultValues: {
-      startsAt: toDateInputValue(currentStart),
-      endsAt: '',
+      startsAt: toDateTimeValue(currentStart, null),
+      endsAt: hasEnd ? toDateTimeValue(currentEnd, null) : '',
     },
   });
   const {
@@ -78,18 +91,18 @@ export function ScheduleActivityDialog({
   const startRaw = useWatch({ control, name: 'startsAt' });
   const startDateObj = React.useMemo<Date | undefined>(() => {
     if (!startRaw) return undefined;
-    return parseDateString(startRaw);
+    return parseDateString(startRaw.slice(0, 10));
   }, [startRaw]);
 
   function onSchedule(values: FormShape) {
     setError(null);
     startTransition(async () => {
-      const result = await scheduleActivityAction(tripId, segmentId, {
+      const result = await scheduleSegmentAction(tripId, segmentId, {
         startsAt: values.startsAt,
-        endsAt: values.endsAt || null,
+        endsAt: hasEnd ? values.endsAt || null : null,
       });
       if (!result.ok) {
-        setError(result.error.formMessage ?? 'Could not schedule activity.');
+        setError(result.error.formMessage ?? 'Could not save the date.');
         if (result.error.fields?.startsAt) {
           setFieldError('startsAt', { type: 'server', message: result.error.fields.startsAt });
         }
@@ -102,12 +115,12 @@ export function ScheduleActivityDialog({
     });
   }
 
-  function onUnschedule() {
+  function onClear() {
     setError(null);
     startTransition(async () => {
-      const result = await unscheduleActivityAction(tripId, segmentId);
+      const result = await unscheduleSegmentAction(tripId, segmentId);
       if (!result.ok) {
-        setError(result.error.formMessage ?? 'Could not move to wishlist.');
+        setError(result.error.formMessage ?? 'Could not clear the date.');
         return;
       }
       setOpen(false);
@@ -132,25 +145,25 @@ export function ScheduleActivityDialog({
             <span>{isScheduled ? 'Reschedule' : 'Schedule'}</span>
           </DialogEyebrow>
           <DialogTitle className="text-2xl sm:text-3xl">
-            {isScheduled ? 'Move this activity.' : 'Pick a date.'}
+            {isScheduled ? 'Change the date.' : 'Pick a date.'}
           </DialogTitle>
           <DialogDescription className="hidden sm:block">
             {isScheduled
-              ? 'Change the date, or move it back to the wishlist.'
-              : 'Once a date is set, this activity joins the itinerary.'}
+              ? 'Change the date or time, or clear it.'
+              : 'Once a date is set, this joins the itinerary.'}
           </DialogDescription>
         </DialogHeader>
 
         <form noValidate onSubmit={handleSubmit(onSchedule)} className={dialogScrollContainer}>
           <DialogScrollableBody>
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className={hasEnd ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5'}>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="sched-start-trigger">Date</Label>
+                <Label htmlFor="sched-start-trigger">{labels.start}</Label>
                 <Controller
                   control={control}
                   name="startsAt"
                   render={({ field, fieldState }) => (
-                    <DatePicker
+                    <DateTimeField
                       id="sched-start"
                       value={field.value}
                       onChange={field.onChange}
@@ -159,6 +172,7 @@ export function ScheduleActivityDialog({
                       inputRef={field.ref}
                       invalid={!!fieldState.error}
                       placeholder="Pick a date"
+                      withTime
                     />
                   )}
                 />
@@ -168,38 +182,41 @@ export function ScheduleActivityDialog({
                   </p>
                 )}
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="sched-end-trigger">
-                  Ends{' '}
-                  <span className="text-foreground/40 tracking-normal normal-case">
-                    {' '}
-                    · optional
-                  </span>
-                </Label>
-                <Controller
-                  control={control}
-                  name="endsAt"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      id="sched-end"
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      inputRef={field.ref}
-                      invalid={!!fieldState.error}
-                      placeholder="—"
-                      defaultMonth={startDateObj}
-                      minDate={startDateObj}
-                    />
+              {hasEnd && (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="sched-end-trigger">
+                    {labels.end}{' '}
+                    <span className="text-foreground/40 tracking-normal normal-case">
+                      {' '}
+                      · optional
+                    </span>
+                  </Label>
+                  <Controller
+                    control={control}
+                    name="endsAt"
+                    render={({ field, fieldState }) => (
+                      <DateTimeField
+                        id="sched-end"
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        inputRef={field.ref}
+                        invalid={!!fieldState.error}
+                        placeholder="—"
+                        defaultMonth={startDateObj}
+                        minDate={startDateObj}
+                        withTime
+                      />
+                    )}
+                  />
+                  {errors.endsAt?.message && (
+                    <p role="alert" className="text-destructive mt-0.5 text-xs leading-snug">
+                      {errors.endsAt.message}
+                    </p>
                   )}
-                />
-                {errors.endsAt?.message && (
-                  <p role="alert" className="text-destructive mt-0.5 text-xs leading-snug">
-                    {errors.endsAt.message}
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {error && (
@@ -218,11 +235,11 @@ export function ScheduleActivityDialog({
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={onUnschedule}
+                onClick={onClear}
                 disabled={pending}
                 className="text-foreground/65 mr-auto"
               >
-                Move to wishlist
+                Clear date
               </Button>
             )}
             <Button
@@ -235,7 +252,7 @@ export function ScheduleActivityDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? 'Saving…' : isScheduled ? 'Save' : 'Schedule it'}
+              {pending ? 'Saving…' : 'Save'}
             </Button>
           </DialogStickyFooter>
         </form>

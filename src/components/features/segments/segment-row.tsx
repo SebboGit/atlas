@@ -17,11 +17,15 @@ interface SegmentRowProps {
    * trip-wide-map-then-per-segment pattern as `linkedDocuments`.
    */
   coords?: { lat: number; lng: number } | null;
-  // When true and the segment is an activity, render a "schedule" /
-  // "reschedule" action alongside delete. Off on the itinerary view
-  // (the date is implicit from the day group); on for the Activities
-  // tab where state-change is a primary action.
+  // When true and the segment is an activity or food, render a "schedule"
+  // / "reschedule" action alongside delete. Off on the itinerary view
+  // (the date is implicit from the day group); on for the Activities and
+  // Food tabs where state-change is a primary action.
   showScheduleAction?: boolean;
+  // Show the segment's own date in the card meta. On for the flat
+  // Activity / Food tabs (no day-group header there); off for the
+  // day-grouped itinerary / type tabs. Forwarded to SegmentCard.
+  showDate?: boolean;
 }
 
 // A SegmentCard plus its interactive layer (the read-only info dialog and the
@@ -35,6 +39,7 @@ export function SegmentRow({
   linkedDocuments,
   coords,
   showScheduleAction = false,
+  showDate = false,
 }: SegmentRowProps) {
   return (
     // `id="seg-<id>"` is the deep-link target for the Cmd+K palette;
@@ -48,7 +53,14 @@ export function SegmentRow({
         linkedDocuments={linkedDocuments}
         coords={coords}
         showScheduleAction={showScheduleAction}
-        card={<SegmentCard segment={segment} linkedDocuments={linkedDocuments} coords={coords} />}
+        card={
+          <SegmentCard
+            segment={segment}
+            linkedDocuments={linkedDocuments}
+            coords={coords}
+            showDate={showDate}
+          />
+        }
       />
     </div>
   );

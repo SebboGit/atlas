@@ -104,9 +104,12 @@ const VISITED_COUNTRIES = [
 // that's intentional only for new edge cases — anything we want pinned
 // on the demo map needs a `pin` here.
 type HeroSegment = {
-  type: 'flight' | 'hotel' | 'activity' | 'transit' | 'note';
+  type: 'flight' | 'hotel' | 'activity' | 'transit' | 'food' | 'note';
   data: Record<string, unknown>;
-  startsAt: Date;
+  // Omitted for an undated activity / food pick (ADR-0003) — it lands on
+  // its flat tab with no date, ready to be scheduled via the reschedule
+  // dialog.
+  startsAt?: Date;
   endsAt?: Date;
   locationName?: string;
   countryCode?: string;
@@ -174,6 +177,31 @@ const HERO_SEGMENTS: HeroSegment[] = [
     data: { title: "Friend's place — drinks" },
     startsAt: d(2025, 10, 6, 19),
     countryCode: 'JP',
+  },
+  // Timed food reservation — exercises the Food tab's date+time card and
+  // the reschedule affordance (a dated meal alongside the undated "Den"
+  // pick materialised from the wishlist below).
+  {
+    type: 'food',
+    data: {
+      venue: 'Narisawa',
+      address: '2-6-15 Minamiaoyama, Minato City, Tokyo',
+      bookingRef: 'NRSW-1907',
+    },
+    startsAt: d(2025, 10, 5, 19, 30),
+    locationName: 'Minami-Aoyama',
+    countryCode: 'JP',
+    pin: { lat: 35.6661, lng: 139.7184 },
+  },
+  // Undated activity — a candidate not yet pinned to a day (ADR-0003).
+  // Exercises the flat Activities tab's undated card (no badge) and the
+  // "Schedule" promotion path. Pinned, so it still appears on the map.
+  {
+    type: 'activity',
+    data: { title: 'Golden Gai — late drinks' },
+    locationName: 'Shinjuku',
+    countryCode: 'JP',
+    pin: { lat: 35.6938, lng: 139.7045 },
   },
   {
     type: 'transit',
@@ -577,7 +605,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         tripId: hero.id,
         type: s.type,
         data: s.data,
-        startsAt: s.startsAt,
+        startsAt: s.startsAt ?? null,
         endsAt: s.endsAt ?? null,
         locationName: s.locationName ?? null,
         countryCode: s.countryCode ?? null,
@@ -596,7 +624,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         tripId: patagoniaTripId,
         type: s.type,
         data: s.data,
-        startsAt: s.startsAt,
+        startsAt: s.startsAt ?? null,
         endsAt: s.endsAt ?? null,
         locationName: s.locationName ?? null,
         countryCode: s.countryCode ?? null,
