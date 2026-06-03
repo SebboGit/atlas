@@ -213,6 +213,7 @@ export function TripForm({ mode, initial, onSubmit, onSuccess, onCancel }: TripF
                 </option>
               ))}
             </Select>
+            {errors.status?.message && <FieldError>{errors.status.message}</FieldError>}
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="trip-visibility">Visibility</Label>
@@ -223,6 +224,7 @@ export function TripForm({ mode, initial, onSubmit, onSuccess, onCancel }: TripF
                 </option>
               ))}
             </Select>
+            {errors.visibility?.message && <FieldError>{errors.visibility.message}</FieldError>}
           </div>
         </div>
 

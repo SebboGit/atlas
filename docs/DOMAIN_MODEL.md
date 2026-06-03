@@ -85,4 +85,4 @@ One table = one extraction pipeline, one upload UI, one storage adapter, one bac
 
 - Expenses & budgets — additive later.
 - Itinerary timeline reordering with conflict detection — UI concern when needed.
-- Per-trip privacy — modelled via `trips.visibility` (`household` | `private`, ADR-0015). Default `household`: `userId` / `createdBy` stay provenance for reads, and one predicate (`tripVisibleToViewer`) gates every content read/write. A trip's creator can mark it `private` (owner-only); trip-row mutations stay owner-only; documents stay uploader-scoped. A further tier (per-member ACLs) would need a join table and a new ADR — not modelled.
+- Per-trip privacy — modelled via `trips.visibility` (`household` | `private`, ADR-0015). Default `household`: `userId` / `createdBy` stay provenance for reads, and one predicate (`tripVisibleToViewer`) is the shared-trip visibility boundary for content reads/writes — not the sole auth check. A trip's creator can mark it `private` (owner-only); trip-row mutations stay owner-only and documents stay uploader-scoped (separate gates). A further tier (per-member ACLs) would need a join table and a new ADR — not modelled.
