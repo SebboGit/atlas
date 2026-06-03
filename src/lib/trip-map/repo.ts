@@ -13,6 +13,7 @@ import {
   type GeocodeWorkerStatus,
 } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
+import { tripVisibleToViewer } from '@/lib/trips/repo';
 import {
   activityDataSchema,
   flightDataSchema,
@@ -131,9 +132,10 @@ export interface WishlistMapPin {
 const segmentCols = getTableColumns(segments);
 
 /**
- * Build the pin set for a trip's map tab. Verifies ownership through
- * the trips.userId join (no separate ACL check needed — a foreign
- * userId returns an empty result, not a 403).
+ * Build the pin set for a trip's map tab. Access is gated through the
+ * trips join with tripVisibleToViewer (ADR-0015) — a household member
+ * sees a shared trip's pins; a trip this viewer can't reach returns an
+ * empty result, not a 403.
  *
  * Two coord sources:
  *   - Flights: in-memory IATA airport snapshot (`src/lib/airports`).
@@ -150,7 +152,7 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
     .select(segmentCols)
     .from(segments)
     .innerJoin(trips, eq(segments.tripId, trips.id))
-    .where(and(eq(segments.tripId, tripId), eq(trips.userId, userId)))
+    .where(and(eq(segments.tripId, tripId), tripVisibleToViewer(userId)))
     .orderBy(sql`${segments.startsAt} asc nulls last`, asc(segments.createdAt));
 
   const pins: TripMapPin[] = [];

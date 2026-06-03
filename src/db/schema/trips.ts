@@ -6,16 +6,29 @@ import { users } from './users';
 
 export const tripStatus = pgEnum('trip_status', ['planned', 'active', 'completed', 'archived']);
 
+// Household-sharing boundary (ADR-0015). 'household' = visible to every
+// household member; 'private' = only the creator. 'household' is the
+// default so the full-sharing model holds unless the owner opts a trip
+// out. See tripVisibleToViewer() in trips/repo.ts — the single predicate
+// every content read/write folds in.
+export const tripVisibility = pgEnum('trip_visibility', ['household', 'private']);
+
 export const trips = pgTable(
   'trips',
   {
     id: uuidv7Pk().primaryKey(),
+    // Provenance: who created the trip. Under the household model this is
+    // NOT an exclusive-ownership ACL for reads — household trips are
+    // visible to everyone — but it IS the boundary for trip-row mutations
+    // (rename/dates/status/archive/delete/visibility stay owner-only) and
+    // the 'private' branch of tripVisibleToViewer().
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     summary: text('summary'),
     status: tripStatus('status').notNull().default('planned'),
+    visibility: tripVisibility('visibility').notNull().default('household'),
     startDate: timestamp('start_date', { withTimezone: true, mode: 'date' }),
     endDate: timestamp('end_date', { withTimezone: true, mode: 'date' }),
     // coverImageId is deliberately omitted from the initial migration to

@@ -185,7 +185,7 @@ describeIfDb('wishlist.repo', () => {
       });
     });
 
-    it('throws TRIP_NOT_FOUND when the trip does not belong to the user', async () => {
+    it('throws TRIP_NOT_FOUND when materialising onto another member’s private trip', async () => {
       const item = await repo.create(userIdA, {
         type: 'activity',
         countryCode: 'JP',
@@ -193,10 +193,32 @@ describeIfDb('wishlist.repo', () => {
         tags: [],
       });
 
-      // userIdB does not own trip A.
-      await expect(repo.materialiseOnTrip(userIdB, item.id, tripA)).rejects.toThrow(
+      // A private trip owned by user A. User B isn't the owner and the
+      // trip isn't household-shared, so they can't reach it (ADR-0015).
+      const [priv] = await db
+        .insert(trips)
+        .values({ userId: userIdA, title: 'Solo Osaka', status: 'planned', visibility: 'private' })
+        .returning({ id: trips.id });
+      if (!priv) throw new Error('failed to insert private trip');
+
+      await expect(repo.materialiseOnTrip(userIdB, item.id, priv.id)).rejects.toThrow(
         'TRIP_NOT_FOUND',
       );
+    });
+
+    it('lets a household member materialise onto a shared trip', async () => {
+      // tripA is owned by user A with the default 'household' visibility,
+      // so user B — a household member — can drop a pick onto it (ADR-0015).
+      const item = await repo.create(userIdB, {
+        type: 'food',
+        countryCode: 'JP',
+        data: { venue: 'Afuri' },
+        tags: [],
+      });
+
+      const { segment } = await repo.materialiseOnTrip(userIdB, item.id, tripA);
+      expect(segment.tripId).toBe(tripA);
+      expect(segment.wishlistItemId).toBe(item.id);
     });
 
     it('throws WISHLIST_ITEM_NOT_FOUND when the item does not exist', async () => {

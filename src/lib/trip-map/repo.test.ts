@@ -28,6 +28,9 @@ vi.mock('drizzle-orm', () => ({
   and: () => ({}),
   asc: () => ({}),
   eq: () => ({}),
+  // `or` backs tripVisibleToViewer, imported by the repo for the trip
+  // access gate. Identity placeholder — the mock never executes it.
+  or: () => ({}),
   getTableColumns: () => ({}),
   sql: (..._args: unknown[]) => ({}),
 }));

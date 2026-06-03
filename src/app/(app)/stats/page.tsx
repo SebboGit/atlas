@@ -13,9 +13,9 @@ export const metadata = {
 
 export default async function StatsPage() {
   const user = await requireUser();
-  // currentUserId is threaded through every stats query. Today the
-  // visibility predicate inside the repo is a no-op (full household
-  // sharing) — see src/lib/stats/visibility.ts.
+  // currentUserId scopes every stats query to this viewer: their own
+  // trips plus household trips, never another member's private trip
+  // (ADR-0015, via tripVisibleToViewer in @/lib/trips/repo).
   const { lifetime, yearOverYear, records, isEmpty } = await getStatsDashboardData(user.id);
 
   // Distance is computed in km server-side (haversineKm); convert to the

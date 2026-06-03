@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql, type SQL } from 'drizzle-orm';
 import { cache } from 'react';
 
 import { db } from '@/db/client';
@@ -10,6 +10,26 @@ import { trips, type Trip } from '@/db/schema';
 export type { Trip };
 
 import type { TRIP_STATUSES, TripStatus, TripCreateInput, TripUpdateInput } from './validators';
+
+// ─── The visibility boundary (ADR-0015) ──────────────────────────────
+// The single source of truth for "can this viewer SEE this trip's
+// content." A trip is visible when it's shared with the household OR the
+// viewer created it (the 'private' branch). Every content read and every
+// content write across the app folds this predicate in — trips, segments,
+// the trip map, the visited-country roll-up, stats, and search — so the
+// household-sharing rule lives in exactly one place.
+//
+// It lives here (a repo, allowed to import @/db/* under the architecture
+// lint) and is imported by the other feature repos. Trip-ROW mutations
+// (update/archive/unarchive/hardDelete/visibility) deliberately do NOT
+// use it: those stay strict-owner via `eq(trips.userId, …)`, because the
+// creator owns the container even when its contents are shared.
+//
+// The `!` is safe: `or(...)` only returns `undefined` when every argument
+// is undefined, and both arguments here are concrete `eq(...)` clauses.
+export function tripVisibleToViewer(viewerId: string): SQL {
+  return or(eq(trips.visibility, 'household'), eq(trips.userId, viewerId))!;
+}
 
 // Default list view hides archived trips. The page can pass an explicit
 // status filter (e.g. ['archived']) to show them.
@@ -27,10 +47,12 @@ export async function listForUser(
   opts: { statuses?: StatusFilter } = {},
 ): Promise<Trip[]> {
   const statuses = opts.statuses ?? ACTIVE_STATUSES;
+  // Read = access: the list shows the viewer's own trips plus every
+  // household trip (created by anyone). Private trips of other members
+  // are excluded by the predicate.
+  const visible = tripVisibleToViewer(userId);
   const where =
-    statuses === 'all'
-      ? eq(trips.userId, userId)
-      : and(eq(trips.userId, userId), inArray(trips.status, statuses as TripStatus[]));
+    statuses === 'all' ? visible : and(visible, inArray(trips.status, statuses as TripStatus[]));
 
   // Upcoming/recent first; undated drafts sink to the bottom.
   // createdAt is the deterministic tiebreaker.
@@ -47,11 +69,15 @@ export async function listForUser(
 // PK lookup instead of each issuing it. Mirrors getCurrentUser in
 // src/lib/auth/session.ts. No worker/job reaches this, so the request-scoped
 // cache is the only context it runs in.
+// Read = access: returns the trip when the viewer owns it OR it's a
+// household trip. This is the gate the trip-detail pages and (via the
+// segment/document repos) the content surfaces lean on, so a household
+// member can open a shared trip they didn't create.
 export const getByIdForUser = cache(async (userId: string, id: string): Promise<Trip | null> => {
   const rows = await db
     .select()
     .from(trips)
-    .where(and(eq(trips.id, id), eq(trips.userId, userId)))
+    .where(and(eq(trips.id, id), tripVisibleToViewer(userId)))
     .limit(1);
   return rows[0] ?? null;
 });
@@ -64,6 +90,7 @@ export async function create(userId: string, input: TripCreateInput): Promise<Tr
       title: input.title,
       summary: input.summary,
       status: input.status,
+      visibility: input.visibility,
       startDate: input.startDate,
       endDate: input.endDate,
     })
@@ -84,9 +111,15 @@ export async function update(
   if (patch.title !== undefined) set.title = patch.title;
   if (patch.summary !== undefined) set.summary = patch.summary;
   if (patch.status !== undefined) set.status = patch.status;
+  // Visibility is owner-controlled, so it rides the owner-only update
+  // path below. 'private' is defined relative to the creator, so only
+  // the creator can flip it.
+  if (patch.visibility !== undefined) set.visibility = patch.visibility;
   if (patch.startDate !== undefined) set.startDate = patch.startDate;
   if (patch.endDate !== undefined) set.endDate = patch.endDate;
 
+  // Owner-only: trip-row edits stay strict-owner even on a household
+  // trip whose contents the whole household can edit.
   const [row] = await db
     .update(trips)
     .set(set)

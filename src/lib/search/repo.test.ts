@@ -38,6 +38,10 @@ vi.mock('@/db/client', () => ({
 
 import { buildPrefixTsquery, searchAll } from './repo';
 
+// The DB is mocked, so the viewer id is never interpolated into a real
+// query — any value satisfies the new visibility-scoped signature.
+const VIEWER_ID = 'user-1';
+
 beforeEach(() => {
   dbState.rows = [];
   dbState.calls = [];
@@ -45,7 +49,7 @@ beforeEach(() => {
 
 describe('searchAll', () => {
   it('short-circuits empty input without touching the DB', async () => {
-    const out = await searchAll('   ');
+    const out = await searchAll('   ', VIEWER_ID);
     expect(out).toEqual({ trips: [], segments: [], documents: [], wishlist: [] });
     expect(dbState.calls).toHaveLength(0);
   });
@@ -90,7 +94,7 @@ describe('searchAll', () => {
       },
     ];
 
-    const out = await searchAll('vietnam');
+    const out = await searchAll('vietnam', VIEWER_ID);
 
     expect(out.trips).toHaveLength(1);
     expect(out.segments).toHaveLength(1);
@@ -124,13 +128,13 @@ describe('searchAll', () => {
       },
     ];
 
-    const out = await searchAll('hanoi');
+    const out = await searchAll('hanoi', VIEWER_ID);
 
     expect(out.segments.map((r) => r.segmentType)).toEqual(['hotel', 'activity']);
   });
 
   it('returns empty groups when the DB returns no rows', async () => {
-    const out = await searchAll('zzz-no-match');
+    const out = await searchAll('zzz-no-match', VIEWER_ID);
     expect(out).toEqual({ trips: [], segments: [], documents: [], wishlist: [] });
   });
 });

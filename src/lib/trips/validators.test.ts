@@ -9,6 +9,7 @@ describe('tripCreateInput', () => {
     if (result.success) {
       expect(result.data.title).toBe('Lisbon weekend');
       expect(result.data.status).toBe('planned');
+      expect(result.data.visibility).toBe('household');
       expect(result.data.summary).toBeNull();
       expect(result.data.startDate).toBeNull();
       expect(result.data.endDate).toBeNull();
@@ -68,6 +69,17 @@ describe('tripCreateInput', () => {
     const result = tripCreateInput.safeParse({ title: 'x', status: 'cancelled' });
     expect(result.success).toBe(false);
   });
+
+  it('accepts an explicit private visibility', () => {
+    const result = tripCreateInput.safeParse({ title: 'x', visibility: 'private' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.visibility).toBe('private');
+  });
+
+  it('rejects an unknown visibility', () => {
+    const result = tripCreateInput.safeParse({ title: 'x', visibility: 'public' });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('tripCreateInput round-trip', () => {
@@ -91,6 +103,7 @@ describe('tripCreateInput round-trip', () => {
         title: 'Trip',
         summary: 'A note',
         status: 'active' as const,
+        visibility: 'private' as const,
         startDate: '2026-06-01',
         endDate: '2026-06-10',
       },

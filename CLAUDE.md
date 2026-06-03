@@ -440,7 +440,7 @@ Detailed procedures live as auto-loaded skills under `.claude/skills/`. Reach fo
 
 The following are deliberately stubbed but not yet built. Keep them in mind so today's decisions don't paint them into a corner:
 
-- **Household sharing visibility.** Atlas is built for ~2 users via separate PocketID identities, not SaaS-scale tenancy. The chosen model is **full household sharing by default**: `userId` columns mean `createdBy` provenance, not ownership. If per-trip privacy is ever needed, the only acceptable extension is a `trips.visibility` enum on the existing schema — not an `ownerships` join table.
+- **Household sharing visibility.** Atlas is built for ~2 users via separate PocketID identities, not SaaS-scale tenancy. The model is **full household sharing by default** with an opt-out: `userId` columns mean `createdBy` provenance for reads, and a `trips.visibility` enum (`household` | `private`, ADR-0015) lets the creator keep a trip off the shared view. One predicate — `tripVisibleToViewer` in `src/lib/trips/repo.ts` — gates every content read and write; trip-row mutations (rename/dates/status/archive/delete/visibility) stay owner-only; documents stay uploader-scoped; manual visited-country marks stay per-user. A further tier (per-member ACLs) would need a real join table and a new ADR — not contemplated.
 - **Mobile companion.** Backend is API-first via server actions + a small `/api` surface. A future Expo/React Native app can consume it.
 - **ntfy notifications.** Push reminders for upcoming flights / hotel check-ins, plus extraction success/failure. Self-hosted ntfy server, per-user topic. See "External Integrations → Push notifications".
 - **Calendar sync.** ICS export of confirmed segments; CalDAV later.
@@ -467,6 +467,7 @@ Architectural decisions live in `docs/adr/` as numbered ADRs.
 - **ADR-0012** — pg-boss for durable jobs and in-stack scheduling (graduates `Jobs` and the `worker` service from their minimal in-process implementations). Accepted.
 - **ADR-0013** — Postgres-native search via generated `tsvector` columns directly on source tables (no central `search_index`, no out-of-process search engine). Accepted.
 - **ADR-0014** — Floating local time for non-flight segment times: store and display the typed wall-clock verbatim (interpret at UTC, render in UTC), server-side and deterministic. Flights keep airport-tz; today/countdown stay viewer-relative. Accepted.
+- **ADR-0015** — Per-trip visibility (`household` | `private`) via a `trips.visibility` enum. One predicate (`tripVisibleToViewer`) gates every content read and write; trip-row mutations stay owner-only; documents stay uploader-scoped. Accepted.
 
 When making a non-obvious choice (a library, a pattern, a tradeoff), write a short ADR. Template in `docs/adr/0000-template.md`.
 

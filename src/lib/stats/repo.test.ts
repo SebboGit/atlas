@@ -31,13 +31,16 @@ const dbState = vi.hoisted(() => ({
 
 vi.mock('drizzle-orm', () => ({
   eq: () => ({}),
+  // `or` backs tripVisibleToViewer (imported by the repo via tripsScope);
+  // the mock never executes it, so an identity placeholder is enough.
+  or: () => ({}),
   getTableColumns: () => ({}),
   sql: (..._args: unknown[]) => ({}),
 }));
 
 vi.mock('@/db/schema', () => ({
   segments: { tripId: {}, type: {}, data: {} },
-  trips: { id: {}, userId: {}, title: {}, startDate: {}, endDate: {} },
+  trips: { id: {}, userId: {}, title: {}, startDate: {}, endDate: {}, visibility: {} },
 }));
 
 vi.mock('@/db/client', () => {

@@ -9,7 +9,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -32,12 +32,17 @@ describeIfDb('countries.repo.listVisitedCountriesForUser', () => {
     // CI runs migrations only (no seed), so the FK on
     // segments.country_code / user_visited_countries.country_code would
     // otherwise reject every insert. ON CONFLICT keeps local dev a no-op.
+    // These codes are deliberately ones the dev fixture never uses, so the
+    // membership assertions below stay robust even against a seeded DB
+    // where household trips (ADR-0015) are now globally visible.
     await db
       .insert(countries)
       .values([
-        { code: 'JP', name: 'Japan' },
-        { code: 'FR', name: 'France' },
-        { code: 'GB', name: 'United Kingdom' },
+        { code: 'NZ', name: 'New Zealand' },
+        { code: 'IS', name: 'Iceland' },
+        { code: 'NO', name: 'Norway' },
+        { code: 'SE', name: 'Sweden' },
+        { code: 'DK', name: 'Denmark' },
       ])
       .onConflictDoNothing({ target: countries.code });
   });
@@ -60,13 +65,21 @@ describeIfDb('countries.repo.listVisitedCountriesForUser', () => {
     return u.id;
   }
 
-  async function startedTrip(userId: string): Promise<string> {
+  // Default 'private' keeps each test's roll-up isolated. Under household
+  // sharing (ADR-0015) a 'household' trip is visible to EVERY user, so on
+  // the shared CI database these tests would otherwise contaminate each
+  // other's exact-count assertions. Pass 'household' to exercise sharing.
+  async function startedTrip(
+    userId: string,
+    visibility: 'household' | 'private' = 'private',
+  ): Promise<string> {
     const [t] = await db
       .insert(trips)
       .values({
         userId,
         title: 'Fixture',
         status: 'completed',
+        visibility,
         // Past start so the trip counts as "actually started".
         startDate: new Date('2020-01-01T00:00:00Z'),
       })
@@ -81,15 +94,17 @@ describeIfDb('countries.repo.listVisitedCountriesForUser', () => {
     await db.insert(segments).values({
       tripId,
       type: 'hotel',
-      countryCode: 'JP',
+      countryCode: 'NZ',
       startsAt: new Date('2020-01-02T00:00:00Z'),
     });
 
-    const visited = await listVisitedCountriesForUser(userId);
-    expect(visited).toHaveLength(1);
-    expect(visited[0]?.code).toBe('JP');
-    expect(visited[0]?.tripCount).toBe(1);
-    expect(visited[0]?.manuallyMarked).toBe(false);
+    // Membership, not exact-count: a seeded DB carries household trips that
+    // are globally visible now (ADR-0015), so assert on this test's own
+    // unique code rather than the total length.
+    const nz = (await listVisitedCountriesForUser(userId)).find((v) => v.code === 'NZ');
+    expect(nz).toBeDefined();
+    expect(nz?.tripCount).toBe(1);
+    expect(nz?.manuallyMarked).toBe(false);
   });
 
   it('excludes flight segments from the roll-up', async () => {
@@ -98,39 +113,64 @@ describeIfDb('countries.repo.listVisitedCountriesForUser', () => {
     await db.insert(segments).values({
       tripId,
       type: 'flight',
-      countryCode: 'FR',
+      countryCode: 'IS',
       startsAt: new Date('2020-01-02T00:00:00Z'),
     });
 
+    // The flight's country must not appear: logging a flight doesn't count
+    // as visiting. IS is used by no other (visible) trip.
     const visited = await listVisitedCountriesForUser(userId);
-    expect(visited).toHaveLength(0);
+    expect(visited.find((v) => v.code === 'IS')).toBeUndefined();
   });
 
   it('surfaces a manual mark with zero trip count', async () => {
     const userId = await makeUser();
-    await addManualVisitedCountry(userId, 'GB');
+    await addManualVisitedCountry(userId, 'NO');
 
-    const visited = await listVisitedCountriesForUser(userId);
-    expect(visited).toHaveLength(1);
-    expect(visited[0]?.code).toBe('GB');
-    expect(visited[0]?.tripCount).toBe(0);
-    expect(visited[0]?.manuallyMarked).toBe(true);
+    // Manual marks are per-user, so NO is this user's alone.
+    const no = (await listVisitedCountriesForUser(userId)).find((v) => v.code === 'NO');
+    expect(no).toBeDefined();
+    expect(no?.tripCount).toBe(0);
+    expect(no?.manuallyMarked).toBe(true);
 
     await db.delete(userVisitedCountries).where(eq(userVisitedCountries.userId, userId));
   });
 
-  it('scopes results to the requesting user', async () => {
+  it('does not leak another member’s private trip', async () => {
     const userA = await makeUser();
     const userB = await makeUser();
-    const tripA = await startedTrip(userA);
+    const tripA = await startedTrip(userA); // private by default
     await db.insert(segments).values({
       tripId: tripA,
       type: 'activity',
-      countryCode: 'JP',
+      countryCode: 'SE',
       startsAt: new Date('2020-01-02T00:00:00Z'),
     });
 
+    // A's trip is private and SE is on no other visible trip, so it must
+    // not paint a country on another household member's map (ADR-0015).
     const visitedB = await listVisitedCountriesForUser(userB);
-    expect(visitedB).toHaveLength(0);
+    expect(visitedB.find((v) => v.code === 'SE')).toBeUndefined();
+  });
+
+  it('counts a household trip created by another member', async () => {
+    const userA = await makeUser();
+    const userB = await makeUser();
+    const tripA = await startedTrip(userA, 'household');
+    await db.insert(segments).values({
+      tripId: tripA,
+      type: 'activity',
+      countryCode: 'DK',
+      startsAt: new Date('2020-01-02T00:00:00Z'),
+    });
+
+    // Household trips are shared, so A's Denmark trip surfaces on B's map.
+    const visitedB = await listVisitedCountriesForUser(userB);
+    expect(visitedB.map((v) => v.code)).toContain('DK');
+
+    // A household trip is globally visible, so leaving it in the shared DB
+    // would bleed into other roll-up assertions. Cascade-delete both users
+    // to remove the trip + its segment.
+    await db.delete(users).where(inArray(users.id, [userA, userB]));
   });
 });

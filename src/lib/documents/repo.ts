@@ -26,9 +26,17 @@ const linkedSegmentCountSql = sql<number>`(
 
 // All docs attached to a trip, whether linked to a segment or not.
 // Each row carries `linkedSegmentCount` so the UI can render a
-// "linked" indicator without a second round-trip. Ownership verified
-// by inner join on trips.userId so this can't return another user's
-// row even if a bad tripId is supplied.
+// "linked" indicator without a second round-trip. Scoped by inner join
+// on trips.userId so this can't return another user's row even if a bad
+// tripId is supplied.
+//
+// ADR-0015: documents stay uploader-scoped, NOT trip-visibility-scoped —
+// a household member sees a shared trip's segments but not its uploaded
+// files. The trips.userId join is equivalent to documents.userId TODAY
+// only because upload is owner-only (every attached doc's userId equals
+// its trip's userId). If household document uploads ever ship, switch
+// this (and countForTrip) to eq(documents.userId, userId) so a
+// co-uploader's files don't leak to the trip owner.
 export async function listForTrip(userId: string, tripId: string): Promise<DocumentWithLinks[]> {
   return db
     .select({ ...docCols, linkedSegmentCount: linkedSegmentCountSql })
