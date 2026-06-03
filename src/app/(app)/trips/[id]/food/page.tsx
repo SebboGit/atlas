@@ -47,10 +47,7 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
     segmentsRepo.listCountryCodesForTrip(user.id, id),
   ]);
 
-  // Suggestions + coords are fetched TOGETHER — not as a third sequential
-  // `await`. An extra await boundary on a Server Component page shifts
-  // React 19's useId tree-context counter, which desyncs the SegmentRow
-  // dialogs' ids between server and client and throws a hydration mismatch.
+  // Suggestions + coords fetched in parallel — one await boundary, not two.
   // `listForCountries` returns [] for an empty country list, so no guard.
   const [suggestions, { coordsById: coordsBySegmentId, pendingCount }] = await Promise.all([
     wishlistRepo.listForCountries(tripCountries, {

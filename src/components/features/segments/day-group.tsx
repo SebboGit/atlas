@@ -92,7 +92,11 @@ export function DayGroup({
         </div>
       )}
 
-      <ol className="relative space-y-3 sm:space-y-4 md:pl-10">
+      {/* Positioned wrapper holds the decorative timeline rail as a sibling
+       *  of the list — the rail is not a valid direct child of <ol>, so it
+       *  lives here instead. pl-10 reserves the laptop gutter the rail and
+       *  dots sit in. */}
+      <div className="relative md:pl-10">
         {/* Vertical timeline rail — laptop only, sits within the pl-10
          *  gutter. Today's rail picks up a faint terracotta wash so the
          *  focal day reads as a connected through-line behind its dots;
@@ -104,29 +108,31 @@ export function DayGroup({
             isToday ? 'bg-primary/30' : 'bg-foreground/15',
           )}
         />
-        {segments.map((s) => (
-          <li key={s.id} className="relative">
-            {/* Dot marker — also laptop only. Sits at left:16px in the
-             *  parent ol, which matches the rail's centre. Today's rail
-             *  reads as the single terracotta focal point (filled dot);
-             *  every other day stays a quiet hollow ink marker. */}
-            <span
-              aria-hidden
-              className={cn(
-                'absolute top-7 hidden h-2 w-2 rounded-full border md:block',
-                isToday ? 'border-primary bg-primary' : 'border-foreground/35 bg-card',
-              )}
-              style={{ left: '-28px' }}
-            />
-            <SegmentRow
-              segment={s}
-              tripId={tripId}
-              linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
-              coords={coordsBySegmentId?.get(s.id) ?? null}
-            />
-          </li>
-        ))}
-      </ol>
+        <ol className="space-y-3 sm:space-y-4">
+          {segments.map((s) => (
+            <li key={s.id} className="relative">
+              {/* Dot marker — also laptop only. Sits at left:-28px on each
+               *  row, which matches the rail's centre in the gutter. Today's
+               *  rail reads as the single terracotta focal point (filled
+               *  dot); every other day stays a quiet hollow ink marker. */}
+              <span
+                aria-hidden
+                className={cn(
+                  'absolute top-7 hidden h-2 w-2 rounded-full border md:block',
+                  isToday ? 'border-primary bg-primary' : 'border-foreground/35 bg-card',
+                )}
+                style={{ left: '-28px' }}
+              />
+              <SegmentRow
+                segment={s}
+                tripId={tripId}
+                linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
+                coords={coordsBySegmentId?.get(s.id) ?? null}
+              />
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }

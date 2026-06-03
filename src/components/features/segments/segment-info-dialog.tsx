@@ -121,29 +121,23 @@ export function SegmentInfoDialog({
           className="gap-5 sm:p-6"
         >
           <SegmentInfoBody segment={segment} linkedDocuments={linkedDocuments} />
-          {/* Edit affordance — the read-only inspector otherwise
-           *  dead-ends on the dominant tap. Opens the existing edit
-           *  flow (SegmentFormDialog in edit mode, wired to
-           *  updateSegmentAction); the info dialog closes as the edit
-           *  dialog opens so the two never stack. The close is deferred
-           *  a tick so the edit dialog claims the focus trap first —
-           *  closing the parent synchronously would bounce focus back
-           *  to the card before the edit dialog mounts. The hairline
-           *  matches the InfoSection rhythm. */}
+          {/* Edit affordance — the read-only inspector otherwise dead-ends
+           *  on the dominant tap. Opens the existing edit flow
+           *  (SegmentFormDialog in edit mode, wired to updateSegmentAction)
+           *  stacked on top of the inspector. The inspector is deliberately
+           *  NOT closed here: SegmentFormDialog renders inside this
+           *  DialogContent, so closing the inspector would unmount the edit
+           *  dialog (and tear down its portal) along with it. Closing the
+           *  edit dialog returns to the inspector. The Button stays the
+           *  dialog's own Radix trigger so the flight leg-group load still
+           *  fires on open. The hairline matches the InfoSection rhythm. */}
           <div className="border-foreground/10 -mt-1 flex justify-end border-t pt-4">
             <SegmentFormDialog
               tripId={tripId}
               editingSegment={segment}
               coords={coords}
               trigger={
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setTimeout(() => setOpen(false), 0);
-                  }}
-                >
+                <Button type="button" variant="outline" size="sm">
                   <Pencil strokeWidth={1.75} />
                   Edit
                 </Button>
