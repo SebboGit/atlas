@@ -318,35 +318,75 @@ single migration authority and the app is gated on `worker: service_healthy`,
 and pulling Postgres out of the stack breaks that health-gating — a green
 Postgres container says nothing about whether migrations have run.
 
+Use the dedicated [`docker-compose.unraid.yml`](../docker-compose.unraid.yml).
+It is a **standalone** file — paste the whole thing into a Compose Manager Plus
+stack; do **not** combine it with `docker-compose.yml` / `docker-compose.prod.yml`.
+Those two target a source checkout: relative `./data` paths (which resolve to the
+plugin's hidden project directory, not your appdata), build stages, and dev
+source mounts. The Unraid file instead pulls the published GHCR images and uses
+absolute `/mnt/user/appdata/atlas` bind mounts, and drops the source-tree mounts
+entirely (the Postgres init script the dev compose mounts is redundant — the
+worker's first migration creates the required extensions itself).
+
 Order of operations:
 
 1. **Install PocketID from Community Apps first, and create the OIDC client.**
    A running (green) PocketID container is not the same as working sign-in —
    you need the client created and its ID/secret in hand before Atlas can
-   authenticate anyone. Follow [PocketID setup](#pocketid-setup) above.
-2. **Install the Compose Manager Plus plugin** from Community Apps.
-3. **Create the Atlas stack** and paste in both `docker-compose.yml` and
-   `docker-compose.prod.yml`. Provide a real `.env` (not `.env.example`).
-4. **Point the `data/` bind mounts at `/mnt/user/appdata/atlas`** (or a
-   dedicated cache pool to keep the writes off the array and dodge the
-   mover). This is where documents, tiles, and backups live.
-5. **Set `ATLAS_IMAGE_TAG`** in `.env` to the release you want (e.g.
-   `1.0.0`, or leave it `latest`), then bring the stack up:
+   authenticate anyone. Follow [PocketID setup](#pocketid-setup) above. Register
+   each URL you'll reach Atlas at — the LAN `http://<host>:3000` and the
+   eventual reverse-proxy `https://…` URL — as a callback, each with the
+   `/api/auth/callback/pocket-id` path.
+2. **Install the Compose Manager Plus plugin** from Community Apps (the older
+   "Docker Compose Manager" plugin is deprecated — don't use it).
+3. **Create the appdata directories and fix ownership.** The app and worker run
+   as uid 1001, and a bind mount shadows the image's own `chown`, so the
+   documents directory must be writable by that uid:
    ```bash
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile backup pull
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile backup up -d
+   mkdir -p /mnt/user/appdata/atlas/{documents,tiles,backups/db}
+   chown -R 1001:1001 /mnt/user/appdata/atlas/documents
    ```
+   Keep `appdata` on a cache/SSD pool with the mover disabled for that share —
+   never let the mover touch a live database or open document files.
+4. **Create the stack**, paste `docker-compose.unraid.yml`, and fill the
+   variables in the plugin's env editor. At minimum: `ATLAS_IMAGE_TAG` (pin a
+   release rather than `latest`), `POSTGRES_PASSWORD`, `AUTH_SECRET`, `AUTH_URL`,
+   the three `OIDC_*` values, and `NOMINATIM_CONTACT_EMAIL` (the geocoder refuses
+   to start without it). `AUTH_URL` must equal the URL you actually reach Atlas
+   at, or OIDC callbacks fail.
+5. **Compose Up.** The plugin pulls both images; the worker runs migrations and
+   seeds the country table, then the app starts once the worker reports healthy.
 
 A release publishes **two** images from one version, and `ATLAS_IMAGE_TAG`
 drives both: the `app` pulls `ghcr.io/sebbogit/atlas:$ATLAS_IMAGE_TAG` and the
 `worker` pulls the same tag suffixed `-worker`
 (`ghcr.io/sebbogit/atlas:$ATLAS_IMAGE_TAG-worker`). The worker image carries the
 pg-boss process — it runs migrations and the background jobs the app depends on,
-so both must exist for the pull to succeed.
+so both must exist for the pull to succeed. The images are published by the
+release workflow when a `v*` tag is pushed, so deploy a tagged version rather
+than an unbuilt one.
 
-The GHCR images must already exist for the pull to succeed — they are published
-by the release workflow when a `v*` tag is pushed, so deploy a tagged version
-rather than an unbuilt one.
+### Where the database lives
+
+`docker-compose.unraid.yml` stores Postgres in a Docker **named volume**
+(`atlas-pgdata`), not under `appdata`. A named volume can't be corrupted by the
+mover and gets correct permissions automatically. It lives under Docker's
+data-root (Settings → Docker → "Docker data location") — inside the Docker vDisk
+image, or on the pool if you run Docker in directory mode. You restore the
+database from the `db-backup` dumps under `appdata/atlas/backups/db`, not by
+copying the volume, so it is covered by backups either way. To keep the data
+files under `appdata` instead, the compose file documents the one-line switch to
+a bind mount — only do that on a cache/SSD pool with the mover off.
+
+### Basemap and TLS notes
+
+The `tiles` bind mount can start empty: the world `/map` works without it, and
+only the per-trip basemap needs tiles. Drop `world.pmtiles` into
+`appdata/atlas/tiles` when you want trip maps (see
+[Basemap setup](#basemap-setup-protomaps-pmtiles)). If your PocketID instance
+runs behind a private / local CA, uncomment the `NODE_EXTRA_CA_CERTS` env and
+the CA bind mount in the compose file so the app trusts it for server-side OIDC
+calls — see the [TLS note](#pocketid-setup) under PocketID setup.
 
 ---
 

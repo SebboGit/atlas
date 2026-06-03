@@ -120,6 +120,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   └── types/               # Cross-cutting types
 ├── docker-compose.yml       # Local dev stack (app, postgres, worker; db-backup behind profile)
 ├── docker-compose.prod.yml  # Production overlay
+├── docker-compose.unraid.yml # Standalone Unraid (Compose Manager Plus) stack — pulls GHCR images
 ├── Dockerfile               # App image (dev + prod targets)
 ├── drizzle.config.ts        # Drizzle Kit config
 ├── .env.example             # Documented env vars (real .env is gitignored)

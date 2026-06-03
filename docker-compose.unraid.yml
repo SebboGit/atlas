@@ -1,0 +1,182 @@
+# =============================================================================
+# Atlas — Unraid (Compose Manager Plus) — STANDALONE stack
+#
+# Paste this WHOLE file into a Compose Manager Plus stack. Do NOT combine it
+# with docker-compose.yml / docker-compose.prod.yml — those target a source
+# checkout (relative ./data paths that resolve to the plugin's hidden project
+# dir, build stages, dev source mounts) and don't translate to Unraid. This
+# file pulls the published GHCR images and uses absolute /mnt/user/appdata
+# bind mounts instead.
+#
+# One stack, Postgres INSIDE it. Don't split Postgres into a separate Unraid
+# container: the worker is the single migration authority and the app is gated
+# on `worker: service_healthy`. A standalone Postgres breaks that gating — a
+# green Postgres says nothing about whether migrations have run.
+#
+# Before the first "Compose Up":
+#   mkdir -p /mnt/user/appdata/atlas/{documents,tiles,backups/db}
+#   chown -R 1001:1001 /mnt/user/appdata/atlas/documents
+#   (app + worker run as uid 1001; a bind mount shadows the image's own chown)
+#
+# Fill the variables below in the Compose Manager Plus env editor. At minimum:
+#   ATLAS_IMAGE_TAG, POSTGRES_PASSWORD, AUTH_SECRET, AUTH_URL,
+#   OIDC_ISSUER_URL, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, NOMINATIM_CONTACT_EMAIL
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: atlas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD}
+      POSTGRES_DB: atlas
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      # PG18 mounts the PARENT dir, not .../data — see docker-library/postgres#1259.
+      #
+      # A named volume is the safe default: the Unraid mover can't touch it and
+      # permissions are handled for you. It lives under Docker's data-root
+      # (Settings -> Docker -> "Docker data location") as
+      # /var/lib/docker/volumes/<stack>_atlas-pgdata/_data — inside the Docker
+      # vDisk image, or on the pool if you run Docker in directory mode. You
+      # restore from the db-backup dumps (below), not by copying this volume,
+      # so the database is covered either way.
+      #
+      # Prefer the data files under appdata? Only safe on a cache/SSD pool with
+      # the mover DISABLED for that share. Then replace the line below with:
+      #   - /mnt/user/appdata/atlas/pgdata:/var/lib/postgresql
+      - atlas-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U atlas -d atlas']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    networks:
+      - atlas
+
+  worker:
+    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}-worker
+    container_name: atlas-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ['node', '--import', 'tsx', 'scripts/worker.ts']
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD}@postgres:5432/atlas
+      STORAGE_DIR: /app/data/documents
+      # Required — the geocoder refuses to start without a contact address.
+      NOMINATIM_CONTACT_EMAIL: ${NOMINATIM_CONTACT_EMAIL:?set a contact email for Nominatim}
+      # Optional self-hosted extraction; leave OLLAMA_URL empty to enter
+      # segments manually (everything else still works).
+      OLLAMA_URL: ${OLLAMA_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-atlas-extract:latest}
+      CRON_TZ: ${CRON_TZ:-UTC}
+    volumes:
+      - /mnt/user/appdata/atlas/documents:/app/data/documents
+    healthcheck:
+      test: ['CMD-SHELL', 'test -f /tmp/atlas-worker-ready']
+      interval: 5s
+      timeout: 2s
+      retries: 60
+      start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - atlas
+
+  app:
+    image: ghcr.io/sebbogit/atlas:${ATLAS_IMAGE_TAG:-latest}
+    container_name: atlas-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # Never serve an unmigrated schema — wait for the worker's marker.
+      worker:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      # MUST match the URL you actually reach Atlas at (scheme + host + port),
+      # or OIDC callbacks fail. Behind a TLS reverse proxy this is the https URL.
+      AUTH_URL: ${AUTH_URL:?set the canonical app URL}
+      AUTH_SECRET: ${AUTH_SECRET:?generate with openssl rand -base64 32}
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:?set your PocketID issuer URL}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:?set the PocketID client id}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?set the PocketID client secret}
+      DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD}@postgres:5432/atlas
+      STORAGE_DIR: /app/data/documents
+      TILES_DIR: /app/data/tiles
+      NOMINATIM_CONTACT_EMAIL: ${NOMINATIM_CONTACT_EMAIL}
+      # If your OIDC provider sits behind a private / local CA, the app must
+      # trust it for server-side discovery + token calls. Mount the root cert
+      # (see the volumes block) and point Node at it:
+      # NODE_EXTRA_CA_CERTS: /etc/ssl/certs/local-root.crt
+    volumes:
+      - /mnt/user/appdata/atlas/documents:/app/data/documents
+      # Optional Protomaps basemap (~33 GB). Empty is fine — the world map at
+      # /map still works; only the per-trip basemap needs tiles. Read-only.
+      - /mnt/user/appdata/atlas/tiles:/app/data/tiles:ro
+      # If you set NODE_EXTRA_CA_CERTS above, mount your CA root read-only:
+      # - /mnt/user/appdata/atlas/certs/local-root.crt:/etc/ssl/certs/local-root.crt:ro
+    ports:
+      # Reach Atlas at http://<host-ip>:3000. Put it behind a TLS reverse proxy
+      # for real use, then set AUTH_URL to the https URL and switch this to
+      # 127.0.0.1:3000:3000 so only the proxy can reach it.
+      - '3000:3000'
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - atlas
+
+  db-backup:
+    # nfrastack/container-db-backup is the maintained home of this image, but
+    # the nfrastack namespace has no published packages yet — the pullable
+    # image (identical DB01_* config) is still tiredofit/db-backup. Switch the
+    # reference when nfrastack publishes; the env below stays the same.
+    image: docker.io/tiredofit/db-backup:latest
+    container_name: atlas-db-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DEFAULT_BACKUP_LOCATION: FILESYSTEM
+      DEFAULT_COMPRESSION: ZSTD
+      DEFAULT_CREATE_LATEST_SYMLINK: 'TRUE'
+      DB01_TYPE: pgsql
+      DB01_HOST: postgres
+      DB01_NAME: atlas
+      DB01_USER: atlas
+      DB01_PASS: ${POSTGRES_PASSWORD}
+      DB01_PORT: '5432'
+      DB01_BACKUP_BEGIN: '0330' # daily at 03:30
+      DB01_CLEANUP_TIME: '129600' # retain 90 days (minutes)
+    volumes:
+      - /mnt/user/appdata/atlas/backups/db:/backup
+    networks:
+      - atlas
+
+volumes:
+  atlas-pgdata:
+
+networks:
+  atlas:
+    driver: bridge
