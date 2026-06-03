@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-03
+
+### Added
+
+- **Trip visibility** — every trip is now either _household_ (shared with
+  everyone, the default) or _private_ (visible only to its creator). A private
+  trip is hidden from other members everywhere — trip lists, search, maps, and
+  stats — and returns nothing on a direct link. Household members can still add
+  and edit a shared trip's segments; editing the trip itself and uploading its
+  documents stay with the creator. See ADR-0015.
+
+### Changed
+
+- **Field-notebook redesign** — a full visual and interaction overhaul. A warm
+  sand-and-cream palette, serif display type, and monospace labels give the app
+  a calm, field-notebook character in place of the generic dashboard look.
+- **Floating local time for segment times** — hotel, activity, transit, food,
+  and note times are stored and shown exactly as typed, independent of the
+  viewer's timezone, so a 3 PM check-in always reads 3 PM. Flights keep their
+  airport-local times, and "today" and countdowns stay relative to the viewer.
+  See ADR-0014.
+- **Itinerary activities** — the activities tab is flattened into one
+  chronological list. Undated activities and food now simply read as undated
+  instead of sitting in a separate per-trip "wishlist" state, and food can be
+  rescheduled like any other segment. The household Wishlist feature is
+  unchanged.
+
+### Fixed
+
+- **Timezone rendering** — segment times and trip date ranges no longer drift or
+  trigger server/client hydration mismatches across timezones.
+- **Dev sign-in behind a reverse proxy** — the development sign-in flow now
+  works correctly when served over HTTPS through a reverse proxy.
+
 ## [1.0.1] - 2026-06-01
 
 ### Fixed
@@ -49,6 +83,7 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/SebboGit/atlas/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/SebboGit/atlas/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/SebboGit/atlas/releases/tag/v1.0.0
