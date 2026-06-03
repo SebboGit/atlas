@@ -623,11 +623,13 @@ interface InstantParts {
   zone: string | null;
 }
 
-// A Date at exact local midnight signals "date-only, no time
-// component" — same convention as the segment cards. Hide the time
-// row in that case rather than printing "00:00".
+// A Date at exact UTC midnight signals "date-only, no time component" —
+// same convention as the segment cards (a `YYYY-MM-DD` pick parses to
+// 00:00Z). Read it in UTC so an off-UTC viewer doesn't see a date-only
+// value mistaken for a timed one ("02:00"). Hide the time row in that
+// case rather than printing "00:00".
 function hasTimeComponent(d: Date): boolean {
-  return d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+  return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
 }
 
 const DATE_FMT = new Intl.DateTimeFormat('en-GB', {

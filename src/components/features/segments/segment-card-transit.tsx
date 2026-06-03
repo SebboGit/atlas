@@ -2,11 +2,11 @@ import { Bus, Car, Ship, TrainFront, Waypoints } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { LinkedDocument } from '@/lib/documents';
-import { formatTime } from '@/lib/format';
 import type { Segment, TransitData } from '@/lib/segments';
 import { transitDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { LocalTime } from './local-time';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 
@@ -49,9 +49,13 @@ export function SegmentCardTransit({
 
   const meta = segment.startsAt ? (
     <div className="text-foreground/75 font-mono text-[11px] leading-tight tracking-wider">
-      <div>{formatTime(segment.startsAt)}</div>
+      <div>
+        <LocalTime date={segment.startsAt} />
+      </div>
       {segment.endsAt && (
-        <div className="text-foreground/45 mt-0.5">→ {formatTime(segment.endsAt)}</div>
+        <div className="text-foreground/45 mt-0.5">
+          → <LocalTime date={segment.endsAt} />
+        </div>
       )}
     </div>
   ) : null;
