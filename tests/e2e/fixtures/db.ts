@@ -11,9 +11,16 @@ import { assertTestDatabase } from './safety';
 
 // RFC 2606 reserves the `.invalid` TLD; it can never resolve to a real
 // inbox and can never match a real signed-in identity. Every test user
-// created by this fixture uses THIS exact email, so cleanup is a
+// created by this fixture uses one of THESE exact emails, so cleanup is a
 // `DELETE` chain rooted on a single, throwaway identity.
 export const TEST_USER_EMAIL = 'e2e@test.invalid';
+// Distinct sentinels for multi-user specs (the ADR-0015 visibility
+// boundary). A two-user test holds two live identities at once, so they
+// need separate emails — otherwise each `createTestUserWithSession` call
+// would truncate the other's rows on its leading cleanup. Both are still
+// `.invalid`, so the same safety guard and never-collides guarantee hold.
+export const TEST_OWNER_EMAIL = 'e2e-owner@test.invalid';
+export const TEST_MEMBER_EMAIL = 'e2e-member@test.invalid';
 
 export interface TestUserHandle {
   id: string;
@@ -22,11 +29,16 @@ export interface TestUserHandle {
 
 // Create a test user + active DB session. Returns the IDs the caller
 // needs to set the cookie and (optionally) seed further data attached
-// to that user.
-export async function createTestUserWithSession(): Promise<TestUserHandle> {
+// to that user. `email` defaults to the single-user sentinel; multi-user
+// specs pass a distinct sentinel per identity.
+export async function createTestUserWithSession(
+  email: string = TEST_USER_EMAIL,
+): Promise<TestUserHandle> {
   assertTestDatabase();
   // Cascade from prior crashed runs that may have left state behind.
-  await cleanupTestUser();
+  // Scoped to THIS identity so a sibling identity created moments earlier
+  // (a two-user test) survives.
+  await cleanupTestUser(email);
 
   // Insert the user. Production goes through Auth.js's drizzle adapter
   // + the events.signIn hook which sets `sub` — we bypass Auth.js
@@ -36,7 +48,7 @@ export async function createTestUserWithSession(): Promise<TestUserHandle> {
     .insert(users)
     .values({
       sub: `e2e-${randomUUID()}`,
-      email: TEST_USER_EMAIL,
+      email,
       name: 'E2E Test',
       emailVerified: new Date(),
     })
@@ -62,16 +74,13 @@ export async function createTestUserWithSession(): Promise<TestUserHandle> {
 // touching the user. `sessions.userId` and `trips.userId` are CASCADE,
 // so dropping the user removes the session + every trip + their
 // segments + document-segment join rows automatically.
-export async function cleanupTestUser(): Promise<void> {
+export async function cleanupTestUser(email: string = TEST_USER_EMAIL): Promise<void> {
   assertTestDatabase();
-  const rows = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, TEST_USER_EMAIL));
+  const rows = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
   for (const row of rows) {
     await db.delete(wishlistItems).where(eq(wishlistItems.createdBy, row.id));
   }
-  await db.delete(users).where(eq(users.email, TEST_USER_EMAIL));
+  await db.delete(users).where(eq(users.email, email));
 }
 
 export interface SeedTripValues {
@@ -79,6 +88,9 @@ export interface SeedTripValues {
   status?: 'planned' | 'active' | 'completed' | 'archived';
   startDate?: Date | null;
   endDate?: Date | null;
+  // Defaults to the DB default (`household`); the visibility spec sets
+  // `private` to seed an owner-only trip (ADR-0015).
+  visibility?: 'household' | 'private';
 }
 
 export async function seedTrip(userId: string, values: SeedTripValues): Promise<string> {
@@ -91,6 +103,7 @@ export async function seedTrip(userId: string, values: SeedTripValues): Promise<
       status: values.status ?? 'planned',
       startDate: values.startDate ?? null,
       endDate: values.endDate ?? null,
+      visibility: values.visibility ?? 'household',
     })
     .returning({ id: trips.id });
   const row = inserted[0];
