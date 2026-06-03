@@ -76,7 +76,7 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
               <button
                 type="button"
                 aria-label="Edit this wishlist item"
-                className="text-foreground/70 hover:text-foreground hover:bg-foreground/5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
+                className="text-foreground/70 [@media(hover:hover)]:hover:text-foreground [@media(hover:hover)]:hover:bg-foreground/5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
               >
                 <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden />
               </button>

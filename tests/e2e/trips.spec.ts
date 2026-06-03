@@ -47,6 +47,44 @@ test.describe('trips', () => {
     await expect(authedPage.getByText(segmentTitle)).toBeVisible();
   });
 
+  test('editing a segment from the inspector keeps the edit dialog open', async ({
+    authedPage,
+    authedUser,
+  }) => {
+    const tripId = await seedTrip(authedUser.id, {
+      title: 'E2E Inspector Trip',
+      startDate: new Date('2024-03-10T00:00:00Z'),
+      endDate: new Date('2024-03-15T00:00:00Z'),
+      status: 'completed',
+    });
+    const segmentTitle = `Inspector edit ${Date.now()}`;
+    await seedActivitySegment(tripId, {
+      title: segmentTitle,
+      startsAt: new Date('2024-03-12T10:00:00Z'),
+      countryCode: 'JP',
+    });
+
+    await authedPage.goto(`/trips/${tripId}/itinerary`);
+
+    // Tap the card surface to open the read-only inspector.
+    await authedPage.getByRole('button', { name: /view activity details/i }).click();
+    const inspector = authedPage.getByRole('dialog');
+    await expect(inspector.getByText(segmentTitle)).toBeVisible();
+
+    // Open the edit flow from inside the inspector.
+    await inspector.getByRole('button', { name: /^edit$/i }).click();
+
+    // The edit dialog must appear AND survive. Regression guard: the edit
+    // dialog renders inside the inspector's DialogContent, so an earlier
+    // version that auto-closed the inspector on click tore the edit dialog
+    // down with it. Re-check after a beat longer than the exit animation.
+    const editHeading = authedPage.getByRole('heading', { name: /edit activity/i });
+    await expect(editHeading).toBeVisible();
+    await authedPage.waitForTimeout(600);
+    await expect(editHeading).toBeVisible();
+    await expect(authedPage.getByRole('button', { name: /save changes/i })).toBeVisible();
+  });
+
   test('create a trip via the dialog', async ({ authedPage }) => {
     await authedPage.goto('/trips');
     await authedPage.getByRole('button', { name: /^new trip$/i }).click();

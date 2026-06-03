@@ -85,7 +85,7 @@ export function SegmentRowSurface({
                 aria-label={segment.startsAt ? 'Reschedule activity' : 'Schedule activity'}
                 // 44px touch hit-area; the glyph is unboxed, so the larger
                 // target stays invisible. Shrinks to 28px on pointer devices.
-                className="text-foreground/40 hover:text-foreground/85 inline-flex size-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:size-7"
+                className="text-foreground/40 [@media(hover:hover)]:hover:text-foreground/85 inline-flex size-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:size-7"
               >
                 <CalendarClock className="size-3.5" strokeWidth={1.5} />
               </button>
@@ -109,7 +109,7 @@ export function SegmentRowSurface({
               // pointer.
               className="group/edit inline-flex size-11 items-center justify-center [@media(hover:hover)]:size-7"
             >
-              <span className="border-foreground/15 bg-card/70 text-foreground/70 group-hover/edit:bg-card group-hover/edit:text-foreground group-hover/edit:border-foreground/30 inline-flex size-7 items-center justify-center rounded-full border transition-colors">
+              <span className="border-foreground/15 bg-card/70 text-foreground/70 [@media(hover:hover)]:group-hover/edit:bg-card [@media(hover:hover)]:group-hover/edit:text-foreground [@media(hover:hover)]:group-hover/edit:border-foreground/30 inline-flex size-7 items-center justify-center rounded-full border transition-colors">
                 <Pencil className="size-3.5" strokeWidth={1.75} />
               </span>
             </button>

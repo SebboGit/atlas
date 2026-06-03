@@ -55,7 +55,7 @@ export function SegmentDeleteButton({
           aria-label={`Delete this ${noun}`}
           // 44px touch hit-area; the glyph is unboxed, so the larger
           // target stays invisible. Shrinks to 28px on pointer devices.
-          className="text-foreground/40 hover:text-destructive inline-flex size-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:size-7"
+          className="text-foreground/40 [@media(hover:hover)]:hover:text-destructive inline-flex size-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:size-7"
         >
           <Trash2 className="size-3.5" strokeWidth={1.5} />
         </button>

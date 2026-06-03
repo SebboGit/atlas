@@ -1,6 +1,6 @@
 // Shared trip date helpers. The full date-range form lived inside
 // trip-list-card; it now lives here so the list card and the home
-// next-trip hero render "12 – 23 Mar 2026" identically.
+// next-trip hero render "12 Mar – 23 Mar 2026" identically.
 
 export function formatTripDateRange(start: Date | null, end: Date | null): string {
   if (!start && !end) return 'Dates to come';

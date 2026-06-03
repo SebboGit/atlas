@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import type { PersonalRecords } from '@/lib/stats';
 import { latitudeLabel, plural } from '@/lib/stats/format';
+import { cn } from '@/lib/utils';
 
 import { RecordEntry } from './record-entry';
 
@@ -92,13 +93,23 @@ export function RecordsPanel({ records }: { records: PersonalRecords }) {
           ) : (
             // Two explicit columns: left = the non-latitude records, right =
             // north/south together. On phone the columns stack, so the
-            // latitude pair reads consecutively at the foot.
-            <div className="grid gap-x-8 gap-y-7 sm:grid-cols-2">
-              <div className="flex flex-col gap-7">
-                {left.map((r) => (
-                  <RecordEntry key={r.label} label={r.label} value={r.value} note={r.note} />
-                ))}
-              </div>
+            // latitude pair reads consecutively at the foot. Each column only
+            // renders when it has entries, and the two-column track only
+            // engages when both sides exist — so a records set with just
+            // latitude data doesn't strand an empty left cell.
+            <div
+              className={cn(
+                'grid gap-x-8 gap-y-7',
+                left.length > 0 && right.length > 0 && 'sm:grid-cols-2',
+              )}
+            >
+              {left.length > 0 && (
+                <div className="flex flex-col gap-7">
+                  {left.map((r) => (
+                    <RecordEntry key={r.label} label={r.label} value={r.value} note={r.note} />
+                  ))}
+                </div>
+              )}
               {right.length > 0 && (
                 <div className="flex flex-col gap-7">
                   {right.map((r) => (
