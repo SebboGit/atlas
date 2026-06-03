@@ -516,22 +516,33 @@ export async function hardDelete(userId: string, id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-// Promotes a wishlist activity to scheduled by stamping its startsAt
-// (and optionally endsAt). Only valid on activity segments; the action
-// layer enforces the type constraint at trust boundary.
-export async function scheduleActivity(
+// Segment types whose date is set / cleared via the quick reschedule
+// dialog: activities (undated = a candidate) and food (undated = an
+// in-trip shortlist pick). The `type` is passed by the action layer
+// from the verified existing row and pinned in the WHERE so a mismatched
+// caller can never restamp a flight or hotel.
+export type SchedulableSegmentType = 'activity' | 'food';
+
+// Stamps a segment's startsAt (and optionally endsAt) — promotes an
+// undated activity / food pick to a scheduled one, or reschedules a
+// dated one. Valid only for the schedulable types; the action layer
+// verifies the type before calling and passes it through here. Food is a
+// point in time with no end, so its endsAt is forced null here — the same
+// invariant create() / update() enforce, applied at this write path too.
+export async function scheduleSegment(
   userId: string,
   id: string,
+  type: SchedulableSegmentType,
   startsAt: Date,
   endsAt: Date | null,
 ): Promise<Segment | null> {
   const [row] = await db
     .update(segments)
-    .set({ startsAt, endsAt, updatedAt: new Date() })
+    .set({ startsAt, endsAt: type === 'food' ? null : endsAt, updatedAt: new Date() })
     .where(
       and(
         eq(segments.id, id),
-        eq(segments.type, 'activity'),
+        eq(segments.type, type),
         sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${trips.userId} = ${userId})`,
       ),
     )
@@ -539,16 +550,21 @@ export async function scheduleActivity(
   return row ?? null;
 }
 
-// Demotes a scheduled activity back to the wishlist. The inverse of
-// scheduleActivity. Same userId-via-trip ownership check.
-export async function unscheduleActivity(userId: string, id: string): Promise<Segment | null> {
+// Clears a segment's startsAt/endsAt — the inverse of scheduleSegment,
+// returning an activity / food pick to its undated state. Same
+// userId-via-trip ownership check and type pin.
+export async function unscheduleSegment(
+  userId: string,
+  id: string,
+  type: SchedulableSegmentType,
+): Promise<Segment | null> {
   const [row] = await db
     .update(segments)
     .set({ startsAt: null, endsAt: null, updatedAt: new Date() })
     .where(
       and(
         eq(segments.id, id),
-        eq(segments.type, 'activity'),
+        eq(segments.type, type),
         sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${trips.userId} = ${userId})`,
       ),
     )

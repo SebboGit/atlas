@@ -2,7 +2,6 @@ import {
   ongoingContinuationsByDayKey,
   type ClassifiedDay,
 } from '@/components/features/segments/day-temporal';
-import { dayKey } from '@/components/features/segments/group-by-day';
 import { formatTime } from '@/lib/format';
 import type { Segment } from '@/lib/segments';
 import {
@@ -88,26 +87,25 @@ function labelForSegment(seg: Segment): string {
 }
 
 // Wall-clock time-of-day for a row, or null for a date-only segment.
-// A date-only pick (a hotel check-in, an all-day activity) carries no
-// meaningful clock time, so we suppress the label rather than print a
-// misleading "00:00". Such picks land on midnight — local midnight for
-// a local-zone date picker, UTC midnight for fixture / extracted dates
-// — so treat either as "no time set".
+// Non-flight times are floating-UTC wall-clocks (ADR-0014): a date-only
+// pick lands on UTC midnight and carries no meaningful clock time, so we
+// suppress the label rather than print a misleading "00:00". Read the
+// "is this midnight?" decision in UTC so it matches the cards' suppress
+// gate and stays deterministic on any server timezone.
 function timeLabelFor(seg: Segment): string | null {
   const d = seg.startsAt;
   if (!d) return null;
-  const isLocalMidnight =
-    d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0;
   const isUtcMidnight =
     d.getUTCHours() === 0 &&
     d.getUTCMinutes() === 0 &&
     d.getUTCSeconds() === 0 &&
     d.getUTCMilliseconds() === 0;
-  if (isLocalMidnight || isUtcMidnight) return null;
-  // Reuse the shared formatter (runtime-local zone) so the rail's time
-  // column agrees with the segment cards, which all render formatTime —
-  // rather than hand-rolling a divergent UTC toLocaleTimeString.
-  return formatTime(d);
+  if (isUtcMidnight) return null;
+  // Render in UTC so the rail's time column agrees with the segment
+  // cards, which all render their floating-UTC times in UTC. Flights
+  // (airport-tz on the card) appear here in UTC too — the rail is a
+  // compact secondary surface, kept deterministic over per-end tz.
+  return formatTime(d, { timeZone: 'UTC' });
 }
 
 // Builds a single rail item, resolving its map presence by segmentId
@@ -177,10 +175,16 @@ function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
   };
 }
 
-// Check-in date label for a continuation row ("28 May"). Server-local
-// zone, matching the rail's local day grouping + the day-header labels.
+// Check-in date label for a continuation row ("28 May"). Read in UTC so
+// it matches the floating-UTC day the segment is grouped under — the
+// continuation should name the same date as its collapsed check-in card.
+const SINCE_FMT = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
 function formatSince(d: Date): string {
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return SINCE_FMT.format(d);
 }
 
 // A multi-day stay surfaced on a day AFTER its check-in. Reuses the
@@ -207,7 +211,7 @@ function buildContinuationItem(seg: Segment, geometry: MapGeometryIndex): RailIt
 export function buildRailDays(days: ClassifiedDay[], geometry: MapGeometryIndex): RailDay[] {
   const continuations = ongoingContinuationsByDayKey(days);
   return days.map((day) => {
-    const key = dayKey(day.date);
+    const key = day.key;
     const contItems = (continuations.get(key) ?? []).map((seg) =>
       buildContinuationItem(seg, geometry),
     );

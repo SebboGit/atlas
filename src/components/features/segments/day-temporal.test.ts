@@ -13,10 +13,12 @@ import {
   splitCollapsedDays,
   type ClassifiedDay,
 } from './day-temporal';
-import { dayKey, type DayBucket } from './group-by-day';
+import { type DayBucket } from './group-by-day';
 
 // Local-midnight Dates throughout — the same shape `groupSegmentsByDay`
-// produces for bucket dates.
+// produces for bucket `date`s. The `key` is the bucket's UTC day token
+// (`groupSegmentsByDay` carries it separately); these viewer-relative
+// helpers only compare `date`s, so the token is a literal here.
 const today = new Date(2026, 4, 21); // 21 May 2026
 
 function makeSegment(overrides: Partial<Segment>): Segment {
@@ -54,9 +56,9 @@ describe('classifyDay', () => {
 describe('classifyDays', () => {
   it('assigns chronological 1-based day numbers independent of position', () => {
     const days: DayBucket[] = [
-      { date: new Date(2026, 4, 19), segments: [] },
-      { date: new Date(2026, 4, 21), segments: [] },
-      { date: new Date(2026, 4, 23), segments: [] },
+      { key: '2026-05-19', date: new Date(2026, 4, 19), segments: [] },
+      { key: '2026-05-21', date: new Date(2026, 4, 21), segments: [] },
+      { key: '2026-05-23', date: new Date(2026, 4, 23), segments: [] },
     ];
     const result = classifyDays(days, today);
     expect(result.map((d) => d.dayNumber)).toEqual([1, 2, 3]);
@@ -65,8 +67,8 @@ describe('classifyDays', () => {
 
   it('handles a trip entirely in the past', () => {
     const days: DayBucket[] = [
-      { date: new Date(2026, 3, 1), segments: [] },
-      { date: new Date(2026, 3, 2), segments: [] },
+      { key: '2026-04-01', date: new Date(2026, 3, 1), segments: [] },
+      { key: '2026-04-02', date: new Date(2026, 3, 2), segments: [] },
     ];
     const result = classifyDays(days, today);
     expect(result.every((d) => d.position === 'past')).toBe(true);
@@ -74,8 +76,8 @@ describe('classifyDays', () => {
 
   it('handles a trip entirely in the future', () => {
     const days: DayBucket[] = [
-      { date: new Date(2026, 6, 1), segments: [] },
-      { date: new Date(2026, 6, 2), segments: [] },
+      { key: '2026-07-01', date: new Date(2026, 6, 1), segments: [] },
+      { key: '2026-07-02', date: new Date(2026, 6, 2), segments: [] },
     ];
     const result = classifyDays(days, today);
     expect(result.every((d) => d.position === 'future')).toBe(true);
@@ -196,7 +198,7 @@ describe('splitCollapsedDays', () => {
   // `splitCollapsedDays` reads only `position` now (past collapses
   // unconditionally — ongoing stays surface as continuations instead).
   function makeDay(position: ClassifiedDay['position']): ClassifiedDay {
-    return { date: new Date(), dayNumber: 1, position, segments: [] } as ClassifiedDay;
+    return { key: '', date: new Date(), dayNumber: 1, position, segments: [] } as ClassifiedDay;
   }
 
   it('collapses every leading past day', () => {
@@ -262,8 +264,10 @@ describe('continuesThroughDay', () => {
 
 describe('ongoingContinuationsByDayKey', () => {
   function day(d: number, position: ClassifiedDay['position'], segments: Segment[]): ClassifiedDay {
-    // May = month 4; days within May for simplicity, June where noted.
-    return { date: new Date(2026, 4, d), dayNumber: d, position, segments } as ClassifiedDay;
+    // May = month 4. `key` is the bucket's UTC day token; `date` is its
+    // local-midnight display date (what `continuesThroughDay` compares).
+    const key = `2026-05-${String(d).padStart(2, '0')}`;
+    return { key, date: new Date(2026, 4, d), dayNumber: d, position, segments } as ClassifiedDay;
   }
 
   it('surfaces an ongoing stay on today + future spanned days only', () => {
@@ -287,12 +291,12 @@ describe('ongoingContinuationsByDayKey', () => {
 
     const conts = ongoingContinuationsByDayKey(days);
 
-    // Surfaced under today + the future spanned day…
-    expect(conts.get(dayKey(new Date(2026, 4, 30)))).toEqual([hotel]);
-    expect(conts.get(dayKey(new Date(2026, 4, 31)))).toEqual([hotel]);
+    // Surfaced under today + the future spanned day… (keyed by day token)
+    expect(conts.get('2026-05-30')).toEqual([hotel]);
+    expect(conts.get('2026-05-31')).toEqual([hotel]);
     // …never on its own check-in day or any collapsed past day.
-    expect(conts.has(dayKey(new Date(2026, 4, 28)))).toBe(false);
-    expect(conts.has(dayKey(new Date(2026, 4, 29)))).toBe(false);
+    expect(conts.has('2026-05-28')).toBe(false);
+    expect(conts.has('2026-05-29')).toBe(false);
   });
 
   it('emits nothing for a stay that checks in today (a normal same-day card)', () => {

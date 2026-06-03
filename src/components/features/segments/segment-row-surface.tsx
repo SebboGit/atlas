@@ -7,7 +7,7 @@ import { useMounted } from '@/components/client-only';
 import type { LinkedDocument } from '@/lib/documents';
 import type { Segment } from '@/lib/segments';
 
-import { ScheduleActivityDialog } from './schedule-activity-dialog';
+import { ScheduleSegmentDialog } from './schedule-segment-dialog';
 import { SegmentDeleteButton } from './segment-delete-button';
 import { SegmentFormDialog } from './segment-form-dialog';
 import { SegmentInfoDialog } from './segment-info-dialog';
@@ -73,16 +73,18 @@ export function SegmentRowSurface({
         React's reconciliation never pairs the wrong siblings across renders.
       */}
       <div className="absolute top-3 right-3 flex items-center gap-0.5">
-        {showScheduleAction && segment.type === 'activity' && (
-          <ScheduleActivityDialog
+        {showScheduleAction && (segment.type === 'activity' || segment.type === 'food') && (
+          <ScheduleSegmentDialog
             key="schedule"
             tripId={tripId}
             segmentId={segment.id}
+            segmentType={segment.type}
             currentStart={segment.startsAt}
+            currentEnd={segment.endsAt}
             trigger={
               <button
                 type="button"
-                aria-label={segment.startsAt ? 'Reschedule activity' : 'Schedule activity'}
+                aria-label={`${segment.startsAt ? 'Reschedule' : 'Schedule'} ${segment.type}`}
                 // 44px touch hit-area; the glyph is unboxed, so the larger
                 // target stays invisible. Shrinks to 28px on pointer devices.
                 className="text-foreground/40 [@media(hover:hover)]:hover:text-foreground/85 inline-flex size-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:size-7"

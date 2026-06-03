@@ -1,8 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { DateGroup } from '@/components/features/segments/date-group';
 import { GeocodePoller } from '@/components/features/segments/geocode-poller';
-import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
 import { SegmentFormDialog } from '@/components/features/segments/segment-form-dialog';
 import { SegmentRow } from '@/components/features/segments/segment-row';
 import { TabEmpty } from '@/components/features/segments/tab-empty';
@@ -21,9 +19,13 @@ interface ActivitiesTabPageProps {
   searchParams: Promise<{ country?: string | string[] }>;
 }
 
-// Dual-state surface — scheduled activities first, wishlist below.
-// Both share the same `activities` segment type; the discriminator is
-// `startsAt` being null (wishlist) or set (scheduled). See ADR-0003.
+// Flat list of every activity on the trip — dated and undated together,
+// no Scheduled/Unscheduled split (matching the Food tab). The itinerary
+// is the trip's one chronological view; here each card carries its own
+// date+time, and the reschedule affordance sets / changes / clears it.
+// An undated activity (null `startsAt`, ADR-0003) simply shows no date.
+// `listForTrip` orders `startsAt asc nulls last`, so dated activities
+// come first in chronological order and undated ones follow.
 export default async function ActivitiesTabPage({ params, searchParams }: ActivitiesTabPageProps) {
   const user = await requireUser();
   const { id } = await params;
@@ -36,9 +38,7 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
-  // Fetch both states in one query and split client-side. Cheap, and
-  // saves a round-trip.
-  const [all, linkedDocsBySegment, tripCountries] = await Promise.all([
+  const [activities, linkedDocsBySegment, tripCountries] = await Promise.all([
     segmentsRepo.listForTrip(user.id, id, {
       type: 'activity',
       countryCode: country?.toUpperCase(),
@@ -53,12 +53,8 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
       type: 'activity',
       excludeMaterialisedOnTrip: id,
     }),
-    getPlaceCoordsView(all),
+    getPlaceCoordsView(activities),
   ]);
-
-  const scheduled = all.filter((a) => a.startsAt !== null);
-  const wishlist = all.filter((a) => a.startsAt === null);
-  const { days: scheduledDays } = groupSegmentsByDay(scheduled);
 
   const addButton = (
     <SegmentFormDialog
@@ -70,80 +66,33 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
 
   return (
     <>
-      <TabHeader eyebrow="Activities" count={all.length} action={addButton} />
+      <TabHeader eyebrow="Activities" count={activities.length} action={addButton} />
 
       <WishlistSuggestionsPanel tripId={id} items={suggestions} />
 
-      {all.length === 0 ? (
+      {activities.length === 0 ? (
         <TabEmpty
           title="No activities yet."
-          hint="Add one with no date, or schedule it for a specific day."
+          hint="Add one with a date, or drop something you'd like to do with no date — both live here together."
           action={addButton}
         />
       ) : (
-        <div className="atlas-rise flex flex-col gap-10" style={{ animationDelay: '300ms' }}>
-          <section>
-            <SubsectionHeader label="Scheduled" count={scheduled.length} />
-            {scheduled.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                None scheduled — pick a date on a wishlist card to move it here.
-              </p>
-            ) : (
-              <div>
-                {scheduledDays.map((day) => (
-                  <DateGroup
-                    key={day.date.toISOString()}
-                    date={day.date}
-                    segments={day.segments}
-                    tripId={id}
-                    linkedDocumentsBySegment={linkedDocsBySegment}
-                    coordsBySegmentId={coordsBySegmentId}
-                    showScheduleAction
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section>
-            <SubsectionHeader label="Unscheduled" count={wishlist.length} />
-            {wishlist.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                Nothing unscheduled yet. Add an activity without a date to drop it here.
-              </p>
-            ) : (
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {wishlist.map((a) => (
-                  <li key={a.id}>
-                    <SegmentRow
-                      segment={a}
-                      tripId={id}
-                      linkedDocuments={linkedDocsBySegment.get(a.id)}
-                      coords={coordsBySegmentId.get(a.id) ?? null}
-                      showScheduleAction
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
+        <ul className="atlas-rise grid gap-3 sm:grid-cols-2" style={{ animationDelay: '300ms' }}>
+          {activities.map((segment) => (
+            <li key={segment.id}>
+              <SegmentRow
+                segment={segment}
+                tripId={id}
+                linkedDocuments={linkedDocsBySegment.get(segment.id)}
+                coords={coordsBySegmentId.get(segment.id) ?? null}
+                showScheduleAction
+                showDate
+              />
+            </li>
+          ))}
+        </ul>
       )}
       <GeocodePoller pending={pendingCount} />
     </>
-  );
-}
-
-function SubsectionHeader({ label, count }: { label: string; count: number }) {
-  return (
-    <header className="mb-3 flex items-baseline gap-3 sm:mb-4">
-      <p className="text-foreground/65 font-mono text-[10px] tracking-[0.28em] uppercase">
-        {label}
-      </p>
-      <span className="text-foreground/40 font-mono text-[10px] tracking-[0.2em]">
-        · {String(count).padStart(2, '0')}
-      </span>
-      <span aria-hidden className="bg-foreground/15 h-px flex-1" />
-    </header>
   );
 }

@@ -21,6 +21,7 @@ export function SegmentCard({
   segment,
   linkedDocuments = [],
   coords,
+  showDate = false,
 }: {
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
@@ -30,6 +31,13 @@ export function SegmentCard({
    * non-flight variants take this through.
    */
   coords?: { lat: number; lng: number } | null;
+  /**
+   * Show the segment's own date in the meta. On for the flat Activity /
+   * Food tabs (no day-group header there); off for the day-grouped
+   * itinerary / type tabs, where the header carries the date. Only the
+   * activity and food variants honour it.
+   */
+  showDate?: boolean;
 }) {
   switch (segment.type) {
     case 'flight':
@@ -40,7 +48,12 @@ export function SegmentCard({
       );
     case 'activity':
       return (
-        <SegmentCardActivity segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
+        <SegmentCardActivity
+          segment={segment}
+          linkedDocuments={linkedDocuments}
+          coords={coords}
+          showDate={showDate}
+        />
       );
     case 'transit':
       return (
@@ -48,7 +61,12 @@ export function SegmentCard({
       );
     case 'food':
       return (
-        <SegmentCardFood segment={segment} linkedDocuments={linkedDocuments} coords={coords} />
+        <SegmentCardFood
+          segment={segment}
+          linkedDocuments={linkedDocuments}
+          coords={coords}
+          showDate={showDate}
+        />
       );
     case 'note':
       return <SegmentCardNote segment={segment} />;

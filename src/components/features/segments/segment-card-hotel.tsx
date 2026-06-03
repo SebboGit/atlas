@@ -1,11 +1,11 @@
 import { BedDouble } from 'lucide-react';
 
 import type { LinkedDocument } from '@/lib/documents';
+import { formatTime } from '@/lib/format';
 import type { Segment } from '@/lib/segments';
 import { hotelDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
-import { LocalTime } from './local-time';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 
@@ -17,9 +17,8 @@ function nightsBetween(checkIn: Date, checkOut: Date): number {
 // Exact UTC-midnight means "date-only" — a hotel date-only check-in is a
 // `YYYY-MM-DD` string the form parses to 00:00Z (no airport tz on hotels).
 // Hide the time meta in that case; the card already shows the check-in
-// date in the day-group header. Read in UTC (not local getters) so the
-// "is this midnight?" decision is the same on the server and the client —
-// otherwise an off-UTC viewer flips it and hydration mismatches.
+// date in the day-group header. Read in UTC (floating local time,
+// ADR-0014) so the time renders the same on every server and viewer.
 function hasTimeComponent(d: Date | null): boolean {
   if (!d) return false;
   return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
@@ -55,9 +54,7 @@ export function SegmentCardHotel({
   const meta = hasTimeComponent(segment.startsAt) ? (
     <div className="text-foreground/75 font-mono text-sm leading-tight tracking-wider">
       <div className="text-foreground/45 text-[10px] tracking-[0.2em] uppercase">Check-in</div>
-      <div className="mt-1">
-        <LocalTime date={segment.startsAt!} />
-      </div>
+      <div className="mt-1">{formatTime(segment.startsAt!, { timeZone: 'UTC' })}</div>
     </div>
   ) : null;
 

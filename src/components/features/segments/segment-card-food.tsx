@@ -5,9 +5,9 @@ import type { Segment } from '@/lib/segments';
 import { foodDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
-import { LocalTime } from './local-time';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
+import { SegmentTimeMeta } from './segment-time-meta';
 
 // The food card subtitle locates the venue. The parsed address wins
 // when present; otherwise we fall back to the free-text location
@@ -29,31 +29,28 @@ export function SegmentCardFood({
   segment,
   linkedDocuments = [],
   coords,
+  showDate = false,
 }: {
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
   /** Cached coordinates, if any — drive the Plus Code badge + deep link. */
   coords?: { lat: number; lng: number } | null;
+  /**
+   * On the flat Food tab the card carries its own date (no day-group
+   * header there); the itinerary leaves it off. See SegmentTimeMeta.
+   */
+  showDate?: boolean;
 }) {
   const parse = foodDataSchema.safeParse(segment.data);
   const title = parse.success ? parse.data.venue : 'Meal';
   const address = parse.success ? parse.data.address : undefined;
 
-  // Food can be left undated — an in-trip shortlist of "maybe"
-  // places to eat. When a reservation time is set we surface it;
-  // an undated meal shows no meta.
-  const meta = segment.startsAt ? (
-    <div className="text-foreground/75 font-mono text-[11px] leading-tight tracking-wider">
-      <div>
-        <LocalTime date={segment.startsAt} />
-      </div>
-      {segment.endsAt && (
-        <div className="text-foreground/45 mt-0.5">
-          → <LocalTime date={segment.endsAt} />
-        </div>
-      )}
-    </div>
-  ) : null;
+  // Food can be left undated — an in-trip shortlist of "maybe" places to
+  // eat. The date+time meta surfaces a reservation; an undated meal shows
+  // none.
+  const meta = (
+    <SegmentTimeMeta startsAt={segment.startsAt} endsAt={segment.endsAt} showDate={showDate} />
+  );
 
   const subtitleText = foodCardSubtitle({ address, locationName: segment.locationName });
   const subtitle = subtitleWithPlusCodeBadge({

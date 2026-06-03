@@ -86,6 +86,8 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
                 tripId={id}
                 linkedDocuments={linkedDocsBySegment.get(segment.id)}
                 coords={coordsBySegmentId.get(segment.id) ?? null}
+                showScheduleAction
+                showDate
               />
             </li>
           ))}
