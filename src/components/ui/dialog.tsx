@@ -112,11 +112,29 @@ const dialogScrollContainer = 'flex max-h-[calc(85vh-7rem)] flex-col gap-0';
 // `min-h-0` reset is what lets the body actually shrink below its content
 // in a flex column — without it, `min-height: auto` keeps the body at its
 // intrinsic height and overflow falls back to the outer DialogContent.
+//
+// `overflow-x-hidden` + `min-w-0` are the horizontal counterparts, and
+// they are not optional: setting `overflow-y-auto` alone makes the
+// browser *compute* `overflow-x` to `auto` (the spec coerces a `visible`
+// axis to `auto` when its sibling axis scrolls), so this body silently
+// becomes a horizontal scroller too. On iOS Safari a native control
+// (`<select>`, `<input type="date|time">`) carries an intrinsic
+// min-width that does not shrink to its `width:100%` box; without a
+// `min-w-0` ancestor it pushes the field stack wider than the body and
+// that latent x-axis turns into a real sideways scroll inside the dialog
+// (Android/Chromium shrink the control instead, so the bug is
+// iOS-only). Pinning `overflow-x-hidden` here makes the clip explicit
+// and `min-w-0` lets the body shrink in its flex parent. A dialog is a
+// constrained surface — horizontal overflow is always a bug, never a
+// feature (mirrors the same guard on DialogContent).
 const DialogScrollableBody = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1 pb-1', className)}
+      className={cn(
+        'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto pr-1 pb-1',
+        className,
+      )}
       {...props}
     />
   ),

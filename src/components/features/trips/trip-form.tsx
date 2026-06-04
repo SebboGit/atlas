@@ -158,7 +158,13 @@ export function TripForm({ mode, initial, onSubmit, onSuccess, onCancel }: TripF
           {summaryErr && <FieldError>{summaryErr}</FieldError>}
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        {/* [&>*]:min-w-0 — the date pickers fall back to a native
+            <input type="date"> on touch devices, and iOS Safari gives
+            that control an intrinsic min-width that ignores its
+            width:100% box. Grid cells default to min-width:auto, so
+            without this the native input pushes the column wider than
+            the dialog and the body scrolls sideways on iPhone. */}
+        <div className="grid gap-5 sm:grid-cols-2 [&>*]:min-w-0">
           <div className="flex flex-col gap-2">
             <Label htmlFor="trip-start-trigger">Start</Label>
             <Controller
@@ -203,7 +209,11 @@ export function TripForm({ mode, initial, onSubmit, onSuccess, onCancel }: TripF
           </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        {/* [&>*]:min-w-0 — same reason as the date row, for the native
+            <select> controls: iOS sizes a <select> to its widest option
+            ("Household — shared") and won't shrink it below that, so the
+            cell has to be allowed to shrink or the row overflows. */}
+        <div className="grid gap-5 sm:grid-cols-2 [&>*]:min-w-0">
           <div className="flex flex-col gap-2">
             <Label htmlFor="trip-status">Status</Label>
             <Select id="trip-status" {...register('status')}>

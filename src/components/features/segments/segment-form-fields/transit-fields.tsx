@@ -26,7 +26,11 @@ export function TransitFields({ form }: { form: Form }) {
   const e = getDataErrors(form.formState.errors);
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid gap-5 sm:grid-cols-2">
+      {/* [&>*]:min-w-0 — the Mode field is a native <select>, which iOS
+          won't shrink below its widest option; same guard as the trip
+          form's status/visibility row. The From/To row below is plain
+          text inputs, which shrink fine, so it doesn't need it. */}
+      <div className="grid gap-5 sm:grid-cols-2 [&>*]:min-w-0">
         <div className="flex flex-col gap-2">
           <Label htmlFor="seg-mode">Mode</Label>
           <Select id="seg-mode" {...form.register('data.mode' as never)}>

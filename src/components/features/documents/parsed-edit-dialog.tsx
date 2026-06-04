@@ -272,7 +272,12 @@ function BoardingPassFields({
           onChange={onActiveLegIndexChange}
         />
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* [&>*]:min-w-0 — the Date field renders a native <input
+          type="date"> on touch, whose iOS intrinsic min-width ignores
+          its width:100% box. Grid cells default to min-width:auto, so
+          without this the control pushes the grid past the dialog edge
+          on iPhone. */}
+      <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
         <Field label="Carrier" error={legErrors.carrier}>
           <Input
             placeholder="VN"
@@ -464,7 +469,11 @@ function HotelFields({
   onChange: (patch: Partial<Omit<HotelPayload, 'kind'>>) => void;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    // [&>*]:min-w-0 — bare native <input type="date"> check-in/out, same
+    // iOS min-width quirk as the boarding-pass grid above. This dialog
+    // has no DialogScrollableBody backstop, so the per-cell shrink is the
+    // only guard here.
+    <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
       <div className="sm:col-span-2">
         <Field label="Hotel" error={errors.hotelName}>
           <Input
