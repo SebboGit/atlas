@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-04
+
+### Fixed
+
+- **Mobile dialogs on iOS** — the Add/Edit trip dialog (and other forms with
+  native date or dropdown controls) no longer scrolled sideways on iPhone.
+  iOS Safari sizes those native controls to a minimum width that ignored the
+  field's box, pushing the form past the dialog edge; Android was unaffected.
+
 ## [1.1.0] - 2026-06-03
 
 ### Added
@@ -83,7 +92,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/SebboGit/atlas/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/SebboGit/atlas/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/SebboGit/atlas/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/SebboGit/atlas/releases/tag/v1.0.0
