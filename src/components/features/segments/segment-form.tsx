@@ -197,7 +197,12 @@ export function SegmentForm({
               role="radiogroup"
               aria-labelledby="seg-type-label"
               onKeyDown={onTypeKeyDown}
-              className="-mx-0.5 flex flex-wrap gap-2"
+              // Fixed grid, not flex-wrap: the six types lay out 2-up on a
+              // phone and 3-up from sm: — even rows, no lone chip dangling
+              // on a second line. And no negative margin: the old `-mx-0.5`
+              // pulled the leftmost chip's border under DialogScrollableBody's
+              // `overflow-x-hidden` clip edge, shaving it off on each row.
+              className="grid grid-cols-2 gap-2 sm:grid-cols-3"
             >
               {SEGMENT_TYPES.map((t, i) => {
                 const Glyph = TYPE_GLYPH[t];
@@ -214,8 +219,8 @@ export function SegmentForm({
                     tabIndex={selected ? 0 : -1}
                     onClick={() => setValue('type', t, { shouldDirty: true, shouldValidate: true })}
                     className={cn(
-                      // ≥44px touch target via min-height; chips wrap to
-                      // a second row at 360px rather than scrolling.
+                      // ≥44px touch target via min-height; each chip
+                      // stretches to fill its grid cell.
                       'inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium tracking-tight transition-[background-color,border-color,color] duration-150',
                       'focus-visible:ring-primary/40 focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
                       '[&_svg]:size-4 [&_svg]:shrink-0',
