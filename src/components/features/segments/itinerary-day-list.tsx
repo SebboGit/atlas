@@ -382,6 +382,25 @@ export function ItineraryDayList({
     setReleasedHash(getHashSnapshot());
   }, []);
 
+  // Tapping a "Staying since" continuation row must expand the past group
+  // and flash its card on *every* tap. A multi-day stay shows the same
+  // `#seg-<id>` link on each day it spans, so a second tap lands on the
+  // hash that's already set: the browser fires no `hashchange`, the
+  // force-expand below never re-derives, and use-segment-scroll-flash
+  // never re-runs — the bare anchor is a one-shot. Re-arm both paths
+  // here. Clearing `releasedHash` lets a tap re-open the group even after
+  // the user previously collapsed it (which released that exact hash),
+  // and the custom event is the same same-hash nudge the Cmd+K palette
+  // uses — deferred a frame so the anchor's own hash update lands first.
+  const handleContinuationActivate = React.useCallback(() => {
+    setReleasedHash(null);
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('atlas:seg-target-changed'));
+      });
+    }
+  }, []);
+
   // Auto-scroll to today's group once, on open. Guarded so it fires a
   // single time per mount (not on every collapse toggle), and skipped
   // when a `#seg-` deep link is present so the search-palette scroll
@@ -516,6 +535,7 @@ export function ItineraryDayList({
               coordsBySegmentId={coordsBySegmentId}
               position={day.position}
               continuations={continuations.get(day.key)}
+              onContinuationActivate={handleContinuationActivate}
             />
           </div>
         </div>

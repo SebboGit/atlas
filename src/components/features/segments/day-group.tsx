@@ -31,6 +31,11 @@ interface DayGroupProps {
   // the day's own segments. Empty / omitted renders nothing extra, so
   // the type-specific tabs (which never pass it) are unaffected.
   continuations?: Segment[];
+  // Fired when a continuation row is tapped — lets ItineraryDayList
+  // re-open the collapsed past group and re-flash the linked card on
+  // every tap, not just the first (see ContinuationRow). Omitted by the
+  // type-specific tabs, which never render continuations.
+  onContinuationActivate?: () => void;
 }
 
 function formatDayLabel(d: Date): string {
@@ -56,6 +61,7 @@ export function DayGroup({
   coordsBySegmentId,
   position = 'future',
   continuations = [],
+  onContinuationActivate,
 }: DayGroupProps) {
   const dayLabel = String(dayNumber).padStart(2, '0');
   const isToday = position === 'today';
@@ -88,7 +94,7 @@ export function DayGroup({
        *  with the cards' left edge on laptop (matching the ol's pl-10). */}
       {continuations.length > 0 && (
         <div className="md:pl-10">
-          <DayContinuations continuations={continuations} />
+          <DayContinuations continuations={continuations} onActivate={onContinuationActivate} />
         </div>
       )}
 
