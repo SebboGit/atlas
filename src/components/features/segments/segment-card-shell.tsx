@@ -71,7 +71,13 @@ export function SegmentCardShell({
         <div
           role="status"
           aria-label="Date outside trip window — review"
-          className="border-foreground/12 bg-foreground/[0.04] flex items-center gap-3 border-b py-2.5 pr-28 pl-5 sm:pl-6"
+          // `py-4` (not the band's intrinsic text height) so the strip is
+          // tall enough to fully contain the action cluster SegmentRow
+          // pins at `top-3` — the edit/delete buttons reach ~40px down on
+          // pointer devices, which a tighter band only half-covered, so
+          // they read as sitting inside this strip rather than spilling
+          // past its lower edge. `pr-28` reserves their horizontal lane.
+          className="border-foreground/12 bg-foreground/[0.04] flex items-center gap-3 border-b py-4 pr-28 pl-5 sm:pl-6"
         >
           <span className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
             Review
