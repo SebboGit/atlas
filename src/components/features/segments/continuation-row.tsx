@@ -66,9 +66,16 @@ function formatSinceDate(d: Date): string {
 // hash) and triggers the scroll-flash, so the primary record is one tap
 // away without duplicating it here.
 //
+// `onActivate` fires alongside the native navigation so the row works on
+// every click, not just the first. A stay spans several days and shows
+// the *same* `#seg-<id>` link on each, so re-clicking lands on the hash
+// that's already set — the browser fires no `hashchange`, and the bare
+// anchor would be inert. The parent's `onActivate` re-arms the
+// force-expand and nudges the scroll-flash regardless (ItineraryDayList).
+//
 // Touch target: the link is `min-h-[44px]`, satisfying the responsive
 // rule for an interactive row on touch devices.
-function ContinuationRow({ segment }: { segment: Segment }) {
+function ContinuationRow({ segment, onActivate }: { segment: Segment; onActivate?: () => void }) {
   const name = continuationName(segment);
   const since = segment.startsAt ? formatSinceDate(segment.startsAt) : null;
 
@@ -81,6 +88,7 @@ function ContinuationRow({ segment }: { segment: Segment }) {
     <a
       href={`#seg-${segment.id}`}
       aria-label={label}
+      onClick={onActivate}
       className={cn(
         'group flex min-h-[44px] items-center gap-2.5 rounded-lg px-2 py-1.5 text-left',
         'text-accent/90 [@media(hover:hover)]:hover:text-accent transition-colors',
@@ -115,12 +123,20 @@ function ContinuationRow({ segment }: { segment: Segment }) {
 // stay that continues through this day, above the day's own segments.
 // Returns null when there are none so DayGroup can render it
 // unconditionally.
-export function DayContinuations({ continuations }: { continuations: Segment[] }) {
+export function DayContinuations({
+  continuations,
+  onActivate,
+}: {
+  continuations: Segment[];
+  // Forwarded to every row so a tap re-arms the past-group expand and
+  // re-fires the scroll-flash even when the hash is unchanged.
+  onActivate?: () => void;
+}) {
   if (continuations.length === 0) return null;
   return (
     <div className="mb-3 space-y-0.5 sm:mb-4">
       {continuations.map((seg) => (
-        <ContinuationRow key={seg.id} segment={seg} />
+        <ContinuationRow key={seg.id} segment={seg} onActivate={onActivate} />
       ))}
     </div>
   );

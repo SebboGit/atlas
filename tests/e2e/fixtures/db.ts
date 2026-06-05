@@ -143,6 +143,39 @@ export async function seedActivitySegment(
   return row.id;
 }
 
+export interface SeedHotelValues {
+  propertyName: string;
+  // A multi-day stay needs both ends so `continuesThroughDay` (and the
+  // itinerary's "Staying since" continuation rows) treat it as ongoing.
+  startsAt: Date;
+  endsAt: Date;
+  countryCode?: string | null;
+  locationName?: string | null;
+}
+
+// Hotel segment — the span-capable type behind the collapsed-past
+// continuation rows. A stay that checks in on a collapsed past day and
+// runs through today surfaces as a "Staying since" row on the visible
+// days (see day-temporal.ts `continuesThroughDay`).
+export async function seedHotelSegment(tripId: string, values: SeedHotelValues): Promise<string> {
+  assertTestDatabase();
+  const inserted = await db
+    .insert(segments)
+    .values({
+      tripId,
+      type: 'hotel',
+      data: { propertyName: values.propertyName },
+      startsAt: values.startsAt,
+      endsAt: values.endsAt,
+      locationName: values.locationName ?? null,
+      countryCode: values.countryCode ?? null,
+    })
+    .returning({ id: segments.id });
+  const row = inserted[0];
+  if (!row) throw new Error('E2E fixture: failed to seed hotel segment.');
+  return row.id;
+}
+
 export interface SeedWishlistValues {
   title: string;
   countryCode: string;
