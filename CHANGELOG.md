@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-07
+
+### Fixed
+
+- **Itinerary continuation rows** — a multi-day stay shows a "Staying since" row
+  on each day it spans. Tapping one a second time — or after collapsing the past
+  — now re-runs the jump and highlight to the original segment instead of doing
+  nothing.
+- **Review banner on segment cards** — the edit and delete buttons on a segment
+  flagged for review no longer spill past the banner's lower edge.
+- **Segment type picker** — in the Add and Edit segment dialog, the row of type
+  buttons is laid out as an even grid: the first button's border is no longer
+  clipped, and the sixth no longer dangles on its own line.
+
 ## [1.1.1] - 2026-06-04
 
 ### Fixed
@@ -92,7 +106,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/SebboGit/atlas/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/SebboGit/atlas/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/SebboGit/atlas/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/SebboGit/atlas/compare/v1.0.0...v1.0.1
