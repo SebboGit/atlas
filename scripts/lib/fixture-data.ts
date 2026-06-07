@@ -114,6 +114,10 @@ type HeroSegment = {
   locationName?: string;
   countryCode?: string;
   originCountryCode?: string;
+  // Set directly because the fixture inserts rows without going through
+  // the create action that normally computes it from the trip's ±2 day
+  // window (ADR-0008). Defaults to false in the insert mapping.
+  needsReview?: boolean;
   /** Lat/lng the geocode cache should return for this segment's query. */
   pin?: { lat: number; lng: number };
 };
@@ -280,6 +284,21 @@ const HERO_SEGMENTS: HeroSegment[] = [
     endsAt: d(2025, 10, 10, 16, 20),
     countryCode: 'GB',
     originCountryCode: 'JP',
+  },
+  // needs-review edge case (ADR-0008): an auto-created segment whose
+  // parsed date landed outside the trip's ±2 day window. The trip ends
+  // Oct 10, so Oct 13 is past the +2 day tolerance — it stays flagged
+  // even after an edit re-save, not just on first insert. Exercises the
+  // review strip and its hover edit/delete cluster on the segment card
+  // (see segment-card-shell.tsx).
+  {
+    type: 'activity',
+    data: { title: 'Nishiki Market food crawl', bookingRef: 'NMK-3320' },
+    startsAt: d(2025, 10, 13, 10),
+    locationName: 'Nakagyō',
+    countryCode: 'JP',
+    needsReview: true,
+    pin: { lat: 35.005, lng: 135.7649 },
   },
 ];
 
@@ -614,6 +633,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         locationName: s.locationName ?? null,
         countryCode: s.countryCode ?? null,
         originCountryCode: s.originCountryCode ?? null,
+        needsReview: s.needsReview ?? false,
       })),
     )
     .returning({ id: segments.id, type: segments.type });
