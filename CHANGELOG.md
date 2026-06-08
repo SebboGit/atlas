@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-06-08
+
+### Fixed
+
+- **Adding documents and segments in production** — uploading a document or
+  adding any segment failed with a generic "Something went wrong." The PDF
+  parser was being loaded into the web app process, where it crashed on a
+  browser API that doesn't exist on the server. It now loads only in the
+  background worker, where extraction actually runs.
+
 ## [1.1.2] - 2026-06-07
 
 ### Fixed
@@ -106,7 +116,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/SebboGit/atlas/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/SebboGit/atlas/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/SebboGit/atlas/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/SebboGit/atlas/compare/v1.0.1...v1.1.0
