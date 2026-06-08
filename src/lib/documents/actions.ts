@@ -12,7 +12,9 @@ import { log } from '@/lib/log';
 import { getStorage, StorageRejectedError } from '@/lib/storage';
 import { err, ok, type Result } from '@/types/result';
 
-import { EXTRACTION_JOB, type ExtractionJobData } from './extraction-job';
+// Import from the contract, NOT `./extraction-job` (the handler): the handler
+// pulls in @/lib/ocr → pdfjs, which must never load in the Next app process.
+import { EXTRACTION_JOB, type ExtractionJobData } from './extraction-job-contract';
 import * as repo from './repo';
 import { EXTRACTION_STALE_MS } from './state';
 
