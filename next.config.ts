@@ -18,6 +18,24 @@ const formActionSources = ["'self'", oidcIssuerOrigin()].filter(Boolean).join(' 
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Document uploads POST their file through a Server Action
+// (uploadDocumentAction), and Server Actions buffer the whole request body
+// in memory behind a cap that defaults to 1 MB. Our upload ceiling is
+// STORAGE_MAX_BYTES (default 20 MB), so any larger file used to 413 with a
+// generic "Something went wrong." before the storage layer could return its
+// friendly "File is too large." Size the envelope just above the storage
+// limit so storage (not Next) owns the real cap and its message — the few
+// hundred bytes of multipart framing fit comfortably in the 1 MB headroom.
+//
+// NB: `output: 'standalone'` bakes this value into the build, so raising
+// STORAGE_MAX_BYTES at runtime needs an image rebuild to keep the two in
+// sync — otherwise storage would accept files Next then 413s.
+const storageMaxBytes = Number(process.env.STORAGE_MAX_BYTES ?? 20 * 1024 * 1024);
+const serverActionBodyLimit =
+  Number.isFinite(storageMaxBytes) && storageMaxBytes > 0
+    ? storageMaxBytes + 1024 * 1024
+    : 21 * 1024 * 1024;
+
 // `next dev` ships eval-based source maps and an HMR websocket. Both
 // are blocked by the production CSP. Loosen *only* in development so
 // interactive UI works at localhost; production headers stay strict.
@@ -92,6 +110,14 @@ const nextConfig: NextConfig = {
   // the worker at its real node_modules path — the legacy build's
   // documented entry contract.
   serverExternalPackages: ['pdfjs-dist'],
+  experimental: {
+    // See `serverActionBodyLimit` above — lifts the Server Action body cap
+    // from its 1 MB default to just over STORAGE_MAX_BYTES so document
+    // uploads aren't 413'd before the storage layer can size-check them.
+    serverActions: {
+      bodySizeLimit: serverActionBodyLimit,
+    },
+  },
   // Allow `next dev` HMR + RSC requests from extra hosts so the app can
   // be exercised on a phone over the LAN. Dev-only — production builds
   // don't consult this list. Comma-separated env var keeps the
