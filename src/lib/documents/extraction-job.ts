@@ -26,26 +26,15 @@ import { log } from '@/lib/log';
 import { getDefaultExtractors } from '@/lib/ocr';
 import { getStorage } from '@/lib/storage';
 
+import { EXTRACTION_JOB, type ExtractionJobData } from './extraction-job-contract';
 import * as repo from './repo';
 import { ensureSegmentForExtraction } from './segment-link';
 
-export const EXTRACTION_JOB = 'extraction';
-
-export interface ExtractionJobData {
-  userId: string;
-  tripId: string;
-  documentId: string;
-  /** ISO-8601 string. The claim token (`documents.extractionStartedAt`). */
-  claim: string;
-  /**
-   * Segment IDs this document was linked to BEFORE `markExtractionStarted`
-   * wiped the links. The bridge uses these to decide which dedup
-   * matches are this document's own prior segments (update in place)
-   * vs. another document's segments (link only, leave fields alone).
-   * Empty on first extraction.
-   */
-  priorLinkedSegmentIds: string[];
-}
+// The job name + payload type live in `./extraction-job-contract.ts` so the
+// enqueue side (`./actions.ts`) can import them without dragging pdfjs into
+// the app process. Re-exported here so the worker registration and tests can
+// keep importing them alongside the handler from this module.
+export { EXTRACTION_JOB, type ExtractionJobData };
 
 export async function runExtractionJob(data: ExtractionJobData): Promise<void> {
   const { userId, tripId, documentId, priorLinkedSegmentIds } = data;
