@@ -59,3 +59,19 @@ export function groupSegmentsByDay(segments: Segment[]): DayGrouping {
   const days = Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
   return { days, unscheduled };
 }
+
+// Segment types with no dedicated trip tab. An undated (`startsAt === null`)
+// one of these would be invisible everywhere — the type tabs don't list it
+// and the day-grouped itinerary excludes undated rows — so the itinerary
+// surfaces them in its own "Undated" section. Activities and food are
+// deliberately excluded: their undated state is a shortlist candidate shown
+// on their own flat tabs (ADR-0003), not orphaned.
+const UNDATED_ITINERARY_TYPES = new Set<Segment['type']>(['note', 'transit']);
+
+// Narrows a list of undated segments to the ones the itinerary should
+// surface (see UNDATED_ITINERARY_TYPES). Extracted from the page so the
+// "only note + transit" rule has a regression guard independent of the
+// page wiring.
+export function surfaceUndatedOnItinerary(segments: Segment[]): Segment[] {
+  return segments.filter((s) => UNDATED_ITINERARY_TYPES.has(s.type));
+}

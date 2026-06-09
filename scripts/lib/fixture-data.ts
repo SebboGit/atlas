@@ -270,6 +270,13 @@ const HERO_SEGMENTS: HeroSegment[] = [
     data: { body: 'Buy matcha at Ippodo before heading to the airport.' },
     startsAt: d(2025, 10, 9, 16),
   },
+  // Undated note — a general trip reminder with no day to file under.
+  // Exercises the itinerary's "Undated" section: note and transit have no
+  // dedicated tab, so an undated one of those types surfaces only there.
+  {
+    type: 'note',
+    data: { body: 'Carry cash — many izakaya and small shops are still cash-only.' },
+  },
   {
     type: 'flight',
     data: {

@@ -2,12 +2,16 @@ import { notFound } from 'next/navigation';
 
 import { classifyDays } from '@/components/features/segments/day-temporal';
 import { GeocodePoller } from '@/components/features/segments/geocode-poller';
-import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
+import {
+  groupSegmentsByDay,
+  surfaceUndatedOnItinerary,
+} from '@/components/features/segments/group-by-day';
 import {
   ItineraryDayList,
   type ItineraryDay,
 } from '@/components/features/segments/itinerary-day-list';
 import { ItineraryEmpty } from '@/components/features/segments/itinerary-empty';
+import { ItineraryUndated } from '@/components/features/segments/itinerary-undated';
 import { SegmentFormDialog } from '@/components/features/segments/segment-form-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,24 +42,40 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
   const trip = await tripsRepo.getByIdForUser(user.id, id);
   if (!trip) notFound();
 
-  const [segments, linkedDocsBySegment] = await Promise.all([
+  const [datedSegments, undatedSegments, linkedDocsBySegment] = await Promise.all([
     segmentsRepo.listForTrip(user.id, id, {
       countryCode: country?.toUpperCase(),
       scheduled: true,
     }),
+    segmentsRepo.listForTrip(user.id, id, {
+      countryCode: country?.toUpperCase(),
+      scheduled: false,
+    }),
     documentsRepo.listLinkedDocumentsByTripSegment(user.id, id),
   ]);
+
+  // Undated note / transit segments have no dedicated tab, so an undated
+  // one would be invisible everywhere without this. Undated activities /
+  // food deliberately live on their own flat tabs (ADR-0003), so they're
+  // excluded — only the "homeless" types surface in the itinerary's
+  // Undated section. The predicate lives in group-by-day.ts so it's tested.
+  const undatedSurfaced = surfaceUndatedOnItinerary(undatedSegments);
 
   // Coordinates feed the Plus Code badge on each card. Reads the
   // geocode_cache only — never enqueues fetches; absent rows just
   // mean no badge yet (cache miss surfaces on the trip map's "Not
   // pinned" disclosure separately). `pendingCount` is the number of
   // geocodable segments whose cache row hasn't landed yet — the
-  // poller below uses it to silently refresh until they do.
-  const { coordsById: coordsBySegmentId, pendingCount } = await getPlaceCoordsView(segments);
+  // poller below uses it to silently refresh until they do. Covers the
+  // undated card too (a transit can be geocoded).
+  const { coordsById: coordsBySegmentId, pendingCount } = await getPlaceCoordsView([
+    ...datedSegments,
+    ...undatedSurfaced,
+  ]);
 
-  // `scheduled: true` filter above guarantees no unscheduled bucket here.
-  const { days } = groupSegmentsByDay(segments);
+  // `scheduled: true` keeps the day buckets dated-only; the undated
+  // surfaced segments render in their own section below.
+  const { days } = groupSegmentsByDay(datedSegments);
   const hasCountryFilter = !!country;
 
   // Classify each day relative to "now" on the server so the markup the
@@ -120,23 +140,37 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
         />
       </header>
 
-      {itineraryDays.length === 0 ? (
+      {itineraryDays.length === 0 && undatedSurfaced.length === 0 ? (
         <ItineraryEmpty hasCountryFilter={hasCountryFilter} />
       ) : (
-        // For an `active` trip, every past day folds into a single
-        // collapsed group, today auto-scrolls into focus, and future
-        // days stay visible. Any other status renders plainly — every
-        // day expanded, no collapse, no auto-scroll — since `active` is
-        // the only status where past / today / future coexist. The
-        // collapse interaction and its localStorage persistence live in
-        // this client component; data fetching above stays on the server.
-        <ItineraryDayList
-          tripId={id}
-          days={itineraryDays}
-          isActive={trip.status === 'active'}
-          linkedDocumentsBySegment={linkedDocsBySegment}
-          coordsBySegmentId={coordsBySegmentId}
-        />
+        <>
+          {/* For an `active` trip, every past day folds into a single
+           *  collapsed group, today auto-scrolls into focus, and future
+           *  days stay visible. Any other status renders plainly — every
+           *  day expanded, no collapse, no auto-scroll — since `active` is
+           *  the only status where past / today / future coexist. The
+           *  collapse interaction and its localStorage persistence live in
+           *  this client component; data fetching above stays on the server. */}
+          {itineraryDays.length > 0 && (
+            <ItineraryDayList
+              tripId={id}
+              days={itineraryDays}
+              isActive={trip.status === 'active'}
+              linkedDocumentsBySegment={linkedDocsBySegment}
+              coordsBySegmentId={coordsBySegmentId}
+            />
+          )}
+
+          {/* Undated note / transit — no day to file under, so they sit
+           *  after the timeline as a quiet appendix. Renders nothing when
+           *  empty. */}
+          <ItineraryUndated
+            segments={undatedSurfaced}
+            tripId={id}
+            linkedDocumentsBySegment={linkedDocsBySegment}
+            coordsBySegmentId={coordsBySegmentId}
+          />
+        </>
       )}
 
       <GeocodePoller pending={pendingCount} />
