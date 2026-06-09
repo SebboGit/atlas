@@ -1,11 +1,11 @@
 import type { Segment } from '@/lib/segments';
 
-// UTC calendar-day key. Non-flight segment times are floating-UTC
-// wall-clocks (ADR-0014), so the day a segment "reads" is its UTC
-// calendar day — not the server's local interpretation of the instant.
-// Reading in UTC keeps grouping identical on any server timezone
-// (dev/prod parity). Exported so the itinerary's collapse persistence
-// can key its localStorage overrides off the same value.
+// UTC calendar-day key. All segment times are floating-UTC wall-clocks
+// (ADR-0014 for non-flight, ADR-0016 for flights), so the day a segment
+// "reads" is its UTC calendar day — not the server's local interpretation
+// of the instant. Reading in UTC keeps grouping identical on any server
+// timezone (dev/prod parity). Exported so the itinerary's collapse
+// persistence can key its localStorage overrides off the same value.
 export function dayKey(d: Date): string {
   const yyyy = d.getUTCFullYear();
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');

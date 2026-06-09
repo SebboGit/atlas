@@ -29,6 +29,7 @@
 import { getAirlineName } from '@/lib/airlines';
 import { getAirportCountry } from '@/lib/airports';
 import type { FlightLeg, StructuredPayload } from '@/lib/extraction';
+import { dateFromLocalInZone } from '@/lib/format';
 
 import type { SegmentCreateInput } from './validators';
 
@@ -44,10 +45,12 @@ import type { SegmentCreateInput } from './validators';
  *   - computing `needsReview` from the trip window,
  *   - persisting the link onto the source document.
  *
- * Date fields land as **local midnight** Date objects via
- * `parseLocalDate`, matching the wall-clock semantics in
- * `validators.ts`'s `dateInput` transform — a flight on 2026-09-20
- * displays as the 20th regardless of viewer timezone.
+ * Hotel / restaurant date-only fields land on **local midnight** via
+ * `parseLocalDate`. Times — and flight dates — are floating local:
+ * `parseFloatingDateTime` keeps the printed wall clock and interprets it
+ * at UTC (ADR-0014 for non-flight times, ADR-0016 for flights), so a
+ * segment shows the time printed on the document and buckets on the
+ * printed calendar day, regardless of server or viewer timezone.
  */
 export function payloadToSegmentInputs(payload: StructuredPayload): SegmentCreateInput[] {
   switch (payload.kind) {
@@ -100,14 +103,15 @@ export function payloadToSegmentInputs(payload: StructuredPayload): SegmentCreat
 
       // The reservation can be a full date+time or a bare date. A
       // bare date goes through parseLocalDate (local midnight) so it
-      // buckets onto the same itinerary day the document prints —
-      // `parseFlexibleDateTime` (new Date()) would read a date-only
-      // ISO string as UTC midnight and slide it a day west of the
-      // user. A full datetime keeps parseFlexibleDateTime's offset-
-      // aware parse. Same precedence as the flight mapper's flightDate.
+      // buckets onto the same itinerary day the document prints. A full
+      // datetime is floating local (ADR-0014): we store the printed
+      // wall clock interpreted at UTC so it renders back verbatim for
+      // every viewer, server-timezone-independent. `new Date()` would
+      // instead anchor a naive time in the server's zone — correct only
+      // by accident while that zone happens to be UTC.
       const startsAt =
         parseLocalDate(payload.reservationDateTime) ??
-        parseFlexibleDateTime(payload.reservationDateTime);
+        parseFloatingDateTime(payload.reservationDateTime);
       return [
         {
           type: 'food',
@@ -148,11 +152,17 @@ function legToFlightSegment(leg: FlightLeg): SegmentCreateInput | null {
   if (!hasFlightId) return null;
 
   // Prefer the full ISO datetime when the extractor surfaced one
-  // (pkpass `relevantDate`, LLM-parsed time on the document); fall
-  // back to date-only at local midnight. Same precedence for
-  // endsAt — only set it if we actually have an arrival time.
-  const startsAt = parseFlexibleDateTime(leg.scheduledDeparture) ?? parseLocalDate(leg.flightDate);
-  const endsAt = parseFlexibleDateTime(leg.scheduledArrival);
+  // (pkpass `relevantDate`, LLM-parsed time on the document); fall back
+  // to the date alone. Flight times are floating local (ADR-0016): we
+  // store the wall clock the boarding pass prints, interpreted at UTC,
+  // so the day buckets and the digits display verbatim — the origin /
+  // destination airport supplies only the zone LABEL at render time, not
+  // a clock conversion. A bare flightDate lands on UTC midnight (the
+  // "no time component" sentinel). Same precedence for endsAt: only set
+  // it if we actually have an arrival time.
+  const startsAt =
+    parseFloatingDateTime(leg.scheduledDeparture) ?? parseFloatingDateTime(leg.flightDate);
+  const endsAt = parseFloatingDateTime(leg.scheduledArrival);
 
   // Resolve IATA → airline name so the stored segment carries a
   // human-readable carrier ("Vietnam Airlines") not the bare code
@@ -196,15 +206,32 @@ function parseLocalDate(s: string | null): Date | null {
   return new Date(Number(y), Number(mo) - 1, Number(d));
 }
 
-// ISO 8601 datetime → Date. Accepts the shapes BoardingPassPayload's
-// scheduledDeparture/scheduledArrival schema allows:
-//   "2026-09-20T14:30"                  — naive (treated as local)
-//   "2026-09-20T14:30:00"               — same, with seconds
-//   "2026-09-20T14:30:00+02:00" / "Z"   — with offset (parsed as the
-//                                         absolute instant it names)
+// An ISO datetime that ends in an explicit UTC offset ("+02:00",
+// "+0200") or "Z". The floating model ignores it (see below), so we
+// only need to strip it off before parsing.
+const HAS_OFFSET = /([+-]\d{2}:?\d{2}|Z)$/;
+// Trailing seconds the schema permits but we render below minute
+// precision — strip them so the minute-precision wall-clock parser
+// (dateFromLocalInZone) accepts the value.
+const TRAILING_SECONDS = /(T\d{2}:\d{2}):\d{2}$/;
+
+// Datetime (or bare date) → Date, floating local (ADR-0014 for
+// non-flight times, ADR-0016 for flights). We keep only the wall-clock
+// parts the document printed and interpret them at UTC, so the time
+// renders back verbatim for every viewer and the day buckets on the
+// printed calendar day regardless of server or viewer timezone. Any
+// printed offset is DROPPED on purpose: the floating model stores the
+// clock the document shows, not an absolute instant — for flights the
+// airport IATA supplies the zone label at render time. A bare date
+// ("2026-09-20") lands on UTC midnight, the "no time" sentinel. Accepts
+// every shape the scheduledDeparture / scheduledArrival / reservation
+// schemas allow:
+//   "2026-09-20"                        — bare date → UTC midnight
+//   "2026-09-20T14:30" / ":00"          — naive wall clock
+//   "2026-09-20T14:30:00+02:00" / "Z"   — offset stripped, clock kept
 // Returns null on anything that doesn't parse cleanly.
-function parseFlexibleDateTime(s: string | null): Date | null {
+function parseFloatingDateTime(s: string | null): Date | null {
   if (!s) return null;
-  const parsed = new Date(s);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const naive = s.replace(HAS_OFFSET, '').replace(TRAILING_SECONDS, '$1');
+  return dateFromLocalInZone(naive, 'UTC');
 }

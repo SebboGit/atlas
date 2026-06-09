@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getAirportCountry, getAirportTimezone } from '@/lib/airports';
+import { getAirportCountry } from '@/lib/airports';
 import { flightDataSchema, type Segment } from '@/lib/segments';
 import { updateFlightLegsAction } from '@/lib/segments/actions';
 import { cn } from '@/lib/utils';
@@ -268,13 +268,6 @@ export function MultiLegFlightForm({
     );
   }
 
-  // Wall-clock timezone for the active leg's DateTimeField inputs.
-  // Mirrors `SharedDateFields` so the displayed times match the
-  // airport's local clock when the IATA is known. Null falls back
-  // to the user's runtime timezone — same convention as elsewhere.
-  const startTz = getAirportTimezone(activeDraft.originAirport || null);
-  const endTz = getAirportTimezone(activeDraft.destinationAirport || null);
-
   return (
     <form noValidate onSubmit={onSubmit} className={dialogScrollContainer}>
       <DialogScrollableBody>
@@ -330,16 +323,16 @@ export function MultiLegFlightForm({
 
           <FieldRow label="Departure" error={activeLegErrors.startsAt}>
             <DateTimeField
-              value={toDateTimeValue(activeDraft.startsAt, startTz)}
-              onChange={(s) => patchActive({ startsAt: fromDateTimeValue(s, startTz) })}
+              value={toDateTimeValue(activeDraft.startsAt)}
+              onChange={(s) => patchActive({ startsAt: fromDateTimeValue(s) })}
               withTime
               invalid={!!activeLegErrors.startsAt}
             />
           </FieldRow>
           <FieldRow label="Arrival" optional error={activeLegErrors.endsAt}>
             <DateTimeField
-              value={toDateTimeValue(activeDraft.endsAt, endTz)}
-              onChange={(s) => patchActive({ endsAt: fromDateTimeValue(s, endTz) })}
+              value={toDateTimeValue(activeDraft.endsAt)}
+              onChange={(s) => patchActive({ endsAt: fromDateTimeValue(s) })}
               withTime
               invalid={!!activeLegErrors.endsAt}
             />

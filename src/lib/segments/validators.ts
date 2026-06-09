@@ -65,8 +65,9 @@ export function wallClockToUtc(s: string): Date | null {
 }
 
 // Date / date-time input. The form layer hands us a wall-clock string
-// (date-only or date+time), an already-parsed Date (flights resolve
-// their airport-tz instant before submit), or null / ''.
+// (date-only or date+time); a `Date` may also arrive from server-side
+// callers. Every segment type is floating local now (ADR-0014/0016), so
+// a no-timezone string is interpreted at UTC. Null / '' clears the field.
 const dateInput = z
   .union([z.string(), z.date(), z.null()])
   .optional()
