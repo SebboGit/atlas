@@ -33,6 +33,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD}
       POSTGRES_DB: atlas
       POSTGRES_INITDB_ARGS: '--data-checksums'
+      # Pin the container clock and Postgres session default to UTC — the
+      # app's time model is floating-UTC (ADR-0014/0016). The app pool also
+      # sets `-c timezone=UTC` per session.
+      TZ: UTC
+      PGTZ: UTC
     volumes:
       # PG18 mounts the PARENT dir, not .../data — see docker-library/postgres#1259.
       #
@@ -76,6 +81,9 @@ services:
     command: ['node', '--import', 'tsx', 'scripts/worker.ts']
     environment:
       NODE_ENV: production
+      # Pin the Node runtime clock to UTC — floating-UTC time model
+      # (ADR-0014/0016). CRON_TZ below is separate (pg-boss schedules).
+      TZ: UTC
       DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD}@postgres:5432/atlas
       STORAGE_DIR: /app/data/documents
       # Required — the geocoder refuses to start without a contact address.
@@ -112,6 +120,9 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
+      # Pin the Node runtime clock to UTC — floating-UTC time model
+      # (ADR-0014/0016).
+      TZ: UTC
       # MUST match the URL you actually reach Atlas at (scheme + host + port),
       # or OIDC callbacks fail. Behind a TLS reverse proxy this is the https URL.
       AUTH_URL: ${AUTH_URL:?set the canonical app URL}

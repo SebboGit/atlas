@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 
-import { classifyDays } from '@/components/features/segments/day-temporal';
 import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
 import { buildRailDays } from '@/components/features/trip-map/build-rail-days';
 import { ChronoTripMap } from '@/components/features/trip-map/chrono-trip-map';
@@ -49,15 +48,20 @@ export default async function MapTabPage({ params, searchParams }: MapTabPagePro
     name: countryName(code) ?? code,
   }));
 
-  // Shape the timeline: group segments into days, classify each relative
-  // to "now" (so the rail knows past / today / future on first paint),
-  // then join each day's segments to the map's pins / arcs by segmentId
-  // so the rail knows which rows are mappable and where they sit. The
-  // `scheduled: true` filter above means no unscheduled bucket here.
+  // Shape the timeline: group segments into days, then join each day's
+  // segments to the map's pins / arcs by segmentId so the rail knows
+  // which rows are mappable and where they sit. The `scheduled: true`
+  // filter above means no unscheduled bucket here.
+  //
+  // Deliberately NO server-side past/today/future classification: the
+  // rail reclassifies client-side in the VIEWER's timezone (matching the
+  // itinerary tab, ADR-0016), so the two tabs never disagree on "today"
+  // near midnight in a non-UTC zone. The server only ships clock-agnostic
+  // shape — day buckets, their rows, and the span-capable check-ins the
+  // client may surface as continuations.
   const { days } = groupSegmentsByDay(segments);
-  const classified = classifyDays(days, new Date());
   const geometry = indexMapGeometry(mapData.pins, mapData.arcs);
-  const railDays = buildRailDays(classified, geometry);
+  const railDays = buildRailDays(days, geometry);
 
   // Collapsed-past + auto-scroll-to-today fire only for an active trip
   // (issue #8 parity) — passed through to gate them client-side.

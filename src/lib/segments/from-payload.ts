@@ -45,12 +45,13 @@ import type { SegmentCreateInput } from './validators';
  *   - computing `needsReview` from the trip window,
  *   - persisting the link onto the source document.
  *
- * Hotel / restaurant date-only fields land on **local midnight** via
- * `parseLocalDate`. Times — and flight dates — are floating local:
- * `parseFloatingDateTime` keeps the printed wall clock and interprets it
- * at UTC (ADR-0014 for non-flight times, ADR-0016 for flights), so a
- * segment shows the time printed on the document and buckets on the
- * printed calendar day, regardless of server or viewer timezone.
+ * All date/time fields go through one parse, `parseFloatingDateTime`
+ * (ADR-0014 for non-flight times, ADR-0016 for flights): the printed wall
+ * clock is kept and interpreted at UTC, and a bare date lands on UTC
+ * midnight (the "no time" sentinel). So a segment shows the time printed
+ * on the document and buckets on the printed calendar day, regardless of
+ * server or viewer timezone — the same instant a hand-entered value
+ * produces via the form's `wallClockToUtc`.
  */
 export function payloadToSegmentInputs(payload: StructuredPayload): SegmentCreateInput[] {
   switch (payload.kind) {
@@ -69,8 +70,13 @@ export function payloadToSegmentInputs(payload: StructuredPayload): SegmentCreat
       // payload visible on the Documents tab.
       if (!payload.hotelName) return [];
 
-      const startsAt = parseLocalDate(payload.checkIn);
-      const endsAt = parseLocalDate(payload.checkOut);
+      // Date-only check-in/out → UTC midnight via the shared floating
+      // parse (ADR-0014/0016), the "no time" sentinel. This matches the
+      // manual form's wallClockToUtc exactly, so an extracted and a
+      // hand-entered check-in for the same date land on the same instant
+      // on any server timezone — not only when the server runs UTC.
+      const startsAt = parseFloatingDateTime(payload.checkIn);
+      const endsAt = parseFloatingDateTime(payload.checkOut);
       return [
         {
           type: 'hotel',
@@ -101,17 +107,13 @@ export function payloadToSegmentInputs(payload: StructuredPayload): SegmentCreat
       // from the parsed payload on the Documents tab.
       if (!payload.venueName) return [];
 
-      // The reservation can be a full date+time or a bare date. A
-      // bare date goes through parseLocalDate (local midnight) so it
-      // buckets onto the same itinerary day the document prints. A full
-      // datetime is floating local (ADR-0014): we store the printed
-      // wall clock interpreted at UTC so it renders back verbatim for
-      // every viewer, server-timezone-independent. `new Date()` would
-      // instead anchor a naive time in the server's zone — correct only
-      // by accident while that zone happens to be UTC.
-      const startsAt =
-        parseLocalDate(payload.reservationDateTime) ??
-        parseFloatingDateTime(payload.reservationDateTime);
+      // The reservation can be a full date+time or a bare date — the
+      // floating parse handles both (ADR-0014/0016): a bare date lands on
+      // UTC midnight (the "no time" sentinel, bucketing onto the printed
+      // day), a full datetime keeps the printed wall clock interpreted at
+      // UTC. Either way it renders back verbatim for every viewer and is
+      // independent of the server timezone.
+      const startsAt = parseFloatingDateTime(payload.reservationDateTime);
       return [
         {
           type: 'food',
@@ -194,26 +196,15 @@ function legToFlightSegment(leg: FlightLeg): SegmentCreateInput | null {
   };
 }
 
-// ISO YYYY-MM-DD → Date at local midnight. Matches the date-only
-// branch in validators.ts so a user picking 2026-09-20 in the form
-// and an extracted "flightDate: 2026-09-20" land on the same wall-
-// clock day regardless of the server's timezone.
-function parseLocalDate(s: string | null): Date | null {
-  if (!s) return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (!m) return null;
-  const [, y, mo, d] = m;
-  return new Date(Number(y), Number(mo) - 1, Number(d));
-}
-
 // An ISO datetime that ends in an explicit UTC offset ("+02:00",
 // "+0200") or "Z". The floating model ignores it (see below), so we
 // only need to strip it off before parsing.
 const HAS_OFFSET = /([+-]\d{2}:?\d{2}|Z)$/;
-// Trailing seconds the schema permits but we render below minute
-// precision — strip them so the minute-precision wall-clock parser
-// (dateFromLocalInZone) accepts the value.
-const TRAILING_SECONDS = /(T\d{2}:\d{2}):\d{2}$/;
+// Trailing seconds (and any fractional seconds) the schema permits but we
+// render below minute precision — strip them so the minute-precision
+// wall-clock parser (dateFromLocalInZone) accepts the value. Mirrors the
+// strip in validators.ts's dateInput so the two floating parses agree.
+const TRAILING_SECONDS = /(T\d{2}:\d{2}):\d{2}(\.\d+)?$/;
 
 // Datetime (or bare date) → Date, floating local (ADR-0014 for
 // non-flight times, ADR-0016 for flights). We keep only the wall-clock

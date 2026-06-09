@@ -5,7 +5,7 @@ import { Drawer } from 'vaul';
 
 import { cn } from '@/lib/utils';
 
-import type { RailDay } from './timeline-model';
+import type { ResolvedRailDay } from './timeline-model';
 import { TripTimelineRail, type TripTimelineRailProps } from './trip-timeline-rail';
 
 // Snap points for the bottom sheet. "Peek" shows the handle + the
@@ -20,7 +20,10 @@ const SNAP_POINTS = [SNAP_PEEK, SNAP_OPEN] as const;
 // Count of items in the currently-relevant "anchor" day — today for an
 // active trip, else the first day — so the peek header reads
 // "Today · 4 items" (or "Day 01 · …" for non-active trips).
-function anchorSummary(days: RailDay[], isActive: boolean): { label: string; count: number } {
+function anchorSummary(
+  days: ResolvedRailDay[],
+  isActive: boolean,
+): { label: string; count: number } {
   if (isActive) {
     const today = days.find((d) => d.position === 'today');
     if (today) return { label: 'Today', count: today.items.length };

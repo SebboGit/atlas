@@ -22,6 +22,12 @@ const pool =
     connectionString: process.env.DATABASE_URL,
     max: 10,
     idleTimeoutMillis: 30_000,
+    // Pin every session to UTC. The whole time model is floating-UTC
+    // (ADR-0014/0016): stored instants are UTC wall-clocks, so any SQL
+    // that formats a timestamptz (e.g. search's `to_char`) must read it
+    // in UTC, not the server's implicit session timezone. Set here so the
+    // app never depends on the Postgres container's TZ being UTC.
+    options: '-c timezone=UTC',
   });
 
 if (process.env.NODE_ENV !== 'production') {

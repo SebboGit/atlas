@@ -249,7 +249,7 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
       // for not collapsing different stubs into each other.
       expect(out).toEqual({
         type: 'flight',
-        startsAt: new Date(2026, 5, 1),
+        startsAt: new Date('2026-06-01T00:00:00Z'),
         endsAt: null,
         locationName: null,
         countryCode: null,
@@ -287,7 +287,7 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
       // the user can edit the segment to fill in. Don't refuse.
       const out = mapOne(boardingPass({ carrier: null, flightNumber: null }));
       expect(out).not.toBeNull();
-      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date(2026, 5, 1));
+      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-01T00:00:00Z'));
     });
 
     it('keeps the stub when only carrier+flightNumber are present (date unknown)', () => {
@@ -303,8 +303,10 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
 
       expect(out).toEqual({
         type: 'hotel',
-        startsAt: new Date(2026, 5, 2),
-        endsAt: new Date(2026, 5, 5),
+        // Date-only check-in/out → UTC midnight (ADR-0014/0016), the same
+        // instant the manual form produces, independent of server tz.
+        startsAt: new Date('2026-06-02T00:00:00Z'),
+        endsAt: new Date('2026-06-05T00:00:00Z'),
         // locationName is intentionally null on extraction — the
         // address lives in `data.address`, the property name in
         // `data.propertyName`. Auto-populating locationName from
@@ -391,14 +393,15 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
       expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-03T19:30:00Z'));
     });
 
-    it('accepts a date-only reservation, parsed at local midnight', () => {
-      // A date-only reservation must land on the calendar day the
-      // document prints — `new Date('2026-06-03')` would be UTC
-      // midnight, which buckets a day early on a UTC-or-west server.
+    it('accepts a date-only reservation, parsed at UTC midnight', () => {
+      // A date-only reservation lands on UTC midnight (ADR-0014/0016) —
+      // the "no time" sentinel — so it buckets on the printed day for
+      // every viewer and matches the manual form's wallClockToUtc on any
+      // server timezone (not just UTC).
       const out = mapOne(restaurant({ reservationDateTime: '2026-06-03' }));
       expect(out).not.toBeNull();
       if (out === null || out.type !== 'food') throw new Error('expected food');
-      expect(out.startsAt).toEqual(new Date(2026, 5, 3));
+      expect(out.startsAt).toEqual(new Date('2026-06-03T00:00:00Z'));
     });
 
     it('returns null when venueName is missing (validator requires it)', () => {
@@ -466,7 +469,7 @@ describe('payloadToSegmentInputs (multi-flight)', () => {
     expect(out[0]).toEqual(
       expect.objectContaining({
         type: 'flight',
-        startsAt: new Date(2026, 5, 1),
+        startsAt: new Date('2026-06-01T00:00:00Z'),
         locationName: 'SFO',
         data: expect.objectContaining({ flightNumber: '287', originAirport: 'LHR' }),
       }),
@@ -474,7 +477,7 @@ describe('payloadToSegmentInputs (multi-flight)', () => {
     expect(out[1]).toEqual(
       expect.objectContaining({
         type: 'flight',
-        startsAt: new Date(2026, 5, 15),
+        startsAt: new Date('2026-06-15T00:00:00Z'),
         locationName: 'LHR',
         data: expect.objectContaining({ flightNumber: '286', originAirport: 'SFO' }),
       }),
