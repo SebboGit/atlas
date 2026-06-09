@@ -24,35 +24,28 @@ export function formatTime(d: Date, options?: { timeZone?: string }): string {
 }
 
 /**
- * Wall-clock time + a short timezone label (e.g. "04:40 ICT") so the
- * reader can tell which timezone the time is reported in. Uses
- * `formatToParts` because the locale machinery can emit non-ASCII
- * separators ("04:40 GMT+7") that we want to control. Returns just
- * the bare time when `timeZone` is omitted — for those cards there's
- * no second TZ to disambiguate against.
+ * Short zone label (e.g. "JST", "CEST", "GMT+7") for an IANA timezone,
+ * DST-aware at the given instant. Returns ONLY the label — it never
+ * formats (or shifts) the clock. Uses `formatToParts` because the locale
+ * machinery emits the `timeZoneName` part we want and discards the rest.
  *
- * Returns `{ time, zone }` so callers can lay out the parts (e.g.
- * stacked or with different type treatment) without re-parsing.
+ * Used to TAG a floating-local flight time with its airport's zone
+ * WITHOUT converting it: flight times are stored floating-UTC (ADR-0016)
+ * and rendered as their UTC wall-clock; this supplies the "06:00 JST"
+ * suffix. The abbreviation is read at `d` itself — for a floating
+ * instant sitting within the zone's offset of the true local instant the
+ * label is correct except inside the few-hour window around a DST
+ * transition (CET vs CEST), an acceptable cosmetic edge for this app.
  */
-export function formatTimeWithZone(
-  d: Date,
-  options: { timeZone: string },
-): { time: string; zone: string } {
+export function zoneAbbreviation(d: Date, tz: string): string {
   const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz,
+    timeZoneName: 'short',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
-    timeZone: options.timeZone,
-    timeZoneName: 'short',
+    hourCycle: 'h23',
   }).formatToParts(d);
-  // Pull the time fragment (hour:minute) and the zone label separately.
-  const hour = parts.find((p) => p.type === 'hour')?.value ?? '';
-  const minute = parts.find((p) => p.type === 'minute')?.value ?? '';
-  const zone = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
-  return {
-    time: `${hour}:${minute}`,
-    zone,
-  };
+  return parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
 }
 
 // Internal: pull the calendar parts of a Date as observed in `tz`.

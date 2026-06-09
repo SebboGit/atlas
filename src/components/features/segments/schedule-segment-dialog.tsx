@@ -77,8 +77,8 @@ export function ScheduleSegmentDialog({
 
   const form = useForm<FormShape>({
     defaultValues: {
-      startsAt: toDateTimeValue(currentStart, null),
-      endsAt: hasEnd ? toDateTimeValue(currentEnd, null) : '',
+      startsAt: toDateTimeValue(currentStart),
+      endsAt: hasEnd ? toDateTimeValue(currentEnd) : '',
     },
   });
   const {

@@ -105,7 +105,8 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
 
       expect(out).toEqual({
         type: 'flight',
-        startsAt: new Date(2026, 5, 1), // June is month index 5
+        // flightDate-only → UTC midnight, the "no time" sentinel (ADR-0016).
+        startsAt: new Date('2026-06-01T00:00:00Z'),
         endsAt: null,
         locationName: 'SFO',
         // Country codes resolve from the airport IATA snapshot:
@@ -143,8 +144,8 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
         }),
       );
       expect(out).not.toBeNull();
-      // Wall-clock instant from the ISO string — `new Date(iso)` is
-      // the same parsing the validator's dateInput does for ISO-with-TZ.
+      // Floating (ADR-0016): the offset/Z is stripped and the wall clock
+      // interpreted at UTC. For a Z-suffixed time that equals itself.
       expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-01T11:30:00Z'));
     });
 
@@ -159,10 +160,55 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
       expect((out as Exclude<typeof out, null>).endsAt).toEqual(new Date('2026-06-01T19:50:00Z'));
     });
 
-    it('falls back to date-only midnight when only flightDate is available', () => {
+    it('stores a naive departure time as a floating-UTC wall clock', () => {
+      // Regression (ADR-0016): a boarding pass prints a local wall clock
+      // with no offset. It is stored verbatim at UTC — the origin
+      // airport is a display label, never a clock conversion, so it does
+      // NOT shift the stored instant. The old code's airport-tz
+      // conversion turned 18:05 CEST into a 20:05 display.
+      const out = mapOne(boardingPass({ origin: 'FRA', scheduledDeparture: '2026-06-01T18:05' }));
+      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-01T18:05:00Z'));
+    });
+
+    it('stores a naive arrival time as a floating-UTC wall clock', () => {
+      const out = mapOne(
+        boardingPass({
+          destination: 'SFO',
+          scheduledDeparture: '2026-06-01T18:05',
+          scheduledArrival: '2026-06-01T20:30',
+        }),
+      );
+      expect((out as Exclude<typeof out, null>).endsAt).toEqual(new Date('2026-06-01T20:30:00Z'));
+    });
+
+    it('strips trailing seconds from a flight time', () => {
+      // The schema permits an optional :SS the cards render below; it
+      // must not defeat the minute-precision wall-clock parser.
+      const out = mapOne(boardingPass({ scheduledDeparture: '2026-06-01T18:05:00' }));
+      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-01T18:05:00Z'));
+    });
+
+    it('drops a printed offset on a flight time, keeping the wall clock', () => {
+      // Floating: the printed clock is what shows (tagged with the
+      // airport zone label on the card). "18:05+05:00" is stored 18:05Z,
+      // not 13:05Z — the offset (e.g. a pkpass relevantDate) is dropped.
+      const out = mapOne(boardingPass({ scheduledDeparture: '2026-06-01T18:05:00+05:00' }));
+      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-01T18:05:00Z'));
+    });
+
+    it('keeps a boundary-crossing morning departure on its printed day', () => {
+      // The bug airport-anchoring would have introduced: 06:00 at a
+      // UTC+9 airport is 21:00Z the *previous* day under true-instant
+      // storage and would bucket onto the wrong itinerary day. Floating
+      // stores 06:00Z, so dayKey (UTC) keeps it on June 1.
+      const out = mapOne(boardingPass({ origin: 'HND', scheduledDeparture: '2026-06-01T06:00' }));
+      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-01T06:00:00Z'));
+    });
+
+    it('falls back to date-only UTC midnight when only flightDate is available', () => {
       const out = mapOne(boardingPass({ flightDate: '2026-06-01', scheduledDeparture: null }));
       expect(out).not.toBeNull();
-      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date(2026, 5, 1));
+      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-01T00:00:00Z'));
       expect((out as Exclude<typeof out, null>).endsAt).toBeNull();
     });
 
@@ -297,9 +343,11 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
 
       expect(out).toEqual({
         type: 'food',
-        // Naive ISO date+time parses as local — same as the form's
-        // dateInput transform.
-        startsAt: new Date('2026-06-03T19:30'),
+        // Floating local (ADR-0014): the printed wall clock is stored
+        // interpreted at UTC so it renders back verbatim for every
+        // viewer, regardless of server timezone — same model as the
+        // food form's dateInput transform.
+        startsAt: new Date('2026-06-03T19:30:00Z'),
         endsAt: null,
         // locationName is intentionally null on extraction, mirroring
         // the hotel mapper — no extracted field maps cleanly onto a
@@ -332,6 +380,15 @@ describe('payloadToSegmentInputs (single-leg, via mapOne helper)', () => {
       expect(out).not.toBeNull();
       if (out === null || out.type !== 'food') throw new Error('expected food');
       expect(out.data).toEqual({ venue: 'Narisawa', bookingRef: 'OT-4821' });
+    });
+
+    it('drops a printed offset on a reservation time (floating local)', () => {
+      // Unlike flights, food has no airport zone — the floating model
+      // (ADR-0014) keeps the printed clock, not the absolute instant.
+      // "19:30+09:00" is stored as 19:30Z, not 10:30Z, so it renders as
+      // 19:30 for every viewer.
+      const out = mapOne(restaurant({ reservationDateTime: '2026-06-03T19:30:00+09:00' }));
+      expect((out as Exclude<typeof out, null>).startsAt).toEqual(new Date('2026-06-03T19:30:00Z'));
     });
 
     it('accepts a date-only reservation, parsed at local midnight', () => {

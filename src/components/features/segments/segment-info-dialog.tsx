@@ -28,7 +28,7 @@ import { displayCarrier, formatFlightNumber } from '@/lib/airlines';
 import { getAirportTimezone } from '@/lib/airports';
 import { countryName } from '@/lib/countries';
 import type { LinkedDocument } from '@/lib/documents';
-import { formatTime, formatTimeWithZone } from '@/lib/format';
+import { formatTime, zoneAbbreviation } from '@/lib/format';
 import type { Segment, TransitData } from '@/lib/segments';
 import {
   activityDataSchema,
@@ -634,9 +634,9 @@ function hasTimeComponent(d: Date): boolean {
   return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
 }
 
-// Non-flight (tz-less) dates render in UTC — floating local time
-// (ADR-0014): the wall-clock day the user typed, shown unchanged for
-// everyone. Flights pass their airport tz and take the branch below.
+// Every segment date renders in UTC — floating local time (ADR-0014 for
+// non-flight, ADR-0016 for flights): the wall-clock day the user typed,
+// shown unchanged for everyone, with no zone conversion.
 const DATE_FMT = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
   day: 'numeric',
@@ -645,27 +645,18 @@ const DATE_FMT = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'UTC',
 });
 
+// `tz` is the airport's IANA zone for flights, used ONLY to derive the
+// display label (e.g. "JST") — not to convert the clock. All segment
+// times are floating-UTC wall clocks (ADR-0014/0016), so the date and
+// time are read in UTC and a flight is tagged with its airport zone.
 function describeInstant(d: Date | null, tz: string | null): InstantParts | null {
   if (!d) return null;
-  const date = tz
-    ? new Intl.DateTimeFormat('en-GB', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        timeZone: tz,
-      }).format(d)
-    : DATE_FMT.format(d);
+  const date = DATE_FMT.format(d);
   if (!hasTimeComponent(d)) return { date, time: null, zone: null };
-  if (tz) {
-    const { time, zone } = formatTimeWithZone(d, { timeZone: tz });
-    return { date, time, zone };
-  }
-  // Non-flight: render the stored wall-clock in UTC (floating local time).
   return {
     date,
     time: formatTime(d, { timeZone: 'UTC' }),
-    zone: null,
+    zone: tz ? zoneAbbreviation(d, tz) : null,
   };
 }
 

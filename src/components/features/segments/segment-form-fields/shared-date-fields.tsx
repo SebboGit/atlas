@@ -6,62 +6,39 @@ import { Controller, useWatch } from 'react-hook-form';
 import { parseDateString } from '@/components/ui/date-picker';
 import { DateTimeField } from '@/components/ui/date-time-field';
 import { Label } from '@/components/ui/label';
-import { getAirportTimezone } from '@/lib/airports';
-import { dateFromLocalInZone, formatLocalDateTimeInZone } from '@/lib/format';
 import type { SegmentType } from '@/lib/segments';
 
 import { FieldError, Optional, type Form } from './_helpers';
 
 // Normalises whatever shape the form field is currently holding (Date,
-// 'yyyy-mm-dd' string, or 'yyyy-mm-ddThh:mm' string) into the
-// combined string the DateTimeField consumes.
+// 'yyyy-mm-dd' string, or 'yyyy-mm-ddThh:mm' string) into the combined
+// string the DateTimeField consumes.
 //
-// `tz` (when provided) is the IANA timezone in which the wall-clock
-// should be expressed — used for flights so departure / arrival show
-// the airport's local time instead of the user's runtime timezone.
-// Without it the wall-clock is read in UTC (floating local time,
-// ADR-0014) — the right choice for hotels / activities / transit / food
-// (no airport context).
-export function toDateTimeValue(d: Date | string | null | undefined, tz: string | null): string {
+// Every segment time is floating local — non-flight times under ADR-0014
+// and flight times under ADR-0016 — so a stored Date's wall clock is
+// read in UTC: the field shows back exactly what was typed and a re-save
+// round-trips it unchanged. A string is a wall-clock the user is mid-edit
+// on, so it passes straight through. (Flights carry their airport zone as
+// a display LABEL on the cards, never as a clock conversion in the form.)
+export function toDateTimeValue(d: Date | string | null | undefined): string {
   if (!d) return '';
-  let date: Date;
-  if (d instanceof Date) {
-    date = d;
-  } else {
-    // String can be either a wall-clock-in-zone input the user just
-    // typed (we re-parse so changes to `tz` reformat the display) or
-    // a date-only string. With no tz, pass through — Zod interprets the
-    // wall-clock at UTC on submit (floating local time, ADR-0014).
-    if (!tz) return d;
-    const parsed = dateFromLocalInZone(d, tz);
-    if (!parsed) return '';
-    date = parsed;
-  }
-  if (Number.isNaN(date.getTime())) return '';
-  if (tz) return formatLocalDateTimeInZone(date, tz);
-  // No airport tz → floating local time (ADR-0014): read the stored
-  // instant's UTC wall-clock, so editing shows back exactly the time the
-  // user typed and a re-save round-trips it unchanged.
-  const yyyy = date.getUTCFullYear();
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const hh = String(date.getUTCHours()).padStart(2, '0');
-  const min = String(date.getUTCMinutes()).padStart(2, '0');
-  if (date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0) {
+  if (typeof d === 'string') return d;
+  if (Number.isNaN(d.getTime())) return '';
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
     return `${yyyy}-${mm}-${dd}`;
   }
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const min = String(d.getUTCMinutes()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
-// Inverse of toDateTimeValue. With a tz the wall-clock string is
-// anchored to that zone and we hand the form a real Date (UTC
-// instant). Without a tz we keep the legacy contract — pass the raw
-// string through so the Zod validator does the local-tz parse on
-// submit.
-export function fromDateTimeValue(s: string, tz: string | null): Date | string | null {
-  if (!s) return null;
-  if (!tz) return s;
-  return dateFromLocalInZone(s, tz);
+// Inverse of toDateTimeValue: hand the form the raw wall-clock string so
+// the Zod validator interprets it at UTC on submit (floating local).
+export function fromDateTimeValue(s: string): Date | string | null {
+  return s || null;
 }
 
 export function labelsFor(type: SegmentType): { start: string; end: string } {
@@ -104,22 +81,6 @@ export function SharedDateFields({ form, type }: { form: Form; type: SegmentType
   const labels = labelsFor(type);
   const startRaw = useWatch({ control: form.control, name: 'startsAt' });
 
-  // Flight wall-clocks belong at the airport, not at the runtime. We
-  // watch the IATA fields the FlightFields module renders and resolve
-  // each to an IANA zone. Hotels / activities / transit have no
-  // airport context, so they keep the local-tz behaviour by passing
-  // null down.
-  const originIata = useWatch({
-    control: form.control,
-    name: 'data.originAirport' as never,
-  }) as string | null | undefined;
-  const destIata = useWatch({
-    control: form.control,
-    name: 'data.destinationAirport' as never,
-  }) as string | null | undefined;
-  const startTz = type === 'flight' ? getAirportTimezone(originIata ?? null) : null;
-  const endTz = type === 'flight' ? getAirportTimezone(destIata ?? null) : null;
-
   // The combined value may carry a time suffix; the calendar only
   // cares about the date prefix so slice it off before parsing.
   const startDateObj = React.useMemo<Date | undefined>(() => {
@@ -159,8 +120,8 @@ export function SharedDateFields({ form, type }: { form: Form; type: SegmentType
             <>
               <DateTimeField
                 id="seg-start"
-                value={toDateTimeValue(field.value as Date | string | null | undefined, startTz)}
-                onChange={(s) => field.onChange(fromDateTimeValue(s, startTz))}
+                value={toDateTimeValue(field.value as Date | string | null | undefined)}
+                onChange={(s) => field.onChange(fromDateTimeValue(s))}
                 onBlur={field.onBlur}
                 name={field.name}
                 inputRef={field.ref}
@@ -184,8 +145,8 @@ export function SharedDateFields({ form, type }: { form: Form; type: SegmentType
             render={({ field, fieldState }) => (
               <DateTimeField
                 id="seg-end"
-                value={toDateTimeValue(field.value as Date | string | null | undefined, endTz)}
-                onChange={(s) => field.onChange(fromDateTimeValue(s, endTz))}
+                value={toDateTimeValue(field.value as Date | string | null | undefined)}
+                onChange={(s) => field.onChange(fromDateTimeValue(s))}
                 onBlur={field.onBlur}
                 name={field.name}
                 inputRef={field.ref}
@@ -218,8 +179,8 @@ export function NoteDateField({ form }: { form: Form }) {
         render={({ field, fieldState }) => (
           <DateTimeField
             id="seg-note-date"
-            value={toDateTimeValue(field.value as Date | string | null | undefined, null)}
-            onChange={(s) => field.onChange(fromDateTimeValue(s, null))}
+            value={toDateTimeValue(field.value as Date | string | null | undefined)}
+            onChange={(s) => field.onChange(fromDateTimeValue(s))}
             onBlur={field.onBlur}
             name={field.name}
             inputRef={field.ref}

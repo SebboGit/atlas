@@ -3,57 +3,50 @@ import { Plane } from 'lucide-react';
 import { displayCarrier, formatFlightNumber } from '@/lib/airlines';
 import { getAirportTimezone } from '@/lib/airports';
 import type { LinkedDocument } from '@/lib/documents';
-import { formatTime, formatTimeWithZone } from '@/lib/format';
+import { formatTime, zoneAbbreviation } from '@/lib/format';
 import type { Segment } from '@/lib/segments';
 import { flightDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
 import { SegmentCardShell } from './segment-card-shell';
 
-/**
- * Calendar day at the supplied timezone, formatted as YYYY-MM-DD so two
- * days are comparable by string equality. Used by the `+1 day`
- * overnight indicator — that should reflect "the day on the boarding
- * pass", not "the day in the server's timezone."
- */
-function dayInZone(d: Date, timeZone: string | null): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    ...(timeZone ? { timeZone } : {}),
-  }).format(d);
-}
-
-// A Date at exact local midnight signals "date-only, no time
-// component" — the form's date picker parses a YYYY-MM-DD pick to
-// 00:00 local, and the extraction mapper does the same. We treat
-// these as "no time available" and skip the time meta to avoid
-// rendering a meaningless "00:00". False-negative case: an
-// honest-to-god midnight departure is hidden — acceptable, rare,
-// and the user can fix by editing the segment.
+// A Date at exact UTC midnight signals "date-only, no time component" —
+// the form's date picker and the extraction mapper both parse a bare
+// YYYY-MM-DD to 00:00 UTC (floating local, ADR-0014/0016). We treat
+// these as "no time available" and skip the time meta to avoid rendering
+// a meaningless "00:00". False-negative case: a genuine midnight
+// departure (00:00 airport-local) is hidden — acceptable, rare, and the
+// user can fix by editing the segment.
 function hasTimeComponent(d: Date | null): boolean {
   if (!d) return false;
-  return d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+  return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0;
+}
+
+// UTC calendar day as YYYY-MM-DD, comparable by string equality. Flight
+// times are floating-UTC (ADR-0016), so the day a flight "reads" is its
+// UTC calendar day — the same key the itinerary buckets on.
+function utcDay(d: Date): string {
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 /**
- * Render-side helper: produce the time string + optional TZ label for
- * one end of a flight. When the airport's TZ is known we format in
- * that zone and surface the label; otherwise we fall back to the
- * runtime zone with no label (no point claiming a TZ we don't know).
+ * Render-side helper: produce the time string + optional zone LABEL for
+ * one end of a flight. The stored instant is a floating-UTC wall clock
+ * (ADR-0016), so we render it verbatim in UTC and tag it with the
+ * airport's zone abbreviation (no clock conversion). Unknown airport →
+ * no label rather than claiming a zone we don't have.
  */
 function renderFlightEnd(
   d: Date | null,
   airportIata: string | undefined,
 ): { time: string; zone: string | null } | null {
   if (!hasTimeComponent(d)) return null;
+  const time = formatTime(d!, { timeZone: 'UTC' });
   const tz = getAirportTimezone(airportIata ?? null);
-  if (tz) {
-    const { time, zone } = formatTimeWithZone(d!, { timeZone: tz });
-    return { time, zone };
-  }
-  return { time: formatTime(d!), zone: null };
+  return { time, zone: tz ? zoneAbbreviation(d!, tz) : null };
 }
 
 export function SegmentCardFlight({
@@ -93,15 +86,11 @@ export function SegmentCardFlight({
   const depart = renderFlightEnd(segment.startsAt, data.originAirport);
   const arrive = renderFlightEnd(segment.endsAt, data.destinationAirport);
 
-  // Overnight indicator compares calendar days at each end's local
-  // timezone — what the boarding pass would print. Falls back to the
-  // runtime zone when either airport's TZ is unknown.
-  const departTz = getAirportTimezone(data.originAirport ?? null);
-  const arriveTz = getAirportTimezone(data.destinationAirport ?? null);
+  // Overnight indicator compares the printed calendar day at each end.
+  // Both instants are floating-UTC wall clocks (ADR-0016), so their UTC
+  // dates ARE the boarding-pass dates — no zone conversion needed.
   const overnight =
-    segment.startsAt &&
-    segment.endsAt &&
-    dayInZone(segment.startsAt, departTz) !== dayInZone(segment.endsAt, arriveTz);
+    segment.startsAt && segment.endsAt && utcDay(segment.startsAt) !== utcDay(segment.endsAt);
 
   const meta =
     depart || arrive ? (

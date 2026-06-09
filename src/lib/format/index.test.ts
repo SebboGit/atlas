@@ -5,8 +5,8 @@ import {
   formatDate,
   formatLocalDateTimeInZone,
   formatTime,
-  formatTimeWithZone,
   getDateFormatMode,
+  zoneAbbreviation,
 } from './index';
 
 describe('formatTime', () => {
@@ -30,22 +30,34 @@ describe('formatTime', () => {
   });
 });
 
-describe('formatTimeWithZone', () => {
-  const sgnArrivalUtc = new Date('2026-09-20T21:40:00Z');
+describe('zoneAbbreviation', () => {
+  // Flight times are floating-UTC (ADR-0016): the stored instant's UTC
+  // wall-clock IS the displayed time, and this supplies the zone label
+  // beside it without shifting the clock. The exact abbreviation is
+  // ICU-dependent (Intl emits "JST" or "GMT+9" depending on the host),
+  // so we assert structure, not a specific string — same posture the
+  // old formatTimeWithZone test took.
+  const summer = new Date('2026-06-01T06:00:00Z');
+  const winter = new Date('2026-01-01T06:00:00Z');
 
-  it('returns the wall-clock time and a short timezone label', () => {
-    const out = formatTimeWithZone(sgnArrivalUtc, { timeZone: 'Asia/Saigon' });
-    expect(out.time).toBe('04:40');
-    // Intl varies the abbreviation per locale/host; we just assert
-    // it's non-empty and doesn't include the time itself.
-    expect(out.zone).not.toBe('');
-    expect(out.zone).not.toContain(':');
+  it('returns a label without shifting the clock', () => {
+    // The time is read in UTC (06:00); only the label comes from the
+    // zone. The label is non-empty and never carries the time itself.
+    expect(formatTime(summer, { timeZone: 'UTC' })).toBe('06:00');
+    const zone = zoneAbbreviation(summer, 'Asia/Tokyo');
+    expect(zone).not.toBe('');
+    expect(zone).not.toContain(':');
   });
 
-  it('emits a UTC label for UTC', () => {
-    const out = formatTimeWithZone(sgnArrivalUtc, { timeZone: 'UTC' });
-    expect(out.time).toBe('21:40');
-    expect(out.zone).toBe('UTC');
+  it('is DST-aware — the label differs between summer and winter', () => {
+    // Whether Intl renders CEST/CET or GMT+2/GMT+1, the two must differ.
+    expect(zoneAbbreviation(summer, 'Europe/Berlin')).not.toBe(
+      zoneAbbreviation(winter, 'Europe/Berlin'),
+    );
+  });
+
+  it('emits "UTC" for UTC', () => {
+    expect(zoneAbbreviation(summer, 'UTC')).toBe('UTC');
   });
 });
 
