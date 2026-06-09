@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-09
+
+### Added
+
+- **Hotel check-in and check-out times** — a hotel can now record optional
+  check-in and check-out times. The check-in shows on the segment card; the
+  check-out shows on the stay's final day, on the "Staying" continuation row in
+  the itinerary and the map timeline. The times are display-only — they never
+  change how a hotel is ordered, which still follows its check-in date.
+
+### Changed
+
+- **Floating local time for flights** — flight times now follow the same
+  floating-local model as every other segment: stored and shown exactly as the
+  boarding pass prints them, with the origin/destination airport supplying only
+  a zone label (e.g. `06:00 JST`) rather than converting the clock. This
+  collapses the previous flight-vs-everything-else time split into one model and
+  keeps morning departures from positive-offset airports — a 06:00 Tokyo flight,
+  say — on the correct itinerary day. See ADR-0016.
+
+### Fixed
+
+- **Flight times from boarding passes read an hour or two off** — an extracted
+  local departure double-counted the airport's UTC offset, so an 18:05 CEST
+  departure displayed as 20:05. Flight times now store and show the printed wall
+  clock verbatim. Existing skewed times correct themselves when you re-extract
+  the document.
+- **A same-day hotel check-in could sort before the flight that got you there** —
+  within a single day a hotel check-in now never appears earlier than the last
+  flight to land that day.
+- **The itinerary and the trip-map timeline could disagree on "today"** — near
+  midnight in a non-UTC timezone the two views could classify a different day as
+  today, and so collapse the past differently. They now read the same clock.
+- **Extraction reported "Ollama not configured" on a working setup** — the app
+  checks that Ollama is reachable before handing extraction to the worker, but
+  only the worker had the connection settings. The app now reads them too, so
+  extraction runs instead of refusing.
+- **The background worker logged a spurious missing-basemap warning** on every
+  boot even when the map rendered fine. The worker never serves map tiles — that
+  is the app's job — so the misplaced check was removed.
+
 ## [1.1.4] - 2026-06-09
 
 ### Fixed
@@ -130,7 +171,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/SebboGit/atlas/compare/v1.1.4...v1.2.0
 [1.1.4]: https://github.com/SebboGit/atlas/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/SebboGit/atlas/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/SebboGit/atlas/compare/v1.1.1...v1.1.2
