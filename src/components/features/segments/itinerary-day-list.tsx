@@ -535,6 +535,7 @@ export function ItineraryDayList({
               coordsBySegmentId={coordsBySegmentId}
               position={day.position}
               continuations={continuations.get(day.key)}
+              dayKey={day.key}
               onContinuationActivate={handleContinuationActivate}
             />
           </div>

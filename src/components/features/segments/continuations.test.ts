@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Segment } from '@/lib/segments';
 
-import { continuationName, continuationsByDayKey } from './continuations';
+import { continuationCheckOutTime, continuationName, continuationsByDayKey } from './continuations';
 import type { ItineraryDay } from './itinerary-day-list';
 
 function makeSegment(overrides: Partial<Segment>): Segment {
@@ -177,5 +177,55 @@ describe('continuationName', () => {
 
   it('falls back to a type label when data is unparseable', () => {
     expect(continuationName(makeSegment({ type: 'hotel', data: {} }))).toBe('Hotel');
+  });
+});
+
+describe('continuationCheckOutTime', () => {
+  // UTC endpoints so the day-key match is deterministic on any runner tz.
+  const checkOut = key(2026, 6, 1);
+  const hotel = makeSegment({
+    type: 'hotel',
+    data: { propertyName: 'Hotel Sakura', checkOutTime: '11:00' },
+    startsAt: new Date(Date.UTC(2026, 4, 28)),
+    endsAt: new Date(Date.UTC(2026, 5, 1)),
+  });
+
+  it("returns the check-out time on the stay's final day", () => {
+    expect(continuationCheckOutTime(hotel, checkOut)).toBe('11:00');
+  });
+
+  it('returns null on every earlier continuation day', () => {
+    expect(continuationCheckOutTime(hotel, key(2026, 5, 30))).toBeNull();
+    expect(continuationCheckOutTime(hotel, key(2026, 5, 31))).toBeNull();
+  });
+
+  it('returns null when the hotel carries no check-out time', () => {
+    const noTime = makeSegment({
+      type: 'hotel',
+      data: { propertyName: 'Hotel Sakura' },
+      startsAt: new Date(Date.UTC(2026, 4, 28)),
+      endsAt: new Date(Date.UTC(2026, 5, 1)),
+    });
+    expect(continuationCheckOutTime(noTime, checkOut)).toBeNull();
+  });
+
+  it('returns null for a non-hotel span even with a check-out time in data', () => {
+    const transit = makeSegment({
+      type: 'transit',
+      data: { mode: 'train', checkOutTime: '11:00' },
+      startsAt: new Date(Date.UTC(2026, 4, 28)),
+      endsAt: new Date(Date.UTC(2026, 5, 1)),
+    });
+    expect(continuationCheckOutTime(transit, checkOut)).toBeNull();
+  });
+
+  it('returns null for an open-ended stay (no check-out date)', () => {
+    const openEnded = makeSegment({
+      type: 'hotel',
+      data: { propertyName: 'Hotel Sakura', checkOutTime: '11:00' },
+      startsAt: new Date(Date.UTC(2026, 4, 28)),
+      endsAt: null,
+    });
+    expect(continuationCheckOutTime(openEnded, checkOut)).toBeNull();
   });
 });

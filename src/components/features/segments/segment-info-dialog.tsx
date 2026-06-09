@@ -258,8 +258,18 @@ function HotelInfoBody({
   const data = parse.success ? parse.data : null;
   const title = data?.propertyName ?? 'Hotel';
 
-  const checkIn = describeInstant(segment.startsAt, null);
-  const checkOut = describeInstant(segment.endsAt, null);
+  // The check-in/out DATES live on startsAt/endsAt (date-only day anchors);
+  // the TIMES are display-only `data` metadata. Take only the DATE part of
+  // the instant (ignore any time component a legacy timed row might carry)
+  // and append the data time, so the row reads "Sun, 5 Oct 2025 · 15:00".
+  const checkIn = withClock(
+    describeInstant(segment.startsAt, null)?.date ?? null,
+    data?.checkInTime,
+  );
+  const checkOut = withClock(
+    describeInstant(segment.endsAt, null)?.date ?? null,
+    data?.checkOutTime,
+  );
   const nights =
     segment.startsAt && segment.endsAt
       ? Math.max(
@@ -275,8 +285,8 @@ function HotelInfoBody({
       <InfoHeader eyebrow="Hotel" title={title} subtitle={data?.roomType ?? undefined} />
 
       <InfoSection title="Stay">
-        <InfoRow label="Check-in" value={formatInstant(checkIn)} mono />
-        <InfoRow label="Check-out" value={formatInstant(checkOut)} mono />
+        <InfoRow label="Check-in" value={checkIn} mono />
+        <InfoRow label="Check-out" value={checkOut} mono />
         {nights !== null && (
           <InfoRow label="Nights" value={`${nights} night${nights === 1 ? '' : 's'}`} />
         )}
@@ -665,6 +675,15 @@ function formatInstant(parts: InstantParts | null): string | null {
   return parts.zone
     ? `${parts.date} · ${parts.time} ${parts.zone}`
     : `${parts.date} · ${parts.time}`;
+}
+
+// Appends a display-only wall-clock ("15:00") to a formatted date label.
+// Used for hotel check-in/out, whose time is `data` metadata kept off the
+// date-only `startsAt`/`endsAt`. Falls back to the bare time if somehow
+// there's a time but no date, and to null when neither is present.
+function withClock(dateLabel: string | null, clock: string | undefined): string | null {
+  if (!dateLabel) return clock ?? null;
+  return clock ? `${dateLabel} · ${clock}` : dateLabel;
 }
 
 function resolveCountry(code: string | null | undefined): string | null {

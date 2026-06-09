@@ -6,7 +6,7 @@ import {
   transitDataSchema,
 } from '@/lib/segments';
 
-import { continuesThroughDay } from './day-temporal';
+import { continuesThroughDay, startOfLocalDay } from './day-temporal';
 import type { ItineraryDay } from './itinerary-day-list';
 
 // Parses an `ItineraryDay.dateKey` (`YYYY-MM-DD`) into a local-midnight
@@ -112,4 +112,30 @@ export function continuationName(segment: Segment): string {
       // signal for any future span-capable type added without a case.
       return segment.locationName ?? 'Segment';
   }
+}
+
+// The check-out time to surface on a continuation row — but ONLY on the
+// stay's final day, and only for a hotel that carries a check-out time.
+// Returns null on every earlier continuation day, for non-hotels, and when
+// no time was entered. (When the check-out day isn't itself a rendered
+// bucket, no continuation row exists there and the time simply isn't shown
+// — the info dialog still carries it.)
+//
+// `dayKeyToken` is the `YYYY-MM-DD` key of the day the row renders under.
+// The match is on LOCAL-day math (via `startOfLocalDay`), NOT UTC `dayKey`,
+// because the row's existence is decided by `continuesThroughDay` (also
+// local-day). A date-only hotel's `endsAt` is `00:00Z`, whose local day
+// sits a day earlier west of UTC — matching on UTC would land the time on
+// a day no row exists for, so it would vanish entirely. CI runs in UTC and
+// never sees that skew (see the off-UTC regression test); this keeps the
+// time on whatever day the last continuation row actually renders.
+//
+// Mirrors how the check-in time shows on the check-in card: the time is
+// display-only `data` metadata, never the date-only `endsAt` that anchors
+// the day, so it has no bearing on ordering.
+export function continuationCheckOutTime(segment: Segment, dayKeyToken: string): string | null {
+  if (segment.type !== 'hotel' || !segment.endsAt) return null;
+  if (startOfLocalDay(segment.endsAt) !== startOfLocalDay(parseDateKey(dayKeyToken))) return null;
+  const parsed = hotelDataSchema.safeParse(segment.data);
+  return parsed.success ? (parsed.data.checkOutTime ?? null) : null;
 }

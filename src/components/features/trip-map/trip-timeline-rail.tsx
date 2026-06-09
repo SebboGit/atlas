@@ -127,9 +127,16 @@ function SegmentRailRow({
             </span>
           )}
         </span>
-        {continuation && item.continuationSince && (
-          <span className="text-foreground/70 mt-0.5 block text-xs">
-            since {item.continuationSince}
+        {continuation && (item.continuationSince || item.continuationCheckOut) && (
+          <span className="text-foreground/70 mt-0.5 flex items-center gap-1.5 text-xs">
+            {item.continuationSince ? <span>since {item.continuationSince}</span> : null}
+            {/* Final day of the stay — a filled accent chip makes the
+             *  check-out the prominent element of the row. */}
+            {item.continuationCheckOut ? (
+              <span className="bg-accent text-accent-foreground rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.08em] whitespace-nowrap">
+                Check Out {item.continuationCheckOut}
+              </span>
+            ) : null}
           </span>
         )}
         {!mappable && !continuation && item.offMapReason && (

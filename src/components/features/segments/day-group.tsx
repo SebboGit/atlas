@@ -31,6 +31,10 @@ interface DayGroupProps {
   // the day's own segments. Empty / omitted renders nothing extra, so
   // the type-specific tabs (which never pass it) are unaffected.
   continuations?: Segment[];
+  // The day's `YYYY-MM-DD` key — forwarded to the continuation rows so the
+  // check-out time surfaces on the stay's final day. Only set on the
+  // itinerary's visible days (the only caller that passes continuations).
+  dayKey?: string;
   // Fired when a continuation row is tapped — lets ItineraryDayList
   // re-open the collapsed past group and re-flash the linked card on
   // every tap, not just the first (see ContinuationRow). Omitted by the
@@ -61,6 +65,7 @@ export function DayGroup({
   coordsBySegmentId,
   position = 'future',
   continuations = [],
+  dayKey,
   onContinuationActivate,
 }: DayGroupProps) {
   const dayLabel = String(dayNumber).padStart(2, '0');
@@ -94,7 +99,11 @@ export function DayGroup({
        *  with the cards' left edge on laptop (matching the ol's pl-10). */}
       {continuations.length > 0 && (
         <div className="md:pl-10">
-          <DayContinuations continuations={continuations} onActivate={onContinuationActivate} />
+          <DayContinuations
+            continuations={continuations}
+            dayKey={dayKey ?? ''}
+            onActivate={onContinuationActivate}
+          />
         </div>
       )}
 

@@ -21,6 +21,37 @@ export function HotelFields({ form }: { form: Form }) {
         />
         {e.propertyName?.message && <FieldError>{e.propertyName.message}</FieldError>}
       </div>
+      {/* Check-in / check-out times are display-only metadata — shown on
+       *  the card and the last-day "Staying" row, but never folded into
+       *  the check-in/out DATES below, so they don't affect day ordering.
+       *  `min-w-0` lets the native time control shrink inside the grid cell
+       *  (iOS Safari won't otherwise — see the dialog-overflow note). */}
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Label htmlFor="seg-checkin-time">
+            Check-in time <Optional />
+          </Label>
+          <Input
+            id="seg-checkin-time"
+            type="time"
+            aria-invalid={!!e.checkInTime || undefined}
+            {...form.register('data.checkInTime' as never)}
+          />
+          {e.checkInTime?.message && <FieldError>{e.checkInTime.message}</FieldError>}
+        </div>
+        <div className="flex min-w-0 flex-col gap-2">
+          <Label htmlFor="seg-checkout-time">
+            Check-out time <Optional />
+          </Label>
+          <Input
+            id="seg-checkout-time"
+            type="time"
+            aria-invalid={!!e.checkOutTime || undefined}
+            {...form.register('data.checkOutTime' as never)}
+          />
+          {e.checkOutTime?.message && <FieldError>{e.checkOutTime.message}</FieldError>}
+        </div>
+      </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="seg-room">

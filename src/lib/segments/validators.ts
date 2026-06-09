@@ -117,6 +117,26 @@ const plusCode = z
     message: 'Not a valid Plus Code',
   });
 
+// Optional wall-clock time of day ("HH:MM", 24-hour) kept as display-only
+// metadata in `data` — e.g. a hotel check-in / check-out time. Floating
+// local time (ADR-0014): no date, no timezone, just the clock face the
+// user typed. Deliberately NOT folded into `startsAt`/`endsAt` so it never
+// influences day ordering — a hotel sorts by its check-in DATE alone (see
+// `sortDaySegments` in group-by-day.ts). A blank field (the form submits
+// '') normalises to undefined so an empty input doesn't trip the format
+// check. The native `<input type="time">` already emits this exact shape.
+const clockTime = z
+  .string()
+  .trim()
+  .transform((s) => (s === '' ? undefined : s))
+  .pipe(
+    z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a 24-hour time like 15:00')
+      .optional(),
+  )
+  .optional();
+
 const hotelData = z
   .object({
     propertyName: z.string().trim().min(1).max(200),
@@ -124,6 +144,10 @@ const hotelData = z
     plusCode,
     confirmationNumber: z.string().trim().max(50).optional(),
     roomType: z.string().trim().max(100).optional(),
+    // Display-only — shown on the check-in card / last-day continuation,
+    // never used for ordering (see `clockTime`).
+    checkInTime: clockTime,
+    checkOutTime: clockTime,
   })
   .strict();
 
