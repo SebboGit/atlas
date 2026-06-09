@@ -134,6 +134,11 @@ services:
       STORAGE_DIR: /app/data/documents
       TILES_DIR: /app/data/tiles
       NOMINATIM_CONTACT_EMAIL: ${NOMINATIM_CONTACT_EMAIL}
+      # Must mirror the worker block — the app's Extract action runs a
+      # synchronous config gate before enqueueing the job. Leave empty and
+      # extraction reports "not configured" even though the worker can do it.
+      OLLAMA_URL: ${OLLAMA_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-atlas-extract:latest}
       # If your OIDC provider sits behind a private / local CA, the app must
       # trust it for server-side discovery + token calls. Mount the root cert
       # (see the volumes block) and point Node at it:
