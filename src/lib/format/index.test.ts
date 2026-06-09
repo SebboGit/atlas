@@ -56,8 +56,10 @@ describe('zoneAbbreviation', () => {
     );
   });
 
-  it('emits "UTC" for UTC', () => {
-    expect(zoneAbbreviation(summer, 'UTC')).toBe('UTC');
+  it('emits "UTC" (or "GMT") for UTC', () => {
+    // The exact short label is ICU-dependent — some builds render the
+    // zero-offset zone as "GMT" rather than "UTC". Accept either.
+    expect(['UTC', 'GMT']).toContain(zoneAbbreviation(summer, 'UTC'));
   });
 });
 

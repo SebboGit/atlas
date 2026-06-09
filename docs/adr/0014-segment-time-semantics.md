@@ -1,14 +1,8 @@
 # ADR-0014: Floating local time for non-flight segment times
 
-- **Status:** Accepted (the flight-airport-tz clause is superseded by ADR-0016)
+- **Status:** Accepted
 - **Date:** 2026-06-03
 - **Deciders:** @SebboGit
-
-> **Update (ADR-0016, 2026-06-09):** the "two time models coexist by
-> design" decision below no longer holds. Flights are now floating local
-> too — the airport zone is a display _label_, not a conversion — so the
-> day-bucketing caveat in the Neutral section is resolved rather than
-> left. Everything else in this ADR stands.
 
 ## Context
 
