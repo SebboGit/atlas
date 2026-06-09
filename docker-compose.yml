@@ -27,6 +27,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas}
       POSTGRES_DB: atlas
       POSTGRES_INITDB_ARGS: '--data-checksums'
+      # Pin the container clock and the Postgres session default to UTC —
+      # the app's whole time model is floating-UTC (ADR-0014/0016). The app
+      # pool also sets `-c timezone=UTC` per session; this covers any other
+      # client (pg-boss, psql) and the container's own clock.
+      TZ: UTC
+      PGTZ: UTC
     volumes:
       # Postgres 18+ stores data in a major-version subdirectory under
       # /var/lib/postgresql (e.g. /var/lib/postgresql/18/docker/). Mounting
@@ -67,6 +73,9 @@ services:
       DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas}@postgres:5432/atlas
       STORAGE_DIR: /app/data/documents
       TILES_DIR: /app/data/tiles
+      # Pin the Node runtime clock to UTC — the floating-UTC time model
+      # (ADR-0014/0016) assumes the server's local zone is UTC.
+      TZ: UTC
     volumes:
       - ./src:/app/src
       - ./public:/app/public
@@ -113,6 +122,10 @@ services:
       - .env
     environment:
       DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas}@postgres:5432/atlas
+      # Pin the Node runtime clock to UTC — the floating-UTC time model
+      # (ADR-0014/0016) assumes the server's local zone is UTC. (CRON_TZ
+      # below is separate: it's how pg-boss interprets the cron schedules.)
+      TZ: UTC
       # The worker runs document extraction; point the storage adapter at the
       # same mount the app uses so the two agree regardless of process CWD.
       STORAGE_DIR: /app/data/documents

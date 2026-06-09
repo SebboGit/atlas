@@ -131,7 +131,10 @@ export async function searchAll(query: string, currentUserId: string): Promise<S
         t.title AS title,
         -- Trip's own subtitle is just the period; the title already
         -- carries the trip name so no "Trip: <name>" prefix needed.
-        to_char(coalesce(t.start_date, t.end_date), 'Mon YYYY') AS subtitle,
+        -- AT TIME ZONE 'UTC' reads the timestamptz as its UTC wall-clock
+        -- (the floating-UTC model, ADR-0014/0016) so the month is correct
+        -- regardless of the DB session timezone.
+        to_char(coalesce(t.start_date, t.end_date) AT TIME ZONE 'UTC', 'Mon YYYY') AS subtitle,
         '/trips/' || t.id::text AS href,
         ts_rank_cd(t.search_tsv, q.tsq) * 2 + similarity(t.search_text, q.s) AS rank
       FROM trips t, q
@@ -196,13 +199,13 @@ export async function searchAll(query: string, currentUserId: string): Promise<S
               coalesce(nullif(s.data->>'carrier', ''), 'Flight') ||
               ' · Trip: ' || tr.title ||
               coalesce(
-                ' · ' || to_char(coalesce(tr.start_date, tr.end_date), 'Mon YYYY'),
+                ' · ' || to_char(coalesce(tr.start_date, tr.end_date) AT TIME ZONE 'UTC', 'Mon YYYY'),
                 ''
               )
             ELSE
               'Trip: ' || tr.title ||
               coalesce(
-                ' · ' || to_char(coalesce(tr.start_date, tr.end_date), 'Mon YYYY'),
+                ' · ' || to_char(coalesce(tr.start_date, tr.end_date) AT TIME ZONE 'UTC', 'Mon YYYY'),
                 ''
               )
           END AS subtitle,
@@ -242,7 +245,7 @@ export async function searchAll(query: string, currentUserId: string): Promise<S
         d.original_name AS title,
         'Trip: ' || tr.title ||
           coalesce(
-            ' · ' || to_char(coalesce(tr.start_date, tr.end_date), 'Mon YYYY'),
+            ' · ' || to_char(coalesce(tr.start_date, tr.end_date) AT TIME ZONE 'UTC', 'Mon YYYY'),
             ''
           ) AS subtitle,
         '/trips/' || d.trip_id::text || '/documents' AS href,

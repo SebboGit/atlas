@@ -1,8 +1,4 @@
-import { continuationCheckOutTime } from '@/components/features/segments/continuations';
-import {
-  ongoingContinuationsByDayKey,
-  type ClassifiedDay,
-} from '@/components/features/segments/day-temporal';
+import type { DayBucket } from '@/components/features/segments/group-by-day';
 import { formatTime } from '@/lib/format';
 import type { Segment } from '@/lib/segments';
 import {
@@ -14,7 +10,13 @@ import {
   transitDataSchema,
 } from '@/lib/segments/validators';
 
-import type { MapGeometryIndex, RailDay, RailItem, RailItemIcon } from './timeline-model';
+import type {
+  MapGeometryIndex,
+  RailContinuationCandidate,
+  RailDay,
+  RailItem,
+  RailItemIcon,
+} from './timeline-model';
 
 // Builds the serialisable rail-day structure the chronological map's
 // rail and sheet render. Pure given its inputs — the page passes
@@ -191,46 +193,72 @@ function formatSince(d: Date): string {
 // A multi-day stay surfaced on a day AFTER its check-in. Reuses the
 // segment's normal label / icon / map presence (so tapping focuses the
 // same pin), but carries no time-of-day and is flagged `continuation`
-// with the check-in date for the rail's quiet "staying" treatment.
-// `checkOutTime` is non-null only on the stay's final day, so the last
-// row reads as the checkout.
-function buildContinuationItem(
-  seg: Segment,
-  geometry: MapGeometryIndex,
-  checkOutTime: string | null,
-): RailItem {
+// with the check-in date for the rail's quiet "staying" treatment. The
+// row is identical whichever later day it lands on, so it's built ONCE
+// here (on the segment's own check-in day); the client re-uses it on
+// every day the stay spans and stamps the check-out time on the final
+// day (see `resolveRailDays`).
+function buildContinuationItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
   return {
     ...buildRailItem(seg, geometry),
     timeLabel: null,
     continuation: true,
     continuationSince: seg.startsAt ? formatSince(seg.startsAt) : null,
-    continuationCheckOut: checkOutTime,
   };
 }
 
-// Joins the server-classified days to the trip's map geometry, yielding
-// the serialisable rail-day structure. Order is preserved — days are
-// already chronological, and each day's segments keep their
-// chronological-then-creation order from the repo query. Each visible
-// (today/future) day is PREFIXED with continuation rows for any multi-day
-// stay still running from a collapsed past check-in, so the stay stays
-// visible where you are once the past folds (see
-// `ongoingContinuationsByDayKey`).
-export function buildRailDays(days: ClassifiedDay[], geometry: MapGeometryIndex): RailDay[] {
-  const continuations = ongoingContinuationsByDayKey(days);
-  return days.map((day) => {
-    const key = day.key;
-    const contItems = (continuations.get(key) ?? []).map((seg) =>
-      buildContinuationItem(seg, geometry, continuationCheckOutTime(seg, key)),
-    );
-    return {
-      key,
-      dateKey: key,
-      dayNumber: day.dayNumber,
-      position: day.position,
-      // Continuations lead the day (a persistent backdrop), then the
-      // day's own segments.
-      items: [...contItems, ...day.segments.map((seg) => buildRailItem(seg, geometry))],
-    };
-  });
+// A hotel's display-only check-out time ("11:00"), or null for a
+// non-hotel or a hotel with none entered. Carried on the continuation
+// candidate so `resolveRailDays` can stamp it on the stay's final day.
+function hotelCheckOutTime(seg: Segment): string | null {
+  if (seg.type !== 'hotel') return null;
+  const parsed = hotelDataSchema.safeParse(seg.data);
+  return parsed.success ? (parsed.data.checkOutTime ?? null) : null;
+}
+
+// The span-capable segments checking in ON this day — those with BOTH
+// endpoints, the only ones that can ever continue onto a later day (a
+// single-day or open-ended segment never does, matching
+// `continuesThroughDay`'s guard). Each carries its pre-built
+// continuation row plus the raw endpoints the client tests against each
+// visible day. The clock plays no part here — WHICH later days a stay
+// actually surfaces on is decided client-side, in the viewer's timezone.
+function buildContinuationCandidates(
+  segments: Segment[],
+  geometry: MapGeometryIndex,
+): RailContinuationCandidate[] {
+  const out: RailContinuationCandidate[] = [];
+  for (const seg of segments) {
+    if (!seg.startsAt || !seg.endsAt) continue;
+    out.push({
+      item: buildContinuationItem(seg, geometry),
+      startsAt: seg.startsAt,
+      endsAt: seg.endsAt,
+      checkOutTime: hotelCheckOutTime(seg),
+    });
+  }
+  return out;
+}
+
+// Joins each day-bucket to the trip's map geometry, yielding the
+// serialisable rail-day structure. NO clock here: past / today / future
+// classification and the continuation-row placement both happen
+// client-side, in the viewer's timezone (`resolveRailDays`), so the rail
+// and the itinerary tab agree on "today" (ADR-0016). Each day therefore
+// carries its OWN segment rows plus the span-capable check-ins
+// (`continuationCandidates`) the client may later surface on the days
+// they span.
+//
+// Order is preserved — buckets are already chronological, and each day's
+// segments keep their chronological-then-creation order from the repo
+// query. `dayNumber` is the 1-based chronological index, independent of
+// any temporal position (it never renumbers as days collapse).
+export function buildRailDays(days: DayBucket[], geometry: MapGeometryIndex): RailDay[] {
+  return days.map((day, i) => ({
+    key: day.key,
+    dateKey: day.key,
+    dayNumber: i + 1,
+    items: day.segments.map((seg) => buildRailItem(seg, geometry)),
+    continuationCandidates: buildContinuationCandidates(day.segments, geometry),
+  }));
 }

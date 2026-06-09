@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ClassifiedDay } from '@/components/features/segments/day-temporal';
+import type { DayBucket } from '@/components/features/segments/group-by-day';
 import type { Segment } from '@/lib/segments';
 import type { TripMapArc, TripMapPin } from '@/lib/trip-map/repo';
 
@@ -29,12 +29,12 @@ function seg(overrides: Partial<Segment> & { id: string; type: Segment['type'] }
   } as unknown as Segment;
 }
 
-function classifiedDay(segments: Segment[]): ClassifiedDay {
+// buildRailDays now takes a clock-agnostic DayBucket (no position /
+// dayNumber) — the rail classifies + numbers client-side (ADR-0016).
+function dayBucket(segments: Segment[]): DayBucket {
   return {
     key: '2025-10-05',
     date: new Date(2025, 9, 5),
-    dayNumber: 1,
-    position: 'today',
     segments,
   };
 }
@@ -75,7 +75,7 @@ describe('buildRailDays', () => {
       data: { originAirport: 'LHR', destinationAirport: 'HND', carrier: 'JL', flightNumber: '42' },
     });
     const geometry = indexMapGeometry([flightPin], [flightArc]);
-    const [day] = buildRailDays([classifiedDay([flight])], geometry);
+    const [day] = buildRailDays([dayBucket([flight])], geometry);
     const it0 = day!.items[0]!;
     expect(it0.mapKind).toBe('arc');
     expect(it0.label).toBe('LHR → HND');
@@ -94,7 +94,7 @@ describe('buildRailDays', () => {
       startsAt: new Date(Date.UTC(2025, 9, 5)),
     });
     const geometry = indexMapGeometry([hotelPin], []);
-    const [day] = buildRailDays([classifiedDay([hotel])], geometry);
+    const [day] = buildRailDays([dayBucket([hotel])], geometry);
     const it0 = day!.items[0]!;
     expect(it0.mapKind).toBe('pin');
     expect(it0.label).toBe('Hotel Niwa Tokyo');
@@ -103,7 +103,7 @@ describe('buildRailDays', () => {
 
   it('marks a note off-map with a reason', () => {
     const note = seg({ id: 'note-1', type: 'note', data: { body: 'Buy matcha at Ippodo.' } });
-    const [day] = buildRailDays([classifiedDay([note])], indexMapGeometry([], []));
+    const [day] = buildRailDays([dayBucket([note])], indexMapGeometry([], []));
     const it0 = day!.items[0]!;
     expect(it0.mapKind).toBe('none');
     expect(it0.icon).toBe('note');
@@ -117,7 +117,7 @@ describe('buildRailDays', () => {
       type: 'activity',
       data: { title: "Friend's place — drinks" },
     });
-    const [day] = buildRailDays([classifiedDay([activity])], indexMapGeometry([], []));
+    const [day] = buildRailDays([dayBucket([activity])], indexMapGeometry([], []));
     const it0 = day!.items[0]!;
     expect(it0.mapKind).toBe('none');
     expect(it0.label).toBe("Friend's place — drinks");
@@ -127,7 +127,7 @@ describe('buildRailDays', () => {
   it('truncates a long note body to a preview', () => {
     const body = 'x'.repeat(200);
     const note = seg({ id: 'note-2', type: 'note', data: { body } });
-    const [day] = buildRailDays([classifiedDay([note])], indexMapGeometry([], []));
+    const [day] = buildRailDays([dayBucket([note])], indexMapGeometry([], []));
     expect(day!.items[0]!.label.endsWith('…')).toBe(true);
     expect(day!.items[0]!.label.length).toBeLessThanOrEqual(80);
   });
@@ -135,7 +135,32 @@ describe('buildRailDays', () => {
   it('preserves day order and segment order', () => {
     const a = seg({ id: 'a', type: 'activity', data: { title: 'A' } });
     const b = seg({ id: 'b', type: 'activity', data: { title: 'B' } });
-    const [day] = buildRailDays([classifiedDay([a, b])], indexMapGeometry([], []));
+    const [day] = buildRailDays([dayBucket([a, b])], indexMapGeometry([], []));
     expect(day!.items.map((i) => i.segmentId)).toEqual(['a', 'b']);
+  });
+
+  it('emits a continuation candidate only for a segment with both endpoints', () => {
+    // A multi-day stay (both endpoints) is a candidate the client may
+    // surface on later days (ADR-0016); a single-day / open-ended segment
+    // never continues, so it yields none.
+    const stay = seg({
+      id: 'hotel-1',
+      type: 'hotel',
+      data: { propertyName: 'Hotel Niwa Tokyo' },
+      startsAt: new Date(Date.UTC(2025, 9, 5)),
+      endsAt: new Date(Date.UTC(2025, 9, 8)),
+    });
+    const oneOff = seg({
+      id: 'act-1',
+      type: 'activity',
+      data: { title: 'Day hike' },
+      endsAt: null,
+    });
+    const [day] = buildRailDays([dayBucket([stay, oneOff])], indexMapGeometry([hotelPin], []));
+    expect(day!.continuationCandidates.map((c) => c.item.segmentId)).toEqual(['hotel-1']);
+    const cand = day!.continuationCandidates[0]!;
+    expect(cand.item.continuation).toBe(true);
+    expect(cand.startsAt).toEqual(new Date(Date.UTC(2025, 9, 5)));
+    expect(cand.endsAt).toEqual(new Date(Date.UTC(2025, 9, 8)));
   });
 });

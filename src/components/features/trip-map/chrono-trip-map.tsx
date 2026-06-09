@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
+import { useMounted } from '@/components/client-only';
 import type {
   GeocodeWorkerStatus,
   TripMapArc,
@@ -11,7 +12,12 @@ import type {
   WishlistMapPin,
 } from '@/lib/trip-map/repo';
 
-import { mappableSegmentIds, type RailDay } from './timeline-model';
+import {
+  mappableSegmentIds,
+  resolveRailDays,
+  type RailDay,
+  type ResolvedRailDay,
+} from './timeline-model';
 import { TripMap } from './trip-map';
 import { TripTimelineRail } from './trip-timeline-rail';
 import { TripTimelineSheet } from './trip-timeline-sheet';
@@ -25,7 +31,12 @@ interface ChronoTripMapProps {
   activeCountry: string | null;
   wishlistPins: WishlistMapPin[];
   geocodeWorkerStatus: GeocodeWorkerStatus;
-  /** Day-grouped, classified, map-joined rail data (built server-side). */
+  /**
+   * Day-grouped, map-joined rail data (built server-side, clock-agnostic).
+   * Past/today/future and the continuation rows are resolved HERE, on
+   * mount, in the viewer's timezone (`resolveRailDays`) — so the map rail
+   * and the itinerary tab always agree on "today" (ADR-0016).
+   */
   days: RailDay[];
   /** True only for `trip.status === 'active'`. */
   isActive: boolean;
@@ -79,6 +90,19 @@ export function ChronoTripMap({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Resolve the server's clock-agnostic days into the viewer's timezone,
+  // on mount. `clientToday` is null until mounted, so the first
+  // (SSR-matching) paint shows every day as `future` with nothing
+  // collapsed and no continuation rows — no server-timezone guess is ever
+  // painted, and hydration matches. Once mounted, `resolveRailDays`
+  // classifies each day and folds in the "Staying since" continuations.
+  // This single resolution feeds the rail, the sheet, AND the map-
+  // highlight maths below, so every surface reads the SAME viewer-relative
+  // classification (the whole point of ADR-0016: rail ↔ itinerary parity).
+  const mounted = useMounted();
+  const clientToday = React.useMemo(() => (mounted ? new Date() : null), [mounted]);
+  const resolvedDays = React.useMemo(() => resolveRailDays(days, clientToday), [days, clientToday]);
+
   // The live `?day=` is the single source of truth for the focused day,
   // read straight off the URL so back/forward, shared links, AND unfocus
   // (clearing the param) all round-trip — no server-prop fallback, which
@@ -87,8 +111,8 @@ export function ChronoTripMap({
   // resolves to no focus rather than an empty highlight.
   const dayParam = searchParams.get('day');
   const focusedDayKey = React.useMemo(
-    () => (dayParam && days.some((d) => d.key === dayParam) ? dayParam : null),
-    [dayParam, days],
+    () => (dayParam && resolvedDays.some((d) => d.key === dayParam) ? dayParam : null),
+    [dayParam, resolvedDays],
   );
 
   // Ephemeral hover (laptop hover-capable only). Never written to the
@@ -142,10 +166,10 @@ export function ChronoTripMap({
   const [recenterNonce, setRecenterNonce] = React.useState(0);
 
   const dayByKey = React.useMemo(() => {
-    const m = new Map<string, RailDay>();
-    for (const d of days) m.set(d.key, d);
+    const m = new Map<string, ResolvedRailDay>();
+    for (const d of resolvedDays) m.set(d.key, d);
     return m;
-  }, [days]);
+  }, [resolvedDays]);
 
   // The active highlight set: hover wins over focus (a hover is a
   // momentary "preview this day" gesture on top of whatever day is
@@ -263,11 +287,11 @@ export function ChronoTripMap({
   // segment id.
   const segmentToDayKey = React.useMemo(() => {
     const m = new Map<string, string>();
-    for (const day of days) {
+    for (const day of resolvedDays) {
       for (const item of day.items) m.set(item.segmentId, day.key);
     }
     return m;
-  }, [days]);
+  }, [resolvedDays]);
   const onPinHover = React.useCallback(
     (segmentId: string | null) => {
       setHoveredDay(segmentId ? (segmentToDayKey.get(segmentId) ?? null) : null);
@@ -275,11 +299,11 @@ export function ChronoTripMap({
     [segmentToDayKey, setHoveredDay],
   );
 
-  const hasDays = days.length > 0;
+  const hasDays = resolvedDays.length > 0;
 
   const railProps = {
     tripId,
-    days,
+    days: resolvedDays,
     isActive,
     focusedDayKey,
     selectedSegmentId,

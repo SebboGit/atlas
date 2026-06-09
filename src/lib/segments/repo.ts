@@ -174,18 +174,19 @@ export async function create(
 // pre- and post-ADR-0009 segments. The caller still trims/normalises
 // whatever they pass; this just handles the name↔code equivalence.
 //
-// **flightDate** is compared as an exact-instant equality on
-// `starts_at`. This is the *existing* behaviour and it works when
-// both sides came from the same code path (form picker → local
-// midnight, or LLM-only `flightDate` → local midnight). It silently
-// misses when one side is a real ISO instant from
-// `scheduledDeparture` (e.g. "2026-06-01T11:30:00Z") and the other
-// is local midnight — the two represent the same wall-clock day but
-// different absolute instants. The clean fix is a global "store
-// dates as wall-clock day, not timestamptz" change, out of scope
-// for ADR-0009. In practice "same flight, two travellers" usually
-// means "same extraction path on both docs", so the miss is rare.
-// flightNumber is still exact-string; case normalisation is the
+// **flightDate** is compared as exact-instant equality on `starts_at`.
+// Post-ADR-0016 every write path stores a floating-UTC instant — the
+// form, the reschedule action, and the extraction mapper all interpret a
+// no-timezone wall-clock at UTC (a bare flightDate → UTC midnight, a
+// timed scheduledDeparture → the printed wall-clock at UTC). So two
+// extractions of the same flight, or a form entry matching an extraction,
+// now key to the SAME instant and dedup reliably. The one remaining miss
+// is a row written BEFORE ADR-0016 (a server-local or airport-converted
+// instant): it won't equal a fresh floating-UTC key. Re-extracting the
+// SAME document self-heals (the orphan sweep in segment-link.ts deletes
+// the stale prior-linked row), so that miss only bites a pre-branch row
+// reached from a DIFFERENT document — rare, and re-extracting both sides
+// fixes it. flightNumber stays exact-string; case normalisation is the
 // caller's job.
 export async function findFlightByKey(
   userId: string,

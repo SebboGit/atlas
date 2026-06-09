@@ -27,8 +27,17 @@ export default async function HomePage() {
   const { upcoming } = partitionForDashboard(trips);
   const nextTrip = upcoming[0] ?? null;
 
+  // Decorative "today" stamp under the greeting. Rendered in UTC (the
+  // app's canonical clock, ADR-0014/0016) so it's deterministic and never
+  // depends on the server container's timezone; the viewer-relative day
+  // count lives in the hero countdown, not here.
   const stampDate = new Date()
-    .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    .toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    })
     .toUpperCase();
 
   return (

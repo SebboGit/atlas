@@ -103,6 +103,36 @@ rare row whose time came from an offset-bearing source.
   UTC day than its airport-local day" is now resolved for the common case
   rather than left standing — floating flights group on the printed day.
 
+## Making the model coherent (shipped with this ADR)
+
+Extending floating to flights exposed that the model was only ever
+_accidentally_ correct: it assumed the runtime ran in UTC but never said
+or enforced so. This ADR also closes those gaps, so "floating" holds on
+any server:
+
+- **One write path.** The extraction mapper's date-only branch used the
+  local-midnight `new Date(y, m, d)` while the manual form used
+  `Date.UTC` — they agreed only on a UTC server. Both now go through one
+  floating parse, so an extracted and a hand-entered date land on the
+  same UTC-midnight instant everywhere.
+- **One "today" anchor.** The trip-map rail baked the _server's_ today;
+  the itinerary tab reclassified in the _viewer's_. They now both
+  reclassify client-side against the same viewer clock (`resolveRailDays`
+  mirrors the itinerary's mount-time pass), so the two tabs can never
+  disagree on which day is today / collapsed.
+- **Runtime pinned to UTC.** `TZ=UTC` on the app/worker/postgres
+  containers and `-c timezone=UTC` on the app's pg session make the UTC
+  precondition explicit instead of assumed. SQL that formats a
+  timestamptz (search subtitles) reads it `AT TIME ZONE 'UTC'`, and the
+  one decorative server-clock stamp renders `timeZone: 'UTC'`.
+
+**Atlas floating is NOT RFC/Apple floating.** RFC 5545 FORM #1 and Apple's
+"floating" render a wall-clock relative to the _viewer's device zone_ —
+which is the very "time moved on me" behaviour this model avoids. Atlas
+floating is the stricter "interpret AND render at UTC": deterministic,
+server-side, identical for every viewer. A future refactor must not
+"correct" it into literal viewer-relative floating.
+
 ## Alternatives considered
 
 - **True instant + zone-aware bucketing.** Keep flights as absolute

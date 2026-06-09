@@ -18,7 +18,7 @@ import { useItineraryCollapse } from '@/components/features/segments/use-itinera
 import { parseDateString } from '@/components/ui/date-picker';
 import { cn } from '@/lib/utils';
 
-import type { RailDay, RailItem, RailItemIcon } from './timeline-model';
+import type { RailItem, RailItemIcon, ResolvedRailDay } from './timeline-model';
 
 // Per-icon glyph for a rail row. Mirrors pin-marker's ICON_BY_KIND and
 // adds `note` (rail-only). One row to add a new icon.
@@ -58,7 +58,11 @@ function formatPastRangeLabel(first: Date, last: Date): string {
 
 export interface TripTimelineRailProps {
   tripId: string;
-  days: RailDay[];
+  // Already resolved against the VIEWER's clock by the parent
+  // (`resolveRailDays`): `position` is viewer-relative and any
+  // continuation rows are folded into each day's `items`. The rail just
+  // splits the leading collapsed run and renders — no clock here.
+  days: ResolvedRailDay[];
   /** True only for `trip.status === 'active'` — gates collapse + auto-scroll. */
   isActive: boolean;
   /** Currently focused day key (`?day=`), or null. */
@@ -191,7 +195,7 @@ function DayBlock({
   onSelectSegment,
   innerRef,
 }: {
-  day: RailDay;
+  day: ResolvedRailDay;
   date: Date;
   focused: boolean;
   selectedSegmentId: string | null;
@@ -259,7 +263,7 @@ function DayBlock({
 // Collapsed-past summary row — folds the leading run of fully-past days
 // into a single tappable pill, mirroring the itinerary's collapsed-past
 // pattern. Expanding reveals the days inline.
-function CollapsedPastRow({ days, onExpand }: { days: RailDay[]; onExpand: () => void }) {
+function CollapsedPastRow({ days, onExpand }: { days: ResolvedRailDay[]; onExpand: () => void }) {
   const first = parseDayKey(days[0]!.dateKey);
   const last = parseDayKey(days[days.length - 1]!.dateKey);
   const rangeLabel = formatPastRangeLabel(first, last);
@@ -339,11 +343,12 @@ export function TripTimelineRail({
   const hasScrolledRef = React.useRef(false);
 
   // Split the leading run of past days (which collapse) from the rest.
-  // Position-driven — splitCollapsedDays reads only each day's server-set
-  // `position`, so the client split agrees with the server classification
-  // by construction. Ongoing multi-day stays are surfaced as continuation
-  // rows (baked into the visible days server-side), not by keeping their
-  // check-in day expanded.
+  // `days` arrive already resolved against the VIEWER's clock in the
+  // parent (`resolveRailDays`, ADR-0016): their `position` is
+  // viewer-relative and any ongoing-stay continuation rows are already
+  // folded into the visible days' `items`. splitCollapsedDays reads only
+  // that `position`, so the rail split agrees with the itinerary tab by
+  // construction.
   const { collapsed: pastDays, visible: restDays } = React.useMemo(
     () => splitCollapsedDays(days),
     [days],

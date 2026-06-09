@@ -78,12 +78,19 @@ const dateInput = z
     const utc = wallClockToUtc(v);
     if (utc) return utc;
     // A wall-clock-shaped string that didn't parse is out-of-range — reject
-    // it rather than let the `new Date` fallback below silently roll it over
+    // it rather than let the fallback below silently roll it over
     // (e.g. `new Date('2026-02-30')` → 2 Mar).
     if (WALL_CLOCK_RE.test(v)) return null;
-    // Some other ISO string (explicit offset / Z) → respect it as given.
-    const parsed = new Date(v);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+    // Some other ISO string carrying an explicit offset / Z. The floating
+    // model (ADR-0014/0016) stores the printed wall-clock, NOT the absolute
+    // instant the offset names — so we DROP the offset (and any seconds /
+    // fractional seconds) and interpret the wall-clock at UTC, matching the
+    // extraction mapper's parseFloatingDateTime. (No form path emits these;
+    // this keeps a programmatic caller from sneaking a real instant in.)
+    const stripped = v
+      .replace(/([+-]\d{2}:?\d{2}|Z)$/, '')
+      .replace(/(T\d{2}:\d{2}):\d{2}(\.\d+)?$/, '$1');
+    return wallClockToUtc(stripped);
   });
 
 // Per-type structured data. Kept intentionally light — JSONB lets each
