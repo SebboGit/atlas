@@ -5,7 +5,7 @@ import type { Segment, SegmentType } from '@/lib/segments';
 import { transitDataSchema } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
-import { continuationName } from './continuations';
+import { continuationCheckOutTime, continuationName } from './continuations';
 
 // Per-type glyph for the quiet continuation row. Mirrors the icons each
 // SegmentCard variant picks so the continuation reads as the same place.
@@ -75,14 +75,26 @@ function formatSinceDate(d: Date): string {
 //
 // Touch target: the link is `min-h-[44px]`, satisfying the responsive
 // rule for an interactive row on touch devices.
-function ContinuationRow({ segment, onActivate }: { segment: Segment; onActivate?: () => void }) {
+function ContinuationRow({
+  segment,
+  checkOutTime,
+  onActivate,
+}: {
+  segment: Segment;
+  // The stay's check-out time ("11:00"), present ONLY on the row rendered
+  // for the stay's final day (see `continuationCheckOutTime`). Null on
+  // every earlier day, so check-out reads only where you actually leave.
+  checkOutTime: string | null;
+  onActivate?: () => void;
+}) {
   const name = continuationName(segment);
   const since = segment.startsAt ? formatSinceDate(segment.startsAt) : null;
 
   // One clean spoken phrase for the whole row — the visible glyph, tag,
-  // and "since" date are all `aria-hidden` so a screen reader hears this
-  // once instead of the disjoint visual fragments.
-  const label = since ? `${name} — staying since ${since}` : `${name} — staying`;
+  // "since" date, and check-out time are all `aria-hidden` so a screen
+  // reader hears this once instead of the disjoint visual fragments.
+  const baseLabel = since ? `${name} — staying since ${since}` : `${name} — staying`;
+  const label = checkOutTime ? `${baseLabel}, checking out at ${checkOutTime}` : baseLabel;
 
   return (
     <a
@@ -115,6 +127,18 @@ function ContinuationRow({ segment, onActivate }: { segment: Segment; onActivate
           since {since}
         </span>
       )}
+      {/* Final day of the stay — surface the check-out time so the last
+       *  "Staying" row reads as the checkout, without a card of its own.
+       *  A filled accent chip (vs the bordered "Staying" pill) makes it the
+       *  prominent element of an otherwise quiet backdrop row. */}
+      {checkOutTime && (
+        <span
+          aria-hidden
+          className="bg-accent text-accent-foreground shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.08em] whitespace-nowrap"
+        >
+          Check Out {checkOutTime}
+        </span>
+      )}
     </a>
   );
 }
@@ -125,9 +149,13 @@ function ContinuationRow({ segment, onActivate }: { segment: Segment; onActivate
 // unconditionally.
 export function DayContinuations({
   continuations,
+  dayKey,
   onActivate,
 }: {
   continuations: Segment[];
+  // The `YYYY-MM-DD` key of the day these rows render under — used to
+  // surface the check-out time on the stay's final day only.
+  dayKey: string;
   // Forwarded to every row so a tap re-arms the past-group expand and
   // re-fires the scroll-flash even when the hash is unchanged.
   onActivate?: () => void;
@@ -136,7 +164,12 @@ export function DayContinuations({
   return (
     <div className="mb-3 space-y-0.5 sm:mb-4">
       {continuations.map((seg) => (
-        <ContinuationRow key={seg.id} segment={seg} onActivate={onActivate} />
+        <ContinuationRow
+          key={seg.id}
+          segment={seg}
+          checkOutTime={continuationCheckOutTime(seg, dayKey)}
+          onActivate={onActivate}
+        />
       ))}
     </div>
   );

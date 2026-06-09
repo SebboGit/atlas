@@ -149,6 +149,10 @@ const HERO_SEGMENTS: HeroSegment[] = [
       plusCode: 'MQ8R+5C Chiyoda City, Tokyo',
       confirmationNumber: 'HN-20488',
       roomType: 'Garden twin',
+      // Display-only times (the check-in shows on the card, the check-out
+      // on the stay's last-day "Staying" row) — never affect ordering.
+      checkInTime: '15:00',
+      checkOutTime: '11:00',
     },
     startsAt: d(2025, 10, 5),
     endsAt: d(2025, 10, 7),
@@ -229,6 +233,8 @@ const HERO_SEGMENTS: HeroSegment[] = [
       address: '185 Kamariyacho, Kamigyo Ward, Kyoto 602-0917',
       confirmationNumber: 'NZ-4471',
       roomType: 'Machiya suite',
+      checkInTime: '15:00',
+      checkOutTime: '10:00',
     },
     startsAt: d(2025, 10, 7),
     endsAt: d(2025, 10, 10),
@@ -337,14 +343,21 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
   },
   {
     // Multi-day hotel: checked in two days ago, checks out in two days.
-    // Ongoing as of today, so splitCollapsedDays keeps its day (and
-    // every later live day) out of the collapsed pill.
+    // Ongoing as of today, so its check-in card collapses into the past
+    // pill and the stay surfaces as a "Staying" continuation on today +
+    // the future days it spans. The check-out time shows ONLY on the final
+    // day — the ferry day, relDay(+2) in the UTC seed/screenshot env (a day
+    // earlier on a west-of-UTC viewer, but always on the last rendered row)
+    // — demonstrating the last-day check-out treatment on both the
+    // itinerary and the chrono-map rail.
     type: 'hotel',
     data: {
       propertyName: 'Hotel Las Torres',
       address: 'Torres del Paine National Park, Magallanes, Chile',
       confirmationNumber: 'HLT-5521',
       roomType: 'Mountain-view double',
+      checkInTime: '15:00',
+      checkOutTime: '10:00',
     },
     startsAt: relDay(-2),
     endsAt: relDay(2),
@@ -394,6 +407,43 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     locationName: 'Lago Pehoé',
     countryCode: 'CL',
     pin: { lat: -51.06, lng: -73.07 },
+  },
+  // Onward leg — the same-day flight→hotel ordering case made visible.
+  // An evening flight back to Santiago (lands 21:30) and a date-only
+  // check-in that same day. The hotel's 00:00Z anchor would sort it ABOVE
+  // the 18:00 flight under plain chronological order; bound to the flight's
+  // landing it correctly follows it, so this future day reads
+  // flight → hotel (you fly first, then check in).
+  {
+    type: 'flight',
+    data: {
+      carrier: 'LA',
+      flightNumber: '292',
+      originAirport: 'PUQ',
+      destinationAirport: 'SCL',
+      pnr: 'PATGON',
+      seat: '9D',
+    },
+    startsAt: relDay(3, 18),
+    endsAt: relDay(3, 21, 30),
+    countryCode: 'CL',
+    originCountryCode: 'CL',
+  },
+  {
+    type: 'hotel',
+    data: {
+      propertyName: 'Hotel Cumbres Lastarria',
+      address: 'José Victorino Lastarria 299, Santiago, Chile',
+      confirmationNumber: 'HCL-7781',
+      roomType: 'City queen',
+      checkInTime: '23:00',
+      checkOutTime: '06:00',
+    },
+    startsAt: relDay(3, 0),
+    endsAt: relDay(4, 0),
+    locationName: 'Santiago',
+    countryCode: 'CL',
+    pin: { lat: -33.4372, lng: -70.6394 },
   },
 ];
 
@@ -594,9 +644,10 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         summary: 'Two weeks in Patagonia, hiking the W trek in Torres del Paine.',
         status: 'active',
         // `now`-relative so the active trip always straddles today —
-        // see PATAGONIA_SEGMENTS and the `relDay` note above.
+        // see PATAGONIA_SEGMENTS and the `relDay` note above. Ends relDay(4)
+        // to cover the onward Santiago leg (the same-day flight→hotel demo).
         startDate: relDay(-3),
-        endDate: relDay(2),
+        endDate: relDay(4),
       },
       {
         userId,

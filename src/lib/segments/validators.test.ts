@@ -350,3 +350,50 @@ describe('segmentCreateInput — Plus Code field', () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe('segmentCreateInput — hotel check-in / check-out times', () => {
+  const HOTEL_BASE = { type: 'hotel' as const, data: { propertyName: 'Hotel Sakura' } };
+
+  it('accepts valid 24-hour check-in and check-out times', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'Hotel Sakura', checkInTime: '15:00', checkOutTime: '11:00' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'hotel') {
+      expect(result.data.data.checkInTime).toBe('15:00');
+      expect(result.data.data.checkOutTime).toBe('11:00');
+    }
+  });
+
+  it('normalises a blank time (the form submits "") to undefined', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'hotel',
+      data: { propertyName: 'Hotel Sakura', checkInTime: '', checkOutTime: '' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'hotel') {
+      expect(result.data.data.checkInTime).toBeUndefined();
+      expect(result.data.data.checkOutTime).toBeUndefined();
+    }
+  });
+
+  it('rejects a malformed time', () => {
+    for (const bad of ['25:00', '3pm', '9:5', '12:60', 'noon']) {
+      const result = segmentCreateInput.safeParse({
+        type: 'hotel',
+        data: { propertyName: 'Hotel Sakura', checkInTime: bad },
+      });
+      expect(result.success, `expected "${bad}" to be rejected`).toBe(false);
+    }
+  });
+
+  it('leaves the times undefined when omitted', () => {
+    const result = segmentCreateInput.safeParse(HOTEL_BASE);
+    expect(result.success).toBe(true);
+    if (result.success && result.data.type === 'hotel') {
+      expect(result.data.data.checkInTime).toBeUndefined();
+      expect(result.data.data.checkOutTime).toBeUndefined();
+    }
+  });
+});

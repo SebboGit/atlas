@@ -32,6 +32,50 @@ export interface DayGrouping {
   unscheduled: Segment[];
 }
 
+// Tiebreaker order for segments that resolve to the same effective time
+// within a day (flight first, then movement, where-you-slept, what-you-did,
+// annotations). Only decides equal-time ties; it never reorders segments
+// that already differ by time. The sort below is stable, so genuine ties of
+// the same type fall back to the repo's `createdAt` order.
+const DAY_TYPE_RANK: Record<Segment['type'], number> = {
+  flight: 0,
+  transit: 1,
+  hotel: 2,
+  activity: 3,
+  food: 4,
+  note: 5,
+};
+
+// Orders one day's segments. Plain chronological order is right except for
+// one case: a hotel check-in can't really precede a flight you took the same
+// day — you land first, then check in. The stored check-in is usually the
+// property's policy open-time (or just a bare date the form parses to 00:00Z),
+// not your real arrival, so chronological order can float a hotel above a
+// later flight. So a hotel sorts no earlier than the last flight to land that
+// day; everything else keeps its own time. With no flight in the day this is a
+// no-op and the day stays purely chronological.
+function sortDaySegments(segments: Segment[]): void {
+  let lastFlightLanding: number | null = null;
+  for (const s of segments) {
+    if (s.type !== 'flight' || !s.startsAt) continue;
+    // Landing = arrival when we have it, else departure (a date-only flight
+    // or one with no parsed arrival time).
+    const landing = (s.endsAt ?? s.startsAt).getTime();
+    lastFlightLanding = lastFlightLanding === null ? landing : Math.max(lastFlightLanding, landing);
+  }
+
+  const effectiveTime = (s: Segment): number => {
+    // Every segment in a bucket was grouped on a non-null startsAt.
+    const own = s.startsAt!.getTime();
+    if (s.type === 'hotel' && lastFlightLanding !== null) return Math.max(own, lastFlightLanding);
+    return own;
+  };
+
+  segments.sort(
+    (a, b) => effectiveTime(a) - effectiveTime(b) || DAY_TYPE_RANK[a.type] - DAY_TYPE_RANK[b.type],
+  );
+}
+
 export function groupSegmentsByDay(segments: Segment[]): DayGrouping {
   const map = new Map<string, DayBucket>();
   const unscheduled: Segment[] = [];
@@ -57,6 +101,7 @@ export function groupSegmentsByDay(segments: Segment[]): DayGrouping {
     bucket.segments.push(s);
   }
   const days = Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+  for (const day of days) sortDaySegments(day.segments);
   return { days, unscheduled };
 }
 

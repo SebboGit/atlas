@@ -62,6 +62,12 @@ export interface RailItem {
   continuation?: boolean;
   /** Check-in date label for a continuation row (e.g. "28 May"). */
   continuationSince?: string | null;
+  /**
+   * Check-out time ("11:00") for a continuation row — set ONLY on the
+   * stay's final day, so the last "staying" row reads as the checkout.
+   * Null on every earlier day and for stays with no check-out time.
+   */
+  continuationCheckOut?: string | null;
 }
 
 export interface RailDay {

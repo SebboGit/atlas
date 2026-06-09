@@ -11,8 +11,10 @@ export type DayPosition = 'past' | 'today' | 'future';
 
 // Midnight (local) of the given date. `groupSegmentsByDay` already
 // normalises bucket dates to local midnight, but callers passing a raw
-// `new Date()` need this to compare on calendar-day boundaries.
-function startOfLocalDay(d: Date): number {
+// `new Date()` need this to compare on calendar-day boundaries. Exported
+// so `continuationCheckOutTime` can match the check-out day on the SAME
+// local-day basis the continuation gating (`continuesThroughDay`) uses.
+export function startOfLocalDay(d: Date): number {
   const copy = new Date(d);
   copy.setHours(0, 0, 0, 0);
   return copy.getTime();

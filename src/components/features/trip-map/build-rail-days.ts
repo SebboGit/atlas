@@ -1,3 +1,4 @@
+import { continuationCheckOutTime } from '@/components/features/segments/continuations';
 import {
   ongoingContinuationsByDayKey,
   type ClassifiedDay,
@@ -191,12 +192,19 @@ function formatSince(d: Date): string {
 // segment's normal label / icon / map presence (so tapping focuses the
 // same pin), but carries no time-of-day and is flagged `continuation`
 // with the check-in date for the rail's quiet "staying" treatment.
-function buildContinuationItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
+// `checkOutTime` is non-null only on the stay's final day, so the last
+// row reads as the checkout.
+function buildContinuationItem(
+  seg: Segment,
+  geometry: MapGeometryIndex,
+  checkOutTime: string | null,
+): RailItem {
   return {
     ...buildRailItem(seg, geometry),
     timeLabel: null,
     continuation: true,
     continuationSince: seg.startsAt ? formatSince(seg.startsAt) : null,
+    continuationCheckOut: checkOutTime,
   };
 }
 
@@ -213,7 +221,7 @@ export function buildRailDays(days: ClassifiedDay[], geometry: MapGeometryIndex)
   return days.map((day) => {
     const key = day.key;
     const contItems = (continuations.get(key) ?? []).map((seg) =>
-      buildContinuationItem(seg, geometry),
+      buildContinuationItem(seg, geometry, continuationCheckOutTime(seg, key)),
     );
     return {
       key,
