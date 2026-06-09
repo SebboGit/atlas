@@ -1,8 +1,11 @@
 import { notFound } from 'next/navigation';
 
+import { continuationsByDayKey } from '@/components/features/segments/continuations';
 import { classifyDays } from '@/components/features/segments/day-temporal';
 import { GeocodePoller } from '@/components/features/segments/geocode-poller';
 import {
+  countDaysInclusive,
+  fillDayRange,
   groupSegmentsByDay,
   surfaceUndatedOnItinerary,
 } from '@/components/features/segments/group-by-day';
@@ -74,16 +77,25 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
   ]);
 
   // `scheduled: true` keeps the day buckets dated-only; the undated
-  // surfaced segments render in their own section below.
+  // surfaced segments render in their own section below. The buckets are
+  // then expanded to the trip's full calendar span so every day renders
+  // — a mid-stay day with nothing scheduled is still a trip day, and day
+  // numbers count real days, not just days that happen to hold segments.
   const { days } = groupSegmentsByDay(datedSegments);
+  const filledDays = fillDayRange(days, { start: trip.startDate, end: trip.endDate });
   const hasCountryFilter = !!country;
+
+  // The day-count pill reads the trip's real span. With no dated
+  // segments the filled list is empty (the itinerary shows its empty
+  // state instead of bare day headers), so fall back to the trip dates.
+  const dayCount = filledDays.length || (countDaysInclusive(trip.startDate, trip.endDate) ?? 0);
 
   // Classify each day relative to "now" on the server so the markup the
   // client hydrates already knows which days are past / today / future.
   // The collapsed-past-days behaviour (which days start folded) is
   // derived from this — see ItineraryDayList.
-  const classified = classifyDays(days, new Date());
-  const itineraryDays: ItineraryDay[] = classified.map((day) => ({
+  const classified = classifyDays(filledDays, new Date());
+  const allDays: ItineraryDay[] = classified.map((day) => ({
     // The bucket's UTC calendar-day token (see `groupSegmentsByDay`).
     // Timezone-stable `YYYY-MM-DD` — a UTC ISO instant reparsed on a
     // client in a different timezone than the server can render the
@@ -94,6 +106,19 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
     position: day.position,
     segments: day.segments,
   }));
+
+  // The country filter is a focused lens: keep the calendar-true day
+  // numbers (assigned above from the full filled span) but drop the days
+  // it leaves with nothing — a filtered view full of "No plans" lines
+  // for the days spent in the OTHER country would be noise, and "No
+  // plans" would be wrong besides. A day counts as having content when
+  // it holds a matching segment or a matching stay spans it.
+  const itineraryDays = hasCountryFilter
+    ? (() => {
+        const spanned = continuationsByDayKey(allDays);
+        return allDays.filter((day) => day.segments.length > 0 || spanned.has(day.key));
+      })()
+    : allDays;
 
   return (
     <>
@@ -127,7 +152,7 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
           Itinerary
         </p>
         <Badge variant="primary" className="border-primary/60 text-xs tracking-[0.16em]">
-          {days.length} {days.length === 1 ? 'day' : 'days'}
+          {dayCount} {dayCount === 1 ? 'day' : 'days'}
         </Badge>
         <span aria-hidden className="bg-foreground/15 hidden h-px flex-1 sm:block" />
         <SegmentFormDialog

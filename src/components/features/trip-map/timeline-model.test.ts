@@ -101,9 +101,9 @@ describe('mappableSegmentIds', () => {
 
 // The viewer-relative classification + continuation fold that mirrors the
 // itinerary tab (ADR-0016), so the map rail and the itinerary never
-// disagree on "today" / collapse / continuations near midnight in a
-// non-UTC zone. Dates are built local (the same `new Date(y, m, d)` basis
-// parseDateKey / classifyDay compare on) so the test is runner-TZ-robust.
+// disagree on "today" near midnight in a non-UTC zone. Candidate
+// endpoints are UTC instants (the gating is UTC-token math); the `today`
+// fixtures stay local because classifyDay is genuinely viewer-local.
 describe('resolveRailDays', () => {
   function serverDay(
     dateKey: string,
@@ -129,25 +129,32 @@ describe('resolveRailDays', () => {
 
   // 3-day trip: 04 Oct, 05 Oct, 06 Oct, with a hotel checking in 04 Oct and
   // out 06 Oct — a stay spanning the two later days.
-  const hotelCandidate = candidate('hotel-1', new Date(2025, 9, 4), new Date(2025, 9, 6));
+  const hotelCandidate = candidate(
+    'hotel-1',
+    new Date(Date.UTC(2025, 9, 4)),
+    new Date(Date.UTC(2025, 9, 6)),
+  );
   const serverDays: RailDay[] = [
     serverDay('2025-10-04', 1, [item({ segmentId: 'hotel-1' })], [hotelCandidate]),
     serverDay('2025-10-05', 2, [item({ segmentId: 'act-1' })]),
     serverDay('2025-10-06', 3, [item({ segmentId: 'act-2' })]),
   ];
 
-  it('pre-mount (null today) neutralises to future and folds nothing', () => {
+  it('pre-mount (null today) neutralises position but still folds continuations', () => {
+    // Continuations are clock-free — they derive from spans alone, so the
+    // pre-mount paint already carries them; only `position` waits for the
+    // viewer's clock.
     const out = resolveRailDays(serverDays, null);
     expect(out.map((d) => d.position)).toEqual(['future', 'future', 'future']);
-    expect(out[1]!.items.map((i) => i.segmentId)).toEqual(['act-1']);
-    expect(out[2]!.items.map((i) => i.segmentId)).toEqual(['act-2']);
+    expect(out[1]!.items.map((i) => i.segmentId)).toEqual(['hotel-1', 'act-1']);
+    expect(out[2]!.items.map((i) => i.segmentId)).toEqual(['hotel-1', 'act-2']);
   });
 
-  it('classifies against the viewer today and folds continuations onto spanned visible days', () => {
+  it('classifies against the viewer today and folds continuations onto spanned days', () => {
     const today = new Date(2025, 9, 5, 12, 0, 0);
     const out = resolveRailDays(serverDays, today);
     expect(out.map((d) => d.position)).toEqual(['past', 'today', 'future']);
-    // The collapsed check-in day shows its own row only.
+    // The check-in day shows its own row only.
     expect(out[0]!.items.map((i) => i.segmentId)).toEqual(['hotel-1']);
     // Today + future each LEAD with the "Staying since" continuation row.
     expect(out[1]!.items.map((i) => i.segmentId)).toEqual(['hotel-1', 'act-1']);
@@ -157,9 +164,19 @@ describe('resolveRailDays', () => {
 
   it("stamps the hotel check-out time on the stay's final day only", () => {
     const withCheckout: RailDay[] = [
-      serverDay('2025-10-04', 1, [item({ segmentId: 'hotel-1' })], [
-        candidate('hotel-1', new Date(2025, 9, 4), new Date(2025, 9, 6), '11:00'),
-      ]),
+      serverDay(
+        '2025-10-04',
+        1,
+        [item({ segmentId: 'hotel-1' })],
+        [
+          candidate(
+            'hotel-1',
+            new Date(Date.UTC(2025, 9, 4)),
+            new Date(Date.UTC(2025, 9, 6)),
+            '11:00',
+          ),
+        ],
+      ),
       serverDay('2025-10-05', 2, [item({ segmentId: 'act-1' })]),
       serverDay('2025-10-06', 3, [item({ segmentId: 'act-2' })]),
     ];
@@ -169,17 +186,25 @@ describe('resolveRailDays', () => {
       null,
     );
     // 06 Oct: the check-out day → the time is stamped.
-    expect(out[2]!.items.find((i) => i.segmentId === 'hotel-1')!.continuationCheckOut).toBe('11:00');
+    expect(out[2]!.items.find((i) => i.segmentId === 'hotel-1')!.continuationCheckOut).toBe(
+      '11:00',
+    );
   });
 
-  it('does not surface a continuation whose check-in day has not collapsed', () => {
-    // today = 04 Oct: the hotel's check-in day is itself today (not past), so
-    // the stay is no one's continuation — every day shows only its own rows.
+  it('surfaces continuations even when the check-in day has not collapsed', () => {
+    // today = 04 Oct: the hotel's check-in day is itself today (not past).
+    // The later days it spans still lead with the "staying" row — the rail
+    // renders the trip's full calendar, so a mid-stay day must read as
+    // "staying" whether or not the check-in card folded.
     const today = new Date(2025, 9, 4, 12, 0, 0);
     const out = resolveRailDays(serverDays, today);
     expect(out.map((d) => d.position)).toEqual(['today', 'future', 'future']);
-    expect(out[1]!.items.map((i) => i.segmentId)).toEqual(['act-1']);
-    expect(out[2]!.items.map((i) => i.segmentId)).toEqual(['act-2']);
+    // Never on its own check-in day…
+    expect(out[0]!.items.map((i) => i.segmentId)).toEqual(['hotel-1']);
+    expect(out[0]!.items[0]!.continuation).toBeUndefined();
+    // …but on every later spanned day.
+    expect(out[1]!.items.map((i) => i.segmentId)).toEqual(['hotel-1', 'act-1']);
+    expect(out[2]!.items.map((i) => i.segmentId)).toEqual(['hotel-1', 'act-2']);
   });
 });
 

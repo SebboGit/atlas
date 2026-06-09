@@ -6,65 +6,42 @@ import {
   transitDataSchema,
 } from '@/lib/segments';
 
-import { continuesThroughDay, startOfLocalDay } from './day-temporal';
+import { continuesThroughDay } from './day-temporal';
+import { dayKey } from './group-by-day';
 import type { ItineraryDay } from './itinerary-day-list';
 
-// Parses an `ItineraryDay.dateKey` (`YYYY-MM-DD`) into a local-midnight
-// Date for the calendar-day maths `continuesThroughDay` needs. Kept
-// local (rather than importing the client component's `parseDayKey`) so
-// this module stays pure and unit-testable without pulling in the date
-// picker. The token is server-generated and structurally valid; a bad
-// parse falls back to the epoch rather than crashing.
-function parseDateKey(dateKey: string): Date {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
-  if (!m) return new Date(0);
-  const [, y, mo, d] = m;
-  return new Date(Number(y), Number(mo) - 1, Number(d));
-}
-
-// The "you're still here" continuations to surface on each visible
-// (today/future) day once the past — which holds their check-in bucket —
-// collapses. A segment is a continuation on a visible day iff its
-// check-in bucket day is itself `past` (so its primary card collapsed)
-// and the segment `continuesThroughDay` that visible day from that
-// earlier check-in.
+// The "you're still here" continuations for each day: every span-capable
+// segment (both endpoints set) that `continuesThroughDay` the day from an
+// earlier check-in. A multi-day stay therefore surfaces a quiet row on
+// EVERY day it spans after its check-in — its check-out day included —
+// whether the check-in card is past, today, or future, collapsed or
+// visible. The itinerary renders the full trip calendar (fillDayRange),
+// so this is what keeps an otherwise-empty mid-stay day from reading as
+// a blank: the stay IS the day's content.
 //
-// CONSISTENCY: this is driven entirely by the server-set `position`
-// field — the SAME signal `splitCollapsedDays` reads to decide which
-// days collapse — so it cannot disagree with the split. There is no
-// `today`/clock input here: gating a continuation on "its check-in day's
-// position is past" is exactly "its check-in day collapsed", by
-// construction. A segment never appears as a continuation on its own
-// check-in day, and continuations are never emitted for `past` days
-// (they're collapsed).
-//
-// Mirrors the shared `ongoingContinuationsByDayKey` in `day-temporal.ts`
-// (which the rail uses over `ClassifiedDay`), adapted to the serialised
-// `ItineraryDay` shape the page hands the client (`dateKey` token,
-// `position` already resolved — not a re-derived `Date`/`today`).
-export function continuationsByDayKey(days: ItineraryDay[]): Map<string, Segment[]> {
-  // Segments whose check-in bucket has collapsed (its day is `past`),
-  // paired with that bucket's key so a continuation never doubles up on
-  // its own check-in day. Only past-bucket segments can continue into a
-  // visible day from a *collapsed* check-in — a stay checking in today is
-  // a normal same-day card, not a continuation.
-  const fromCollapsed: Array<{ seg: Segment; bucketKey: string }> = [];
+// No clock, no `position`, and no viewer timezone input — the gating is
+// pure UTC-day-token math (`continuesThroughDay`), so the result is
+// byte-identical on the server render, the pre-mount paint, and every
+// client. A segment never appears as a continuation on its own check-in
+// day (`continuesThroughDay` requires a strictly earlier start).
+export function continuationsByDayKey(
+  days: Array<Pick<ItineraryDay, 'key' | 'dateKey' | 'segments'>>,
+): Map<string, Segment[]> {
+  const spanning: Array<{ seg: Segment; bucketKey: string }> = [];
   for (const day of days) {
-    if (day.position !== 'past') continue;
     for (const seg of day.segments) {
-      fromCollapsed.push({ seg, bucketKey: day.key });
+      if (!seg.startsAt || !seg.endsAt) continue;
+      spanning.push({ seg, bucketKey: day.key });
     }
   }
-  if (fromCollapsed.length === 0) return new Map();
+  if (spanning.length === 0) return new Map();
 
   const byDay = new Map<string, Segment[]>();
   for (const day of days) {
-    if (day.position === 'past') continue;
-    const dayDate = parseDateKey(day.dateKey);
     const conts: Segment[] = [];
-    for (const { seg, bucketKey } of fromCollapsed) {
+    for (const { seg, bucketKey } of spanning) {
       if (bucketKey === day.key) continue;
-      if (continuesThroughDay(seg, dayDate)) conts.push(seg);
+      if (continuesThroughDay(seg, day.dateKey)) conts.push(seg);
     }
     if (conts.length > 0) byDay.set(day.key, conts);
   }
@@ -76,8 +53,8 @@ export function continuationsByDayKey(days: ItineraryDay[]): Map<string, Segment
 // continuation reads as the same place. Falls back to a type label when
 // the structured `data` doesn't parse or carries no name. Food and notes
 // never reach here (food is point-in-time, notes carry no endsAt — see
-// `isOngoing`), so this only has to cover the span-capable types well;
-// the `default` keeps it total.
+// `continuesThroughDay`'s guard), so this only has to cover the
+// span-capable types well; the `default` keeps it total.
 export function continuationName(segment: Segment): string {
   switch (segment.type) {
     case 'hotel': {
@@ -117,25 +94,23 @@ export function continuationName(segment: Segment): string {
 // The check-out time to surface on a continuation row — but ONLY on the
 // stay's final day, and only for a hotel that carries a check-out time.
 // Returns null on every earlier continuation day, for non-hotels, and when
-// no time was entered. (When the check-out day isn't itself a rendered
-// bucket, no continuation row exists there and the time simply isn't shown
-// — the info dialog still carries it.)
+// no time was entered.
 //
 // `dayKeyToken` is the `YYYY-MM-DD` key of the day the row renders under.
-// The match is on LOCAL-day math (via `startOfLocalDay`), NOT UTC `dayKey`,
-// because the row's existence is decided by `continuesThroughDay` (also
-// local-day). A date-only hotel's `endsAt` is `00:00Z`, whose local day
-// sits a day earlier west of UTC — matching on UTC would land the time on
-// a day no row exists for, so it would vanish entirely. CI runs in UTC and
-// never sees that skew (see the off-UTC regression test); this keeps the
-// time on whatever day the last continuation row actually renders.
+// The match is on the UTC day of `endsAt` — the same token basis the row
+// gating (`continuesThroughDay`) uses, so the chip lands on the last day
+// the stay actually renders, identically on the server and in every
+// viewer timezone. The UTC check-out day is always a rendered day:
+// `fillDayRange` extends the calendar through the latest `endsAt`. (When
+// the fill's pathological-range cap trips, the day may be missing and
+// the chip simply isn't shown — the info dialog still carries the time.)
 //
 // Mirrors how the check-in time shows on the check-in card: the time is
 // display-only `data` metadata, never the date-only `endsAt` that anchors
 // the day, so it has no bearing on ordering.
 export function continuationCheckOutTime(segment: Segment, dayKeyToken: string): string | null {
   if (segment.type !== 'hotel' || !segment.endsAt) return null;
-  if (startOfLocalDay(segment.endsAt) !== startOfLocalDay(parseDateKey(dayKeyToken))) return null;
+  if (dayKey(segment.endsAt) !== dayKeyToken) return null;
   const parsed = hotelDataSchema.safeParse(segment.data);
   return parsed.success ? (parsed.data.checkOutTime ?? null) : null;
 }

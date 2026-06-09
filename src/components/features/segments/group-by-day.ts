@@ -105,6 +105,87 @@ export function groupSegmentsByDay(segments: Segment[]): DayGrouping {
   return { days, unscheduled };
 }
 
+const DAY_MS = 86_400_000;
+
+// UTC midnight (ms) of the instant's UTC calendar day — the same day
+// `dayKey` reads, expressed as a steppable timestamp.
+function utcDayStartMs(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+// Inclusive calendar-day count of a date range, read in UTC (trip dates
+// are date-only values stored at UTC midnight). Null when either end is
+// missing or the range is inverted — callers fall back to whatever count
+// they have.
+export function countDaysInclusive(start: Date | null, end: Date | null): number | null {
+  if (!start || !end) return null;
+  const span = utcDayStartMs(end) - utcDayStartMs(start);
+  if (span < 0) return null;
+  return span / DAY_MS + 1;
+}
+
+// Fill ceiling. The itinerary renders one DayGroup per filled day, so a
+// segment with a typo'd year (2206 instead of 2026) must not explode the
+// page into thousands of empty days. Past a year, skip the fill and fall
+// back to segment-dated buckets only — the pre-fill behaviour.
+const MAX_FILLED_DAYS = 366;
+
+// Expands segment-dated buckets to cover the trip's full calendar span:
+// every day from min(trip start, first bucket) through max(trip end,
+// last bucket, latest segment end) gets a bucket, empty where nothing is
+// scheduled. Day numbers and the itinerary's day count both derive from
+// this filled list, so a trip with only a check-in and a return flight
+// still reads Day 1 … Day N instead of Day 1, Day 2.
+//
+// The latest segment `endsAt` extends the range so a multi-day stay on
+// an undated trip still surfaces its middle and check-out days. With no
+// buckets at all this returns [] — the empty itinerary keeps its empty
+// state rather than rendering a run of bare day headers.
+export function fillDayRange(
+  days: DayBucket[],
+  range: { start?: Date | null; end?: Date | null } = {},
+): DayBucket[] {
+  if (days.length === 0) return days;
+
+  // Buckets are chronological and keyed by UTC day, so their dates
+  // (local midnight of that UTC day — see groupSegmentsByDay) step in
+  // exact UTC-day increments once re-read as UTC days via their
+  // segments. Anchor the walk on the segments' own instants instead of
+  // re-parsing key tokens.
+  let startMs = Number.POSITIVE_INFINITY;
+  let endMs = Number.NEGATIVE_INFINITY;
+  for (const day of days) {
+    for (const s of day.segments) {
+      if (!s.startsAt) continue;
+      const dayMs = utcDayStartMs(s.startsAt);
+      if (dayMs < startMs) startMs = dayMs;
+      if (dayMs > endMs) endMs = dayMs;
+      if (s.endsAt) endMs = Math.max(endMs, utcDayStartMs(s.endsAt));
+    }
+  }
+  if (range.start) startMs = Math.min(startMs, utcDayStartMs(range.start));
+  if (range.end) endMs = Math.max(endMs, utcDayStartMs(range.end));
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return days;
+  if ((endMs - startMs) / DAY_MS + 1 > MAX_FILLED_DAYS) return days;
+
+  const byKey = new Map(days.map((d) => [d.key, d]));
+  const filled: DayBucket[] = [];
+  for (let ms = startMs; ms <= endMs; ms += DAY_MS) {
+    const utc = new Date(ms);
+    const key = dayKey(utc);
+    filled.push(
+      byKey.get(key) ?? {
+        key,
+        // Local midnight of the UTC calendar day — same construction as
+        // groupSegmentsByDay, so labels/classification read the same day.
+        date: new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate()),
+        segments: [],
+      },
+    );
+  }
+  return filled;
+}
+
 // Segment types with no dedicated trip tab. An undated (`startsAt === null`)
 // one of these would be invisible everywhere — the type tabs don't list it
 // and the day-grouped itinerary excludes undated rows — so the itinerary

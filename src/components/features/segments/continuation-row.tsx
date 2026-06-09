@@ -11,7 +11,8 @@ import { continuationCheckOutTime, continuationName } from './continuations';
 // SegmentCard variant picks so the continuation reads as the same place.
 // Transit resolves its mode glyph separately (it has five), so the map's
 // transit entry is only the fallback. Food / note never reach here (they
-// can't span days — see `isOngoing`); `MapPin` covers them defensively.
+// can't span days — see `continuesThroughDay`); `MapPin` covers them
+// defensively.
 const TYPE_ICON: Record<SegmentType, LucideIcon> = {
   flight: Plane,
   hotel: BedDouble,

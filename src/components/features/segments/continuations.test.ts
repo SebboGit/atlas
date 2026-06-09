@@ -36,18 +36,22 @@ function makeDay(overrides: Partial<ItineraryDay> & Pick<ItineraryDay, 'position
 }
 
 describe('continuationsByDayKey', () => {
-  // The motivating bug: a hotel 28 May–1 Jun, today 30 May. Check-in day
-  // (28) is past/collapsed; the stay should surface on today (30) and the
-  // future days it spans (31, 1 Jun), but NOT on its own check-in day.
+  // A hotel 28 May–1 Jun. The stay surfaces on EVERY day it spans after
+  // check-in — the itinerary renders the trip's full calendar, so a
+  // mid-stay day with nothing scheduled still reads "staying". Position
+  // plays no part (clock-free): past, today, and future spanned days all
+  // carry the row; only the check-in day itself never does.
+  // UTC instants (the real validator shape) — the gating is UTC-token
+  // math, so the fixtures must be too or they'd skew on a non-UTC runner.
   const hotel = makeSegment({
     id: 'hotel-1',
     type: 'hotel',
     data: { propertyName: 'Hotel Sakura' },
-    startsAt: new Date(2026, 4, 28),
-    endsAt: new Date(2026, 5, 1),
+    startsAt: new Date(Date.UTC(2026, 4, 28)),
+    endsAt: new Date(Date.UTC(2026, 5, 1)),
   });
 
-  it('surfaces an ongoing stay on today + the future days it spans, not its check-in day', () => {
+  it('surfaces an ongoing stay on every day it spans, not its check-in day', () => {
     const days: ItineraryDay[] = [
       makeDay({
         key: key(2026, 5, 28),
@@ -55,12 +59,11 @@ describe('continuationsByDayKey', () => {
         position: 'past',
         segments: [hotel],
       }),
-      // A fully-concluded past single-day event — must NOT keep it visible.
       makeDay({
         key: key(2026, 5, 29),
         dateKey: key(2026, 5, 29),
         position: 'past',
-        segments: [makeSegment({ id: 'hike', startsAt: new Date(2026, 4, 29) })],
+        segments: [makeSegment({ id: 'hike', startsAt: new Date(Date.UTC(2026, 4, 29)) })],
       }),
       makeDay({ key: key(2026, 5, 30), dateKey: key(2026, 5, 30), position: 'today' }),
       makeDay({ key: key(2026, 5, 31), dateKey: key(2026, 5, 31), position: 'future' }),
@@ -69,13 +72,14 @@ describe('continuationsByDayKey', () => {
 
     const result = continuationsByDayKey(days);
 
-    // Present on today and both spanned future days.
+    // Present on every spanned day — the past day with its own segments,
+    // today, both future days through check-out.
+    expect(result.get(key(2026, 5, 29))?.map((s) => s.id)).toEqual(['hotel-1']);
     expect(result.get(key(2026, 5, 30))?.map((s) => s.id)).toEqual(['hotel-1']);
     expect(result.get(key(2026, 5, 31))?.map((s) => s.id)).toEqual(['hotel-1']);
     expect(result.get(key(2026, 6, 1))?.map((s) => s.id)).toEqual(['hotel-1']);
-    // Never on its own (collapsed) check-in day, nor on any past day.
+    // Never on its own check-in day — that's the full card's home.
     expect(result.has(key(2026, 5, 28))).toBe(false);
-    expect(result.has(key(2026, 5, 29))).toBe(false);
   });
 
   it('does not surface a stay on days after its check-out', () => {
@@ -95,15 +99,16 @@ describe('continuationsByDayKey', () => {
     expect(result.has(key(2026, 6, 2))).toBe(false);
   });
 
-  it('does not treat a stay checking in TODAY as a continuation', () => {
-    // startsAt == today's day → its check-in day is `today`, not `past`,
-    // so it is a normal same-day card, never a continuation.
+  it('surfaces a stay checking in today on the later days it spans', () => {
+    // Check-in day shows the full card (no continuation); tomorrow is
+    // mid-stay, so it carries the row — without it a segment-less
+    // tomorrow would wrongly read as a blank day.
     const todayHotel = makeSegment({
       id: 'hotel-today',
       type: 'hotel',
       data: { propertyName: 'Today Inn' },
-      startsAt: new Date(2026, 4, 30),
-      endsAt: new Date(2026, 5, 2),
+      startsAt: new Date(Date.UTC(2026, 4, 30)),
+      endsAt: new Date(Date.UTC(2026, 5, 2)),
     });
     const days: ItineraryDay[] = [
       makeDay({
@@ -115,19 +120,17 @@ describe('continuationsByDayKey', () => {
       makeDay({ key: key(2026, 5, 31), dateKey: key(2026, 5, 31), position: 'future' }),
     ];
     const result = continuationsByDayKey(days);
-    // Not a continuation on its own check-in (today) day.
+    // Not a continuation on its own check-in day…
     expect(result.has(key(2026, 5, 30))).toBe(false);
-    // It DOES continue onto the next day — check-in bucket is `today`,
-    // not `past`, so it's still not surfaced (only collapsed-check-in
-    // stays become continuations).
-    expect(result.has(key(2026, 5, 31))).toBe(false);
+    // …but present on the next day it spans.
+    expect(result.get(key(2026, 5, 31))?.map((s) => s.id)).toEqual(['hotel-today']);
   });
 
-  it('ignores single-day and open-ended segments in past buckets', () => {
+  it('ignores single-day and open-ended segments', () => {
     const singleDay = makeSegment({
       id: 'act-1',
       type: 'activity',
-      startsAt: new Date(2026, 4, 28),
+      startsAt: new Date(Date.UTC(2026, 4, 28)),
       endsAt: null,
     });
     const days: ItineraryDay[] = [
@@ -142,7 +145,7 @@ describe('continuationsByDayKey', () => {
     expect(continuationsByDayKey(days).size).toBe(0);
   });
 
-  it('returns an empty map when nothing is in a collapsed bucket', () => {
+  it('returns an empty map when no segment spans multiple days', () => {
     const days: ItineraryDay[] = [
       makeDay({ key: key(2026, 5, 30), dateKey: key(2026, 5, 30), position: 'today' }),
       makeDay({ key: key(2026, 5, 31), dateKey: key(2026, 5, 31), position: 'future' }),

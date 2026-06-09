@@ -77,10 +77,14 @@ test.describe('itinerary continuation re-activation', () => {
     await authedPage.goto(`/trips/${tripId}/itinerary`);
 
     const hotelCard = authedPage.locator(`#seg-${hotelId}`);
-    const continuation = authedPage.getByRole('link', { name: /Hotel Las Torres — staying/ });
+    // The stay spans several rendered days, so the same "staying" row
+    // appears on each — `.first()` (today's) is the one we drive.
+    const continuation = authedPage
+      .getByRole('link', { name: /Hotel Las Torres — staying/ })
+      .first();
 
     // Past starts collapsed once the client classifies days: the hotel's
-    // own card lives inside the folded run, so only the continuation shows.
+    // own card lives inside the folded run, so only continuations show.
     await expect(continuation).toBeVisible();
     await expect(hotelCard).toHaveCount(0);
 
@@ -109,7 +113,9 @@ test.describe('itinerary continuation re-activation', () => {
     await authedPage.goto(`/trips/${tripId}/itinerary`);
 
     const hotelCard = authedPage.locator(`#seg-${hotelId}`);
-    const continuation = authedPage.getByRole('link', { name: /Hotel Las Torres — staying/ });
+    const continuation = authedPage
+      .getByRole('link', { name: /Hotel Las Torres — staying/ })
+      .first();
 
     // Open via the continuation, then fold the past back up via its chevron
     // (which "releases" this exact deep-link hash).

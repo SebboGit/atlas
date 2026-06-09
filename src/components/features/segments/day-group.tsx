@@ -26,14 +26,14 @@ interface DayGroupProps {
   // marker. Defaults to 'future' so the type-specific tabs and any
   // other caller that doesn't classify days render unchanged.
   position?: DayPosition;
-  // Ongoing multi-day stays that checked in on an earlier, collapsed day
-  // and run through this one — rendered as quiet continuation rows above
-  // the day's own segments. Empty / omitted renders nothing extra, so
-  // the type-specific tabs (which never pass it) are unaffected.
+  // Ongoing multi-day stays that checked in on an earlier day and run
+  // through this one — rendered as quiet continuation rows above the
+  // day's own segments. Empty / omitted renders nothing extra, so the
+  // type-specific tabs (which never pass it) are unaffected.
   continuations?: Segment[];
-  // The day's `YYYY-MM-DD` key — forwarded to the continuation rows so the
-  // check-out time surfaces on the stay's final day. Only set on the
-  // itinerary's visible days (the only caller that passes continuations).
+  // The day's `YYYY-MM-DD` key — forwarded to the continuation rows so
+  // the check-out time surfaces on the stay's final day. Set by every
+  // itinerary day; the type-specific tabs omit it.
   dayKey?: string;
   // Fired when a continuation row is tapped — lets ItineraryDayList
   // re-open the collapsed past group and re-flash the linked card on
@@ -107,47 +107,59 @@ export function DayGroup({
         </div>
       )}
 
+      {/* A day with nothing scheduled and no stay spanning it — possible
+       *  since the itinerary fills the trip's full calendar — reads as an
+       *  intentionally blank notebook line, not a broken one. */}
+      {segments.length === 0 && continuations.length === 0 && (
+        <p className="text-foreground/45 font-mono text-[10px] tracking-[0.18em] uppercase md:pl-10">
+          No plans
+        </p>
+      )}
+
       {/* Positioned wrapper holds the decorative timeline rail as a sibling
        *  of the list — the rail is not a valid direct child of <ol>, so it
        *  lives here instead. pl-10 reserves the laptop gutter the rail and
-       *  dots sit in. */}
-      <div className="relative md:pl-10">
-        {/* Vertical timeline rail — laptop only, sits within the pl-10
-         *  gutter. Today's rail picks up a faint terracotta wash so the
-         *  focal day reads as a connected through-line behind its dots;
-         *  other days stay a neutral hairline. */}
-        <span
-          aria-hidden
-          className={cn(
-            'absolute inset-y-8 left-4 hidden w-px md:block',
-            isToday ? 'bg-primary/30' : 'bg-foreground/15',
-          )}
-        />
-        <ol className="space-y-3 sm:space-y-4">
-          {segments.map((s) => (
-            <li key={s.id} className="relative">
-              {/* Dot marker — also laptop only. Sits at left:-28px on each
-               *  row, which matches the rail's centre in the gutter. Today's
-               *  rail reads as the single terracotta focal point (filled
-               *  dot); every other day stays a quiet hollow ink marker. */}
-              <span
-                aria-hidden
-                className={cn(
-                  'absolute top-7 hidden h-2 w-2 rounded-full border md:block',
-                  isToday ? 'border-primary bg-primary' : 'border-foreground/35 bg-card',
-                )}
-                style={{ left: '-28px' }}
-              />
-              <SegmentRow
-                segment={s}
-                tripId={tripId}
-                linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
-                coords={coordsBySegmentId?.get(s.id) ?? null}
-              />
-            </li>
-          ))}
-        </ol>
-      </div>
+       *  dots sit in. Skipped entirely for an empty day (filled calendar
+       *  day with no segments) — no list, no rail. */}
+      {segments.length > 0 && (
+        <div className="relative md:pl-10">
+          {/* Vertical timeline rail — laptop only, sits within the pl-10
+           *  gutter. Today's rail picks up a faint terracotta wash so the
+           *  focal day reads as a connected through-line behind its dots;
+           *  other days stay a neutral hairline. */}
+          <span
+            aria-hidden
+            className={cn(
+              'absolute inset-y-8 left-4 hidden w-px md:block',
+              isToday ? 'bg-primary/30' : 'bg-foreground/15',
+            )}
+          />
+          <ol className="space-y-3 sm:space-y-4">
+            {segments.map((s) => (
+              <li key={s.id} className="relative">
+                {/* Dot marker — also laptop only. Sits at left:-28px on each
+                 *  row, which matches the rail's centre in the gutter. Today's
+                 *  rail reads as the single terracotta focal point (filled
+                 *  dot); every other day stays a quiet hollow ink marker. */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    'absolute top-7 hidden h-2 w-2 rounded-full border md:block',
+                    isToday ? 'border-primary bg-primary' : 'border-foreground/35 bg-card',
+                  )}
+                  style={{ left: '-28px' }}
+                />
+                <SegmentRow
+                  segment={s}
+                  tripId={tripId}
+                  linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
+                  coords={coordsBySegmentId?.get(s.id) ?? null}
+                />
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </section>
   );
 }

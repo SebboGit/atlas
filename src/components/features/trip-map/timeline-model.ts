@@ -1,10 +1,9 @@
 import {
   classifyDay,
   continuesThroughDay,
-  splitCollapsedDays,
-  startOfLocalDay,
   type DayPosition,
 } from '@/components/features/segments/day-temporal';
+import { dayKey } from '@/components/features/segments/group-by-day';
 import type { TripMapArc, TripMapPin } from '@/lib/trip-map/repo';
 
 // Serialisable shapes that cross the RSC → client boundary for the
@@ -63,9 +62,9 @@ export interface RailItem {
   offMapReason?: string;
   /**
    * True when this row is a multi-day stay surfaced on a day AFTER its
-   * check-in (its primary card lives on the collapsed check-in day). The
-   * rail renders it quietly — a "staying" backdrop to the day, not a
-   * fresh event. Still mapKind-driven so tapping it focuses the same pin.
+   * check-in (its primary card lives on the check-in day). The rail
+   * renders it quietly — a "staying" backdrop to the day, not a fresh
+   * event. Still mapKind-driven so tapping it focuses the same pin.
    */
   continuation?: boolean;
   /** Check-in date label for a continuation row (e.g. "28 May"). */
@@ -79,12 +78,12 @@ export interface RailItem {
 }
 
 // A span-capable segment on this day that MIGHT continue onto a later
-// day, carried so the client can recompute continuation rows in the
-// viewer's timezone (mirroring the itinerary tab). The continuation
+// day, carried so `resolveRailDays` can fold continuation rows onto the
+// days the stay spans (mirroring the itinerary tab). The continuation
 // RailItem is pre-built (geometry-joined, continuation-styled) so the
 // client doesn't re-derive labels/icons/map presence; the bare
 // `startsAt`/`endsAt` instants are what `continuesThroughDay` needs to
-// decide, per visible day, whether this stay still spans it.
+// decide, per day token, whether this stay still spans it.
 //
 // Only emitted for segments with BOTH endpoints (a stay can span a
 // range); single-day / open-ended segments never continue, so they
@@ -120,9 +119,8 @@ export interface RailDay {
   items: RailItem[];
   /**
    * Span-capable segments checking in ON this day that may continue onto
-   * later days. Used by the client to recompute "Staying since"
-   * continuation rows once it knows which days collapsed — a continuation
-   * only surfaces on a visible day whose check-in day actually folded.
+   * later days. The client folds them into `items` as "Staying since"
+   * rows on every later day the stay spans (see `resolveRailDays`).
    */
   continuationCandidates: RailContinuationCandidate[];
 }
@@ -143,8 +141,8 @@ export interface ResolvedRailDay {
   items: RailItem[];
 }
 
-// Local `YYYY-MM-DD` → local-midnight Date for the calendar-day maths
-// `continuesThroughDay`/`classifyDay` need. Inlined (rather than reusing
+// Local `YYYY-MM-DD` → local-midnight Date for the viewer-relative
+// calendar-day maths `classifyDay` needs. Inlined (rather than reusing
 // the date-picker's `parseDateString`) so this stays a pure module the
 // server page can import without pulling in a `'use client'` graph —
 // the same trade-off `continuations.ts` makes for the itinerary. The
@@ -159,78 +157,44 @@ function parseDateKey(dateKey: string): Date {
 
 // Resolves the server's clock-agnostic `RailDay[]` into the viewer's
 // timezone. This is the rail's mirror of the itinerary's mount-time
-// `useMemo` (ADR-0016): both surfaces now classify days against the
-// SAME viewer `today`, so they can never disagree on which day is
-// "Today", which days collapse, or which continuation rows show.
+// `useMemo` (ADR-0016): both surfaces classify days against the SAME
+// viewer `today`, so they can never disagree on which day is "Today" or
+// which days collapse.
 //
-// `clientToday === null` is the pre-mount / SSR branch: every day is
-// neutralised to `future` (nothing collapses, no Today pill, no
-// continuations prepended) so the first paint never bakes a
-// server-timezone guess and hydration matches byte-for-byte.
-//
-// Post-mount, each day's `position` is re-derived from its stable date
-// token against the viewer's `today`, then `splitCollapsedDays` finds
-// the leading collapsed run. A continuation surfaces on a visible
-// (today/future) day iff its check-in day is in that COLLAPSED run AND
-// the stay `continuesThroughDay` the visible day — identical gating to
-// `ongoingContinuationsByDayKey`, recomputed here from the per-day
-// candidates so the rows match whatever the viewer-relative split
-// produced.
+// Continuation rows are CLOCK- and TIMEZONE-FREE (mirroring
+// `continuationsByDayKey`): a stay surfaces on every UTC day token it
+// `continuesThroughDay` after its check-in day, whatever that day's
+// position — the rail renders the trip's full calendar (fillDayRange),
+// so a mid-stay day with nothing scheduled still reads as "staying".
+// Being deterministic, they're part of the SSR'd markup and the
+// pre-mount paint; only `position` waits for the viewer's clock
+// (`clientToday === null` neutralises every day to `future` so the first
+// paint never bakes a server-timezone guess and hydration matches).
 export function resolveRailDays(days: RailDay[], clientToday: Date | null): ResolvedRailDay[] {
-  if (!clientToday) {
-    return days.map((d) => ({
-      key: d.key,
-      dateKey: d.dateKey,
-      dayNumber: d.dayNumber,
-      position: 'future' as DayPosition,
-      items: d.items,
-    }));
-  }
-
-  // Classify each day against the viewer's today, then split off the
-  // leading run of past (collapsed) days. The split key set is what a
-  // continuation's check-in day must fall inside to qualify.
-  const classified = days.map((d) => ({
-    ...d,
-    position: classifyDay(parseDateKey(d.dateKey), clientToday),
-  }));
-  const collapsedKeys = new Set(splitCollapsedDays(classified).collapsed.map((d) => d.key));
-
-  // Gather candidates from every COLLAPSED day, tagged with their
-  // check-in day key so a continuation never doubles up on its own
-  // check-in day (which is collapsed anyway).
-  const fromCollapsed: Array<{ candidate: RailContinuationCandidate; bucketKey: string }> = [];
-  for (const day of classified) {
-    if (!collapsedKeys.has(day.key)) continue;
+  // Span candidates from EVERY day, tagged with their check-in day key
+  // so a continuation never doubles up on its own check-in day.
+  const spanning: Array<{ candidate: RailContinuationCandidate; bucketKey: string }> = [];
+  for (const day of days) {
     for (const candidate of day.continuationCandidates) {
-      fromCollapsed.push({ candidate, bucketKey: day.key });
+      spanning.push({ candidate, bucketKey: day.key });
     }
   }
 
-  return classified.map((day) => {
-    // Collapsed days render their own rows only — no continuations are
-    // surfaced onto a day that's itself folded away.
-    if (collapsedKeys.has(day.key) || fromCollapsed.length === 0) {
-      return {
-        key: day.key,
-        dateKey: day.dateKey,
-        dayNumber: day.dayNumber,
-        position: day.position,
-        items: day.items,
-      };
-    }
-    const dayDate = parseDateKey(day.dateKey);
+  return days.map((day) => {
+    const position = clientToday
+      ? classifyDay(parseDateKey(day.dateKey), clientToday)
+      : ('future' as DayPosition);
+
     const contItems: RailItem[] = [];
-    for (const { candidate, bucketKey } of fromCollapsed) {
+    for (const { candidate, bucketKey } of spanning) {
       if (bucketKey === day.key) continue;
       if (
-        continuesThroughDay({ startsAt: candidate.startsAt, endsAt: candidate.endsAt }, dayDate)
+        continuesThroughDay({ startsAt: candidate.startsAt, endsAt: candidate.endsAt }, day.dateKey)
       ) {
-        // Stamp the hotel check-out time on the stay's FINAL day only — the
-        // day whose local calendar date matches the check-out instant.
-        // Local-day math (not UTC) so it lands on whatever day the last
-        // continuation row actually renders, mirroring continuationCheckOutTime.
-        const isCheckOutDay = startOfLocalDay(candidate.endsAt) === startOfLocalDay(dayDate);
+        // Stamp the hotel check-out time on the stay's FINAL day only —
+        // the day whose UTC token matches the check-out instant, the same
+        // token basis the row gating uses (mirrors continuationCheckOutTime).
+        const isCheckOutDay = dayKey(candidate.endsAt) === day.dateKey;
         contItems.push(
           isCheckOutDay && candidate.checkOutTime
             ? { ...candidate.item, continuationCheckOut: candidate.checkOutTime }
@@ -242,9 +206,9 @@ export function resolveRailDays(days: RailDay[], clientToday: Date | null): Reso
       key: day.key,
       dateKey: day.dateKey,
       dayNumber: day.dayNumber,
-      position: day.position,
+      position,
       // Continuations lead the day (a persistent backdrop), then the
-      // day's own segments — matching the old server-baked ordering.
+      // day's own segments.
       items: contItems.length > 0 ? [...contItems, ...day.items] : day.items,
     };
   });

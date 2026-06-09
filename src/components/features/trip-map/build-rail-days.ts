@@ -222,9 +222,9 @@ function hotelCheckOutTime(seg: Segment): string | null {
 // endpoints, the only ones that can ever continue onto a later day (a
 // single-day or open-ended segment never does, matching
 // `continuesThroughDay`'s guard). Each carries its pre-built
-// continuation row plus the raw endpoints the client tests against each
-// visible day. The clock plays no part here — WHICH later days a stay
-// actually surfaces on is decided client-side, in the viewer's timezone.
+// continuation row plus the raw endpoints `resolveRailDays` tests
+// against each day's UTC token — deterministic, no clock, no viewer
+// timezone.
 function buildContinuationCandidates(
   segments: Segment[],
   geometry: MapGeometryIndex,

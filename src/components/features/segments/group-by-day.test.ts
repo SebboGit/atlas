@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { Segment } from '@/lib/segments';
 
-import { groupSegmentsByDay, surfaceUndatedOnItinerary } from './group-by-day';
+import {
+  countDaysInclusive,
+  fillDayRange,
+  groupSegmentsByDay,
+  surfaceUndatedOnItinerary,
+} from './group-by-day';
 
 function makeSegment(overrides: Partial<Segment>): Segment {
   return {
@@ -121,5 +126,104 @@ describe('groupSegmentsByDay — within-day ordering', () => {
     const activity = makeSegment({ id: 'act', type: 'activity', startsAt: utc(9) });
     const transit = makeSegment({ id: 'tr', type: 'transit', startsAt: utc(9) });
     expect(orderedIds([note, activity, transit])).toEqual(['tr', 'act', 'note']);
+  });
+});
+
+describe('fillDayRange', () => {
+  // The motivating bug: a trip 1–5 Jun with only a check-in on the 1st
+  // and a return flight on the 5th rendered "Day 1, Day 2" — the filled
+  // list must read Day 1…Day 5.
+  const utcDay = (m: number, d: number) => new Date(Date.UTC(2026, m, d));
+
+  function bucketsFor(segments: Segment[]) {
+    return groupSegmentsByDay(segments).days;
+  }
+
+  it('fills the gap days between segment-dated buckets', () => {
+    const days = bucketsFor([
+      makeSegment({ id: 'hotel', type: 'hotel', startsAt: utcDay(5, 1), endsAt: utcDay(5, 5) }),
+      makeSegment({ id: 'flight', type: 'flight', startsAt: utcDay(5, 5) }),
+    ]);
+    const filled = fillDayRange(days);
+    expect(filled.map((d) => d.key)).toEqual([
+      '2026-06-01',
+      '2026-06-02',
+      '2026-06-03',
+      '2026-06-04',
+      '2026-06-05',
+    ]);
+    // Existing buckets are reused, gap days are empty.
+    expect(filled[0]!.segments.map((s) => s.id)).toEqual(['hotel']);
+    expect(filled[1]!.segments).toEqual([]);
+    expect(filled[4]!.segments.map((s) => s.id)).toEqual(['flight']);
+  });
+
+  it('extends the range to the trip dates when they reach further', () => {
+    const days = bucketsFor([makeSegment({ id: 'act', startsAt: utcDay(5, 3) })]);
+    const filled = fillDayRange(days, { start: utcDay(5, 1), end: utcDay(5, 5) });
+    expect(filled.map((d) => d.key)).toEqual([
+      '2026-06-01',
+      '2026-06-02',
+      '2026-06-03',
+      '2026-06-04',
+      '2026-06-05',
+    ]);
+  });
+
+  it('extends the range to a stay running past the last dated bucket', () => {
+    // Undated trip, single hotel 1–4 Jun: the check-out day must exist
+    // even though no bucket and no trip date reaches it.
+    const days = bucketsFor([
+      makeSegment({ id: 'hotel', type: 'hotel', startsAt: utcDay(5, 1), endsAt: utcDay(5, 4) }),
+    ]);
+    const filled = fillDayRange(days);
+    expect(filled.map((d) => d.key)).toEqual([
+      '2026-06-01',
+      '2026-06-02',
+      '2026-06-03',
+      '2026-06-04',
+    ]);
+  });
+
+  it('gives every filled day a local-midnight date matching its key', () => {
+    const days = bucketsFor([
+      makeSegment({ id: 'hotel', type: 'hotel', startsAt: utcDay(5, 1), endsAt: utcDay(5, 3) }),
+    ]);
+    const gap = fillDayRange(days)[1]!;
+    expect(gap.key).toBe('2026-06-02');
+    // Local getters read the same calendar day the key names — the same
+    // contract groupSegmentsByDay documents for its own buckets.
+    expect(gap.date.getFullYear()).toBe(2026);
+    expect(gap.date.getMonth()).toBe(5);
+    expect(gap.date.getDate()).toBe(2);
+    expect(gap.date.getHours()).toBe(0);
+  });
+
+  it('returns [] for no buckets — an empty itinerary keeps its empty state', () => {
+    expect(fillDayRange([], { start: utcDay(5, 1), end: utcDay(5, 5) })).toEqual([]);
+  });
+
+  it('skips the fill past a year of days (pathological dates degrade gracefully)', () => {
+    const days = bucketsFor([
+      makeSegment({ id: 'a', startsAt: utcDay(5, 1) }),
+      // A typo'd year: 2027 instead of 2026.
+      makeSegment({ id: 'b', startsAt: new Date(Date.UTC(2027, 7, 1)) }),
+    ]);
+    expect(fillDayRange(days)).toHaveLength(2);
+  });
+});
+
+describe('countDaysInclusive', () => {
+  const utcDay = (m: number, d: number) => new Date(Date.UTC(2026, m, d));
+
+  it('counts both endpoints', () => {
+    expect(countDaysInclusive(utcDay(5, 1), utcDay(5, 5))).toBe(5);
+    expect(countDaysInclusive(utcDay(5, 1), utcDay(5, 1))).toBe(1);
+  });
+
+  it('is null when either end is missing or the range is inverted', () => {
+    expect(countDaysInclusive(null, utcDay(5, 5))).toBeNull();
+    expect(countDaysInclusive(utcDay(5, 1), null)).toBeNull();
+    expect(countDaysInclusive(utcDay(5, 5), utcDay(5, 1))).toBeNull();
   });
 });

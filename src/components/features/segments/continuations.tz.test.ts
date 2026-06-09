@@ -1,11 +1,11 @@
 // Forces a west-of-UTC timezone for THIS WHOLE FILE, before any date math,
-// so the check-out-day match is exercised off-UTC. CI runs in UTC and would
-// otherwise never see this class of skew: a date-only hotel's `endsAt` is
-// `00:00Z`, whose LOCAL day sits a day earlier west of UTC, so the last
-// continuation row renders on a different token than the UTC day of
-// `endsAt`. `continuationCheckOutTime` must match on the local-day basis the
-// row gating uses, or the check-out time vanishes entirely. Mirrors the
-// ADR-0014 lesson: TZ-dependent rendering needs a non-UTC check.
+// so the continuation gating + check-out match are exercised off-UTC. The
+// rows are part of the SSR'd markup now (computed on the server AND the
+// client), so the contract is INVARIANCE: an off-UTC viewer must derive
+// exactly the rows and check-out day a UTC server rendered, or hydration
+// mismatches. Both sides are pure UTC-day-token math (`continuesThroughDay`
+// via `dayKey`), and this file pins that under a skewed local clock.
+// Mirrors the ADR-0014 lesson: TZ-dependent rendering needs a non-UTC check.
 process.env.TZ = 'America/Los_Angeles';
 
 import { describe, expect, it } from 'vitest';
@@ -29,10 +29,6 @@ function makeSegment(overrides: Partial<Segment>): Segment {
   } as unknown as Segment;
 }
 
-function key(y: number, m: number, d: number): string {
-  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-}
-
 function makeDay(
   overrides: Partial<ItineraryDay> & Pick<ItineraryDay, 'key' | 'position'>,
 ): ItineraryDay {
@@ -44,13 +40,14 @@ function makeDay(
   };
 }
 
-describe('continuationCheckOutTime — off-UTC integration', () => {
-  it('lands the check-out time on the last day the stay actually renders', () => {
+describe('continuations — off-UTC invariance', () => {
+  it('derives the same rows and check-out day a UTC server renders', () => {
     // Sanity: confirm the forced tz is in effect — `00:00Z` is the PRIOR
-    // local day here, the exact condition that used to drop the time.
+    // local day here, the skew that local-getter math would leak into the
+    // markup.
     expect(new Date(Date.UTC(2026, 5, 1)).getDate()).toBe(31);
 
-    // Date-only hotel: `endsAt` at `00:00Z`, the real validator's shape
+    // Date-only hotel: endpoints at `00:00Z`, the real validator's shape
     // (a `YYYY-MM-DD` pick → UTC midnight). Checks in 28 May, out 1 Jun.
     const hotel = makeSegment({
       id: 'hotel-out',
@@ -60,23 +57,24 @@ describe('continuationCheckOutTime — off-UTC integration', () => {
       endsAt: new Date(Date.UTC(2026, 5, 1)),
     });
 
+    // The filled calendar (fillDayRange extends through the latest
+    // endsAt), so the UTC check-out day is always a rendered day.
     const days: ItineraryDay[] = [
-      makeDay({ key: key(2026, 5, 28), position: 'past', segments: [hotel] }),
-      makeDay({ key: key(2026, 5, 30), position: 'today' }),
-      makeDay({ key: key(2026, 5, 31), position: 'future' }),
-      makeDay({ key: key(2026, 6, 1), position: 'future' }),
+      makeDay({ key: '2026-05-28', position: 'past', segments: [hotel] }),
+      makeDay({ key: '2026-05-29', position: 'past' }),
+      makeDay({ key: '2026-05-30', position: 'today' }),
+      makeDay({ key: '2026-05-31', position: 'future' }),
+      makeDay({ key: '2026-06-01', position: 'future' }),
     ];
 
-    // The days the stay actually renders a continuation on, in order.
     const conts = continuationsByDayKey(days);
     const rendered = days.filter((d) => conts.has(d.key)).map((d) => d.key);
-    expect(rendered.length).toBeGreaterThan(0);
+    // Exactly what a UTC server produces: every spanned day after
+    // check-in, through the UTC check-out day.
+    expect(rendered).toEqual(['2026-05-29', '2026-05-30', '2026-05-31', '2026-06-01']);
 
-    const last = rendered[rendered.length - 1]!;
-    // Check-out time shows on the last rendered day...
-    expect(continuationCheckOutTime(hotel, last)).toBe('11:00');
-    // ...and on no earlier day. (Under the old UTC match this returned null
-    // on `last` too — the time disappeared off-UTC.)
+    // Check-out time shows on the UTC check-out day and nowhere earlier.
+    expect(continuationCheckOutTime(hotel, '2026-06-01')).toBe('11:00');
     for (const earlier of rendered.slice(0, -1)) {
       expect(continuationCheckOutTime(hotel, earlier)).toBeNull();
     }

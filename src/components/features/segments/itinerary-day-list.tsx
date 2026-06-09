@@ -180,12 +180,16 @@ function ExpandedPastGroup({
   tripId,
   linkedDocumentsBySegment,
   coordsBySegmentId,
+  continuations,
+  onContinuationActivate,
   onCollapse,
 }: {
   days: ItineraryDay[];
   tripId: string;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
   coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
+  continuations: Map<string, Segment[]>;
+  onContinuationActivate?: () => void;
   onCollapse: () => void;
 }) {
   return (
@@ -221,6 +225,9 @@ function ExpandedPastGroup({
           linkedDocumentsBySegment={linkedDocumentsBySegment}
           coordsBySegmentId={coordsBySegmentId}
           position="past"
+          continuations={continuations.get(day.key)}
+          dayKey={day.key}
+          onContinuationActivate={onContinuationActivate}
         />
       ))}
     </div>
@@ -235,6 +242,8 @@ function PastGroup({
   tripId,
   linkedDocumentsBySegment,
   coordsBySegmentId,
+  continuations,
+  onContinuationActivate,
   isExpanded,
   onToggle,
 }: {
@@ -242,6 +251,8 @@ function PastGroup({
   tripId: string;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
   coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
+  continuations: Map<string, Segment[]>;
+  onContinuationActivate?: () => void;
   isExpanded: boolean;
   onToggle: () => void;
 }) {
@@ -266,6 +277,8 @@ function PastGroup({
         tripId={tripId}
         linkedDocumentsBySegment={linkedDocumentsBySegment}
         coordsBySegmentId={coordsBySegmentId}
+        continuations={continuations}
+        onContinuationActivate={onContinuationActivate}
         onCollapse={onToggle}
       />
     </section>
@@ -307,26 +320,18 @@ export function ItineraryDayList({
   const mounted = useMounted();
   const clientToday = React.useMemo(() => (mounted ? new Date() : null), [mounted]);
 
+  // Ongoing-stay continuations, keyed by day. Clock-free — they derive
+  // purely from segment spans against the day tokens (see
+  // `continuationsByDayKey`), so they render identically on the server
+  // paint and in every viewer timezone, on every day a stay spans.
+  const continuations = React.useMemo(() => continuationsByDayKey(days), [days]);
+
   // Split the days into the leading collapsible run and everything that
-  // must stay expanded, and compute the ongoing-stay continuations to
-  // surface on the visible days. `collapsed` is the ENTIRE leading run of
-  // past days (a still-ongoing multi-day stay no longer force-expands its
-  // check-in day); `visible` is today + every future day. A stay that
-  // began in a collapsed past day but runs through today/future is
-  // re-surfaced as a quiet continuation row under each day it spans —
-  // `continuations` maps a day's `key` to those segments.
-  //
-  // Both derive from the SAME server-set `position` field: the split
-  // collapses the leading `past` run, and a continuation is gated on its
-  // check-in day's `position` being `past` (i.e. that card collapsed).
-  // That shared signal — not a re-derived client clock — is what keeps
-  // them consistent: a continuation can only ever land on a day whose own
-  // check-in actually collapsed.
-  const {
-    collapsed: pastDays,
-    visible: restDays,
-    continuations,
-  } = React.useMemo(() => {
+  // must stay expanded. `collapsed` is the ENTIRE leading run of past
+  // days; `visible` is today + every future day. Unlike the
+  // continuations above, this IS clock-driven — "past" only exists
+  // relative to the viewer's today.
+  const { collapsed: pastDays, visible: restDays } = React.useMemo(() => {
     if (!clientToday) {
       // Pre-mount, SSR-stable: nothing collapsed, every day visible and
       // un-highlighted (position neutralised), so the first paint never
@@ -334,19 +339,15 @@ export function ItineraryDayList({
       return {
         collapsed: [] as ItineraryDay[],
         visible: days.map((d) => ({ ...d, position: 'future' as DayPosition })),
-        continuations: new Map<string, Segment[]>(),
       };
     }
-    // Re-derive each day's position from its stable date token against the
-    // client's "today", then split + compute continuations from that.
+    // Re-derive each day's position from its stable date token against
+    // the client's "today", then split on that.
     const classified = days.map((d) => ({
       ...d,
       position: classifyDay(parseDayKey(d.dateKey), clientToday),
     }));
-    return {
-      ...splitCollapsedDays(classified),
-      continuations: continuationsByDayKey(classified),
-    };
+    return splitCollapsedDays(classified);
   }, [days, clientToday]);
 
   // The live location hash. Subscribed via `useSyncExternalStore`, so a
@@ -450,6 +451,9 @@ export function ItineraryDayList({
               linkedDocumentsBySegment={linkedDocumentsBySegment}
               coordsBySegmentId={coordsBySegmentId}
               position={day.position}
+              continuations={continuations.get(day.key)}
+              dayKey={day.key}
+              onContinuationActivate={handleContinuationActivate}
             />
           </div>
         ))}
@@ -485,6 +489,8 @@ export function ItineraryDayList({
             tripId={tripId}
             linkedDocumentsBySegment={linkedDocumentsBySegment}
             coordsBySegmentId={coordsBySegmentId}
+            continuations={continuations}
+            onContinuationActivate={handleContinuationActivate}
             isExpanded={pastExpanded}
             onToggle={() => {
               // Collapsing the past group. A deep-link force-expand and

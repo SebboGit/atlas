@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { groupSegmentsByDay } from '@/components/features/segments/group-by-day';
+import { fillDayRange, groupSegmentsByDay } from '@/components/features/segments/group-by-day';
 import { buildRailDays } from '@/components/features/trip-map/build-rail-days';
 import { ChronoTripMap } from '@/components/features/trip-map/chrono-trip-map';
 import { indexMapGeometry } from '@/components/features/trip-map/timeline-model';
@@ -59,9 +59,13 @@ export default async function MapTabPage({ params, searchParams }: MapTabPagePro
   // near midnight in a non-UTC zone. The server only ships clock-agnostic
   // shape — day buckets, their rows, and the span-capable check-ins the
   // client may surface as continuations.
+  // Buckets are expanded to the trip's full calendar span (same fill as
+  // the itinerary tab) so rail day numbers count real trip days and the
+  // two surfaces agree on Day NN.
   const { days } = groupSegmentsByDay(segments);
+  const filledDays = fillDayRange(days, { start: trip.startDate, end: trip.endDate });
   const geometry = indexMapGeometry(mapData.pins, mapData.arcs);
-  const railDays = buildRailDays(days, geometry);
+  const railDays = buildRailDays(filledDays, geometry);
 
   // Collapsed-past + auto-scroll-to-today fire only for an active trip
   // (issue #8 parity) — passed through to gate them client-side.

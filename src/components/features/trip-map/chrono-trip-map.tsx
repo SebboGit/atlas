@@ -33,9 +33,10 @@ interface ChronoTripMapProps {
   geocodeWorkerStatus: GeocodeWorkerStatus;
   /**
    * Day-grouped, map-joined rail data (built server-side, clock-agnostic).
-   * Past/today/future and the continuation rows are resolved HERE, on
-   * mount, in the viewer's timezone (`resolveRailDays`) — so the map rail
-   * and the itinerary tab always agree on "today" (ADR-0016).
+   * Past/today/future is resolved HERE, on mount, in the viewer's
+   * timezone (`resolveRailDays`) — so the map rail and the itinerary tab
+   * always agree on "today" (ADR-0016). The "Staying since" continuation
+   * rows are deterministic UTC-token math and render from the first paint.
    */
   days: RailDay[];
   /** True only for `trip.status === 'active'`. */
@@ -93,11 +94,12 @@ export function ChronoTripMap({
   // Resolve the server's clock-agnostic days into the viewer's timezone,
   // on mount. `clientToday` is null until mounted, so the first
   // (SSR-matching) paint shows every day as `future` with nothing
-  // collapsed and no continuation rows — no server-timezone guess is ever
-  // painted, and hydration matches. Once mounted, `resolveRailDays`
-  // classifies each day and folds in the "Staying since" continuations.
-  // This single resolution feeds the rail, the sheet, AND the map-
-  // highlight maths below, so every surface reads the SAME viewer-relative
+  // collapsed — no server-timezone guess is ever painted, and hydration
+  // matches. The "Staying since" continuation rows are deterministic
+  // UTC-token math (no clock, no timezone), so they're already part of
+  // that first paint; mounting only resolves each day's position. This
+  // single resolution feeds the rail, the sheet, AND the map-highlight
+  // maths below, so every surface reads the SAME viewer-relative
   // classification (the whole point of ADR-0016: rail ↔ itinerary parity).
   const mounted = useMounted();
   const clientToday = React.useMemo(() => (mounted ? new Date() : null), [mounted]);
