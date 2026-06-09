@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-06-09
+
+### Fixed
+
+- **Itinerary skipped trip days that held no segments** — a trip with only a
+  hotel check-in and a return flight showed "Day 1, Day 2" (Day 2 being the
+  last day) and counted the pill from those two days. The itinerary and the
+  trip-map timeline now render the trip's full calendar: every day appears,
+  the day count reflects the real span, days inside a stay carry the quiet
+  "Staying" row through to the check-out day, and a day with nothing
+  scheduled reads "No plans". With a country filter active, days the filter
+  empties are dropped while day numbers stay calendar-true.
+
 ## [1.2.0] - 2026-06-09
 
 ### Added
@@ -171,7 +184,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/SebboGit/atlas/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/SebboGit/atlas/compare/v1.1.4...v1.2.0
 [1.1.4]: https://github.com/SebboGit/atlas/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/SebboGit/atlas/compare/v1.1.2...v1.1.3
