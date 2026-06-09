@@ -20,8 +20,10 @@ import type {
 
 // Builds the serialisable rail-day structure the chronological map's
 // rail and sheet render. Pure given its inputs — the page passes
-// already-classified days and the pin/arc geometry index, and this
-// joins each segment to its map presence by `segmentId`.
+// clock-agnostic day buckets and the pin/arc geometry index, and this
+// joins each segment to its map presence by `segmentId`. Past/today/
+// future classification and continuation placement happen client-side
+// (resolveRailDays, ADR-0016), not here.
 //
 // Why here and not in the trip-map repo: the repo already shapes pins
 // and arcs (its concern is "what goes on the map"); this is the rail's
