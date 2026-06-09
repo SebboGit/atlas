@@ -40,8 +40,7 @@
 
 process.env.JOBS_ROLE = 'worker';
 
-import { access, rm, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { rm, writeFile } from 'node:fs/promises';
 
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 
@@ -50,8 +49,6 @@ import { seedCountries } from '../src/lib/countries/seed';
 import { getJobs } from '../src/lib/jobs';
 import { log } from '../src/lib/log';
 import { runStatusSweep, registerWorkerJobs } from '../src/lib/scheduler';
-
-const PMTILES_DEFAULT_REL = 'data/tiles/world.pmtiles';
 
 // Docker compose's `depends_on: condition: service_healthy` blocks the
 // app container's startup until this marker exists — see the worker
@@ -97,43 +94,6 @@ async function runBootStatusSweep(): Promise<void> {
   }
 }
 
-async function checkPmtilesPresent(): Promise<void> {
-  const configuredUrl = process.env.PROTOMAPS_PMTILES_URL?.trim();
-  if (configuredUrl && /^https?:\/\//i.test(configuredUrl)) {
-    // A remote `https://…/world.pmtiles` is left to the app to
-    // fail-fast on first byte-range request; we only check the
-    // on-disk bind-mount case here. A relative path (e.g.
-    // `/api/tiles/world.pmtiles`) is the in-stack route and falls
-    // through to the local-file check below.
-    //
-    // Log origin + pathname only — a signed or token-bearing URL
-    // would otherwise leak credentials into the structured-log
-    // stream via the query string. Parse defensively so a malformed
-    // URL still logs *something*.
-    let remoteLog: Record<string, string> = { source: 'remote' };
-    try {
-      const remote = new URL(configuredUrl);
-      remoteLog = { source: 'remote', origin: remote.origin, pathname: remote.pathname };
-    } catch {
-      // configuredUrl matched the http(s) regex but URL parsing
-      // failed — log generically rather than echoing the raw value.
-    }
-    log.info(remoteLog, 'worker.boot.pmtiles_remote');
-    return;
-  }
-  const tilesDir = process.env.TILES_DIR?.trim();
-  const path = tilesDir ? `${tilesDir}/world.pmtiles` : resolve(process.cwd(), PMTILES_DEFAULT_REL);
-  try {
-    await access(path);
-    log.info({ path }, 'worker.boot.pmtiles_ok');
-  } catch {
-    log.warn(
-      { path },
-      'worker.boot.pmtiles_missing — map will not render until you run `pnpm tiles:fetch` (~33 GB, see scripts/fetch-tiles.sh)',
-    );
-  }
-}
-
 async function main(): Promise<void> {
   log.info({ pid: process.pid }, 'worker.boot.start');
 
@@ -157,8 +117,6 @@ async function main(): Promise<void> {
   // moved without a sweep firing yet (typically: just upgraded to a
   // version with this job for the first time).
   await runBootStatusSweep();
-
-  await checkPmtilesPresent();
 
   await registerWorkerJobs(jobs, db);
 
