@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-06-09
+
+### Fixed
+
+- **Uploading documents larger than 1 MB** — uploads failed with a generic
+  "Something went wrong." Server Actions cap their request body at 1 MB by
+  default, well below the 20 MB storage limit, so most boarding-pass and hotel
+  PDFs were rejected before they ever reached storage. The cap now tracks the
+  storage limit.
+- **Undated notes and transit were invisible** — a note or transit segment
+  saved without a date appeared nowhere: no tab lists those types, and the
+  itinerary showed only dated segments. They now surface in an "Undated"
+  section on the itinerary.
+
 ## [1.1.3] - 2026-06-08
 
 ### Fixed
@@ -116,7 +130,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/SebboGit/atlas/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/SebboGit/atlas/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/SebboGit/atlas/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/SebboGit/atlas/compare/v1.1.0...v1.1.1
