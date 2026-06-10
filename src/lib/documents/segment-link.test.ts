@@ -282,7 +282,10 @@ describe('ensureSegmentForExtraction', () => {
       expect(mocks.findFlightByKey).toHaveBeenCalledWith(USER_ID, TRIP_ID, {
         carrier: 'British Airways',
         flightNumber: '287',
-        flightDate: new Date(2026, 5, 1),
+        // The mapper parses the payload's `YYYY-MM-DD` to UTC midnight,
+        // so the expectation must be UTC-built — a local-midnight Date
+        // here skews the suite on any non-UTC runner.
+        flightDate: new Date(Date.UTC(2026, 5, 1)),
       });
       expect(mocks.createSegment).not.toHaveBeenCalled();
       expect(mocks.linkSegment).toHaveBeenCalledWith(USER_ID, DOC_ID, 'seg-existing-flight');

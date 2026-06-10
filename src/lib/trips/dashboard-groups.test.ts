@@ -91,7 +91,12 @@ describe('groupPastByYear', () => {
   });
 
   it('routes trips with neither date to the undated bucket', () => {
-    const dated = makeTrip({ id: 'dated', status: 'completed', startDate: new Date('2024-01-01') });
+    // Local-midnight construction, matching the shape `yearOf` documents
+    // (date-only picks store local midnight; the year reads local
+    // getters). The previous `new Date('2024-01-01')` was a UTC midnight
+    // whose local year is 2023 west of UTC — the one fixture in this
+    // suite sitting on a year boundary, so it skewed off-UTC runs.
+    const dated = makeTrip({ id: 'dated', status: 'completed', startDate: new Date(2024, 0, 1) });
     const undated = makeTrip({ id: 'no-dates', status: 'completed' });
     const out = groupPastByYear([dated, undated]);
     expect(out.groups.map((g) => g.year)).toEqual([2024]);
