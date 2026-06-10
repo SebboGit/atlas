@@ -88,6 +88,24 @@ jobs:
       - name: Test (Vitest)
         run: pnpm test
 
+      # The floating-time model (ADR-0014/0016) makes date logic
+      # UTC-deterministic, but CI runners default to UTC — so a fixture
+      # or render path that accidentally leans on the runner's zone
+      # passes here yet skews on any other machine. Re-run the suite at
+      # the two DST-free extremes of the real offset range so a year- or
+      # day-boundary skew in either direction fails the build. Steps in
+      # this job (not a separate job) so they reuse the warm install
+      # instead of paying another runner spin-up.
+      - name: Test (Vitest · TZ +14)
+        run: pnpm test
+        env:
+          TZ: Pacific/Kiritimati
+
+      - name: Test (Vitest · TZ −11)
+        run: pnpm test
+        env:
+          TZ: Pacific/Niue
+
       - name: Build
         run: pnpm build
 
