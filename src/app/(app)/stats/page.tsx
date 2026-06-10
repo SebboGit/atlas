@@ -97,9 +97,10 @@ export default async function StatsPage() {
 }
 
 /**
- * Shown when the user has no trips at all. Keeps the page from looking
- * broken on a fresh install — the dashboard earns its content from
- * logged trips, so there's nothing to tally yet.
+ * Shown when nothing has happened yet — no trips at all, or only trips
+ * still upcoming. Keeps the page from looking broken on a fresh install
+ * and spares a future-only dashboard from being a wall of zeros; the
+ * tallies only ever count what has already happened.
  */
 function EmptyState() {
   return (

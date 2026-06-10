@@ -424,3 +424,205 @@ describe('getStatsDashboardData — personal records', () => {
     expect(data.records.topAirline).toEqual({ name: 'British Airways', flights: 2 });
   });
 });
+
+describe('getStatsDashboardData — only counts what has happened', () => {
+  // Fixed clock: the boundary is the start-of-day-UTC convention the
+  // auto-status job uses, so "now" being midday must behave like the
+  // day boundary, not the instant.
+  const NOW = new Date('2026-06-10T12:00:00Z');
+
+  it('excludes an upcoming trip and its segments from every tally', async () => {
+    dbState.trips = [
+      trip({
+        id: 'done',
+        title: 'Done',
+        startDate: new Date('2024-05-01T00:00:00Z'),
+        endDate: new Date('2024-05-05T00:00:00Z'),
+      }),
+      // Booked, starts in three months — must not count anywhere.
+      trip({
+        id: 'booked',
+        title: 'Booked',
+        startDate: new Date('2026-09-01T00:00:00Z'),
+        endDate: new Date('2026-09-30T00:00:00Z'),
+      }),
+    ];
+    dbState.segments = [
+      hotel({
+        id: 'h1',
+        tripId: 'done',
+        countryCode: 'JP',
+        startsAt: new Date('2024-05-01T00:00:00Z'),
+        endsAt: new Date('2024-05-05T00:00:00Z'),
+      }),
+      flight({
+        id: 'f1',
+        tripId: 'done',
+        startsAt: new Date('2024-05-01T08:00:00Z'),
+        data: { originAirport: 'LHR', destinationAirport: 'CDG', carrier: 'British Airways' },
+      }),
+      hotel({
+        id: 'h2',
+        tripId: 'booked',
+        countryCode: 'AU',
+        startsAt: new Date('2026-09-01T00:00:00Z'),
+        endsAt: new Date('2026-09-30T00:00:00Z'),
+        locationName: 'Sydney',
+        data: { propertyName: 'Harbour Hotel', address: '1 George St, Sydney' },
+      }),
+      // Two future Qantas legs: were they counted, Qantas would beat
+      // British Airways and SYD's latitude would win southernmost.
+      flight({
+        id: 'f2',
+        tripId: 'booked',
+        startsAt: new Date('2026-09-01T08:00:00Z'),
+        data: { originAirport: 'LHR', destinationAirport: 'SYD', carrier: 'Qantas' },
+      }),
+      flight({
+        id: 'f3',
+        tripId: 'booked',
+        startsAt: new Date('2026-09-02T08:00:00Z'),
+        data: { originAirport: 'SYD', destinationAirport: 'MEL', carrier: 'Qantas' },
+      }),
+    ];
+    // Even a cached geocode for the future hotel must not contribute.
+    seedGeocode('1 George St, Sydney', -33.87, 151.21);
+
+    const data = await getStatsDashboardData('u1', NOW);
+
+    expect(data.isEmpty).toBe(false);
+    expect(data.lifetime.countriesVisited).toBe(1);
+    expect(data.lifetime.newestCountry?.code).toBe('JP');
+    expect(data.lifetime.nightsAway).toBe(4);
+    expect(data.lifetime.flightsTaken).toBe(1);
+    // LHR→CDG only (~348 km); LHR→SYD would add ~17 000 km, and a
+    // broken airport lookup would read 0 — bound it from both sides.
+    expect(data.lifetime.distanceFlownKm).toBeGreaterThan(300);
+    expect(data.lifetime.distanceFlownKm).toBeLessThan(1000);
+    expect(data.yearOverYear.tripsPerYear).toEqual([{ year: 2024, count: 1 }]);
+    expect(data.yearOverYear.nightsPerYear).toEqual([{ year: 2024, count: 4 }]);
+    expect(data.yearOverYear.newCountriesPerYear).toEqual([{ year: 2024, count: 1 }]);
+    // The 29-night booked trip must not take the record from the 4-night one.
+    expect(data.records.longestTrip?.tripId).toBe('done');
+    expect(data.records.topAirline?.name).toBe('British Airways');
+    expect(data.records.southernmost?.label).toBe('CDG');
+  });
+
+  it('reports isEmpty when every trip is still upcoming', async () => {
+    dbState.trips = [
+      trip({
+        id: 't1',
+        startDate: new Date('2026-12-01T00:00:00Z'),
+        endDate: new Date('2026-12-10T00:00:00Z'),
+      }),
+    ];
+    dbState.segments = [
+      flight({
+        id: 'f1',
+        startsAt: new Date('2026-12-01T08:00:00Z'),
+        data: { originAirport: 'LHR', destinationAirport: 'CDG' },
+      }),
+    ];
+    const data = await getStatsDashboardData('u1', NOW);
+    expect(data.isEmpty).toBe(true);
+    expect(data.lifetime.flightsTaken).toBe(0);
+    expect(data.yearOverYear.tripsPerYear).toEqual([]);
+  });
+
+  it('counts only the nights already slept on an in-progress hotel stay', async () => {
+    dbState.trips = [trip({ id: 't1', startDate: new Date('2026-06-05T00:00:00Z') })];
+    dbState.segments = [
+      hotel({
+        id: 'h1',
+        startsAt: new Date('2026-06-08T15:00:00Z'),
+        endsAt: new Date('2026-06-14T11:00:00Z'),
+      }),
+    ];
+    const data = await getStatsDashboardData('u1', NOW);
+    // Checked in June 8, now June 10 → two nights slept, four ahead.
+    expect(data.lifetime.nightsAway).toBe(2);
+    expect(data.yearOverYear.nightsPerYear).toEqual([{ year: 2026, count: 2 }]);
+  });
+
+  it('counts zero nights for a stay checking in today', async () => {
+    dbState.trips = [trip({ id: 't1', startDate: new Date('2026-06-10T00:00:00Z') })];
+    dbState.segments = [
+      // Tonight hasn't been slept yet.
+      hotel({
+        id: 'h1',
+        startsAt: new Date('2026-06-10T15:00:00Z'),
+        endsAt: new Date('2026-06-14T11:00:00Z'),
+      }),
+    ];
+    const data = await getStatsDashboardData('u1', NOW);
+    expect(data.lifetime.nightsAway).toBe(0);
+    expect(data.yearOverYear.nightsPerYear).toEqual([]);
+  });
+
+  it('counts a flight dated today but not one dated tomorrow', async () => {
+    dbState.trips = [trip({ id: 't1', startDate: new Date('2026-06-08T00:00:00Z') })];
+    dbState.segments = [
+      // Tonight's flight — today counts, even before its wall-clock.
+      flight({
+        id: 'f1',
+        startsAt: new Date('2026-06-10T23:00:00Z'),
+        data: { originAirport: 'LHR', destinationAirport: 'CDG' },
+      }),
+      flight({
+        id: 'f2',
+        startsAt: new Date('2026-06-11T09:00:00Z'),
+        data: { originAirport: 'CDG', destinationAirport: 'LHR' },
+      }),
+    ];
+    const data = await getStatsDashboardData('u1', NOW);
+    expect(data.lifetime.flightsTaken).toBe(1);
+  });
+
+  it('falls back to the trip start date for undated segments', async () => {
+    dbState.trips = [
+      trip({ id: 'past', startDate: new Date('2024-05-01T00:00:00Z') }),
+      trip({ id: 'future', startDate: new Date('2026-09-01T00:00:00Z') }),
+      // Undated wishlist draft (ADR-0003) — nothing on it has happened.
+      trip({ id: 'draft' }),
+    ];
+    dbState.segments = [
+      flight({
+        id: 'f1',
+        tripId: 'past',
+        data: { originAirport: 'LHR', destinationAirport: 'CDG' },
+      }),
+      flight({
+        id: 'f2',
+        tripId: 'future',
+        data: { originAirport: 'LHR', destinationAirport: 'SIN' },
+      }),
+      flight({
+        id: 'f3',
+        tripId: 'draft',
+        data: { originAirport: 'LHR', destinationAirport: 'JFK' },
+      }),
+    ];
+    const data = await getStatsDashboardData('u1', NOW);
+    expect(data.lifetime.flightsTaken).toBe(1);
+  });
+
+  it('counts an in-progress trip toward longest-trip with the nights elapsed so far', async () => {
+    dbState.trips = [
+      trip({
+        id: 'done',
+        title: 'Done',
+        startDate: new Date('2024-05-01T00:00:00Z'),
+        endDate: new Date('2024-05-04T00:00:00Z'),
+      }),
+      // Five nights elapsed of 20 booked — competes with the 5, not the 20.
+      trip({
+        id: 'going',
+        title: 'Going',
+        startDate: new Date('2026-06-05T00:00:00Z'),
+        endDate: new Date('2026-06-25T00:00:00Z'),
+      }),
+    ];
+    const data = await getStatsDashboardData('u1', NOW);
+    expect(data.records.longestTrip).toEqual({ tripId: 'going', title: 'Going', nights: 5 });
+  });
+});
