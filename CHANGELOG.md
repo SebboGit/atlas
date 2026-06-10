@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-10
+
+### Changed
+
+- **Multi-day activities no longer read "Staying"** — the quiet continuation
+  row a multi-day segment shows on each day it spans now words itself by
+  type: hotels keep "Staying · since …", while activities, transit, and
+  flights read "Ongoing · since …" — a trek pass isn't somewhere you sleep.
+  Applies to the itinerary and the trip-map timeline alike; screen readers
+  hear the same phrasing.
+
 ## [1.2.1] - 2026-06-09
 
 ### Fixed
@@ -184,7 +195,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/SebboGit/atlas/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/SebboGit/atlas/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/SebboGit/atlas/compare/v1.1.4...v1.2.0
 [1.1.4]: https://github.com/SebboGit/atlas/compare/v1.1.3...v1.1.4
