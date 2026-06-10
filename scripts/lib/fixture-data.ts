@@ -323,7 +323,8 @@ const HERO_SEGMENTS: HeroSegment[] = [
 // days span past + today + future. This set is dated with `relDay` so
 // it always straddles whatever day the seed runs. It includes a multi-
 // day hotel that started in the past and runs through today (the
-// splitCollapsedDays "ongoing segment" rule) and one ungeocoded item.
+// splitCollapsedDays "ongoing segment" rule), a multi-day activity (the
+// non-hotel "Ongoing" continuation wording), and one ungeocoded item.
 const PATAGONIA_SEGMENTS: HeroSegment[] = [
   {
     // Past arrival flight — folds into the collapsed-past pill.
@@ -374,6 +375,19 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     locationName: 'Torres del Paine',
     countryCode: 'CL',
     pin: { lat: -50.9, lng: -72.9 },
+  },
+  {
+    // Multi-day activity: a park trekking pass running yesterday →
+    // tomorrow. Spans today, so the non-hotel continuation row — worded
+    // "Ongoing", not "Staying" — shows on the default itinerary view and
+    // the chrono-map rail, right beside the hotel's "Staying" row.
+    type: 'activity',
+    data: { title: 'W Trek — park pass', bookingRef: 'CONAF-8841' },
+    startsAt: relDay(-1, 8),
+    endsAt: relDay(1, 18),
+    locationName: 'Torres del Paine',
+    countryCode: 'CL',
+    pin: { lat: -50.95, lng: -72.95 },
   },
   {
     // Today — the auto-scroll-to-today anchor.

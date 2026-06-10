@@ -1,4 +1,4 @@
-import type { Segment } from '@/lib/segments';
+import type { Segment, SegmentType } from '@/lib/segments';
 import {
   activityDataSchema,
   flightDataSchema,
@@ -89,6 +89,18 @@ export function continuationName(segment: Segment): string {
       // signal for any future span-capable type added without a case.
       return segment.locationName ?? 'Segment';
   }
+}
+
+// The pill word on a continuation row. A hotel keeps the stay language —
+// "Staying" is literally true of where you sleep. Every other
+// span-capable type (a multi-day trek, an overnight ferry or flight, and
+// any future type) reads "Ongoing": the segment continues, but nobody is
+// staying at it. Shared by the itinerary row and the trip-map rail
+// builder so the two surfaces can never drift.
+export type ContinuationPillWord = 'Staying' | 'Ongoing';
+
+export function continuationPill(type: SegmentType): ContinuationPillWord {
+  return type === 'hotel' ? 'Staying' : 'Ongoing';
 }
 
 // The check-out time to surface on a continuation row — but ONLY on the

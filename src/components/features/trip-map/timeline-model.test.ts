@@ -120,7 +120,12 @@ describe('resolveRailDays', () => {
     checkOutTime: string | null = null,
   ): RailContinuationCandidate {
     return {
-      item: item({ segmentId, continuation: true, continuationSince: '04 Oct' }),
+      item: item({
+        segmentId,
+        continuation: true,
+        continuationSince: '04 Oct',
+        continuationPill: 'Staying',
+      }),
       startsAt,
       endsAt,
       checkOutTime,
@@ -185,10 +190,11 @@ describe('resolveRailDays', () => {
     expect(out[1]!.items.find((i) => i.segmentId === 'hotel-1')!.continuationCheckOut ?? null).toBe(
       null,
     );
-    // 06 Oct: the check-out day → the time is stamped.
-    expect(out[2]!.items.find((i) => i.segmentId === 'hotel-1')!.continuationCheckOut).toBe(
-      '11:00',
-    );
+    // 06 Oct: the check-out day → the time is stamped, and the spread
+    // preserves the server-resolved pill word.
+    const checkOutRow = out[2]!.items.find((i) => i.segmentId === 'hotel-1')!;
+    expect(checkOutRow.continuationCheckOut).toBe('11:00');
+    expect(checkOutRow.continuationPill).toBe('Staying');
   });
 
   it('surfaces continuations even when the check-in day has not collapsed', () => {

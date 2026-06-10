@@ -65,6 +65,14 @@ test.describe('itinerary continuation re-activation', () => {
       title: 'French Valley viewpoint',
       startsAt: relDay(0, 9),
     });
+    // Multi-day activity straddling today — continuation rows are
+    // type-agnostic, but the wording is not: non-hotels read "ongoing",
+    // never "staying" (see the wording test below).
+    await seedActivitySegment(tripId, {
+      title: 'Glacier trek',
+      startsAt: relDay(-2, 9),
+      endsAt: relDay(1, 17),
+    });
   });
 
   test('re-flashes the hotel card every time the continuation is tapped', async ({
@@ -107,6 +115,22 @@ test.describe('itinerary continuation re-activation', () => {
     await expect
       .poll(() => hotelCard.evaluate((n) => n.style.borderRadius), { timeout: 3000 })
       .toBe(RING_RADIUS);
+  });
+
+  test('words the continuation by type — hotel "staying", activity "ongoing"', async ({
+    authedPage,
+  }) => {
+    await authedPage.goto(`/trips/${tripId}/itinerary`);
+
+    // The hotel keeps the stay language…
+    await expect(
+      authedPage.getByRole('link', { name: /Hotel Las Torres — staying since/ }).first(),
+    ).toBeVisible();
+    // …while the multi-day activity reads as ongoing, never "staying".
+    await expect(
+      authedPage.getByRole('link', { name: /Glacier trek — ongoing since/ }).first(),
+    ).toBeVisible();
+    await expect(authedPage.getByRole('link', { name: /Glacier trek — staying/ })).toHaveCount(0);
   });
 
   test('re-opens the past after the user collapsed it', async ({ authedPage }) => {

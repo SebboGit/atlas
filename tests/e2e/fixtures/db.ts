@@ -114,6 +114,9 @@ export async function seedTrip(userId: string, values: SeedTripValues): Promise<
 export interface SeedActivityValues {
   title: string;
   startsAt?: Date | null;
+  // Set alongside `startsAt` to span days — a multi-day activity surfaces
+  // the non-hotel ("Ongoing") continuation rows, mirroring the hotel's.
+  endsAt?: Date | null;
   countryCode?: string | null;
   locationName?: string | null;
 }
@@ -134,6 +137,7 @@ export async function seedActivitySegment(
       type: 'activity',
       data: { title: values.title },
       startsAt: values.startsAt ?? null,
+      endsAt: values.endsAt ?? null,
       locationName: values.locationName ?? null,
       countryCode: values.countryCode ?? null,
     })

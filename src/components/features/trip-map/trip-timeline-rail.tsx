@@ -127,7 +127,7 @@ function SegmentRailRow({
           </span>
           {continuation && (
             <span className="border-foreground/20 text-foreground/70 shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.16em] uppercase">
-              Staying
+              {item.continuationPill ?? 'Ongoing'}
             </span>
           )}
         </span>

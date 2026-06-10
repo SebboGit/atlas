@@ -1,3 +1,4 @@
+import type { ContinuationPillWord } from '@/components/features/segments/continuations';
 import {
   classifyDay,
   continuesThroughDay,
@@ -63,12 +64,18 @@ export interface RailItem {
   /**
    * True when this row is a multi-day stay surfaced on a day AFTER its
    * check-in (its primary card lives on the check-in day). The rail
-   * renders it quietly — a "staying" backdrop to the day, not a fresh
-   * event. Still mapKind-driven so tapping it focuses the same pin.
+   * renders it quietly — an ongoing-segment backdrop to the day, not a
+   * fresh event. Still mapKind-driven so tapping it focuses the same pin.
    */
   continuation?: boolean;
   /** Check-in date label for a continuation row (e.g. "28 May"). */
   continuationSince?: string | null;
+  /**
+   * Pill word for a continuation row — "Staying" (hotel) or "Ongoing"
+   * (every other span-capable type). Resolved server-side alongside
+   * `continuationSince` so the client doesn't re-derive wording.
+   */
+  continuationPill?: ContinuationPillWord;
   /**
    * Check-out time ("11:00") for a continuation row — set ONLY on the
    * stay's final day, so the last "staying" row reads as the checkout.
@@ -119,7 +126,7 @@ export interface RailDay {
   items: RailItem[];
   /**
    * Span-capable segments checking in ON this day that may continue onto
-   * later days. The client folds them into `items` as "Staying since"
+   * later days. The client folds them into `items` as quiet continuation
    * rows on every later day the stay spans (see `resolveRailDays`).
    */
   continuationCandidates: RailContinuationCandidate[];
@@ -127,7 +134,7 @@ export interface RailDay {
 
 // A `RailDay` after the client resolves it against the VIEWER's clock:
 // the temporal `position` is now known, and `items` is the FINAL render
-// list — any "Staying since" continuation rows have been prepended.
+// list — any continuation rows have been prepended.
 // `continuationCandidates` has done its job (folded into `items`) and is
 // dropped. The rail, sheet, and the parent's map-highlight maths all
 // consume this resolved shape.
@@ -165,7 +172,7 @@ function parseDateKey(dateKey: string): Date {
 // `continuationsByDayKey`): a stay surfaces on every UTC day token it
 // `continuesThroughDay` after its check-in day, whatever that day's
 // position — the rail renders the trip's full calendar (fillDayRange),
-// so a mid-stay day with nothing scheduled still reads as "staying".
+// so a mid-span day with nothing scheduled still reads as ongoing.
 // Being deterministic, they're part of the SSR'd markup and the
 // pre-mount paint; only `position` waits for the viewer's clock
 // (`clientToday === null` neutralises every day to `future` so the first

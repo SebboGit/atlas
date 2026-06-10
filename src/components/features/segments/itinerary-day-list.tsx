@@ -383,7 +383,7 @@ export function ItineraryDayList({
     setReleasedHash(getHashSnapshot());
   }, []);
 
-  // Tapping a "Staying since" continuation row must expand the past group
+  // Tapping a continuation row must expand the past group
   // and flash its card on *every* tap. A multi-day stay shows the same
   // `#seg-<id>` link on each day it spans, so a second tap lands on the
   // hash that's already set: the browser fires no `hashchange`, the

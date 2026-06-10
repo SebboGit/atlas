@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { Segment } from '@/lib/segments';
 
-import { continuationCheckOutTime, continuationName, continuationsByDayKey } from './continuations';
+import {
+  continuationCheckOutTime,
+  continuationName,
+  continuationPill,
+  continuationsByDayKey,
+} from './continuations';
 import type { ItineraryDay } from './itinerary-day-list';
 
 function makeSegment(overrides: Partial<Segment>): Segment {
@@ -180,6 +185,23 @@ describe('continuationName', () => {
 
   it('falls back to a type label when data is unparseable', () => {
     expect(continuationName(makeSegment({ type: 'hotel', data: {} }))).toBe('Hotel');
+  });
+});
+
+describe('continuationPill', () => {
+  it('keeps the stay language for hotels', () => {
+    expect(continuationPill('hotel')).toBe('Staying');
+  });
+
+  it('reads "Ongoing" for every other span-capable type', () => {
+    expect(continuationPill('activity')).toBe('Ongoing');
+    expect(continuationPill('transit')).toBe('Ongoing');
+    expect(continuationPill('flight')).toBe('Ongoing');
+  });
+
+  it('stays total over types that never span days', () => {
+    expect(continuationPill('food')).toBe('Ongoing');
+    expect(continuationPill('note')).toBe('Ongoing');
   });
 });
 

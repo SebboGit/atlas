@@ -35,7 +35,7 @@ interface ChronoTripMapProps {
    * Day-grouped, map-joined rail data (built server-side, clock-agnostic).
    * Past/today/future is resolved HERE, on mount, in the viewer's
    * timezone (`resolveRailDays`) — so the map rail and the itinerary tab
-   * always agree on "today" (ADR-0016). The "Staying since" continuation
+   * always agree on "today" (ADR-0016). The ongoing-segment continuation
    * rows are deterministic UTC-token math and render from the first paint.
    */
   days: RailDay[];
@@ -95,7 +95,7 @@ export function ChronoTripMap({
   // on mount. `clientToday` is null until mounted, so the first
   // (SSR-matching) paint shows every day as `future` with nothing
   // collapsed — no server-timezone guess is ever painted, and hydration
-  // matches. The "Staying since" continuation rows are deterministic
+  // matches. The ongoing-segment continuation rows are deterministic
   // UTC-token math (no clock, no timezone), so they're already part of
   // that first paint; mounting only resolves each day's position. This
   // single resolution feeds the rail, the sheet, AND the map-highlight

@@ -1,3 +1,4 @@
+import { continuationPill } from '@/components/features/segments/continuations';
 import type { DayBucket } from '@/components/features/segments/group-by-day';
 import { formatTime } from '@/lib/format';
 import type { Segment } from '@/lib/segments';
@@ -195,17 +196,19 @@ function formatSince(d: Date): string {
 // A multi-day stay surfaced on a day AFTER its check-in. Reuses the
 // segment's normal label / icon / map presence (so tapping focuses the
 // same pin), but carries no time-of-day and is flagged `continuation`
-// with the check-in date for the rail's quiet "staying" treatment. The
-// row is identical whichever later day it lands on, so it's built ONCE
-// here (on the segment's own check-in day); the client re-uses it on
-// every day the stay spans and stamps the check-out time on the final
-// day (see `resolveRailDays`).
+// with the check-in date for the rail's quiet continuation treatment
+// ("Staying" for a hotel, "Ongoing" for everything else). The row is
+// identical whichever later day it lands on, so it's built ONCE here
+// (on the segment's own check-in day); the client re-uses it on every
+// day the stay spans and stamps the check-out time on the final day
+// (see `resolveRailDays`).
 function buildContinuationItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
   return {
     ...buildRailItem(seg, geometry),
     timeLabel: null,
     continuation: true,
     continuationSince: seg.startsAt ? formatSince(seg.startsAt) : null,
+    continuationPill: continuationPill(seg.type),
   };
 }
 

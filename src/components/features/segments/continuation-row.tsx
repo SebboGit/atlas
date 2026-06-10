@@ -5,7 +5,7 @@ import type { Segment, SegmentType } from '@/lib/segments';
 import { transitDataSchema } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
-import { continuationCheckOutTime, continuationName } from './continuations';
+import { continuationCheckOutTime, continuationName, continuationPill } from './continuations';
 
 // Per-type glyph for the quiet continuation row. Mirrors the icons each
 // SegmentCard variant picks so the continuation reads as the same place.
@@ -90,11 +90,14 @@ function ContinuationRow({
 }) {
   const name = continuationName(segment);
   const since = segment.startsAt ? formatSinceDate(segment.startsAt) : null;
+  // "Staying" for a hotel, "Ongoing" for every other spanning type.
+  const pill = continuationPill(segment.type);
 
   // One clean spoken phrase for the whole row — the visible glyph, tag,
   // "since" date, and check-out time are all `aria-hidden` so a screen
   // reader hears this once instead of the disjoint visual fragments.
-  const baseLabel = since ? `${name} — staying since ${since}` : `${name} — staying`;
+  const word = pill.toLowerCase();
+  const baseLabel = since ? `${name} — ${word} since ${since}` : `${name} — ${word}`;
   const label = checkOutTime ? `${baseLabel}, checking out at ${checkOutTime}` : baseLabel;
 
   return (
@@ -118,7 +121,7 @@ function ContinuationRow({
         aria-hidden
         className="border-accent/45 text-accent shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase"
       >
-        Staying
+        {pill}
       </span>
       {since && (
         <span

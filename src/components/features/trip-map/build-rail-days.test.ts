@@ -163,4 +163,26 @@ describe('buildRailDays', () => {
     expect(cand.startsAt).toEqual(new Date(Date.UTC(2025, 9, 5)));
     expect(cand.endsAt).toEqual(new Date(Date.UTC(2025, 9, 8)));
   });
+
+  it('words the continuation pill by type — hotels stay, everything else is ongoing', () => {
+    const stay = seg({
+      id: 'hotel-1',
+      type: 'hotel',
+      data: { propertyName: 'Hotel Niwa Tokyo' },
+      startsAt: new Date(Date.UTC(2025, 9, 5)),
+      endsAt: new Date(Date.UTC(2025, 9, 8)),
+    });
+    const trek = seg({
+      id: 'act-trek',
+      type: 'activity',
+      data: { title: 'W Trek — park pass' },
+      startsAt: new Date(Date.UTC(2025, 9, 5, 8)),
+      endsAt: new Date(Date.UTC(2025, 9, 7, 18)),
+    });
+    const [day] = buildRailDays([dayBucket([stay, trek])], indexMapGeometry([hotelPin], []));
+    const pillBySegment = Object.fromEntries(
+      day!.continuationCandidates.map((c) => [c.item.segmentId, c.item.continuationPill]),
+    );
+    expect(pillBySegment).toEqual({ 'hotel-1': 'Staying', 'act-trek': 'Ongoing' });
+  });
 });
