@@ -11,6 +11,7 @@ import {
   normalizeForGeocoder,
   normalizeQuery,
 } from '@/lib/geocoding';
+import { startOfDayUtc } from '@/lib/maintenance/status';
 import { flightDataSchema } from '@/lib/segments/validators';
 import { tripVisibleToViewer } from '@/lib/trips/repo';
 
@@ -30,9 +31,12 @@ export interface LifetimeStats {
    * back to the bare code for an unknown ISO value, so it's never null.
    */
   newestCountry: { code: string; name: string; firstVisitAt: Date } | null;
-  /** Total nights away — summed hotel-stay durations across all trips. */
+  /**
+   * Total nights already slept away — summed hotel-stay durations, with
+   * an in-progress stay clamped to the nights elapsed so far.
+   */
   nightsAway: number;
-  /** Count of flight segments. */
+  /** Count of flight segments already flown. */
   flightsTaken: number;
   /** Sum of great-circle distances between flight origin/destination, km. */
   distanceFlownKm: number;
@@ -51,7 +55,10 @@ export interface YearOverYearStats {
 }
 
 export interface PersonalRecords {
-  /** Longest trip by nights; null when no dated multi-night trip exists. */
+  /**
+   * Longest trip by nights; null when no dated multi-night trip exists.
+   * An in-progress trip competes with the nights elapsed so far.
+   */
   longestTrip: { tripId: string; title: string; nights: number } | null;
   /** Most extreme latitudes touched by any placed point. */
   northernmost: { label: string; lat: number } | null;
@@ -66,7 +73,11 @@ export interface StatsDashboardData {
   lifetime: LifetimeStats;
   yearOverYear: YearOverYearStats;
   records: PersonalRecords;
-  /** True when the user has no trips at all — drives the empty state. */
+  /**
+   * True when nothing has happened yet — no started trip and no past
+   * segment. A fresh install and a user whose only trips are still
+   * upcoming both get the empty state instead of a wall of zeros.
+   */
   isEmpty: boolean;
 }
 
@@ -98,6 +109,13 @@ function nightsBetween(start: Date, end: Date): number {
   return n > 0 ? n : 0;
 }
 
+// Nights slept on a stay as of `nightsThrough` (start of the current
+// UTC day): a finished stay counts in full, an in-progress one counts
+// check-in → this morning. Tonight hasn't been slept yet.
+function sleptNights(start: Date, end: Date, nightsThrough: Date): number {
+  return nightsBetween(start, end < nightsThrough ? end : nightsThrough);
+}
+
 // ─── The one entry point ─────────────────────────────────────────────
 
 /**
@@ -121,9 +139,26 @@ function nightsBetween(start: Date, end: Date): number {
  *     non-flight extremes are best-effort over points already
  *     geocoded by the segment lifecycle hook. A segment whose place
  *     hasn't been geocoded yet simply doesn't contribute.
+ *
+ * Every tally counts only what has already happened — a booked trip's
+ * flights and nights must not inflate the dashboard before they occur.
+ * The boundary is the same start-of-day-UTC clock the auto-status job
+ * runs on: segment/trip times are floating local wall-clocks stored at
+ * UTC (ADR-0014/0016), so the UTC day is the deterministic "has this
+ * date arrived yet" comparison. Anything dated today counts; nights
+ * clamp to those already slept. `now` is injectable for tests.
  */
-export async function getStatsDashboardData(currentUserId: string): Promise<StatsDashboardData> {
+export async function getStatsDashboardData(
+  currentUserId: string,
+  now: Date = new Date(),
+): Promise<StatsDashboardData> {
   const scope = tripsScope(currentUserId);
+
+  // The shared auto-status clock — importing it keeps "stats and the
+  // status sweep agree on what day it is" structural, not coincidental.
+  const todayStart = startOfDayUtc(now);
+  // Exclusive "has happened" bound — anything dated today is included.
+  const happenedBound = new Date(todayStart.getTime() + MS_PER_DAY);
 
   const [tripRows, segmentRows] = await Promise.all([
     // Trips: dated rows drive year tallies + longest-trip; the count
@@ -146,18 +181,32 @@ export async function getStatsDashboardData(currentUserId: string): Promise<Stat
       .where(scope),
   ]);
 
+  // Keep only what has already happened. A dated segment is judged on
+  // its own start; an undated one inherits its trip's start date — so
+  // an undated flight on a finished trip still counts, while undated
+  // segments on an undated wishlist draft (ADR-0003) don't. Future
+  // trips drop out of every tally entirely.
+  const tripStartById = new Map<string, Date | null>();
+  for (const t of tripRows) tripStartById.set(t.id, t.startDate);
+  const pastSegments = segmentRows.filter((seg) => {
+    if (seg.startsAt) return seg.startsAt < happenedBound;
+    const tripStart = tripStartById.get(seg.tripId);
+    return tripStart != null && tripStart < happenedBound;
+  });
+  const startedTrips = tripRows.filter((t) => t.startDate !== null && t.startDate < happenedBound);
+
   // Resolve non-flight segment coordinates from the geocode cache.
   // buildGeocodeQuery owns the per-type derivation (the lifecycle hook
   // used the same function on the write side), so identical inputs hit
   // the same cache key. One batch SELECT covers every geocodable
   // non-flight segment; no on-demand geocoding.
-  const nonFlightPoints = await resolveNonFlightPoints(segmentRows);
+  const nonFlightPoints = await resolveNonFlightPoints(pastSegments);
 
   return {
-    lifetime: buildLifetime(segmentRows),
-    yearOverYear: buildYearOverYear(tripRows, segmentRows),
-    records: buildRecords(tripRows, segmentRows, nonFlightPoints),
-    isEmpty: tripRows.length === 0,
+    lifetime: buildLifetime(pastSegments, todayStart),
+    yearOverYear: buildYearOverYear(startedTrips, pastSegments, todayStart),
+    records: buildRecords(startedTrips, pastSegments, nonFlightPoints, todayStart),
+    isEmpty: startedTrips.length === 0 && pastSegments.length === 0,
   };
 }
 
@@ -214,7 +263,7 @@ function nonFlightPointLabel(seg: SegmentRow): string {
 type SegmentRow = typeof segments.$inferSelect;
 type TripRow = { id: string; title: string; startDate: Date | null; endDate: Date | null };
 
-function buildLifetime(segmentRows: SegmentRow[]): LifetimeStats {
+function buildLifetime(segmentRows: SegmentRow[], nightsThrough: Date): LifetimeStats {
   // Countries: a non-flight segment with a countryCode is the "actually
   // spent time there" signal — same rule the world-map query uses
   // (ADR-0005). A bare flight layover doesn't paint a country.
@@ -241,7 +290,7 @@ function buildLifetime(segmentRows: SegmentRow[]): LifetimeStats {
   let nightsAway = 0;
   for (const seg of segmentRows) {
     if (seg.type !== 'hotel' || !seg.startsAt || !seg.endsAt) continue;
-    nightsAway += nightsBetween(seg.startsAt, seg.endsAt);
+    nightsAway += sleptNights(seg.startsAt, seg.endsAt, nightsThrough);
   }
 
   // Flights + distance flown.
@@ -273,7 +322,11 @@ function buildLifetime(segmentRows: SegmentRow[]): LifetimeStats {
 
 // ─── Year-over-year strips ───────────────────────────────────────────
 
-function buildYearOverYear(tripRows: TripRow[], segmentRows: SegmentRow[]): YearOverYearStats {
+function buildYearOverYear(
+  tripRows: TripRow[],
+  segmentRows: SegmentRow[],
+  nightsThrough: Date,
+): YearOverYearStats {
   // Trips per year — keyed off the trip's start date. Undated trips
   // (wishlist drafts, ADR-0003) have no year and are excluded.
   const tripsByYear = new Map<number, number>();
@@ -284,11 +337,16 @@ function buildYearOverYear(tripRows: TripRow[], segmentRows: SegmentRow[]): Year
   }
 
   // Nights per year — hotel-stay nights attributed to the check-in year.
+  // A zero-night contribution (a stay checking in today, a same-day
+  // stay) must not create a zero bar — years with no slept nights
+  // shouldn't appear in the strip at all.
   const nightsByYear = new Map<number, number>();
   for (const seg of segmentRows) {
     if (seg.type !== 'hotel' || !seg.startsAt || !seg.endsAt) continue;
+    const nights = sleptNights(seg.startsAt, seg.endsAt, nightsThrough);
+    if (nights === 0) continue;
     const y = seg.startsAt.getUTCFullYear();
-    nightsByYear.set(y, (nightsByYear.get(y) ?? 0) + nightsBetween(seg.startsAt, seg.endsAt));
+    nightsByYear.set(y, (nightsByYear.get(y) ?? 0) + nights);
   }
 
   // New countries per year — a country counts in the year of its
@@ -327,14 +385,16 @@ function buildRecords(
   tripRows: TripRow[],
   segmentRows: SegmentRow[],
   nonFlightPoints: NonFlightPoint[],
+  nightsThrough: Date,
 ): PersonalRecords {
   // Longest trip by nights between start and end date. Both dates are
   // required — a partially-dated wishlist trip (ADR-0003) has no
-  // measurable duration and doesn't qualify.
+  // measurable duration and doesn't qualify. An in-progress trip
+  // competes with the nights elapsed so far, not its booked length.
   let longestTrip: PersonalRecords['longestTrip'] = null;
   for (const trip of tripRows) {
     if (!trip.startDate || !trip.endDate) continue;
-    const nights = nightsBetween(trip.startDate, trip.endDate);
+    const nights = sleptNights(trip.startDate, trip.endDate, nightsThrough);
     if (nights <= 0) continue;
     if (!longestTrip || nights > longestTrip.nights) {
       longestTrip = { tripId: trip.id, title: trip.title, nights };
