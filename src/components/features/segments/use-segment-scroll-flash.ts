@@ -93,6 +93,23 @@ export function useSegmentScrollFlash() {
       anim.oncancel = onDone;
     }
 
+    // Move real focus to the deep-link target alongside the flash.
+    // Sighted users follow the visual flash, but keyboard / screen-reader
+    // users get no announcement and their next Tab continues from wherever
+    // focus already was rather than the card they jumped to. Prefer the
+    // card's own labelled control — SegmentRowSurface wraps the card in a
+    // `role="button"` ("View <type> details") trigger — so a screen reader
+    // announces the card as the interactive thing it is. That trigger is
+    // client-only (mounts after hydration), so on a cold deep-link it may
+    // not exist yet; fall back to the wrapper, given tabindex=-1 so it can
+    // still take focus without joining the tab order. preventScroll leaves
+    // the smooth scrollIntoView in charge of the viewport. WCAG 2.4.3 / 4.1.3.
+    function focusTarget(wrapper: HTMLElement) {
+      const target = wrapper.querySelector<HTMLElement>('[role="button"]') ?? wrapper;
+      if (!target.hasAttribute('tabindex')) target.tabIndex = -1;
+      target.focus({ preventScroll: true });
+    }
+
     function tryScroll(deadline: number) {
       if (cancelled) return;
       const hash = window.location.hash;
@@ -100,6 +117,7 @@ export function useSegmentScrollFlash() {
       const el = document.getElementById(hash.slice(1));
       if (el instanceof HTMLElement) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        focusTarget(el);
         flash(el);
         return;
       }
