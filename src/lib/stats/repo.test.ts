@@ -111,6 +111,14 @@ const geocodingMocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/geocoding', () => geocodingMocks);
 
+// The viewer's manual world-map marks (#87). The stats repo reads these
+// through @/lib/countries/repo; mocking that boundary lets a test control
+// the codes without standing up the userVisitedCountries query path.
+const manualState = vi.hoisted(() => ({ codes: [] as string[] }));
+vi.mock('@/lib/countries/repo', () => ({
+  listManualVisitedCountriesForUser: vi.fn(async () => manualState.codes),
+}));
+
 // Seed a positive cache hit for `query` at the given coordinates.
 function seedGeocode(query: string, lat: number, lng: number) {
   const key = query.toLowerCase().trim().replace(/\s+/g, ' ');
@@ -175,6 +183,7 @@ beforeEach(() => {
   dbState.segments = [];
   dbState.call = 0;
   geoState.cache.clear();
+  manualState.codes = [];
 });
 
 // ─── Tests ───────────────────────────────────────────────────────────
@@ -624,5 +633,79 @@ describe('getStatsDashboardData — only counts what has happened', () => {
     ];
     const data = await getStatsDashboardData('u1', NOW);
     expect(data.records.longestTrip).toEqual({ tripId: 'going', title: 'Going', nights: 5 });
+  });
+});
+
+describe('getStatsDashboardData — manual world-map countries (#87)', () => {
+  it('counts a manually-marked country with no trips, and shows the dashboard', async () => {
+    // Painted two countries on the map, logged nothing else.
+    manualState.codes = ['BR', 'AR'];
+    const data = await getStatsDashboardData('u1');
+    expect(data.isEmpty).toBe(false);
+    expect(data.lifetime.countriesVisited).toBe(2);
+    // Dateless marks can't be "newest" and can't paint a year strip.
+    expect(data.lifetime.newestCountry).toBeNull();
+    expect(data.yearOverYear.newCountriesPerYear).toEqual([]);
+    expect(data.lifetime.flightsTaken).toBe(0);
+  });
+
+  it('unions manual marks with trip-derived countries, counting overlaps once', async () => {
+    dbState.trips = [trip({ id: 't1', startDate: new Date('2024-03-01T00:00:00Z') })];
+    dbState.segments = [
+      hotel({
+        id: 'h1',
+        countryCode: 'JP',
+        startsAt: new Date('2024-03-01T00:00:00Z'),
+        endsAt: new Date('2024-03-04T00:00:00Z'),
+      }),
+    ];
+    // JP also appears trip-derived; FR and IT are manual-only.
+    manualState.codes = ['JP', 'FR', 'IT'];
+    const data = await getStatsDashboardData('u1', new Date('2024-06-01T00:00:00Z'));
+    expect(data.lifetime.countriesVisited).toBe(3); // JP ∪ {JP, FR, IT}
+    // Newest country stays trip-derived — the manual marks supply no date.
+    expect(data.lifetime.newestCountry?.code).toBe('JP');
+  });
+
+  it('shows the dashboard when the only trip is upcoming but a country is marked', async () => {
+    // No started trip and no past segment — the past-only gate (#85)
+    // would call this empty — but a manual mark is "I've been here," so
+    // it lifts isEmpty and supplies the count on its own.
+    dbState.trips = [
+      trip({
+        id: 't1',
+        startDate: new Date('2026-12-01T00:00:00Z'),
+        endDate: new Date('2026-12-10T00:00:00Z'),
+      }),
+    ];
+    dbState.segments = [
+      flight({
+        id: 'f1',
+        startsAt: new Date('2026-12-01T08:00:00Z'),
+        data: { originAirport: 'LHR', destinationAirport: 'CDG' },
+      }),
+    ];
+    manualState.codes = ['PT'];
+    const data = await getStatsDashboardData('u1', new Date('2026-06-10T12:00:00Z'));
+    expect(data.isEmpty).toBe(false);
+    expect(data.lifetime.countriesVisited).toBe(1);
+    expect(data.lifetime.flightsTaken).toBe(0); // the future flight stays excluded
+  });
+
+  it('keeps manual marks out of the per-year new-countries strip', async () => {
+    dbState.trips = [trip({ id: 't1', startDate: new Date('2024-03-01T00:00:00Z') })];
+    dbState.segments = [
+      hotel({
+        id: 'h1',
+        countryCode: 'JP',
+        startsAt: new Date('2024-03-01T00:00:00Z'),
+        endsAt: new Date('2024-03-04T00:00:00Z'),
+      }),
+    ];
+    manualState.codes = ['FR'];
+    const data = await getStatsDashboardData('u1', new Date('2024-06-01T00:00:00Z'));
+    // Only JP's dated first visit reaches the strip; FR adds to the count only.
+    expect(data.yearOverYear.newCountriesPerYear).toEqual([{ year: 2024, count: 1 }]);
+    expect(data.lifetime.countriesVisited).toBe(2);
   });
 });
