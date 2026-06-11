@@ -133,3 +133,18 @@ describe('getAirportCoords', () => {
     }
   });
 });
+
+describe('IST timezone override (regression: issue #86)', () => {
+  // OpenFlights ships the new Istanbul Airport (IST, ICAO LTFM) with a
+  // null tz_database_time_zone, which dropped it from the snapshot
+  // entirely. scripts/fetch-airports.ts now backfills the zone via
+  // IATA_TZ_OVERRIDES while keeping the row's own country and coords.
+  it('resolves IST despite the upstream null timezone', () => {
+    expect(getAirportTimezone('IST')).toBe('Europe/Istanbul');
+    expect(getAirportCountry('IST')).toBe('TR');
+    const coords = getAirportCoords('IST');
+    expect(coords).not.toBeNull();
+    expect(coords!.lat).toBeCloseTo(41.3, 0);
+    expect(coords!.lng).toBeCloseTo(28.75, 0);
+  });
+});
