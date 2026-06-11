@@ -12131,6 +12131,12 @@
     "lat": 40.7952,
     "lng": -73.1002
   },
+  "IST": {
+    "tz": "Europe/Istanbul",
+    "country": "TR",
+    "lat": 41.27528,
+    "lng": 28.75194
+  },
   "ISU": {
     "tz": "Asia/Baghdad",
     "country": "IQ",

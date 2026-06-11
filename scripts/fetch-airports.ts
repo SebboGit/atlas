@@ -159,6 +159,19 @@ const IATA_COUNTRY_OVERRIDES: Readonly<Record<string, string>> = {
   SXM: 'SX', // Sint Maarten
 };
 
+// Per-IATA timezone fallback for airports whose upstream row ships a
+// null or malformed `tz_database_time_zone`. OpenFlights leaves the new
+// Istanbul Airport (IST, opened 2018, ICAO LTFM) with a \N timezone even
+// though every other Turkish airport resolves to Europe/Istanbul; without
+// this the row is dropped and flights through IST get no zone label, map
+// pin, or distance. Only fills the tz — the row's own country and coords
+// still come from upstream. Add an entry when a refresh logs a dropped
+// IATA-coded airport you recognise (single-zone countries only, so the
+// mapping is unambiguous).
+const IATA_TZ_OVERRIDES: Readonly<Record<string, string>> = {
+  IST: 'Europe/Istanbul',
+};
+
 // Build a normalised lookup from our authoritative list, then layer
 // the alias map on top. Aliases win on conflict.
 function buildCountryIndex(): Readonly<Record<string, string>> {
@@ -184,6 +197,7 @@ async function main(): Promise<void> {
   let typeAirport = 0;
   let collisions = 0;
   let withCountry = 0;
+  let droppedNoTz = 0;
   const unmappedCountries = new Map<string, number>();
 
   type Entry = {
@@ -199,7 +213,7 @@ async function main(): Promise<void> {
   for (const line of lines) {
     const cols = parseCsvLine(line);
     if (cols.length < 14) continue;
-    const [idRaw, , , countryRaw, iata, , latRaw, lngRaw, , , , tz, type] = cols;
+    const [idRaw, , , countryRaw, iata, , latRaw, lngRaw, , , , tzRaw, type] = cols;
     if (type !== 'airport') continue;
     typeAirport += 1;
 
@@ -207,10 +221,20 @@ async function main(): Promise<void> {
     const code = iata.toUpperCase();
     if (!/^[A-Z]{3}$/.test(code)) continue;
 
-    if (!tz || tz === '\\N' || tz.length === 0) continue;
-    // Sanity: IANA zones contain "/" (e.g. Asia/Saigon, America/New_York).
-    // OpenFlights occasionally puts "U" or other artefacts in this slot.
-    if (!tz.includes('/')) continue;
+    // Timezone. Prefer upstream's IANA zone; fall back to a per-IATA
+    // override when the row's zone is missing or malformed. IANA zones
+    // contain "/" (Asia/Saigon, America/New_York); OpenFlights occasionally
+    // puts "U" or other artefacts in this slot, so require the separator.
+    const upstreamTz = tzRaw && tzRaw !== '\\N' && tzRaw.includes('/') ? tzRaw : null;
+    const tz = upstreamTz ?? IATA_TZ_OVERRIDES[code] ?? null;
+    if (!tz) {
+      // Count IATA-coded airports dropped for a missing zone. Mostly
+      // tiny airfields, but the tally is the breadcrumb for the next
+      // IST-style gap: a flight through a code with no tz label is a
+      // candidate for IATA_TZ_OVERRIDES rather than a mystery.
+      droppedNoTz += 1;
+      continue;
+    }
 
     const sourceId = Number(idRaw);
     if (Number.isNaN(sourceId)) continue;
@@ -275,8 +299,16 @@ async function main(): Promise<void> {
   await fs.writeFile(outPath, `${JSON.stringify(sorted, null, 2)}\n`, 'utf8');
 
   console.log(
-    `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, with coords: ${withCoords})`,
+    `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, with coords: ${withCoords}, dropped for missing tz: ${droppedNoTz})`,
   );
+
+  if (droppedNoTz > 0) {
+    console.log(
+      `Dropped ${droppedNoTz} IATA-coded airport(s) for a missing/malformed timezone — ` +
+        'mostly minor airfields. If a flight turns up an airport with no zone, add it to ' +
+        'IATA_TZ_OVERRIDES in scripts/fetch-airports.ts and re-run.',
+    );
+  }
 
   if (unmappedCountries.size > 0) {
     const top = [...unmappedCountries.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30);
