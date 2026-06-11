@@ -5,6 +5,7 @@ import { segments, trips } from '@/db/schema';
 import { displayCarrier } from '@/lib/airlines';
 import { getAirportCoords } from '@/lib/airports';
 import { countryName } from '@/lib/countries';
+import { listManualVisitedCountriesForUser } from '@/lib/countries/repo';
 import {
   buildGeocodeQuery,
   getCachedMany,
@@ -24,11 +25,19 @@ import { haversineKm } from './geo';
 
 /** Lifetime headline numbers. */
 export interface LifetimeStats {
+  /**
+   * Distinct countries visited — trip-derived (a non-flight segment with
+   * a countryCode) unioned with the viewer's manual world-map marks
+   * (`user_visited_countries`, #87). Manual marks are dateless, so they
+   * only swell this count; they never feed `newestCountry` below or the
+   * per-year new-countries strip.
+   */
   countriesVisited: number;
   /**
    * ISO code + name of the most recently first-visited country, if any.
-   * `name` always resolves to a display string — `countryName` falls
-   * back to the bare code for an unknown ISO value, so it's never null.
+   * Trip-derived only — manual marks carry no visit date. `name` always
+   * resolves to a display string — `countryName` falls back to the bare
+   * code for an unknown ISO value, so it's never null.
    */
   newestCountry: { code: string; name: string; firstVisitAt: Date } | null;
   /**
@@ -74,9 +83,11 @@ export interface StatsDashboardData {
   yearOverYear: YearOverYearStats;
   records: PersonalRecords;
   /**
-   * True when nothing has happened yet — no started trip and no past
-   * segment. A fresh install and a user whose only trips are still
-   * upcoming both get the empty state instead of a wall of zeros.
+   * True when nothing has happened yet — no started trip, no past
+   * segment, and no manual world-map mark. A fresh install and a user
+   * whose only trips are still upcoming both get the empty state instead
+   * of a wall of zeros; a user who has only painted countries on the map
+   * gets the dashboard so their countries-visited count shows.
    */
   isEmpty: boolean;
 }
@@ -160,7 +171,7 @@ export async function getStatsDashboardData(
   // Exclusive "has happened" bound — anything dated today is included.
   const happenedBound = new Date(todayStart.getTime() + MS_PER_DAY);
 
-  const [tripRows, segmentRows] = await Promise.all([
+  const [tripRows, segmentRows, manualCountryCodes] = await Promise.all([
     // Trips: dated rows drive year tallies + longest-trip; the count
     // also tells us whether to show the empty state.
     db
@@ -179,6 +190,10 @@ export async function getStatsDashboardData(
       .from(segments)
       .innerJoin(trips, eq(segments.tripId, trips.id))
       .where(scope),
+    // The viewer's manual world-map marks (#87) — a personal overlay
+    // keyed by user (ADR-0015), the same source the world map merges in.
+    // Dateless, so they feed only the countries-visited count.
+    listManualVisitedCountriesForUser(currentUserId),
   ]);
 
   // Keep only what has already happened. A dated segment is judged on
@@ -203,10 +218,11 @@ export async function getStatsDashboardData(
   const nonFlightPoints = await resolveNonFlightPoints(pastSegments);
 
   return {
-    lifetime: buildLifetime(pastSegments, todayStart),
+    lifetime: buildLifetime(pastSegments, todayStart, manualCountryCodes),
     yearOverYear: buildYearOverYear(startedTrips, pastSegments, todayStart),
     records: buildRecords(startedTrips, pastSegments, nonFlightPoints, todayStart),
-    isEmpty: startedTrips.length === 0 && pastSegments.length === 0,
+    isEmpty:
+      startedTrips.length === 0 && pastSegments.length === 0 && manualCountryCodes.length === 0,
   };
 }
 
@@ -263,7 +279,11 @@ function nonFlightPointLabel(seg: SegmentRow): string {
 type SegmentRow = typeof segments.$inferSelect;
 type TripRow = { id: string; title: string; startDate: Date | null; endDate: Date | null };
 
-function buildLifetime(segmentRows: SegmentRow[], nightsThrough: Date): LifetimeStats {
+function buildLifetime(
+  segmentRows: SegmentRow[],
+  nightsThrough: Date,
+  manualCountryCodes: string[],
+): LifetimeStats {
   // Countries: a non-flight segment with a countryCode is the "actually
   // spent time there" signal — same rule the world-map query uses
   // (ADR-0005). A bare flight layover doesn't paint a country.
@@ -276,6 +296,8 @@ function buildLifetime(segmentRows: SegmentRow[], nightsThrough: Date): Lifetime
     if (!prev || when < prev) countryFirstVisit.set(seg.countryCode, when);
   }
 
+  // Newest country is trip-derived only — manual marks carry no visit
+  // date, so they can't be "most recently visited."
   let newestCountry: LifetimeStats['newestCountry'] = null;
   for (const [code, firstVisitAt] of countryFirstVisit) {
     if (!newestCountry || firstVisitAt > newestCountry.firstVisitAt) {
@@ -284,6 +306,13 @@ function buildLifetime(segmentRows: SegmentRow[], nightsThrough: Date): Lifetime
       newestCountry = { code, name: countryName(code), firstVisitAt };
     }
   }
+
+  // Countries-visited count unions trip-derived countries with the
+  // viewer's manual world-map marks (#87). A country present in both
+  // sources counts once; a manually-marked country with no segments
+  // still counts. This is the only tally manual marks feed.
+  const visitedCodes = new Set<string>(countryFirstVisit.keys());
+  for (const code of manualCountryCodes) visitedCodes.add(code);
 
   // Nights away: sum hotel-stay durations. Hotels are the honest
   // "slept here" record; activities/transit don't imply an overnight.
@@ -312,7 +341,7 @@ function buildLifetime(segmentRows: SegmentRow[], nightsThrough: Date): Lifetime
   }
 
   return {
-    countriesVisited: countryFirstVisit.size,
+    countriesVisited: visitedCodes.size,
     newestCountry,
     nightsAway,
     flightsTaken,
