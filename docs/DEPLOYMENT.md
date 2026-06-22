@@ -410,8 +410,9 @@ The `worker` service runs two scheduled jobs out of the box:
   flips trip statuses forward through their lifecycle (`planned → active`,
   `active → completed`). Forward-only.
 
-Both honour `CRON_TZ` (defaults to `UTC`). See [WORKER.md](./WORKER.md)
-for the full picture. Manual prune:
+`prune` honours `CRON_TZ` (defaults to `UTC`); `status-sweep` always runs
+in UTC regardless, since its date math is UTC (ADR-0016). See
+[WORKER.md](./WORKER.md) for the full picture. Manual prune:
 
 ```bash
 docker compose exec worker pnpm db:prune --apply
