@@ -97,10 +97,12 @@ trip with no `startDate` (wishlist) is never touched. Pure helper in
 defaults to `5 0 * * *` (00:05 UTC daily). Override with
 `CRON_STATUS_SCHEDULE`.
 
-Both schedules respect `CRON_TZ` (defaults to `UTC`). Cron expressions
-use the standard 5-field form. pg-boss's parser also accepts the legacy
-6-field form, so values from before the croner → pg-boss migration keep
-working unchanged.
+`prune` respects `CRON_TZ` (defaults to `UTC`); `status-sweep` ignores it
+and always runs in UTC, because its transition rules are UTC-defined
+(ADR-0016) — a non-UTC trigger would fire it in the prior UTC day and lag
+every transition by a day. Cron expressions use the standard 5-field form.
+pg-boss's parser also accepts the legacy 6-field form, so values from
+before the croner → pg-boss migration keep working unchanged.
 
 ## Adding a new job
 

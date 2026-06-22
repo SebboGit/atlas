@@ -29,12 +29,10 @@ import { log } from '@/lib/log';
 import { ALL_TARGETS, pruneLabel, runPrune } from '@/lib/maintenance/prune';
 import { runStatusSweep } from '@/lib/maintenance/status';
 
+import { resolveScheduleConfig } from './schedule-config';
+
 const PRUNE_JOB = 'prune';
 const STATUS_SWEEP_JOB = 'status-sweep';
-
-const DEFAULT_PRUNE_SCHEDULE = '40 3 * * *'; // 03:40 UTC daily
-const DEFAULT_STATUS_SCHEDULE = '5 0 * * *'; // 00:05 UTC daily
-const DEFAULT_TZ = 'UTC';
 
 // `db` is passed in by the entrypoint rather than imported, so this
 // module respects the "feature code doesn't reach into @/db/*"
@@ -119,20 +117,21 @@ export async function registerWorkerJobs(
   });
 
   // ---- Schedules ----
-  const tz = process.env.CRON_TZ?.trim() || DEFAULT_TZ;
-  const pruneSchedule = process.env.CRON_PRUNE_SCHEDULE?.trim() || DEFAULT_PRUNE_SCHEDULE;
-  const statusSchedule = process.env.CRON_STATUS_SCHEDULE?.trim() || DEFAULT_STATUS_SCHEDULE;
+  // Prune honors CRON_TZ; status-sweep is pinned to UTC because its
+  // transition rules are UTC-defined and a non-UTC trigger would fire it
+  // in the prior UTC day, lagging every transition by a day. See
+  // schedule-config.ts for the full rationale (ADR-0016).
+  const schedule = resolveScheduleConfig();
 
-  await jobs.schedule(PRUNE_JOB, pruneSchedule, null, { tz });
-  await jobs.schedule(STATUS_SWEEP_JOB, statusSchedule, null, { tz });
+  await jobs.schedule(PRUNE_JOB, schedule.prune.cron, null, { tz: schedule.prune.tz });
+  await jobs.schedule(STATUS_SWEEP_JOB, schedule.status.cron, null, { tz: schedule.status.tz });
 
   log.info(
     {
       schedules: [
-        { job: PRUNE_JOB, cron: pruneSchedule },
-        { job: STATUS_SWEEP_JOB, cron: statusSchedule },
+        { job: PRUNE_JOB, cron: schedule.prune.cron, tz: schedule.prune.tz },
+        { job: STATUS_SWEEP_JOB, cron: schedule.status.cron, tz: schedule.status.tz },
       ],
-      tz,
     },
     'worker.schedules.registered',
   );
