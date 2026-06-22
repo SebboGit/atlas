@@ -62,7 +62,12 @@ export default async function HomePage() {
 
       {nextTrip ? <NextTripHero trip={nextTrip} /> : <NoUpcoming hasTrips={trips.length > 0} />}
 
-      <section className="mt-6 grid gap-5 sm:grid-cols-3">
+      {/* Tablet/laptop nav tiles (sm: and up — matching the topbar's
+       *  hamburger breakpoint). On phone the hamburger sheet already
+       *  carries Wishlist/Map/Stats, so these strip down to bare title
+       *  cards that just echo the menu — hidden below sm: to keep the
+       *  mobile home focused on the greeting + next-trip hero. */}
+      <section className="mt-6 hidden gap-5 sm:grid sm:grid-cols-3">
         {TILES.map((t, i) => (
           <SectionTile key={t.href} {...t} delay={`${320 + i * 60}ms`} />
         ))}
