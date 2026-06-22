@@ -35,7 +35,7 @@ export function NextTripHero({ trip }: { trip: Trip }) {
           {/* Trip identity */}
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <p className="text-primary font-mono text-[10px] tracking-[0.28em] uppercase">
-              Next departure
+              {trip.status === 'active' ? 'On the trip' : 'Next departure'}
             </p>
             <h2 className="font-display text-foreground text-3xl leading-tight font-medium tracking-tight sm:text-4xl">
               {trip.title}
