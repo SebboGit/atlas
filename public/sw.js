@@ -1,0 +1,147 @@
+/*
+ * Atlas service worker — hand-rolled, "cache-what-you-visit" offline.
+ *
+ * Deliberately NOT a generated Workbox/precache service worker: those are
+ * webpack plugins, and Atlas builds with Turbopack (Next 16's default).
+ * See docs/adr/0017-pwa-hand-rolled-service-worker.md for the full rationale
+ * and the trigger to revisit once a Turbopack-native plugin is stable.
+ *
+ * What this gives you: anything you opened while online (your itinerary
+ * before takeoff) is viewable offline. What it can't: pages you never
+ * opened, live mutations (server actions need the network), and the map
+ * basemap (tiles stream through /api and are too large to cache).
+ */
+
+const VERSION = 'atlas-v1';
+const STATIC_CACHE = `${VERSION}-static`;
+const PAGES_CACHE = `${VERSION}-pages`;
+const OFFLINE_URL = '/offline.html';
+
+// Same-origin static assets worth caching lazily (the offline page leans on
+// these too). Map tiles live under /api and are intentionally excluded.
+const STATIC_ASSET =
+  /^\/(?:icons|basemaps-assets|geo)\/|\.(?:svg|png|jpe?g|webp|gif|ico|woff2?|ttf|otf)$/;
+
+// Only cache clean, same-origin 200s. Skips opaque/cross-origin responses
+// and — importantly — auth redirects (a logged-out → /signin bounce must not
+// be cached under the page the user actually asked for).
+function cacheable(response) {
+  return Boolean(response) && response.ok && response.type === 'basic' && !response.redirected;
+}
+
+async function networkFirst(request, cacheName, fallbackUrl) {
+  try {
+    const response = await fetch(request);
+    if (cacheable(response)) {
+      const cache = await caches.open(cacheName);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return (await caches.match(fallbackUrl)) ?? Response.error();
+  }
+}
+
+async function cacheFirst(request, cacheName) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (cacheable(response)) {
+    const cache = await caches.open(cacheName);
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cached = await caches.match(request);
+  const network = fetch(request)
+    .then((response) => {
+      if (cacheable(response)) {
+        caches.open(cacheName).then((cache) => cache.put(request, response.clone()));
+      }
+      return response;
+    })
+    // No cached copy AND the network failed: hand back a real error response.
+    // Resolving to `undefined` would make respondWith() a hard network error.
+    .catch(() => cached ?? Response.error());
+  return cached ?? network;
+}
+
+self.addEventListener('install', (event) => {
+  // Fetch + validate the offline page explicitly instead of `cache.add`:
+  // `cache.add` would store a redirect (e.g. a logged-out → /signin bounce)
+  // and would abort the whole install on any non-2xx. We apply the same
+  // `cacheable()` invariant used everywhere else, and never block activation
+  // on it — a missing offline page is degraded, not fatal.
+  event.waitUntil(
+    (async () => {
+      try {
+        const cache = await caches.open(STATIC_CACHE);
+        const response = await fetch(OFFLINE_URL, { cache: 'reload' });
+        if (cacheable(response)) await cache.put(OFFLINE_URL, response.clone());
+      } catch {
+        // Offline page is best-effort.
+      }
+      await self.skipWaiting();
+    })(),
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => !key.startsWith(VERSION)).map((key) => caches.delete(key)),
+        ),
+      )
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+
+  // Never intercept mutations (server actions) or cross-origin requests.
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Auth, document streaming, and map tiles must always hit the network.
+  if (url.pathname.startsWith('/api/')) return;
+
+  // Full-page loads: fresh online, last-seen copy then offline page when not.
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request, PAGES_CACHE, OFFLINE_URL));
+    return;
+  }
+
+  // Content-hashed build output is immutable — cache-first is safe.
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    return;
+  }
+
+  // RSC payloads (soft navigations + link prefetches). Caching these helps
+  // already-seen routes load offline. The Vary header keeps the RSC and HTML
+  // variants of a URL distinct, so this can't poison page loads — but Next
+  // also varies RSC on Next-Router-State-Tree (where you navigated from), so
+  // soft-nav offline is best-effort; full page loads (network-first above)
+  // are the reliable offline path.
+  if (request.headers.has('RSC')) {
+    event.respondWith(staleWhileRevalidate(request, PAGES_CACHE));
+    return;
+  }
+
+  // Other same-origin static assets (icons, fonts, sprites, GeoJSON).
+  if (STATIC_ASSET.test(url.pathname)) {
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
+    return;
+  }
+
+  // Everything else: straight to the network.
+});
