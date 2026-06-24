@@ -470,6 +470,7 @@ Architectural decisions live in `docs/adr/` as numbered ADRs.
 - **ADR-0014** — Floating local time for non-flight segment times: store and display the typed wall-clock verbatim (interpret at UTC, render in UTC), server-side and deterministic. Today/countdown stay viewer-relative. Accepted (its flight-airport-tz clause superseded by ADR-0016).
 - **ADR-0015** — Per-trip visibility (`household` | `private`) via a `trips.visibility` enum. One predicate (`tripVisibleToViewer`) is the shared-trip visibility boundary for content reads/writes; trip-row mutations stay owner-only and documents stay uploader-scoped (separate gates). Accepted.
 - **ADR-0016** — Floating local time for flight segment times too: store the printed wall-clock interpreted at UTC, display verbatim in UTC, and use the airport IATA for a zone _label_ (`06:00 JST`) only — never a clock conversion. Collapses ADR-0014's two-model split so flights bucket on their printed day. Accepted.
+- **ADR-0017** — Installable PWA with a hand-rolled, cache-what-you-visit service worker (no PWA build plugin, so the build stays on Turbopack). Revisit migrating to a Turbopack-native precaching plugin (e.g. a stable `@serwist/turbopack`) once one ships. Accepted.
 
 When making a non-obvious choice (a library, a pattern, a tradeoff), write a short ADR. Template in `docs/adr/0000-template.md`.
 

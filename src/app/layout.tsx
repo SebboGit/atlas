@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Fraunces, Hanken_Grotesk, IBM_Plex_Mono } from 'next/font/google';
 
 import { Providers } from '@/components/providers';
+import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
 
 import './globals.css';
 
@@ -31,7 +32,17 @@ export const metadata: Metadata = {
   title: { default: 'Atlas', template: '%s · Atlas' },
   description: 'A self-hosted personal travel companion.',
   robots: { index: false, follow: false },
-  icons: { icon: '/favicon.svg' },
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/apple-touch-icon.png',
+  },
+  // Sets the iOS home-screen title and standalone status-bar style. The
+  // standalone launch itself comes from the manifest's display:standalone.
+  appleWebApp: {
+    capable: true,
+    title: 'Atlas',
+    statusBarStyle: 'default',
+  },
 };
 
 export const viewport: Viewport = {
@@ -47,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-screen">
         <Providers>{children}</Providers>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

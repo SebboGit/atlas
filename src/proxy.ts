@@ -50,6 +50,16 @@ export function proxy(req: NextRequest): NextResponse {
 //   - /favicon.svg       (modern SVG favicon — must be reachable without a session.)
 //   - /atlas_logo.svg    (brand mark — rendered on /signin,
 //                         so it must be reachable without a session.)
+//   - PWA install surface — all generic, no user data, and the browser
+//     fetches them without a guaranteed session (an installed standalone
+//     app whose DB session aged out still revalidates these):
+//       /sw.js              (service worker — scope is '/', must load unauthed)
+//       /offline.html       (offline fallback — the SW fetches it on install
+//                            and must get a clean 200, never a /signin
+//                            redirect, or it would cache the sign-in page
+//                            AS the offline page)
+//       /manifest.webmanifest (install metadata — gated → no install prompt)
+//       /icons/*, /apple-touch-icon.png (home-screen icons)
 //   - /.well-known/*     (reserved IETF discovery namespace — ACME, security.txt,
 //                         Chrome DevTools workspace probe, etc. Must be public
 //                         AND must not be a valid callbackUrl after sign-in.)
@@ -57,12 +67,12 @@ export function proxy(req: NextRequest): NextResponse {
 //                         without a session, otherwise we redirect-loop.)
 //
 // Deny-by-default. Public pages must be explicitly added to the negation
-// pattern. Today the only public surface is `/signin` — everything else,
-// including `/`, is gated. New routes are gated automatically; new PUBLIC
-// routes need to be added here on purpose. That's the right direction for
-// a personal app with sensitive data.
+// pattern. The public surface is `/signin` plus the brand/PWA assets above —
+// everything else, including `/`, is gated. New routes are gated
+// automatically; new PUBLIC routes need to be added here on purpose. That's
+// the right direction for a personal app with sensitive data.
 export const config = {
   matcher: [
-    '/((?!api/auth|api/dev|api/health|_next/static|_next/image|favicon.ico|favicon\\.svg|atlas_logo\\.svg|\\.well-known|signin).*)',
+    '/((?!api/auth|api/dev|api/health|_next/static|_next/image|favicon.ico|favicon\\.svg|atlas_logo\\.svg|sw\\.js|offline\\.html|manifest\\.webmanifest|icons/|apple-touch-icon\\.png|\\.well-known|signin).*)',
   ],
 };

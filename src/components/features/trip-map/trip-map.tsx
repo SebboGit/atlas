@@ -20,6 +20,7 @@ import { curvedArcCoords } from './arc-geometry';
 import { buildBasemapStyle } from './basemap-style';
 import { CountryChipStrip } from './country-chip-strip';
 import { GeocodeWorkerBanner } from './geocode-worker-banner';
+import { MapOfflineBanner } from './map-offline-banner';
 import { PinLegendChip } from './pin-legend-chip';
 import { PinMarker } from './pin-marker';
 import { PinTooltip } from './pin-tooltip';
@@ -1123,6 +1124,7 @@ export function TripMap({
       )}
 
       <GeocodeWorkerBanner status={geocodeWorkerStatus} />
+      <MapOfflineBanner />
 
       <div className="relative w-full">
         {/*
