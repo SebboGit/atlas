@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-06-25
+
+### Added
+
+- **Quick-nav on the mobile home screen** — the phone home page now shows a
+  compact grid of shortcuts to Trips, Wishlist, Map, and Stats beneath the
+  next-trip hero, so you can jump to a section without opening the menu. The
+  laptop layout is unchanged.
+
+### Changed
+
+- **App icon sits as an inset glyph** — the installed-app icon's globe was
+  filling the whole tile edge-to-edge; it now has a margin so it reads like a
+  proper home-screen icon.
+- **No bounce at the page edges in the installed app** — the PWA no longer
+  rubber-bands when you scroll past the top or bottom, so it feels more native.
+  A normal browser tab keeps its pull-to-refresh.
+
 ## [1.3.0] - 2026-06-25
 
 ### Added
@@ -209,7 +227,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/SebboGit/atlas/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/SebboGit/atlas/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/SebboGit/atlas/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/SebboGit/atlas/compare/v1.2.0...v1.2.1
