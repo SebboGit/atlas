@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-25
+
+### Added
+
+- **Install Atlas as an app (PWA)** — Atlas now installs to your phone's home
+  screen and launches full-screen, without browser chrome. On Android use
+  Chrome's "Install app"; on iPhone use Safari's Share → Add to Home Screen.
+  Once installed, a service worker keeps the pages you've already opened
+  viewable offline, so an itinerary loaded before takeoff is still there on the
+  plane. Offline is read-only — adding or editing still needs a connection — and
+  the trip-map basemap isn't cached, so the trip map shows a brief offline
+  notice while its flight arcs, pins, and country shapes still render. See
+  ADR-0017.
+
 ## [1.2.2] - 2026-06-10
 
 ### Fixed
@@ -195,7 +209,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/SebboGit/atlas/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/SebboGit/atlas/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/SebboGit/atlas/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/SebboGit/atlas/compare/v1.1.4...v1.2.0
