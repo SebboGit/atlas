@@ -1,3 +1,4 @@
+import { MobileNavGrid } from '@/components/features/home/mobile-nav-grid';
 import { NextTripHero } from '@/components/features/home/next-trip-hero';
 import { SectionTile } from '@/components/features/home/section-tile';
 import { TripFormDialog } from '@/components/features/trips/trip-form-dialog';
@@ -62,11 +63,15 @@ export default async function HomePage() {
 
       {nextTrip ? <NextTripHero trip={nextTrip} /> : <NoUpcoming hasTrips={trips.length > 0} />}
 
+      {/* Phone-only quick nav. The laptop tiles below are hidden on mobile
+       *  (they collapse to bare title cards), so a compact 2×2 icon grid
+       *  carries Trips/Wishlist/Map/Stats to feel app-like on a phone. */}
+      <MobileNavGrid />
+
       {/* Tablet/laptop nav tiles (sm: and up — matching the topbar's
-       *  hamburger breakpoint). On phone the hamburger sheet already
-       *  carries Wishlist/Map/Stats, so these strip down to bare title
-       *  cards that just echo the menu — hidden below sm: to keep the
-       *  mobile home focused on the greeting + next-trip hero. */}
+       *  hamburger breakpoint). Hidden on phone, where they'd collapse to
+       *  bare title cards (their index, eyebrow, and ruled edge are all
+       *  sm:-gated); the MobileNavGrid above carries these routes there. */}
       <section className="mt-6 hidden gap-5 sm:grid sm:grid-cols-3">
         {TILES.map((t, i) => (
           <SectionTile key={t.href} {...t} delay={`${320 + i * 60}ms`} />
