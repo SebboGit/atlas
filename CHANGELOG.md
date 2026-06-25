@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-06-25
+
+### Fixed
+
+- **Installed-app icon kept showing the old, oversized version** — 1.3.1 resized
+  the home-screen icon, but OS icon caches are keyed by URL and held onto the
+  previous image, so the change never showed. The icon URLs now carry a revision
+  marker, so reinstalling the app picks up the correctly-sized icon.
+
 ## [1.3.1] - 2026-06-25
 
 ### Added
@@ -227,7 +236,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/SebboGit/atlas/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/SebboGit/atlas/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/SebboGit/atlas/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/SebboGit/atlas/compare/v1.2.1...v1.2.2
