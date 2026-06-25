@@ -23,12 +23,16 @@ const SOURCE = path.join(ROOT, 'public', 'atlas_logo.svg');
 const CREAM = { r: 0xe8, g: 0xde, b: 0xc7, alpha: 1 };
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
 
+// `scale` is the globe's share of the canvas; the rest is cream margin. The
+// plain/apple icons sit at ~0.72 so the globe reads as an inset glyph rather
+// than filling the tile edge-to-edge. Maskable variants go smaller (0.66) to
+// stay inside the launcher's ~80% safe-zone crop.
 const ICONS = [
-  { file: 'icons/icon-192.png', size: 192, scale: 1 },
-  { file: 'icons/icon-512.png', size: 512, scale: 1 },
-  { file: 'icons/icon-maskable-192.png', size: 192, scale: 0.7 },
-  { file: 'icons/icon-maskable-512.png', size: 512, scale: 0.7 },
-  { file: 'apple-touch-icon.png', size: 180, scale: 1 },
+  { file: 'icons/icon-192.png', size: 192, scale: 0.72 },
+  { file: 'icons/icon-512.png', size: 512, scale: 0.72 },
+  { file: 'icons/icon-maskable-192.png', size: 192, scale: 0.66 },
+  { file: 'icons/icon-maskable-512.png', size: 512, scale: 0.66 },
+  { file: 'apple-touch-icon.png', size: 180, scale: 0.72 },
 ] as const;
 
 async function render(svg: Buffer, size: number, scale: number): Promise<Buffer> {
