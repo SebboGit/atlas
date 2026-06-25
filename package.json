@@ -64,7 +64,7 @@
     "next": "^16.2.6",
     "next-auth": "5.0.0-beta.31",
     "open-location-code": "^1.0.3",
-    "pdfjs-dist": "^5.7.284",
+    "pdfjs-dist": "^6.0.227",
     "pg": "^8.21.0",
     "pg-boss": "^12.18.2",
     "pino": "^10.3.1",
