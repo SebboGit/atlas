@@ -1,7 +1,14 @@
-import { index, pgTable, primaryKey, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, pgEnum, pgTable, primaryKey, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { documents } from './documents';
 import { segments } from './segments';
+
+// Who created the link. Extraction-created rows are owned by the
+// re-extract lifecycle: `markExtractionStarted` wipes them and the
+// bridge's orphan sweep may hard-delete their segments. Manual rows
+// (the #103 attach flow) are invisible to that lifecycle — a re-extract
+// must never delete a segment the user linked by hand.
+export const documentSegmentSource = pgEnum('document_segment_source', ['extraction', 'manual']);
 
 // Many-to-many link between documents and segments. Replaced the
 // `documents.segment_id` 1:1 FK once multi-flight documents (return
@@ -26,6 +33,9 @@ export const documentSegments = pgTable(
     segmentId: uuid('segment_id')
       .notNull()
       .references(() => segments.id, { onDelete: 'cascade' }),
+    // Default 'extraction': every row that existed before this column
+    // was added came from the extraction bridge.
+    source: documentSegmentSource('source').notNull().default('extraction'),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   },
   (t) => [

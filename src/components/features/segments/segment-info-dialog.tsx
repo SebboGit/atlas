@@ -40,7 +40,7 @@ import {
 } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
-import { LinkedDocumentChips } from './linked-document-chips';
+import { SegmentDocumentsManager } from './segment-documents-manager';
 import { SegmentFormDialog } from './segment-form-dialog';
 
 interface SegmentInfoDialogProps {
@@ -120,7 +120,14 @@ export function SegmentInfoDialog({
           aria-describedby={undefined}
           className="gap-5 sm:p-6"
         >
-          <SegmentInfoBody segment={segment} linkedDocuments={linkedDocuments} />
+          <SegmentInfoBody segment={segment} />
+          {segment.type !== 'note' && (
+            <SegmentDocumentsManager
+              tripId={tripId}
+              segmentId={segment.id}
+              documents={linkedDocuments}
+            />
+          )}
           {/* Edit affordance — the read-only inspector otherwise dead-ends
            *  on the dominant tap. Opens the existing edit flow
            *  (SegmentFormDialog in edit mode, wired to updateSegmentAction)
@@ -155,24 +162,18 @@ export function SegmentInfoDialog({
 // because their content IS the body, not a structured key-value list.
 // ---------------------------------------------------------------------------
 
-function SegmentInfoBody({
-  segment,
-  linkedDocuments,
-}: {
-  segment: Segment;
-  linkedDocuments: LinkedDocument[];
-}) {
+function SegmentInfoBody({ segment }: { segment: Segment }) {
   switch (segment.type) {
     case 'flight':
-      return <FlightInfoBody segment={segment} linkedDocuments={linkedDocuments} />;
+      return <FlightInfoBody segment={segment} />;
     case 'hotel':
-      return <HotelInfoBody segment={segment} linkedDocuments={linkedDocuments} />;
+      return <HotelInfoBody segment={segment} />;
     case 'activity':
-      return <ActivityInfoBody segment={segment} linkedDocuments={linkedDocuments} />;
+      return <ActivityInfoBody segment={segment} />;
     case 'transit':
-      return <TransitInfoBody segment={segment} linkedDocuments={linkedDocuments} />;
+      return <TransitInfoBody segment={segment} />;
     case 'food':
-      return <FoodInfoBody segment={segment} linkedDocuments={linkedDocuments} />;
+      return <FoodInfoBody segment={segment} />;
     case 'note':
       return <NoteInfoBody segment={segment} />;
   }
@@ -182,13 +183,7 @@ function SegmentInfoBody({
 // Per-type bodies
 // ---------------------------------------------------------------------------
 
-function FlightInfoBody({
-  segment,
-  linkedDocuments,
-}: {
-  segment: Segment;
-  linkedDocuments: LinkedDocument[];
-}) {
+function FlightInfoBody({ segment }: { segment: Segment }) {
   const parse = flightDataSchema.safeParse(segment.data);
   const data = parse.success ? parse.data : {};
 
@@ -241,19 +236,11 @@ function FlightInfoBody({
           <InfoRow label="To" value={resolveCountry(segment.countryCode)} />
         </InfoSection>
       )}
-
-      <DocumentsFooter documents={linkedDocuments} />
     </>
   );
 }
 
-function HotelInfoBody({
-  segment,
-  linkedDocuments,
-}: {
-  segment: Segment;
-  linkedDocuments: LinkedDocument[];
-}) {
+function HotelInfoBody({ segment }: { segment: Segment }) {
   const parse = hotelDataSchema.safeParse(segment.data);
   const data = parse.success ? parse.data : null;
   const title = data?.propertyName ?? 'Hotel';
@@ -305,19 +292,11 @@ function HotelInfoBody({
           <InfoRow label="Confirmation" value={data.confirmationNumber} mono />
         </InfoSection>
       )}
-
-      <DocumentsFooter documents={linkedDocuments} />
     </>
   );
 }
 
-function ActivityInfoBody({
-  segment,
-  linkedDocuments,
-}: {
-  segment: Segment;
-  linkedDocuments: LinkedDocument[];
-}) {
+function ActivityInfoBody({ segment }: { segment: Segment }) {
   const parse = activityDataSchema.safeParse(segment.data);
   const title = parse.success ? parse.data.title : 'Activity';
   const description = parse.success ? parse.data.description : undefined;
@@ -360,8 +339,6 @@ function ActivityInfoBody({
           <InfoRow label="Reference" value={bookingRef} mono />
         </InfoSection>
       )}
-
-      <DocumentsFooter documents={linkedDocuments} />
     </>
   );
 }
@@ -382,13 +359,7 @@ const TRANSIT_LABEL: Record<TransitData['mode'], string> = {
   other: 'Transit',
 };
 
-function TransitInfoBody({
-  segment,
-  linkedDocuments,
-}: {
-  segment: Segment;
-  linkedDocuments: LinkedDocument[];
-}) {
+function TransitInfoBody({ segment }: { segment: Segment }) {
   const parse = transitDataSchema.safeParse(segment.data);
   const data = parse.success ? parse.data : { mode: 'other' as const };
   const label = TRANSIT_LABEL[data.mode];
@@ -432,19 +403,11 @@ function TransitInfoBody({
           <InfoRow label="Country" value={resolveCountry(segment.countryCode)} />
         </InfoSection>
       )}
-
-      <DocumentsFooter documents={linkedDocuments} />
     </>
   );
 }
 
-function FoodInfoBody({
-  segment,
-  linkedDocuments,
-}: {
-  segment: Segment;
-  linkedDocuments: LinkedDocument[];
-}) {
+function FoodInfoBody({ segment }: { segment: Segment }) {
   const parse = foodDataSchema.safeParse(segment.data);
   const data = parse.success ? parse.data : null;
   const title = data?.venue ?? 'Meal';
@@ -477,8 +440,6 @@ function FoodInfoBody({
           <InfoRow label="Reference" value={bookingRef} mono />
         </InfoSection>
       )}
-
-      <DocumentsFooter documents={linkedDocuments} />
     </>
   );
 }
@@ -600,18 +561,6 @@ function InfoRow({
         {value}
       </dd>
     </div>
-  );
-}
-
-function DocumentsFooter({ documents }: { documents: LinkedDocument[] }) {
-  if (documents.length === 0) return null;
-  return (
-    <section className="flex flex-col gap-2">
-      <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
-        Documents
-      </h4>
-      <LinkedDocumentChips documents={documents} />
-    </section>
   );
 }
 

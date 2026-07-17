@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   updateSegment: vi.fn(),
   updateForActiveExtractionClaim: vi.fn(),
   hardDeleteSegment: vi.fn(),
+  hardDeleteIfUnreferenced: vi.fn(),
   getTrip: vi.fn(),
   geocodeOnSegmentChange: vi.fn(),
 }));
@@ -46,6 +47,7 @@ vi.mock('@/lib/segments/repo', () => ({
   update: mocks.updateSegment,
   updateForActiveExtractionClaim: mocks.updateForActiveExtractionClaim,
   hardDelete: mocks.hardDeleteSegment,
+  hardDeleteIfUnreferenced: mocks.hardDeleteIfUnreferenced,
 }));
 
 vi.mock('@/lib/trips/repo', () => ({
@@ -215,6 +217,7 @@ describe('ensureSegmentForExtraction', () => {
       segment: makeSegment(),
     });
     mocks.hardDeleteSegment.mockResolvedValue(true);
+    mocks.hardDeleteIfUnreferenced.mockResolvedValue(true);
     mocks.getTrip.mockResolvedValue(makeTrip());
   });
 
@@ -230,12 +233,22 @@ describe('ensureSegmentForExtraction', () => {
 
   it('returns already-linked with all existing segment IDs (idempotency)', async () => {
     mocks.listLinkedSegmentIds.mockResolvedValueOnce(['seg-leg-1', 'seg-leg-2']);
+    // The idempotency probe must only count extraction-created links —
+    // manual links (#103) say nothing about whether the bridge ran, so
+    // the bridge asks for the extraction slice explicitly.
 
     const out = await call(boardingPass());
 
     // Multi-flight world: the outcome surfaces every linked segment so
     // the caller can log/inspect the full set, not just a primary.
     expect(out).toEqual({ kind: 'already-linked', segmentIds: ['seg-leg-1', 'seg-leg-2'] });
+    expect(mocks.listLinkedSegmentIds).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      {
+        source: 'extraction',
+      },
+    );
     expect(mocks.findFlightByKey).not.toHaveBeenCalled();
     expect(mocks.createSegment).not.toHaveBeenCalled();
   });
@@ -485,8 +498,8 @@ describe('ensureSegmentForExtraction', () => {
         kind: 'linked',
         items: [{ kind: 'linked-new', segmentId: 'seg-new', needsReview: false }],
       });
-      expect(mocks.hardDeleteSegment).toHaveBeenCalledWith(USER_ID, 'seg-stale');
-      expect(mocks.hardDeleteSegment).toHaveBeenCalledTimes(1);
+      expect(mocks.hardDeleteIfUnreferenced).toHaveBeenCalledWith(USER_ID, 'seg-stale');
+      expect(mocks.hardDeleteIfUnreferenced).toHaveBeenCalledTimes(1);
     });
 
     it('leaves a priorLink alone when the new extraction reused it via update', async () => {
@@ -503,7 +516,7 @@ describe('ensureSegmentForExtraction', () => {
 
       await call(boardingPass(), ['seg-prior']);
 
-      expect(mocks.hardDeleteSegment).not.toHaveBeenCalled();
+      expect(mocks.hardDeleteIfUnreferenced).not.toHaveBeenCalled();
     });
 
     it('skips the entire sweep when any leg returned superseded', async () => {
@@ -516,7 +529,7 @@ describe('ensureSegmentForExtraction', () => {
 
       await call(boardingPass(), ['seg-prior', 'seg-other-orphan']);
 
-      expect(mocks.hardDeleteSegment).not.toHaveBeenCalled();
+      expect(mocks.hardDeleteIfUnreferenced).not.toHaveBeenCalled();
     });
 
     it('sweeps only the un-reused subset of priorLinks', async () => {
@@ -533,8 +546,8 @@ describe('ensureSegmentForExtraction', () => {
 
       await call(boardingPass(), ['seg-kept', 'seg-dropped']);
 
-      expect(mocks.hardDeleteSegment).toHaveBeenCalledTimes(1);
-      expect(mocks.hardDeleteSegment).toHaveBeenCalledWith(USER_ID, 'seg-dropped');
+      expect(mocks.hardDeleteIfUnreferenced).toHaveBeenCalledTimes(1);
+      expect(mocks.hardDeleteIfUnreferenced).toHaveBeenCalledWith(USER_ID, 'seg-dropped');
     });
 
     it('logs and continues when hardDelete throws on one orphan', async () => {
@@ -542,14 +555,31 @@ describe('ensureSegmentForExtraction', () => {
       // extraction. Subsequent priorLinks must still be attempted.
       mocks.findFlightByKey.mockResolvedValue(null);
       mocks.createSegment.mockResolvedValueOnce(makeSegment({ id: 'seg-new' }));
-      mocks.hardDeleteSegment
+      mocks.hardDeleteIfUnreferenced
         .mockRejectedValueOnce(new Error('connection refused'))
         .mockResolvedValueOnce(true);
 
       const out = await call(boardingPass(), ['seg-stale-1', 'seg-stale-2']);
 
       expect(out.kind).toBe('linked');
-      expect(mocks.hardDeleteSegment).toHaveBeenCalledTimes(2);
+      expect(mocks.hardDeleteIfUnreferenced).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps a priorLink segment that another document still references', async () => {
+      // The #103 invariant: our own extraction links were wiped by
+      // markExtractionStarted, so any row left on the segment belongs
+      // to a different document or a manual attach. The reference
+      // check lives inside hardDeleteIfUnreferenced (an atomic
+      // NOT EXISTS on the DELETE); the bridge just observes the
+      // "kept" outcome and must not treat it as a failure.
+      mocks.findFlightByKey.mockResolvedValueOnce(null);
+      mocks.createSegment.mockResolvedValueOnce(makeSegment({ id: 'seg-new' }));
+      mocks.hardDeleteIfUnreferenced.mockResolvedValueOnce(false);
+
+      const out = await call(boardingPass(), ['seg-manually-backed']);
+
+      expect(out.kind).toBe('linked');
+      expect(mocks.hardDeleteIfUnreferenced).toHaveBeenCalledWith(USER_ID, 'seg-manually-backed');
     });
   });
 

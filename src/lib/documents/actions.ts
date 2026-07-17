@@ -10,6 +10,7 @@ import { requireUser } from '@/lib/auth/session';
 import { createOllamaExtractor, structuredPayloadSchema } from '@/lib/extraction';
 import { getJobs } from '@/lib/jobs';
 import { log } from '@/lib/log';
+import * as segmentsRepo from '@/lib/segments/repo';
 import { getStorage, StorageRejectedError } from '@/lib/storage';
 import { err, ok, type Result } from '@/types/result';
 
@@ -312,6 +313,70 @@ export async function renameDocumentAction(
 
   revalidateTrip(tripId);
   return ok({ id: doc.id, title: doc.title });
+}
+
+const linkArgsSchema = z.object({
+  tripId: z.string().uuid(),
+  segmentId: z.string().uuid(),
+});
+
+// Candidates for the info-dialog's attach/detach list (#103): every
+// document on the trip, flagged with whether it's linked to this
+// segment. Read-only; the write path (`setSegmentDocumentLinkAction`)
+// re-verifies ownership on its own.
+export async function listSegmentLinkOptionsAction(
+  rawTripId: unknown,
+  rawSegmentId: unknown,
+): Promise<Result<{ options: repo.SegmentLinkOption[] }, FormError>> {
+  const user = await requireUser();
+
+  const parsed = linkArgsSchema.safeParse({ tripId: rawTripId, segmentId: rawSegmentId });
+  if (!parsed.success) return err({ formMessage: 'Invalid request.' });
+  const { tripId, segmentId } = parsed.data;
+
+  // The segment must live on this trip for the list to mean anything —
+  // a mismatched pair would render every doc as unlinked.
+  const segment = await segmentsRepo.getByIdForUser(user.id, segmentId);
+  if (!segment || segment.tripId !== tripId) {
+    return err({ formMessage: 'Segment not found.' });
+  }
+
+  const options = await repo.listSegmentLinkOptions(user.id, tripId, segmentId);
+  return ok({ options });
+}
+
+const setLinkSchema = linkArgsSchema.extend({
+  documentId: z.string().uuid(),
+  linked: z.boolean(),
+});
+
+// Attach or detach a document ↔ segment link by hand (#103). Manual
+// attaches write `source = 'manual'`, which keeps them invisible to
+// the re-extract lifecycle — a re-extract can never overwrite or
+// orphan-sweep a segment the user linked here. Detach removes the
+// link regardless of who created it.
+export async function setSegmentDocumentLinkAction(raw: unknown): Promise<Result<null, FormError>> {
+  const user = await requireUser();
+
+  const parsed = setLinkSchema.safeParse(raw);
+  if (!parsed.success) return err({ formMessage: 'Invalid request.' });
+  const { tripId, segmentId, documentId, linked } = parsed.data;
+
+  // Cross-check that the document actually lives on the supplied trip
+  // before revalidating that trip's path — same family as the check in
+  // `deleteDocumentAction`. `setManualLink` then enforces that the
+  // segment shares the document's trip, so the pair is consistent.
+  const existing = await repo.getByIdForUser(user.id, documentId);
+  if (!existing) return err({ formMessage: 'Document not found.' });
+  if (existing.tripId !== tripId) {
+    return err({ formMessage: 'Document does not belong to this trip.' });
+  }
+
+  const applied = await repo.setManualLink(user.id, documentId, segmentId, linked);
+  if (!applied) return err({ formMessage: 'Segment not found.' });
+
+  revalidateTrip(tripId);
+  return ok(null);
 }
 
 export async function deleteDocumentAction(

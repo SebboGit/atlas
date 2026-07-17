@@ -72,7 +72,6 @@ describe('TesseractOcr', () => {
       // Tesseract output sometimes has trailing newlines or spacing
       // variations; normalise to upper-case before searching.
       expect(result.text.toUpperCase()).toContain('BOARDING');
-    }, // it downloads language data. // Tesseract cold-starts can take well over 30s on first run as
-    60_000);
+    }, 60_000); // it downloads language data. // Tesseract cold-starts can take well over 30s on first run as
   });
 });

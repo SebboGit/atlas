@@ -867,6 +867,24 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     })
     .returning({ id: documents.id });
 
+  // 6b) A dangling document — extraction ran but couldn't produce a
+  //     structured payload (#103's origin story). No parsed payload,
+  //     no segment links: exercises the attach flow in the segment
+  //     info dialog and the error state on the Documents tab.
+  await db.insert(documents).values({
+    userId,
+    tripId: hero.id,
+    objectKey: `2025/10/${randomUUID()}.pdf`,
+    mime: 'application/pdf',
+    bytes: 143002,
+    sha256: 'fixture-dangling-ryokan-voucher',
+    originalName: 'BKG-CNF_88113349_v2_FINAL.pdf',
+    parsed: null,
+    extractionError: 'llm-invalid-json',
+    reviewStatus: 'pending',
+    createdAt: d(2025, 9, 27),
+  });
+
   // 7) Document ↔ segment links — drives the "· linked" marker.
   const links: Array<{ documentId: string; segmentId: string }> = [];
   if (boardingDoc) {
