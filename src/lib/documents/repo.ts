@@ -346,6 +346,23 @@ export async function updateParsed(
   return rows[0] ?? null;
 }
 
+// Set or clear the user-facing display title. `null` reverts display
+// to `originalName`. Unlike `updateParsed` this deliberately ignores
+// any in-flight extraction — the title is pure display metadata,
+// disjoint from everything the extraction pipeline writes.
+export async function rename(
+  userId: string,
+  id: string,
+  title: string | null,
+): Promise<Document | null> {
+  const rows = await db
+    .update(documents)
+    .set({ title })
+    .where(and(eq(documents.id, id), eq(documents.userId, userId)))
+    .returning();
+  return rows[0] ?? null;
+}
+
 // Insert a (document, segment) row into the join table, scoped to
 // the user. Used by the ADR-0008 auto-create flow after a segment
 // has been created (or matched via dedup) from an extracted payload.
@@ -407,6 +424,7 @@ export async function linkSegment(userId: string, id: string, segmentId: string)
 export interface LinkedDocument {
   id: string;
   originalName: string;
+  title: string | null;
   mime: string;
 }
 
@@ -433,6 +451,7 @@ export async function listLinkedDocumentsByTripSegment(
       segmentId: documentSegments.segmentId,
       id: documents.id,
       originalName: documents.originalName,
+      title: documents.title,
       mime: documents.mime,
     })
     .from(documentSegments)

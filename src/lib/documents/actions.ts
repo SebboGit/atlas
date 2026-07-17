@@ -2,6 +2,7 @@
 
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
 import { db } from '@/db/client';
 import { trips } from '@/db/schema';
@@ -274,6 +275,43 @@ export async function updateParsedAction(
 
   revalidateTrip(tripId);
   return ok({ id: doc.id });
+}
+
+const renameTitleSchema = z.string().trim().max(200, 'Keep the title under 200 characters.');
+
+// Set or clear the display title. The original filename is untouched —
+// it stays the provenance record and the Content-Disposition download
+// name (see #102). An empty submission clears the custom title so the
+// card falls back to the filename.
+export async function renameDocumentAction(
+  tripId: string,
+  documentId: string,
+  rawTitle: unknown,
+): Promise<Result<{ id: string; title: string | null }, FormError>> {
+  const user = await requireUser();
+
+  const parsed = renameTitleSchema.safeParse(rawTitle);
+  if (!parsed.success) {
+    return err({
+      fields: { title: parsed.error.issues[0]?.message ?? 'Invalid title.' },
+    });
+  }
+  const title = parsed.data === '' ? null : parsed.data;
+
+  // Cross-check that the supplied tripId matches the document's own
+  // tripId. Same family as the check in `deleteDocumentAction` —
+  // without it, the wrong path would be revalidated.
+  const existing = await repo.getByIdForUser(user.id, documentId);
+  if (!existing) return err({ formMessage: 'Document not found.' });
+  if (existing.tripId !== tripId) {
+    return err({ formMessage: 'Document does not belong to this trip.' });
+  }
+
+  const doc = await repo.rename(user.id, documentId, title);
+  if (!doc) return err({ formMessage: 'Document not found.' });
+
+  revalidateTrip(tripId);
+  return ok({ id: doc.id, title: doc.title });
 }
 
 export async function deleteDocumentAction(
