@@ -213,14 +213,19 @@ export interface MarkExtractionStartedResult {
 }
 
 // Stamp `extractionStartedAt = NOW()` for a doc the user owns, clearing
-// any previous parsed payload, error state, AND all segment links.
-// Clearing links here means re-extract is one button: a fresh
-// extraction starts from a clean slate, and the segment-link bridge
-// runs again (dedup will collapse back to existing segments if the
-// extracted (carrier, flightNumber, flightDate) still match). The
+// any previous parsed payload, error state, AND all extraction-created
+// segment links. Clearing links here means re-extract is one button: a
+// fresh extraction starts from a clean slate, and the segment-link
+// bridge runs again (dedup will collapse back to existing segments if
+// the extracted (carrier, flightNumber, flightDate) still match). The
 // returned `priorLinkedSegmentIds` lets the bridge tell its own prior
 // segments (overwrite in place) from cross-document dedup matches
 // (link only, leave fields alone).
+//
+// Manual links (`source = 'manual'`, the #103 attach flow) are NOT
+// wiped and NOT snapshotted: the re-extract lifecycle neither owns
+// their rows nor the segments behind them, so a re-extract can never
+// overwrite or orphan-sweep a segment the user linked by hand.
 //
 // The SELECT, UPDATE, and link DELETE run inside a single transaction
 // so (a) the UI never sees the half-state "extracting AND still linked
@@ -241,7 +246,13 @@ export async function markExtractionStarted(
       .select({ segmentId: documentSegments.segmentId })
       .from(documentSegments)
       .innerJoin(documents, eq(documents.id, documentSegments.documentId))
-      .where(and(eq(documents.id, id), eq(documents.userId, userId)));
+      .where(
+        and(
+          eq(documents.id, id),
+          eq(documents.userId, userId),
+          eq(documentSegments.source, 'extraction'),
+        ),
+      );
 
     const rows = await tx
       .update(documents)
@@ -267,6 +278,7 @@ export async function markExtractionStarted(
       .where(
         and(
           eq(documentSegments.documentId, id),
+          eq(documentSegments.source, 'extraction'),
           sql`EXISTS (SELECT 1 FROM ${documents} WHERE ${documents.id} = ${documentSegments.documentId} AND ${documents.userId} = ${userId})`,
         ),
       );
@@ -412,7 +424,17 @@ export async function linkSegment(userId: string, id: string, segmentId: string)
       .limit(1);
     if (!owned) return false;
 
-    await tx.insert(documentSegments).values({ documentId: id, segmentId }).onConflictDoNothing();
+    // ON CONFLICT deliberately leaves an existing MANUAL row as-is
+    // rather than re-badging it to 'extraction': if the user attached
+    // this pair by hand while the extraction job was in flight, their
+    // association wins and the segment stays out of the re-extract
+    // blast radius. The cost is the documented duplicate-segment edge
+    // on that document's next re-extract — safer than silently pulling
+    // a hand-linked segment into overwrite/sweep scope.
+    await tx
+      .insert(documentSegments)
+      .values({ documentId: id, segmentId, source: 'extraction' })
+      .onConflictDoNothing();
     return true;
   });
 }
@@ -472,16 +494,110 @@ export async function listLinkedDocumentsByTripSegment(
 }
 
 // Read the segment IDs currently linked to a document. Used by the
-// segment-link bridge for its idempotency short-circuit (if anything
-// is already linked, the bridge skips re-creating segments) and by
-// any UI that needs the full list rather than just a count.
-export async function listLinkedSegmentIds(userId: string, documentId: string): Promise<string[]> {
+// segment-link bridge for its idempotency short-circuit and by any UI
+// that needs the full list rather than just a count. The bridge passes
+// `source: 'extraction'` — manual links say nothing about whether the
+// bridge already ran, so counting them would wrongly no-op a re-extract
+// whose own links were just wiped by `markExtractionStarted`.
+export async function listLinkedSegmentIds(
+  userId: string,
+  documentId: string,
+  opts?: { source?: 'extraction' | 'manual' },
+): Promise<string[]> {
   const rows = await db
     .select({ segmentId: documentSegments.segmentId })
     .from(documentSegments)
     .innerJoin(documents, eq(documentSegments.documentId, documents.id))
-    .where(and(eq(documents.id, documentId), eq(documents.userId, userId)));
+    .where(
+      and(
+        eq(documents.id, documentId),
+        eq(documents.userId, userId),
+        opts?.source ? eq(documentSegments.source, opts.source) : undefined,
+      ),
+    );
   return rows.map((r) => r.segmentId);
+}
+
+// One row per document on the trip, flagged with whether it is
+// currently linked to the given segment. Backs the info-dialog's
+// attach/detach toggle list (#103): the user sees every candidate,
+// including docs already linked elsewhere (one confirmation can back
+// several segments). Ordered newest-first to match the Documents tab.
+export interface SegmentLinkOption {
+  id: string;
+  originalName: string;
+  title: string | null;
+  mime: string;
+  linked: boolean;
+}
+
+export async function listSegmentLinkOptions(
+  userId: string,
+  tripId: string,
+  segmentId: string,
+): Promise<SegmentLinkOption[]> {
+  const rows = await db
+    .select({
+      id: documents.id,
+      originalName: documents.originalName,
+      title: documents.title,
+      mime: documents.mime,
+      linked: sql<boolean>`EXISTS (SELECT 1 FROM ${documentSegments} WHERE ${documentSegments.documentId} = ${documents.id} AND ${documentSegments.segmentId} = ${segmentId})`,
+    })
+    .from(documents)
+    .where(and(eq(documents.tripId, tripId), eq(documents.userId, userId)))
+    .orderBy(desc(documents.createdAt));
+  return rows;
+}
+
+// Attach or detach a document ↔ segment link on the user's behalf.
+// Attach writes `source = 'manual'`; if an extraction-created row for
+// the pair already exists it is kept as-is (ON CONFLICT DO NOTHING),
+// so toggling an already-extraction-linked doc never re-badges the row
+// and never moves it out of the re-extract lifecycle. Detach removes
+// the row regardless of source — the user's explicit unlink wins, and
+// a subsequent re-extract simply no longer sees that segment as prior-
+// linked. Both directions verify the segment lives under a trip the
+// user owns and the document belongs to the user AND the same trip.
+// Returns false when any ownership probe fails.
+export async function setManualLink(
+  userId: string,
+  documentId: string,
+  segmentId: string,
+  linked: boolean,
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const [doc] = await tx
+      .select({ tripId: documents.tripId })
+      .from(documents)
+      .where(and(eq(documents.id, documentId), eq(documents.userId, userId)));
+    if (!doc || doc.tripId === null) return false;
+
+    const [seg] = await tx
+      .select({ tripId: segments.tripId })
+      .from(segments)
+      .innerJoin(trips, eq(segments.tripId, trips.id))
+      .where(and(eq(segments.id, segmentId), eq(trips.userId, userId)))
+      .limit(1);
+    if (!seg || seg.tripId !== doc.tripId) return false;
+
+    if (linked) {
+      await tx
+        .insert(documentSegments)
+        .values({ documentId, segmentId, source: 'manual' })
+        .onConflictDoNothing();
+    } else {
+      await tx
+        .delete(documentSegments)
+        .where(
+          and(
+            eq(documentSegments.documentId, documentId),
+            eq(documentSegments.segmentId, segmentId),
+          ),
+        );
+    }
+    return true;
+  });
 }
 
 // Hard delete the row and return it so the caller can clean up the
