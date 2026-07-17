@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { documents, trips, users } from '@/db/schema';
 
-import { create, getByIdForUser, type CreateDocumentInput } from './repo';
+import { create, getByIdForUser, rename, type CreateDocumentInput } from './repo';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -222,5 +222,34 @@ describeIfDb('documents.repo.getByIdForUser — user scoping', () => {
   it('returns null for an id that does not exist', async () => {
     const owner = await makeUserWithTrip();
     expect(await getByIdForUser(owner.userId, randomUUID())).toBeNull();
+  });
+
+  it('rename sets, clears, and stays uploader-scoped', async () => {
+    const owner = await makeUserWithTrip();
+    const stranger = await makeUserWithTrip();
+    const { document } = await create(owner.userId, {
+      tripId: owner.tripId,
+      objectKey: uniqueObjectKey(),
+      mime: 'application/pdf',
+      bytes: 1234,
+      sha256: uniqueSha(),
+      originalName: 'gc-2039479-confirmation-final3.pdf',
+    });
+
+    const renamed = await rename(owner.userId, document.id, 'Marriott Tokyo confirmation');
+    expect(renamed?.title).toBe('Marriott Tokyo confirmation');
+    // originalName is immutable — the rename never touches it.
+    expect(renamed?.originalName).toBe('gc-2039479-confirmation-final3.pdf');
+
+    // Same scoping contract as getByIdForUser: another user's rename
+    // matches no row and must not change the title.
+    expect(await rename(stranger.userId, document.id, 'hijacked')).toBeNull();
+    expect((await getByIdForUser(owner.userId, document.id))?.title).toBe(
+      'Marriott Tokyo confirmation',
+    );
+
+    // null clears the custom title (display falls back to originalName).
+    const cleared = await rename(owner.userId, document.id, null);
+    expect(cleared?.title).toBeNull();
   });
 });

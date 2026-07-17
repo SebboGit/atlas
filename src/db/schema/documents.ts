@@ -66,6 +66,10 @@ export const documents = pgTable(
     bytes: integer('bytes').notNull(),
     sha256: text('sha256').notNull(),
     originalName: text('original_name').notNull(),
+    // User-editable display label. NULL falls back to `originalName`
+    // everywhere a document is rendered; `originalName` itself stays
+    // immutable (provenance + the Content-Disposition download name).
+    title: text('title'),
 
     parsed: jsonb('parsed'),
     parsedConfidence: real('parsed_confidence'),
@@ -110,12 +114,14 @@ export const documents = pgTable(
     // GENERATED ALWAYS — never .insert()/.update() them. The
     // regexp_replace splits punctuation in `original_name` (filenames
     // like `oman_air.pdf` are otherwise one opaque token under the
-    // `simple` tsvector parser). See migration 0011.
+    // `simple` tsvector parser). See migration 0011. Both `title` and
+    // `original_name` are indexed: a rename adds search signal without
+    // making the old filename unfindable.
     searchText: text('search_text').generatedAlwaysAs(
-      sql`regexp_replace(coalesce(original_name, ''), '[^a-zA-Z0-9]+', ' ', 'g') || ' ' || extract_jsonb_text(coalesce(parsed, '{}'::jsonb)) || ' ' || extract_jsonb_text(coalesce(overrides, '{}'::jsonb))`,
+      sql`coalesce(title, '') || ' ' || regexp_replace(coalesce(original_name, ''), '[^a-zA-Z0-9]+', ' ', 'g') || ' ' || extract_jsonb_text(coalesce(parsed, '{}'::jsonb)) || ' ' || extract_jsonb_text(coalesce(overrides, '{}'::jsonb))`,
     ),
     searchTsv: tsvector('search_tsv').generatedAlwaysAs(
-      sql`setweight(to_tsvector('simple', regexp_replace(coalesce(original_name, ''), '[^a-zA-Z0-9]+', ' ', 'g')), 'A') || setweight(to_tsvector('simple', extract_jsonb_text(coalesce(parsed, '{}'::jsonb)) || ' ' || extract_jsonb_text(coalesce(overrides, '{}'::jsonb))), 'B')`,
+      sql`setweight(to_tsvector('simple', coalesce(title, '') || ' ' || regexp_replace(coalesce(original_name, ''), '[^a-zA-Z0-9]+', ' ', 'g')), 'A') || setweight(to_tsvector('simple', extract_jsonb_text(coalesce(parsed, '{}'::jsonb)) || ' ' || extract_jsonb_text(coalesce(overrides, '{}'::jsonb))), 'B')`,
     ),
   },
   (d) => [

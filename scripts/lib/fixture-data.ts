@@ -798,7 +798,11 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
       mime: 'application/pdf',
       bytes: 88231,
       sha256: 'fixture-boarding-pass-jl42-jl43',
-      originalName: 'tokyo-itinerary.pdf',
+      // Cryptic booking-system filename + a user-set display title —
+      // exercises the #102 rename path; the hotel doc below stays
+      // title-less to cover the filename-fallback rendering.
+      originalName: 'e-ticket_0821744736_XPRKQZ_final(1).pdf',
+      title: 'JAL boarding passes — LHR ⇄ Kansai',
       parsed: {
         kind: 'boarding-pass',
         flights: [
