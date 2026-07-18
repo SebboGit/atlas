@@ -87,3 +87,40 @@ describe('FallbackGeocoder.search', () => {
     expect(secondary.search).toHaveBeenCalledWith('q', { limit: 3 });
   });
 });
+
+describe('FallbackReverse', () => {
+  const HIT_WITH_CITY = { displayName: 'Somewhere, Riverport City', city: 'Riverport City' };
+  const HIT_NO_CITY = { displayName: 'Nearest Feature', city: null };
+
+  function reverser(result: { displayName: string; city: string | null } | null) {
+    return { reverse: vi.fn().mockResolvedValue(result) };
+  }
+
+  it('returns the primary when it names a city', async () => {
+    const primary = reverser(HIT_WITH_CITY);
+    const secondary = reverser(HIT_NO_CITY);
+    const { FallbackReverse } = await import('./fallback');
+
+    const out = await new FallbackReverse(primary, secondary).reverse(1, 2);
+    expect(out).toEqual(HIT_WITH_CITY);
+    expect(secondary.reverse).not.toHaveBeenCalled();
+  });
+
+  it('consults the secondary when the primary hit lacks a city', async () => {
+    const primary = reverser(HIT_NO_CITY);
+    const secondary = reverser(HIT_WITH_CITY);
+    const { FallbackReverse } = await import('./fallback');
+
+    const out = await new FallbackReverse(primary, secondary).reverse(1, 2);
+    expect(out).toEqual(HIT_WITH_CITY);
+  });
+
+  it('keeps the city-less primary hit when the secondary has nothing better', async () => {
+    const primary = reverser(HIT_NO_CITY);
+    const secondary = reverser(null);
+    const { FallbackReverse } = await import('./fallback');
+
+    const out = await new FallbackReverse(primary, secondary).reverse(1, 2);
+    expect(out).toEqual(HIT_NO_CITY);
+  });
+});

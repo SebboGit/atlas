@@ -10,6 +10,7 @@
 // Code badge but don't otherwise need the trip-map's pin shape.
 
 import { getCachedMany } from './cache';
+import { enqueueGeocodeFetch } from './enqueue';
 import { normalizeQuery } from './normalize';
 import { decodePlusCode, tryParsePlusCode } from './plus-code';
 import { buildGeocodeQuery, type PlaceLike } from './segment-query';
@@ -102,6 +103,13 @@ export async function getPlaceCoordsView(
   for (const { id, key } of queries) {
     const cached = cache.get(normalizeQuery(key));
     if (cached?.kind === 'hit') {
+      // City backfill: rows fetched before the current locality rules
+      // get one background re-resolve so the card's city line appears
+      // or upgrades. A SUCCESSFUL re-resolve may legitimately move the
+      // pin (re-resolved under the current provider ladder); a failed
+      // one leaves the row untouched (see getCachedOrFetch). Fire-and-
+      // forget, singleton-keyed — repeated renders coalesce.
+      if (cached.cityPending) enqueueGeocodeFetch(key);
       if (offlineDecoded.has(id)) {
         // Offline-decoded coords stay authoritative — the cache row
         // (the worker's reverse geocode of the same code) contributes

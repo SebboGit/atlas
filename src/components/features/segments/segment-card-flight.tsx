@@ -1,6 +1,7 @@
 import { Plane } from 'lucide-react';
 
 import { displayCarrier, formatFlightNumber } from '@/lib/airlines';
+import { flightDurationMinutes, formatFlightDuration } from '@/lib/segments/flight-duration';
 import { getAirportTimezone } from '@/lib/airports';
 import type { LinkedDocument } from '@/lib/documents';
 import { formatTime, zoneAbbreviation } from '@/lib/format';
@@ -74,12 +75,24 @@ export function SegmentCardFlight({
   // "WY 287" never breaks across lines on narrow viewports.
   const carrierName = displayCarrier(data.carrier);
   const flightNum = formatFlightNumber(data.carrier, data.flightNumber);
+  // Real time in the air — each floating wall clock anchored to its
+  // airport's zone (see flight-duration.ts). Null (missing airports,
+  // bad data) simply omits the part.
+  const durationMin = flightDurationMinutes({
+    startsAt: segment.startsAt,
+    endsAt: segment.endsAt,
+    originAirport: data.originAirport,
+    destinationAirport: data.destinationAirport,
+  });
+  const duration = durationMin !== null ? formatFlightDuration(durationMin) : null;
   const subtitle =
-    carrierName || flightNum ? (
+    carrierName || flightNum || duration ? (
       <>
         {carrierName}
         {carrierName && flightNum ? ' · ' : null}
         {flightNum ? <span className="whitespace-nowrap">{flightNum}</span> : null}
+        {(carrierName || flightNum) && duration ? ' · ' : null}
+        {duration ? <span className="whitespace-nowrap">{duration}</span> : null}
       </>
     ) : null;
 

@@ -12,6 +12,7 @@ interface FakeRow {
   lat: number | null;
   lng: number | null;
   displayName: string | null;
+  city?: string | null;
   source: string;
   fetchedAt: Date;
   expiresAt: Date;
@@ -23,6 +24,7 @@ const dbState = vi.hoisted(() => ({
     lat: number | null;
     lng: number | null;
     displayName: string | null;
+    city?: string | null;
     source: string;
     fetchedAt: Date;
     expiresAt: Date;
@@ -116,7 +118,7 @@ function fakeGeocoder(results: Array<GeocodeResult | null>): Geocoder & { calls:
   };
 }
 
-const NOW = new Date('2026-05-17T12:00:00Z');
+const NOW = new Date('2026-08-01T12:00:00Z');
 const clock = () => NOW;
 
 beforeEach(() => {
@@ -175,16 +177,17 @@ describe('getCachedOrFetch', () => {
       lat: 48.85,
       lng: 2.29,
       displayName: 'Paris, France',
+      city: 'Paris',
       source: 'nominatim',
-      fetchedAt: new Date('2026-04-01T00:00:00Z'),
-      expiresAt: new Date('2026-07-01T00:00:00Z'),
+      fetchedAt: new Date('2026-07-25T00:00:00Z'),
+      expiresAt: new Date('2026-10-01T00:00:00Z'),
     });
     const g = fakeGeocoder([]);
 
     const r = await getCachedOrFetch('Paris', g, clock);
 
     expect(r).toEqual({
-      result: { lat: 48.85, lng: 2.29, displayName: 'Paris, France' },
+      result: { lat: 48.85, lng: 2.29, displayName: 'Paris, France', city: 'Paris' },
       cached: true,
     });
     expect(g.calls).toEqual([]);
@@ -198,8 +201,8 @@ describe('getCachedOrFetch', () => {
       lng: null,
       displayName: null,
       source: 'nominatim',
-      fetchedAt: new Date('2026-05-15T00:00:00Z'),
-      expiresAt: new Date('2026-05-22T00:00:00Z'),
+      fetchedAt: new Date('2026-07-30T00:00:00Z'),
+      expiresAt: new Date('2026-08-05T00:00:00Z'),
     });
     const g = fakeGeocoder([{ lat: 1, lng: 2, displayName: 'x' }]);
 
@@ -217,7 +220,7 @@ describe('getCachedOrFetch', () => {
       displayName: 'stale',
       source: 'nominatim',
       fetchedAt: new Date('2025-01-01T00:00:00Z'),
-      // Expiry already passed by `NOW` (2026-05-17).
+      // Expiry already passed by `NOW` (2026-08-01).
       expiresAt: new Date('2025-04-01T00:00:00Z'),
     });
     const fresh: GeocodeResult = { lat: 48.85, lng: 2.29, displayName: 'Paris, France' };
@@ -245,6 +248,7 @@ describe('getCachedMany', () => {
       lat: 48.85,
       lng: 2.29,
       displayName: 'Paris',
+      city: 'Paris',
       source: 'nominatim',
       fetchedAt: NOW,
       expiresAt: new Date(NOW.getTime() + 90 * 24 * 60 * 60 * 1000),
@@ -253,7 +257,8 @@ describe('getCachedMany', () => {
     const out = await getCachedMany(['Paris', 'Berlin'], clock);
     expect(out.get('paris')).toEqual({
       kind: 'hit',
-      result: { lat: 48.85, lng: 2.29, displayName: 'Paris' },
+      result: { lat: 48.85, lng: 2.29, displayName: 'Paris', city: 'Paris' },
+      cityPending: false,
     });
     expect(out.get('berlin')).toEqual({ kind: 'miss' });
   });
@@ -292,5 +297,133 @@ describe('getCachedMany', () => {
     const out = await getCachedMany(['  Paris  ', 'PARIS', 'paris', ''], clock);
     // 'paris' is the single resulting key; empty query is dropped.
     expect(Array.from(out.keys())).toEqual(['paris']);
+  });
+});
+
+describe('city backfill (CITY_BACKFILL_CUTOFF)', () => {
+  const FRESH_EXPIRY = new Date(NOW.getTime() + 60 * 24 * 60 * 60 * 1000);
+
+  it('re-fetches a fresh positive row that predates the city logic', async () => {
+    dbState.rows.push({
+      queryNormalized: 'harbor view inn',
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: 'Old District',
+      source: 'plus-code',
+      // Coordinates valid, but the row was written before the current
+      // locality rules — one background refresh upgrades the city.
+      fetchedAt: new Date('2026-07-01T00:00:00Z'),
+      expiresAt: FRESH_EXPIRY,
+    });
+    const fresh: GeocodeResult = {
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: 'Riverport City',
+      source: 'plus-code',
+    };
+    const g = fakeGeocoder([fresh]);
+
+    const r = await getCachedOrFetch('harbor view inn', g, clock);
+
+    expect(g.calls).toHaveLength(1);
+    expect(r).toEqual({ result: fresh, cached: false });
+    expect(dbState.rows[0]!.city).toBe('Riverport City');
+  });
+
+  it('re-fetches a post-cutoff row whose city was never populated', async () => {
+    dbState.rows.push({
+      queryNormalized: 'harbor view inn',
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: null,
+      source: 'photon',
+      fetchedAt: new Date('2026-07-25T00:00:00Z'),
+      expiresAt: FRESH_EXPIRY,
+    });
+    const g = fakeGeocoder([
+      { lat: 10.7, lng: 106.7, displayName: 'Harbor View Inn', city: null, source: 'photon' },
+    ]);
+
+    await getCachedOrFetch('harbor view inn', g, clock);
+
+    expect(g.calls).toHaveLength(1);
+    // Provider had no city → the row records '' (checked, none) so the
+    // backfill terminates instead of re-fetching every view.
+    expect(dbState.rows[0]!.city).toBe('');
+  });
+
+  it('a failed backfill re-fetch preserves the live positive row', async () => {
+    dbState.rows.push({
+      queryNormalized: 'harbor view inn',
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: null,
+      source: 'photon',
+      fetchedAt: new Date('2026-07-25T00:00:00Z'),
+      expiresAt: FRESH_EXPIRY,
+    });
+    // Providers down / transient miss → geocoder yields null. The
+    // working pin must survive: no negative overwrite, row unchanged.
+    const g = fakeGeocoder([null]);
+
+    const r = await getCachedOrFetch('harbor view inn', g, clock);
+
+    expect(g.calls).toHaveLength(1);
+    expect(r.cached).toBe(true);
+    expect(r.result).toEqual({
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: null,
+    });
+    expect(dbState.rows[0]!.lat).toBe(10.7);
+    expect(dbState.rows[0]!.city).toBeNull();
+    expect(dbState.upserts).toBe(0);
+  });
+
+  it("does NOT re-fetch a row already marked 'checked, no city'", async () => {
+    dbState.rows.push({
+      queryNormalized: 'harbor view inn',
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: '',
+      source: 'photon',
+      fetchedAt: new Date('2026-07-25T00:00:00Z'),
+      expiresAt: FRESH_EXPIRY,
+    });
+    const g = fakeGeocoder([]);
+
+    const r = await getCachedOrFetch('harbor view inn', g, clock);
+
+    expect(g.calls).toHaveLength(0);
+    // '' renders as "no city line" — result maps it to null.
+    expect(r.result?.city).toBeNull();
+    expect(r.cached).toBe(true);
+  });
+
+  it('flags cityPending on batch reads without dropping the hit', async () => {
+    dbState.rows.push({
+      queryNormalized: 'harbor view inn',
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: null,
+      source: 'photon',
+      fetchedAt: new Date('2026-07-25T00:00:00Z'),
+      expiresAt: FRESH_EXPIRY,
+    });
+
+    const out = await getCachedMany(['harbor view inn'], clock);
+    const hit = out.get('harbor view inn');
+    expect(hit?.kind).toBe('hit');
+    if (hit?.kind === 'hit') {
+      expect(hit.cityPending).toBe(true);
+      expect(hit.result.lat).toBe(10.7);
+    }
   });
 });

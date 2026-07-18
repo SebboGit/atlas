@@ -126,6 +126,7 @@ function seedGeocode(query: string, lat: number, lng: number) {
   geoState.cache.set(key, {
     kind: 'hit',
     result: { lat, lng, displayName: query },
+    cityPending: false,
   });
 }
 

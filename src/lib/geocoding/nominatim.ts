@@ -15,6 +15,8 @@ import { createHash } from 'node:crypto';
 
 import { log } from '@/lib/log';
 
+import { chooseLocality } from './locality';
+
 import type {
   Geocoder,
   GeocodeCandidate,
@@ -427,17 +429,23 @@ function pickCountryCode(hit: NominatimRichHit): string | null {
   return trimmed.toUpperCase();
 }
 
-// Coarse locality from Nominatim's structured address, most-specific
-// first. Municipality/county/state are the long tail for places that
-// sit outside any city boundary — a coarse-but-true locality beats
-// null on the card line (#111).
+// Coarse locality from Nominatim's structured address — shared
+// traveller-level rules (ward-shaped city defers to state, admin
+// classifiers stripped) live in locality.ts.
 function pickCity(address: Record<string, unknown> | null | undefined): string | null {
   if (!address) return null;
-  for (const key of ['city', 'town', 'village', 'municipality', 'county', 'state']) {
+  const field = (key: string): string | null => {
     const v = address[key];
-    if (typeof v === 'string' && v.trim() !== '') return v.trim();
-  }
-  return null;
+    return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
+  };
+  return chooseLocality({
+    city: field('city'),
+    town: field('town'),
+    village: field('village'),
+    municipality: field('municipality'),
+    county: field('county'),
+    state: field('state'),
+  });
 }
 
 function defaultSleep(ms: number): Promise<void> {
