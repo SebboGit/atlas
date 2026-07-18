@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-07-18
+
+### Added
+
+- **City on hotel, food, and activity cards** — cards now show which city a
+  place is in ("Chiyoda · 2 nights · Garden twin"), resolved automatically
+  when the place is geocoded. Your own location label still wins: when it
+  already names the city, no duplicate line appears. Existing entries pick
+  their city up the next time they re-geocode.
+- **Find location falls back to the address** — when a property isn't in
+  OpenStreetMap at all (common for small hotels), the search now retries with
+  the entry's address and offers street-level matches, clearly labeled.
+  Picking one fills the Plus Code but keeps your typed address, which is more
+  precise than the street that matched it.
+
+### Fixed
+
+- **Stale pages after navigating or acting** — the installed app's offline
+  cache was serving last-seen data on every in-app navigation: a segment
+  created by an extraction didn't appear on its tab until a hard reload, and
+  renaming a document then extracting it visibly reverted the name. Cached
+  data is now used only when actually offline.
+- **Garbled Vietnamese text broke place search** — text pulled from booking
+  PDFs arrives with letters split apart ("Nguy ễ n" instead of "Nguyễn"),
+  which silently ruined geocoding for those entries. The split letters are
+  now rejoined before any search runs.
+
 ## [1.4.0] - 2026-07-18
 
 ### Added
@@ -265,7 +292,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/SebboGit/atlas/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/SebboGit/atlas/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/SebboGit/atlas/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/SebboGit/atlas/compare/v1.3.0...v1.3.1
