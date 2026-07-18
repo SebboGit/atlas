@@ -134,7 +134,7 @@ Each release publishes **two** images from one version: the app at
 
 Create a `.env` (start from [`.env.example`](./.env.example)) with at least a
 `POSTGRES_PASSWORD`, your PocketID OIDC settings, and `ATLAS_IMAGE_TAG` (pin a
-release, e.g. `1.4.1`).
+release, e.g. `1.4.2`).
 
 The repo ships a
 [`docker-compose.yml`](./docker-compose.yml) plus a hardened

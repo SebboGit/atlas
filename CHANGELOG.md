@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-07-18
+
+### Added
+
+- **Flight duration on the card** — flight cards show the real time in the
+  air after the flight number ("JL 42 · 13h 50m"), computed by anchoring each
+  printed time to its airport's timezone. Cross-timezone and overnight flights
+  come out right; a flight with missing airports or inconsistent times shows
+  no duration rather than a wrong one.
+
+### Fixed
+
+- **City lines name the city you'd actually say** — reverse lookups (the Plus
+  Code path) now prefer the search engine whose localized data names the
+  metropolis, ward-level "cities" defer to their province, and Vietnamese
+  admin prefixes are stripped ("Thành phố Hà Nội" → "Hà Nội"). Names like
+  Mexico City stay untouched.
+- **Older entries never got a city** — places geocoded before v1.4.1 kept an
+  empty city for months because their cached result never refreshed. They now
+  re-resolve once in the background the first time you view them; pins stay
+  put while the city fills in, and a failed refresh can no longer blank a
+  working pin.
+
 ## [1.4.1] - 2026-07-18
 
 ### Added
@@ -292,7 +315,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/SebboGit/atlas/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/SebboGit/atlas/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/SebboGit/atlas/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/SebboGit/atlas/compare/v1.3.1...v1.3.2
