@@ -2,7 +2,7 @@
 // Single source of truth for the chain that resolves a place row to its
 // cached coordinates:
 //
-//   buildGeocodeQuery → normalizeForGeocoder → normalizeQuery → cache
+//   buildGeocodeQuery (geocoder-ready, ADR-0018) → normalizeQuery → cache
 //
 // The trip-map repo runs the same chain to render pins. This helper
 // exists for the OTHER render sites (segment cards on itinerary tabs,
@@ -11,7 +11,6 @@
 
 import { getCachedMany } from './cache';
 import { normalizeQuery } from './normalize';
-import { normalizeForGeocoder } from './normalize-for-geocoder';
 import { decodePlusCode, tryParsePlusCode } from './plus-code';
 import { buildGeocodeQuery, type PlaceLike } from './segment-query';
 
@@ -75,7 +74,7 @@ export async function getPlaceCoordsView(
         continue;
       }
     }
-    const key = normalizeForGeocoder(raw);
+    const key = raw;
     if (key === '') continue;
     queries.push({ id: place.id, key });
   }

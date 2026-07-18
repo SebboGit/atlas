@@ -110,11 +110,19 @@ export async function ensureSegmentForExtraction(
   const doc = await repo.getByIdForUser(userId, documentId);
   if (!doc) return { kind: 'no-segment', reason: 'doc-missing' };
 
-  // Idempotency: once any link exists, the bridge has already run
-  // successfully for this document. This branch presumes the caller
-  // has run `markExtractionStarted` immediately before us, which
-  // wipes every link row inside the same tx as the claim stamp. If
-  // links are still present, either:
+  // Idempotency: once any EXTRACTION link exists, the bridge has
+  // already run successfully for this document. Manual links (#103)
+  // are excluded — they say nothing about whether the bridge ran, and
+  // counting them would wrongly no-op a re-extract whose own links
+  // were just wiped. (Rare consequence: re-extracting a doc the user
+  // already hand-linked to a hand-made segment can create a second,
+  // extraction-owned segment alongside it. Flights collapse via the
+  // dedup key; for other types the user deletes the duplicate — the
+  // alternative silently broke re-extract for every manually-linked
+  // doc.) This branch presumes the caller has run
+  // `markExtractionStarted` immediately before us, which wipes every
+  // extraction-link row inside the same tx as the claim stamp. If
+  // extraction links are still present, either:
   //   (a) the bridge ran twice on the same job (a bug — re-extract is
   //       single-shot), or
   //   (b) some path other than runExtractionJob is calling us.
@@ -122,7 +130,9 @@ export async function ensureSegmentForExtraction(
   // segment fields that were settled by the earlier run. The bridge's
   // prior-link overwrite invariant relies on
   // `priorLinkedSegmentIds` being a SNAPSHOT taken at link-wipe time.
-  const existingLinks = await repo.listLinkedSegmentIds(userId, documentId);
+  const existingLinks = await repo.listLinkedSegmentIds(userId, documentId, {
+    source: 'extraction',
+  });
   if (existingLinks.length > 0) {
     return { kind: 'already-linked', segmentIds: existingLinks };
   }
@@ -151,7 +161,14 @@ export async function ensureSegmentForExtraction(
   // Before this loop the old segment was unlinked but never deleted,
   // so a re-extract that corrected the flight number left both the
   // old and new flights rendering on the trip. Now any segment in
-  // `priorLinks` that the new run didn't reuse is hard-deleted.
+  // `priorLinks` that the new run didn't reuse is hard-deleted —
+  // UNLESS another document still links it. Our own extraction links
+  // were wiped by `markExtractionStarted`, so any row remaining at
+  // this point belongs to a different document or to a manual attach
+  // (#103); a segment someone else still references is not an orphan,
+  // and deleting it would cascade their link away. The reference
+  // check folds into the DELETE (`hardDeleteIfUnreferenced`) so a
+  // concurrent attach can't race a check-then-delete.
   //
   // Skip the sweep if any leg outcome reports `superseded` — that
   // marker means a newer claim has stamped the document mid-flight,
@@ -173,9 +190,11 @@ export async function ensureSegmentForExtraction(
       for (const priorId of priorLinks) {
         if (touchedIds.has(priorId)) continue;
         try {
-          const removed = await segmentsRepo.hardDelete(userId, priorId);
+          const removed = await segmentsRepo.hardDeleteIfUnreferenced(userId, priorId);
           if (removed) {
             log.info({ documentId, segmentId: priorId }, 'documents.segment_link.orphan_swept');
+          } else {
+            log.info({ documentId, segmentId: priorId }, 'documents.segment_link.orphan_kept');
           }
         } catch (e) {
           log.warn(

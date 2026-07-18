@@ -36,7 +36,6 @@ import {
 } from '../../src/db/schema';
 import { ISO_COUNTRIES } from '../../src/lib/countries/data';
 import { normalizeQuery } from '../../src/lib/geocoding/normalize';
-import { normalizeForGeocoder } from '../../src/lib/geocoding/normalize-for-geocoder';
 import { buildGeocodeQuery } from '../../src/lib/geocoding/segment-query';
 
 export const FIXTURE_SUB = 'screenshot-fixture-user';
@@ -556,6 +555,7 @@ function queryForHeroSegment(seg: HeroSegment): string | null {
     type: seg.type,
     data: seg.data,
     locationName: seg.locationName ?? null,
+    countryCode: seg.countryCode ?? null,
   });
 }
 
@@ -744,7 +744,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(normalizeForGeocoder(query)),
+        queryNormalized: normalizeQuery(query),
         lat: seg.pin.lat,
         lng: seg.pin.lng,
         displayName: query,
@@ -765,7 +765,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(normalizeForGeocoder(nullQuery)),
+        queryNormalized: normalizeQuery(nullQuery),
         lat: null,
         lng: null,
         displayName: null,
@@ -798,7 +798,11 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
       mime: 'application/pdf',
       bytes: 88231,
       sha256: 'fixture-boarding-pass-jl42-jl43',
-      originalName: 'tokyo-itinerary.pdf',
+      // Cryptic booking-system filename + a user-set display title —
+      // exercises the #102 rename path; the hotel doc below stays
+      // title-less to cover the filename-fallback rendering.
+      originalName: 'e-ticket_0821744736_XPRKQZ_final(1).pdf',
+      title: 'JAL boarding passes — LHR ⇄ Kansai',
       parsed: {
         kind: 'boarding-pass',
         flights: [
@@ -863,6 +867,24 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     })
     .returning({ id: documents.id });
 
+  // 6b) A dangling document — extraction ran but couldn't produce a
+  //     structured payload (#103's origin story). No parsed payload,
+  //     no segment links: exercises the attach flow in the segment
+  //     info dialog and the error state on the Documents tab.
+  await db.insert(documents).values({
+    userId,
+    tripId: hero.id,
+    objectKey: `2025/10/${randomUUID()}.pdf`,
+    mime: 'application/pdf',
+    bytes: 143002,
+    sha256: 'fixture-dangling-ryokan-voucher',
+    originalName: 'BKG-CNF_88113349_v2_FINAL.pdf',
+    parsed: null,
+    extractionError: 'llm-invalid-json',
+    reviewStatus: 'pending',
+    createdAt: d(2025, 9, 27),
+  });
+
   // 7) Document ↔ segment links — drives the "· linked" marker.
   const links: Array<{ documentId: string; segmentId: string }> = [];
   if (boardingDoc) {
@@ -906,12 +928,13 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
       type: item.type,
       data: item.data,
       locationName: item.locationName ?? null,
+      countryCode: item.countryCode ?? null,
     });
     if (!query) continue;
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(normalizeForGeocoder(query)),
+        queryNormalized: normalizeQuery(query),
         lat: pin.lat,
         lng: pin.lng,
         displayName: query,

@@ -25,11 +25,13 @@ export function LinkedDocumentChips({ documents }: LinkedDocumentChipsProps) {
           href={`/api/documents/${doc.id}?disposition=inline`}
           target="_blank"
           rel="noopener noreferrer"
-          title={doc.originalName}
+          title={doc.title ?? doc.originalName}
           className="border-foreground/15 bg-card/70 text-foreground/70 hover:bg-card hover:text-foreground hover:border-foreground/30 inline-flex max-w-[16rem] items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors"
         >
           <Paperclip className="size-3 shrink-0" strokeWidth={1.75} />
-          <span className="truncate font-mono text-[10px] tracking-wider">{doc.originalName}</span>
+          <span className="truncate font-mono text-[10px] tracking-wider">
+            {doc.title ?? doc.originalName}
+          </span>
         </a>
       ))}
     </div>

@@ -69,10 +69,11 @@ vi.mock('@/db/client', () => {
 const geoState = vi.hoisted(() => ({ cache: new Map<string, CachedLookup>() }));
 
 const geocodingMocks = vi.hoisted(() => ({
-  // Mirrors the real per-type derivation closely enough for the tests:
-  // hotels geocode by address (fallback propertyName), activities by
-  // title (+ locationName), transit by destination name. Flights and
-  // notes produce no query. Anything else is null.
+  // Simplified stand-in derivation — the REAL rules (name-first for
+  // hotels/food since ADR-0018) live in segment-query.ts and its own
+  // tests; here the mock only needs to emit deterministic keys the
+  // cache map can be seeded against. Flights and notes produce no
+  // query. Anything else is null.
   buildGeocodeQuery: vi.fn((seg: Segment): string | null => {
     const data = (seg.data ?? {}) as Record<string, unknown>;
     if (seg.type === 'hotel') {
@@ -334,12 +335,12 @@ describe('getStatsDashboardData — personal records', () => {
     expect(data.records.southernmost!.lat).toBeLessThan(0);
   });
 
-  it('runs the buildGeocodeQuery result through normalizeForGeocoder before the cache lookup', async () => {
-    // Regression guard: if the stats path drops the normalize step,
-    // the cache key won't match what the lifecycle hook writes and
-    // the records map silently loses points. A non-identity mock
-    // turns a missed chain into a test failure rather than a silent
-    // cache miss.
+  it('uses the buildGeocodeQuery output verbatim as the cache key (geocoder-ready, ADR-0018)', async () => {
+    // Regression guard: buildGeocodeQuery output is already
+    // geocoder-normalized; re-applying normalizeForGeocoder here would
+    // strip tokens from name-first queries ("Room 39, Bangkok" →
+    // "Bangkok") and fork the cache key away from what the lifecycle
+    // hook writes.
     dbState.trips = [trip({ id: 't1', startDate: new Date('2024-01-01T00:00:00Z') })];
     dbState.segments = [
       hotel({
@@ -348,18 +349,12 @@ describe('getStatsDashboardData — personal records', () => {
         data: { propertyName: 'Lakeside Lodge', address: 'raw addr' },
       }),
     ];
-    geocodingMocks.normalizeForGeocoder.mockImplementation((s) =>
-      s === 'raw addr' ? 'normalized addr' : s,
-    );
-    seedGeocode('normalized addr', -45.03, 168.66);
+    seedGeocode('raw addr', -45.03, 168.66);
 
     const data = await getStatsDashboardData('u1');
 
-    expect(geocodingMocks.normalizeForGeocoder).toHaveBeenCalledWith('raw addr');
-    expect(geocodingMocks.getCachedMany).toHaveBeenCalledWith(['normalized addr']);
-    // A cache miss under the raw key would produce no southernmost
-    // record; the cache hit under the normalized key surfaces the
-    // hotel as the southernmost point.
+    expect(geocodingMocks.normalizeForGeocoder).not.toHaveBeenCalled();
+    expect(geocodingMocks.getCachedMany).toHaveBeenCalledWith(['raw addr']);
     expect(data.records.southernmost?.label).toBe('Queenstown');
   });
 

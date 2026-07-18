@@ -114,6 +114,9 @@ export class PlaceResolver implements Geocoder, GeocodeSearcher {
       lat: coords.lat,
       lng: coords.lng,
       displayName: displayName ?? `Plus Code ${fullCode}`,
+      // Provenance for geocode_cache.source (ADR-0018): these rows
+      // came from offline decode, not from either free-text provider.
+      source: 'plus-code',
     };
   }
 }

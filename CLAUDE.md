@@ -32,7 +32,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 | File storage     | **Local filesystem** (bind-mounted volume)        | Single-user homelab — see ADR-0001. Behind a `Storage` interface.              |
 | DB backups       | **nfrastack/container-db-backup**                 | Scheduled, compressed, retention-managed — see `atlas-backups` skill           |
 | Maps             | **MapLibre GL JS** + **Protomaps PMTiles**        | Fully self-hostable, no tile server, no licensing concerns                     |
-| Geocoding        | **Nominatim** (public OSM) + DB cache             | Pin non-flight segments on maps — see ADR-0010                                 |
+| Geocoding        | **Photon → Nominatim** (public OSM) + DB cache    | Venue-name-first pins for non-flight segments — see ADR-0010/0018              |
 | Auth             | **Auth.js + PocketID** (OIDC, passkeys)           | Passwordless, phishing-resistant; see ADR-0002 and "Auth" section              |
 | Data fetching    | **TanStack Query** (client) + RSC (server)        | Use RSC by default, Query for interactive client state                         |
 | Validation       | **Zod**                                           | Schema-first input validation, shared client/server                            |
@@ -102,7 +102,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── segments/        # Flight/hotel/activity/transit/food/note repo + actions
 │   │   ├── wishlist/        # Reusable household place list (food + activity), materialised onto trips
 │   │   ├── trip-map/        # Per-trip map data shaping (flight arcs, geocoded pins)
-│   │   ├── geocoding/       # Nominatim client + DB-cached lookup (ADR-0010)
+│   │   ├── geocoding/       # Photon + Nominatim clients, fallback ladder, DB cache (ADR-0010/0018)
 │   │   ├── airlines/        # Reference data — static IATA → airline-name lookup (OpenFlights snapshot)
 │   │   ├── airports/        # Reference data — static IATA → airport (coords, tz, country)
 │   │   ├── countries/       # Reference data — country names + ISO codes
@@ -232,15 +232,15 @@ The flight form stores carrier names ("Vietnam Airlines"), not bare IATA codes (
 - **Refresh:** `pnpm tsx scripts/fetch-airlines.ts` re-generates the JSON from openflights.org. Airlines don't change often; run this every few years or when a missing carrier turns up.
 - **Applied at two layers:** the document-extraction mapper (`from-payload.ts`) resolves the IATA the LLM/pkpass extracted so the segment stores a friendly name; flight-segment cards also run `displayCarrier` so legacy rows storing a bare code still render readably without a data migration.
 
-### Geocoding — Nominatim (public OSM endpoint, DB-cached)
+### Geocoding — Photon → Nominatim ladder (public OSM endpoints, DB-cached)
 
-Non-flight segments (hotels, activities, transit endpoints) get pinned on the per-trip map by geocoding their address through **Nominatim**, the public OpenStreetMap geocoder. Results are cached in Postgres with a TTL so we don't hit the public endpoint on every render. See **ADR-0010**.
+Non-flight segments (hotels, activities, transit endpoints) get pinned on the per-trip map by free-text geocoding through a two-provider ladder: **Photon** (komoot's OSM search engine — typo-tolerant, name-oriented) first, **Nominatim** (structured-address backstop, also the reverse geocoder for Plus Codes) on a Photon null. Results are cached in Postgres with a TTL so public endpoints aren't hit per render. See **ADR-0010** (cache/etiquette) and **ADR-0018** (ladder + name-first queries).
 
-- **Module:** `src/lib/geocoding/` — `geocode(query, type)` returns `{ lat, lon }` or `null`. Per-segment-type query builders shape the request (a hotel query is different from an activity query).
-- **Cache:** `src/db/schema/geocode-cache.ts` keyed by normalised query. Past-expiry rows are treated as cache misses on read; the nightly `prune` job sweeps them out of the table.
-- **Etiquette:** Nominatim's public usage policy requires a contact email in `User-Agent`. Set `NOMINATIM_CONTACT_EMAIL`. Don't hammer the endpoint — the DB cache is what makes this tolerable.
-- **Labels vs. coordinates:** `Segment.locationName` is the pin's display label, NOT what we geocode. The geocode query is built per-segment-type from structured fields; the label stays whatever the user/extractor wrote.
-- **Swap door:** if Nominatim usage limits ever bite, drop a self-hosted Nominatim instance or a different provider behind the same module. Cache schema stays the same.
+- **Module:** `src/lib/geocoding/` — `geocode(query)` returns `{ lat, lng }` or `null`. Per-segment-type query builders shape the request; hotels and food are **name-first** (`propertyName`/`venue` + `locationName`-else-country context tail), address only for name-less rows.
+- **Cache:** `src/db/schema/geocode-cache.ts` keyed by normalised query, `source` column records which provider produced each hit. Past-expiry rows are treated as cache misses on read; the nightly `prune` job sweeps them out of the table.
+- **Etiquette:** identifying `User-Agent` on both providers (Nominatim's policy requires the contact email — `NOMINATIM_CONTACT_EMAIL`; Photon gets the same one). 1 req/s in-process throttle per provider. The DB cache is what makes public endpoints tolerable.
+- **Labels vs. coordinates:** `Segment.locationName` stays the pin's display label — but it now doubles as the disambiguation tail on name queries ("Ippudo, Ginza"). Addresses are informational once a name is on file.
+- **Swap door:** `PHOTON_URL` / `NOMINATIM_URL` point either half at a self-hosted instance with no code change. Google Places was evaluated and rejected outright — its ToS forbid non-Google-map display and long-lived coordinate caching (ADR-0018).
 
 ### Push notifications — ntfy (planned)
 
@@ -463,7 +463,7 @@ Architectural decisions live in `docs/adr/` as numbered ADRs.
 - **ADR-0007** — AviationStack free tier for flight metadata lookup. Superseded by ADR-0009.
 - **ADR-0008** — Auto-create and link segments on document extraction (manual trigger, soft ±2 day date check). Accepted.
 - **ADR-0009** — Drop flight-metadata lookup; Ollama extracts times directly + static airline-name table. Accepted.
-- **ADR-0010** — Geocoding via Nominatim (public OSM endpoint), DB-cached. Accepted.
+- **ADR-0010** — Geocoding via Nominatim (public OSM endpoint), DB-cached. Accepted (provider clause amended by ADR-0018).
 - **ADR-0011** — Self-hosted Protomaps PMTiles basemap (bind-mounted, byte-range served, no third-party tile origins). Accepted.
 - **ADR-0012** — pg-boss for durable jobs and in-stack scheduling (graduates `Jobs` and the `worker` service from their minimal in-process implementations). Accepted.
 - **ADR-0013** — Postgres-native search via generated `tsvector` columns directly on source tables (no central `search_index`, no out-of-process search engine). Accepted.
@@ -471,6 +471,7 @@ Architectural decisions live in `docs/adr/` as numbered ADRs.
 - **ADR-0015** — Per-trip visibility (`household` | `private`) via a `trips.visibility` enum. One predicate (`tripVisibleToViewer`) is the shared-trip visibility boundary for content reads/writes; trip-row mutations stay owner-only and documents stay uploader-scoped (separate gates). Accepted.
 - **ADR-0016** — Floating local time for flight segment times too: store the printed wall-clock interpreted at UTC, display verbatim in UTC, and use the airport IATA for a zone _label_ (`06:00 JST`) only — never a clock conversion. Collapses ADR-0014's two-model split so flights bucket on their printed day. Accepted.
 - **ADR-0017** — Installable PWA with a hand-rolled, cache-what-you-visit service worker (no PWA build plugin, so the build stays on Turbopack). Revisit migrating to a Turbopack-native precaching plugin (e.g. a stable `@serwist/turbopack`) once one ships. Accepted.
+- **ADR-0018** — Photon-first free-text geocoding with Nominatim fallback; hotels/food flip to venue-name-first queries with a locationName-else-country context tail. Google Places rejected on ToS grounds (non-Google-map display, coordinate-caching limits). Accepted.
 
 When making a non-obvious choice (a library, a pattern, a tradeoff), write a short ADR. Template in `docs/adr/0000-template.md`.
 
