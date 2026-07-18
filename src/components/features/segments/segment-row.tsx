@@ -16,7 +16,7 @@ interface SegmentRowProps {
    * resolved them. Drives the Plus Code badge on the card. Same
    * trip-wide-map-then-per-segment pattern as `linkedDocuments`.
    */
-  coords?: { lat: number; lng: number } | null;
+  coords?: { lat: number; lng: number; city?: string | null } | null;
   // When true and the segment is an activity or food, render a "schedule"
   // / "reschedule" action alongside delete. Off on the itinerary view
   // (the date is implicit from the day group); on for the Activities and

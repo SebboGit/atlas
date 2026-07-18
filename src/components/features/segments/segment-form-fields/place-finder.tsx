@@ -54,7 +54,7 @@ interface PlaceFinderProps {
 type Phase =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'results'; candidates: GeocodeCandidate[] }
+  | { status: 'results'; candidates: GeocodeCandidate[]; via: 'name' | 'address' }
   | { status: 'empty' }
   // Permanent server-config state (NOMINATIM_CONTACT_EMAIL unset). No
   // retry — it can never succeed; the copy points at manual entry.
@@ -62,12 +62,15 @@ type Phase =
   | { status: 'error' };
 
 /**
- * "Find location" button + candidate picker dialog. ONE Nominatim
- * search per click (the OSM usage policy forbids as-you-type). Searches
- * the venue NAME (+ locationName + country), shows up to 3 candidates,
- * and on pick fills `data.address` + `data.plusCode` (and the country
- * dropdown only if empty) so the map pin is precise with no second
- * geocode.
+ * "Find location" button + candidate picker dialog. Fires one bounded
+ * search ladder per click (never as-you-type): venue NAME first, then
+ * the typed address as a fallback for places OSM doesn't have. Shows
+ * up to 3 candidates and on pick fills `data.plusCode` (and the
+ * country dropdown only if empty) so the map pin is precise with no
+ * second geocode. Name-rung picks also overwrite `data.address` with
+ * the candidate's canonical address; address-rung picks keep the
+ * user's own address — it's more precise than the street-level
+ * candidate that matched it.
  *
  * Place it directly below the address Input in each geocoded type's
  * field module.
@@ -92,6 +95,9 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
 
     const locationNameRaw = form.getValues('locationName' as never) as unknown;
     const countryRaw = form.getValues('countryCode' as never) as unknown;
+    const addressRaw = form.getValues('data.address' as never) as unknown;
+    const address =
+      typeof addressRaw === 'string' && addressRaw.trim() !== '' ? addressRaw.trim() : undefined;
     const locationName =
       typeof locationNameRaw === 'string' && locationNameRaw.trim() !== ''
         ? locationNameRaw.trim()
@@ -105,6 +111,9 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
         name,
         ...(locationName ? { locationName } : {}),
         ...(countryCode ? { countryCode } : {}),
+        // Fallback rung only — the server searches the name first and
+        // reaches for the address when the name finds nothing.
+        ...(address ? { address } : {}),
       });
 
       if (!result.ok) {
@@ -118,22 +127,27 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
         setPhase({ status: 'empty' });
         return;
       }
-      setPhase({ status: 'results', candidates: result.candidates });
+      setPhase({ status: 'results', candidates: result.candidates, via: result.via });
     });
   }
 
-  function pick(candidate: GeocodeCandidate) {
-    // Address: the candidate's full display string. This is the OUTPUT
-    // the user chose — display-only once a Plus Code is set, since the
-    // Plus Code wins precedence in buildGeocodeQuery. Clamped to the
-    // schema's 500-char cap so a very long display_name (deep multi-line
-    // Asian addresses) can't flag a spurious "too long" error; the pin
-    // is unaffected (it rides the Plus Code).
-    const address = candidate.addressLabel.slice(0, 500);
-    form.setValue('data.address' as never, address as never, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
+  function pick(candidate: GeocodeCandidate, via: 'name' | 'address') {
+    // Address: the candidate's full display string — but ONLY on
+    // name-rung picks. An address-rung candidate is street-level, and
+    // the user's own address (house number and all) is strictly more
+    // precise than the street that matched it; overwriting would
+    // silently discard their best datum. Display-only once a Plus Code
+    // is set, since the Plus Code wins precedence in buildGeocodeQuery.
+    // Clamped to the schema's 500-char cap so a very long display_name
+    // (deep multi-line Asian addresses) can't flag a spurious "too
+    // long" error; the pin is unaffected (it rides the Plus Code).
+    if (via === 'name') {
+      const address = candidate.addressLabel.slice(0, 500);
+      form.setValue('data.address' as never, address as never, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
 
     // Plus Code: encode the exact picked point at sub-3 m precision so
     // the pin lands on it offline. If encode somehow fails (non-finite
@@ -214,7 +228,7 @@ function PickerBody({
   onRetry,
 }: {
   phase: Phase;
-  onPick: (c: GeocodeCandidate) => void;
+  onPick: (c: GeocodeCandidate, via: 'name' | 'address') => void;
   onRetry: () => void;
 }) {
   if (phase.status === 'loading') {
@@ -269,13 +283,20 @@ function PickerBody({
 
   if (phase.status === 'results') {
     return (
-      <ul className="flex max-h-[55vh] flex-col gap-2 overflow-y-auto pr-1" aria-label="Matches">
-        {phase.candidates.map((candidate, i) => (
-          <li key={`${candidate.lat},${candidate.lng},${i}`}>
-            <CandidateRow candidate={candidate} onPick={() => onPick(candidate)} />
-          </li>
-        ))}
-      </ul>
+      <div className="flex flex-col gap-2">
+        {phase.via === 'address' && (
+          <p className="text-muted-foreground text-xs leading-snug" role="status">
+            No match for the name. Matches for the address:
+          </p>
+        )}
+        <ul className="flex max-h-[55vh] flex-col gap-2 overflow-y-auto pr-1" aria-label="Matches">
+          {phase.candidates.map((candidate, i) => (
+            <li key={`${candidate.lat},${candidate.lng},${i}`}>
+              <CandidateRow candidate={candidate} onPick={() => onPick(candidate, phase.via)} />
+            </li>
+          ))}
+        </ul>
+      </div>
     );
   }
 

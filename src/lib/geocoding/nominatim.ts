@@ -79,6 +79,7 @@ interface NominatimSearchHit {
   lat?: unknown;
   lon?: unknown;
   display_name?: unknown;
+  address?: Record<string, unknown> | null;
 }
 
 // Richer hit shape returned when we ask for addressdetails + namedetails.
@@ -153,7 +154,7 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
     }
 
     log.info({ queryHash, found: true }, 'geocoding.nominatim.ok');
-    return { lat, lng, displayName, source: 'nominatim' };
+    return { lat, lng, displayName, city: pickCity(top.address), source: 'nominatim' };
   }
 
   /**
@@ -166,7 +167,10 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
    * bucket — defence in depth; the resolver shouldn't pass anything
    * the library wouldn't accept.
    */
-  async reverse(lat: number, lng: number): Promise<string | null> {
+  async reverse(
+    lat: number,
+    lng: number,
+  ): Promise<{ displayName: string; city: string | null } | null> {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
     await this.acquireSlot();
@@ -189,14 +193,14 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
       log.info({ queryHash, found: false }, 'geocoding.nominatim.reverse_ok');
       return null;
     }
-    const obj = payload as { display_name?: unknown };
+    const obj = payload as { display_name?: unknown; address?: Record<string, unknown> | null };
     if (typeof obj.display_name !== 'string' || obj.display_name === '') {
       log.info({ queryHash, found: false }, 'geocoding.nominatim.reverse_ok');
       return null;
     }
 
     log.info({ queryHash, found: true }, 'geocoding.nominatim.reverse_ok');
-    return obj.display_name;
+    return { displayName: obj.display_name, city: pickCity(obj.address) };
   }
 
   /**
@@ -320,6 +324,9 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
       q: query,
       format: 'jsonv2',
       limit: '1',
+      // Structured address parts so the hit carries a city for the
+      // card line (#111) — never parsed out of display_name.
+      addressdetails: '1',
     });
     return `${this.baseUrl}/search?${params.toString()}`;
   }
@@ -329,6 +336,7 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
       lat: lat.toString(),
       lon: lng.toString(),
       format: 'jsonv2',
+      addressdetails: '1',
       // zoom=18 ≈ building-level — matches the precision a 10-char
       // Plus Code resolves at, so the returned display_name names the
       // POI itself rather than the surrounding neighbourhood.
@@ -417,6 +425,19 @@ function pickCountryCode(hit: NominatimRichHit): string | null {
   const trimmed = cc.trim();
   if (trimmed.length !== 2) return null;
   return trimmed.toUpperCase();
+}
+
+// Coarse locality from Nominatim's structured address, most-specific
+// first. Municipality/county/state are the long tail for places that
+// sit outside any city boundary — a coarse-but-true locality beats
+// null on the card line (#111).
+function pickCity(address: Record<string, unknown> | null | undefined): string | null {
+  if (!address) return null;
+  for (const key of ['city', 'town', 'village', 'municipality', 'county', 'state']) {
+    const v = address[key];
+    if (typeof v === 'string' && v.trim() !== '') return v.trim();
+  }
+  return null;
 }
 
 function defaultSleep(ms: number): Promise<void> {

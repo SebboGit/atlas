@@ -118,7 +118,7 @@ type HeroSegment = {
   // window (ADR-0008). Defaults to false in the insert mapping.
   needsReview?: boolean;
   /** Lat/lng the geocode cache should return for this segment's query. */
-  pin?: { lat: number; lng: number };
+  pin?: { lat: number; lng: number; city?: string };
 };
 
 const HERO_SEGMENTS: HeroSegment[] = [
@@ -157,7 +157,7 @@ const HERO_SEGMENTS: HeroSegment[] = [
     endsAt: d(2025, 10, 7),
     locationName: 'Chiyoda',
     countryCode: 'JP',
-    pin: { lat: 35.6968, lng: 139.7536 },
+    pin: { lat: 35.6968, lng: 139.7536, city: 'Chiyoda' },
   },
   {
     type: 'activity',
@@ -165,7 +165,7 @@ const HERO_SEGMENTS: HeroSegment[] = [
     startsAt: d(2025, 10, 5, 7),
     locationName: 'Asakusa',
     countryCode: 'JP',
-    pin: { lat: 35.7148, lng: 139.7967 },
+    pin: { lat: 35.7148, lng: 139.7967, city: 'Taitō' },
   },
   {
     type: 'activity',
@@ -173,7 +173,7 @@ const HERO_SEGMENTS: HeroSegment[] = [
     startsAt: d(2025, 10, 6, 10),
     locationName: 'Toyosu',
     countryCode: 'JP',
-    pin: { lat: 35.6499, lng: 139.7906 },
+    pin: { lat: 35.6499, lng: 139.7906, city: 'Kōtō' },
   },
   // Ungeocoded edge case: an activity at a friend's place with no
   // public address. Its geocode query nulls in the cache (see
@@ -748,6 +748,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         lat: seg.pin.lat,
         lng: seg.pin.lng,
         displayName: query,
+        city: seg.pin.city ?? null,
         source: 'nominatim',
         expiresAt: positiveExpiresAt,
       })
@@ -757,6 +758,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
           lat: seg.pin.lat,
           lng: seg.pin.lng,
           displayName: query,
+          city: seg.pin.city ?? null,
           expiresAt: positiveExpiresAt,
         },
       });

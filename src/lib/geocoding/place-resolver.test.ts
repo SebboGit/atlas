@@ -11,7 +11,10 @@ import type {
 
 function deps(opts?: {
   forward?: (q: string) => Promise<GeocodeResult | null>;
-  reverse?: (lat: number, lng: number) => Promise<string | null>;
+  reverse?: (
+    lat: number,
+    lng: number,
+  ) => Promise<{ displayName: string; city: string | null } | null>;
 }) {
   const forwardSpy = vi.fn(opts?.forward ?? (async () => null));
   const reverseSpy = vi.fn(opts?.reverse ?? (async () => null));
@@ -39,7 +42,7 @@ describe('PlaceResolver — non-Plus-Code passthrough', () => {
 describe('PlaceResolver — full Plus Code', () => {
   it('decodes offline and reverse-geocodes for the display name', async () => {
     const { resolver, forwardSpy, reverseSpy } = deps({
-      reverse: async () => 'Tokyo Tower, Minato City, Japan',
+      reverse: async () => ({ displayName: 'Tokyo Tower, Minato City, Japan', city: 'Minato' }),
     });
 
     const result = await resolver.geocode('8Q7XMPWG+5V');
@@ -76,7 +79,10 @@ describe('PlaceResolver — local Plus Code', () => {
   it('geocodes the anchor, lifts to a full code, then reverse-geocodes', async () => {
     const { resolver, forwardSpy, reverseSpy } = deps({
       forward: async () => ({ lat: 35.65, lng: 139.74, displayName: 'Minato City, Tokyo' }),
-      reverse: async () => 'Recovered Place, Minato City, Tokyo, Japan',
+      reverse: async () => ({
+        displayName: 'Recovered Place, Minato City, Tokyo, Japan',
+        city: 'Minato',
+      }),
     });
 
     const result = await resolver.geocode('MP7J+CV Minato City, Tokyo');

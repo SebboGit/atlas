@@ -32,9 +32,58 @@
  * addresses, where the structure tells us we're processing an
  * address rather than a search target.
  */
+// PDF text extraction emits one item per positioned glyph run, and
+// Vietnamese fonts position each diacritic letter as its own run — so
+// "Nguyễn" arrives as "Nguy ễ n", "Quận" as "Qu ậ n" (seen verbatim in
+// extracted booking addresses). Those orphaned letters poison
+// geocoder matching: three meaningless tokens instead of one word.
+// Rejoin them. Deliberately narrow so real text survives:
+//   - the orphan is a single NON-ASCII letter,
+//   - the left fragment is short (≤4 letters — the split always lands
+//     inside a syllable, and Vietnamese pre-vowel onsets max out at 4),
+//   - the right side is consumed only when it looks like a syllable
+//     coda (1–3 lowercase letters ending the word).
+// "Chemin à Gauche" (a real single-letter French word between full
+// words) stays untouched: "Chemin" exceeds the left-fragment bound.
+// The orphan must be a STANDALONE token: either a syllable coda
+// follows (consumed into the word) or the orphan itself ends at a
+// boundary. Without the second lookahead, a clean word like "Ông"
+// after a rejoined "Cầu" would donate its capital as a fake orphan
+// on the next iteration and the space between the words would vanish.
+const SPLIT_DIACRITIC_RE =
+  /(^|[\s,])(\p{L}{1,4}) ((?![a-zA-Z])\p{L})(?: (\p{Ll}{1,3})(?=$|[\s,.;])|(?=$|[\s,.;]))/gu;
+
+// Genuine standalone Romance/Iberian single-letter words ("Prêt à
+// Manger", "é" in Portuguese). These only count as PDF-mangle orphans
+// when the left fragment is too short to be a real word (≤2 letters —
+// "Đ à Nẵng" repairs, "Prêt à Manger" survives).
+const STANDALONE_WORDS = new Set(['à', 'è', 'é', 'ô', 'ò', 'ì', 'ù']);
+
+export function rejoinSplitDiacritics(input: string): string {
+  let prev = input;
+  // A word can be split around more than one diacritic; iterate until
+  // stable with a hard cap so a pathological input can't loop.
+  for (let i = 0; i < 5; i += 1) {
+    const next = prev.replace(
+      SPLIT_DIACRITIC_RE,
+      (match, lead: string, left: string, orphan: string, coda: string | undefined) => {
+        // PDF glyph splitting is a Latin-script phenomenon here
+        // (Vietnamese). Cyrillic/Greek single-letter words (и, у, ο)
+        // are real words — never glue them.
+        if (!/\p{Script=Latin}/u.test(orphan)) return match;
+        if (STANDALONE_WORDS.has(orphan.toLowerCase()) && left.length > 2) return match;
+        return `${lead}${left}${orphan}${coda ?? ''}`;
+      },
+    );
+    if (next === prev) break;
+    prev = next;
+  }
+  return prev;
+}
+
 export function normalizeForGeocoder(input: string): string {
   const nfc = input.normalize('NFC');
-  const collapsed = nfc.replace(/\s+/g, ' ').trim();
+  const collapsed = rejoinSplitDiacritics(nfc.replace(/\s+/g, ' ').trim());
   if (collapsed === '') return '';
 
   // No commas → treat as a bare landmark / POI query. "Eiffel Tower",

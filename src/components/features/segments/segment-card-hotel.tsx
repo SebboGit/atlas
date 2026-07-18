@@ -5,6 +5,7 @@ import type { Segment } from '@/lib/segments';
 import { hotelDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { segmentCity } from './segment-city';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 
@@ -21,7 +22,7 @@ export function SegmentCardHotel({
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
   /** Cached coordinates, if any — drive the Plus Code badge + deep link. */
-  coords?: { lat: number; lng: number } | null;
+  coords?: { lat: number; lng: number; city?: string | null } | null;
 }) {
   const parse = hotelDataSchema.safeParse(segment.data);
   const propertyName = parse.success ? parse.data.propertyName : 'Hotel';
@@ -38,6 +39,7 @@ export function SegmentCardHotel({
   const subtitle = subtitleWithPlusCodeBadge({
     parts: [
       segment.locationName,
+      segmentCity(coords, segment.locationName),
       nights !== null ? `${nights} night${nights === 1 ? '' : 's'}` : null,
       roomType,
     ],

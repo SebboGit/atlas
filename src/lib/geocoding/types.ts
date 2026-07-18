@@ -21,6 +21,14 @@ export interface GeocodeResult {
    */
   displayName: string;
   /**
+   * Coarse locality for card display ("Shinjuku", "Ho Chi Minh City") —
+   * extracted from the provider's structured response, NOT parsed out
+   * of `displayName`. Null when the provider carried nothing usable.
+   * Persisted to `geocode_cache.city` so segment cards can say where a
+   * cryptically-named hotel actually is (#111).
+   */
+  city?: string | null;
+  /**
    * Which provider produced the result ("photon", "nominatim", …).
    * Diagnostic only — persisted to `geocode_cache.source` so hit-rate
    * questions ("is the fallback carrying the load?") are answerable
@@ -109,11 +117,12 @@ export interface GeocodeSearcher {
 }
 
 /**
- * Reverse lookup: coordinates → human-friendly place name. Used by the
- * Plus Code path so a decoded code carries an OSM `display_name` rather
- * than a synthesised label. Same no-throw / no-leak contract as
+ * Reverse lookup: coordinates → human-friendly place name + coarse
+ * locality. Used by the Plus Code path so a decoded code carries an
+ * OSM `display_name` (and a city for the card line, #111) rather than
+ * a synthesised label. Same no-throw / no-leak contract as
  * {@link Geocoder.geocode}. `null` covers every failure mode.
  */
 export interface ReverseGeocoder {
-  reverse(lat: number, lng: number): Promise<string | null>;
+  reverse(lat: number, lng: number): Promise<{ displayName: string; city: string | null } | null>;
 }

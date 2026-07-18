@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { normalizeForGeocoder } from './normalize-for-geocoder';
+import { normalizeForGeocoder, rejoinSplitDiacritics } from './normalize-for-geocoder';
 
 describe('normalizeForGeocoder', () => {
   describe('comma-less inputs (treated as landmark queries)', () => {
@@ -279,5 +279,55 @@ describe('normalizeForGeocoder', () => {
         expect(twice).toBe(once);
       }
     });
+  });
+});
+
+describe('rejoinSplitDiacritics — PDF glyph-split mangling', () => {
+  it('rejoins the real extracted Vietnamese address verbatim', () => {
+    // Captured from a real booking PDF: pdfjs emits each diacritic
+    // letter as its own positioned glyph run, splitting every word.
+    const mangled =
+      '6A/20 Nguy ễ n C ả nh Chân, C ầ u Ông Lãnh, Qu ậ n 1, H ồ Chí Minh, Vi ệ t Nam';
+    expect(rejoinSplitDiacritics(mangled)).toBe(
+      '6A/20 Nguyễn Cảnh Chân, Cầu Ông Lãnh, Quận 1, Hồ Chí Minh, Việt Nam',
+    );
+  });
+
+  it('leaves a genuine single-letter accented word between full words alone', () => {
+    // "à" is a real French word — the left-fragment bound (≤4 letters)
+    // keeps it out of the rejoin.
+    expect(rejoinSplitDiacritics('Chemin à Gauche')).toBe('Chemin à Gauche');
+  });
+
+  it('leaves clean Vietnamese text untouched and is idempotent', () => {
+    const clean = 'Nguyễn Cảnh Chân, Quận 1, Hồ Chí Minh';
+    expect(rejoinSplitDiacritics(clean)).toBe(clean);
+    const once = rejoinSplitDiacritics('Vi ệ t Nam');
+    expect(rejoinSplitDiacritics(once)).toBe(once);
+  });
+
+  it('runs inside normalizeForGeocoder before the address rules', () => {
+    expect(normalizeForGeocoder('Nguy ễ n C ả nh Chân, Qu ậ n 1')).toBe('Nguyễn Cảnh Chân, Quận 1');
+  });
+});
+
+describe('rejoinSplitDiacritics — false-positive guards (review findings)', () => {
+  it('leaves Romance venue names with standalone accented words alone', () => {
+    for (const name of ['Prêt à Manger', 'Pied à Terre', 'Côte à Côte', 'Thé à la menthe']) {
+      expect(rejoinSplitDiacritics(name)).toBe(name);
+    }
+  });
+
+  it('never touches Cyrillic or Greek single-letter words', () => {
+    expect(rejoinSplitDiacritics('Кафе и бар')).toBe('Кафе и бар');
+    expect(rejoinSplitDiacritics('Бар у моста')).toBe('Бар у моста');
+    expect(rejoinSplitDiacritics('Καφέ ο Νίκος')).toBe('Καφέ ο Νίκος');
+  });
+
+  it('still repairs Vietnamese words that use the shared accents', () => {
+    // "à" is in the standalone-word set, but a ≤2-letter left fragment
+    // marks it as a mangle orphan, not a French preposition.
+    expect(rejoinSplitDiacritics('Đ à Nẵng')).toBe('Đà Nẵng');
+    expect(rejoinSplitDiacritics('Tr à Vinh')).toBe('Trà Vinh');
   });
 });

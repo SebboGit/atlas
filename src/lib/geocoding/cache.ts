@@ -80,6 +80,7 @@ export async function getCachedOrFetch(
       lat: fresh?.lat ?? null,
       lng: fresh?.lng ?? null,
       displayName: fresh?.displayName ?? null,
+      city: fresh?.city ?? null,
       source,
       fetchedAt: current,
       expiresAt,
@@ -90,6 +91,7 @@ export async function getCachedOrFetch(
         lat: fresh?.lat ?? null,
         lng: fresh?.lng ?? null,
         displayName: fresh?.displayName ?? null,
+        city: fresh?.city ?? null,
         source,
         fetchedAt: current,
         expiresAt,
@@ -160,9 +162,10 @@ function rowToResult(row: {
   lat: number | null;
   lng: number | null;
   displayName: string | null;
+  city: string | null;
 }): GeocodeResult | null {
   if (row.lat === null || row.lng === null || row.displayName === null) return null;
-  return { lat: row.lat, lng: row.lng, displayName: row.displayName };
+  return { lat: row.lat, lng: row.lng, displayName: row.displayName, city: row.city };
 }
 
 // Exposed for tests + internal callers that already hold a normalized key.

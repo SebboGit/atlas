@@ -5,6 +5,7 @@ import type { Segment } from '@/lib/segments';
 import { activityDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { segmentCity } from './segment-city';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 import { SegmentTimeMeta } from './segment-time-meta';
@@ -18,7 +19,7 @@ export function SegmentCardActivity({
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
   /** Cached coordinates, if any — drive the Plus Code badge + deep link. */
-  coords?: { lat: number; lng: number } | null;
+  coords?: { lat: number; lng: number; city?: string | null } | null;
   /**
    * On the flat Activities tab the card carries its own date (no
    * day-group header there); the itinerary leaves it off. See
@@ -38,7 +39,7 @@ export function SegmentCardActivity({
   );
 
   const subtitle = subtitleWithPlusCodeBadge({
-    parts: [segment.locationName, description],
+    parts: [segment.locationName, segmentCity(coords, segment.locationName), description],
     coords,
     venue: title,
   });

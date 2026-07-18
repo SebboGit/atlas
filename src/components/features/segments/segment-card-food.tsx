@@ -5,6 +5,7 @@ import type { Segment } from '@/lib/segments';
 import { foodDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
+import { segmentCity } from './segment-city';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 import { SegmentTimeMeta } from './segment-time-meta';
@@ -34,7 +35,7 @@ export function SegmentCardFood({
   segment: Segment;
   linkedDocuments?: LinkedDocument[];
   /** Cached coordinates, if any — drive the Plus Code badge + deep link. */
-  coords?: { lat: number; lng: number } | null;
+  coords?: { lat: number; lng: number; city?: string | null } | null;
   /**
    * On the flat Food tab the card carries its own date (no day-group
    * header there); the itinerary leaves it off. See SegmentTimeMeta.
@@ -54,7 +55,7 @@ export function SegmentCardFood({
 
   const subtitleText = foodCardSubtitle({ address, locationName: segment.locationName });
   const subtitle = subtitleWithPlusCodeBadge({
-    parts: [subtitleText],
+    parts: [subtitleText, segmentCity(coords, subtitleText ?? segment.locationName)],
     coords,
     venue: title,
   });
