@@ -139,8 +139,9 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
     // the pin lands on it offline. If encode somehow fails (non-finite
     // coords — shouldn't happen, the searcher validates), CLEAR any
     // existing plusCode so a stale value (a prior pick / prefill) can't
-    // win precedence over the address we just set — the segment then
-    // falls back to geocoding the new address.
+    // win precedence over the fields we just set — the segment then
+    // falls back to the free-text query (name-first for hotels/food
+    // since ADR-0018; address only for name-less rows).
     const code = encodePlusCode(candidate.lat, candidate.lng, PICK_CODE_LENGTH);
     form.setValue('data.plusCode' as never, (code ?? '') as never, {
       shouldDirty: true,

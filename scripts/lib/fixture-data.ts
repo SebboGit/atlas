@@ -36,7 +36,6 @@ import {
 } from '../../src/db/schema';
 import { ISO_COUNTRIES } from '../../src/lib/countries/data';
 import { normalizeQuery } from '../../src/lib/geocoding/normalize';
-import { normalizeForGeocoder } from '../../src/lib/geocoding/normalize-for-geocoder';
 import { buildGeocodeQuery } from '../../src/lib/geocoding/segment-query';
 
 export const FIXTURE_SUB = 'screenshot-fixture-user';
@@ -556,6 +555,7 @@ function queryForHeroSegment(seg: HeroSegment): string | null {
     type: seg.type,
     data: seg.data,
     locationName: seg.locationName ?? null,
+    countryCode: seg.countryCode ?? null,
   });
 }
 
@@ -744,7 +744,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(normalizeForGeocoder(query)),
+        queryNormalized: normalizeQuery(query),
         lat: seg.pin.lat,
         lng: seg.pin.lng,
         displayName: query,
@@ -765,7 +765,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(normalizeForGeocoder(nullQuery)),
+        queryNormalized: normalizeQuery(nullQuery),
         lat: null,
         lng: null,
         displayName: null,
@@ -928,12 +928,13 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
       type: item.type,
       data: item.data,
       locationName: item.locationName ?? null,
+      countryCode: item.countryCode ?? null,
     });
     if (!query) continue;
     await db
       .insert(geocodeCache)
       .values({
-        queryNormalized: normalizeQuery(normalizeForGeocoder(query)),
+        queryNormalized: normalizeQuery(query),
         lat: pin.lat,
         lng: pin.lng,
         displayName: query,

@@ -20,6 +20,14 @@ export interface GeocodeResult {
    * result look identical to the user without this.
    */
   displayName: string;
+  /**
+   * Which provider produced the result ("photon", "nominatim", …).
+   * Diagnostic only — persisted to `geocode_cache.source` so hit-rate
+   * questions ("is the fallback carrying the load?") are answerable
+   * from the table. Optional: implementations that predate the ladder
+   * omit it and the cache records their historical default.
+   */
+  source?: string;
 }
 
 export interface Geocoder {

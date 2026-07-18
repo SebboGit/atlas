@@ -127,7 +127,25 @@ describe('geocodeOnSegmentChange — update path', () => {
     expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 
-  it('enqueues when the address changes', () => {
+  it('enqueues when the property name changes', () => {
+    // Name-first (ADR-0018): the derived query is built from the
+    // propertyName, so that's the field whose change re-geocodes.
+    const before = makeSegment({
+      type: 'hotel',
+      data: { propertyName: 'Hotel California', address: '1 Sunset Blvd' },
+    });
+    const after = makeSegment({
+      type: 'hotel',
+      data: { propertyName: 'Hotel Kariforunia', address: '1 Sunset Blvd' },
+    });
+    geocodeOnSegmentChange({ segment: after, prior: before });
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT re-enqueue when only the address changes under a stable name', () => {
+    // Consequence of name-first: the address is informational once a
+    // name is on file. Wrong-pin fixes go through the Plus Code field
+    // or the address picker, not address edits.
     const before = makeSegment({
       type: 'hotel',
       data: { propertyName: 'Hotel California', address: '1 Sunset Blvd' },
@@ -137,7 +155,7 @@ describe('geocodeOnSegmentChange — update path', () => {
       data: { propertyName: 'Hotel California', address: '2 Sunset Blvd' },
     });
     geocodeOnSegmentChange({ segment: after, prior: before });
-    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 
   it('enqueues when an activity transitions from missing title to having one', () => {

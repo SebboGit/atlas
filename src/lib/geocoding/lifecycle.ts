@@ -25,7 +25,6 @@ import type { Segment } from '@/lib/segments';
 import { getCachedOrFetch } from './cache';
 import { getGeocoder } from './index';
 import { normalizeQuery } from './normalize';
-import { normalizeForGeocoder } from './normalize-for-geocoder';
 import { buildGeocodeQuery } from './segment-query';
 
 export const GEOCODE_FETCH_JOB = 'geocode-fetch';
@@ -53,17 +52,17 @@ export interface GeocodeOnSegmentChangeArgs {
  * provider down, no result) surface as log lines, not exceptions.
  */
 export function geocodeOnSegmentChange(args: GeocodeOnSegmentChangeArgs): void {
-  const rawNext = buildGeocodeQuery(args.segment);
-  if (rawNext === null || rawNext.trim() === '') return;
-  const nextQuery = normalizeForGeocoder(rawNext);
-  if (nextQuery === '') return;
+  // buildGeocodeQuery output is geocoder-ready (ADR-0018): address
+  // branches are noise-stripped inside it, name branches deliberately
+  // are not — re-applying normalizeForGeocoder here would delete
+  // tokens from number-branded venue names ("Room 39, Bangkok").
+  const nextQuery = buildGeocodeQuery(args.segment);
+  if (nextQuery === null || nextQuery === '') return;
 
   if (args.prior) {
-    const rawPrior = buildGeocodeQuery(args.prior);
-    // Compare normalised forms — an edit that only changed a postcode
-    // or floor designator shouldn't refire a fetch since the cache key
-    // is unchanged.
-    const priorQuery = rawPrior === null ? null : normalizeForGeocoder(rawPrior);
+    // An edit that didn't change the derived query (e.g. a date, or a
+    // postcode inside an address the normalizer strips) is a no-op.
+    const priorQuery = buildGeocodeQuery(args.prior);
     if (priorQuery === nextQuery) return;
   }
 
@@ -110,12 +109,12 @@ export function enqueueGeocodeFetch(query: string): void {
  * with the no-throw contract `getCachedOrFetch` provides.
  */
 export async function runGeocodeFetchJob(data: GeocodeFetchJobData): Promise<void> {
-  // Defensive normalize: callers enqueue normalized queries today, but
-  // a job queued before this rollout (or by any future caller that
-  // forgets the convention) lands here as raw text. Normalize again
-  // so the cache key and the geocoder input always reflect the same
-  // shape the read side computes. Idempotent.
-  const query = normalizeForGeocoder(data.query.trim());
+  // The enqueued query is geocoder-ready from buildGeocodeQuery — do
+  // NOT re-apply normalizeForGeocoder here: it is address-shaped
+  // stripping, and running it over a name-first query would delete
+  // name tokens ("Room 39, Bangkok" → "Bangkok") and fork the cache
+  // key away from what the read side computes (ADR-0018).
+  const query = data.query.trim();
   if (query === '') return;
   let geocoder;
   try {
