@@ -62,6 +62,7 @@ describe('NominatimGeocoder.geocode', () => {
       lat: 48.8588443,
       lng: 2.2943506,
       displayName: 'Eiffel Tower, Paris, France',
+      city: null,
       source: 'nominatim',
     });
     expect(calls).toHaveLength(1);
@@ -156,7 +157,13 @@ describe('NominatimGeocoder.geocode', () => {
     const geocoder = makeGeocoder({ fetchImpl });
 
     const result = await geocoder.geocode('anywhere');
-    expect(result).toEqual({ lat: 1.5, lng: -2.5, displayName: 'somewhere', source: 'nominatim' });
+    expect(result).toEqual({
+      lat: 1.5,
+      lng: -2.5,
+      displayName: 'somewhere',
+      city: null,
+      source: 'nominatim',
+    });
   });
 });
 
@@ -383,13 +390,17 @@ describe('NominatimGeocoder.reverse', () => {
           lat: '35.6762',
           lon: '139.6503',
           display_name: 'Tokyo Tower, 4 Chome-2-8 Shibakoen, Minato City, Tokyo, Japan',
+          address: { city: 'Minato City', state: 'Tokyo' },
         }),
     ]);
     const geocoder = makeGeocoder({ fetchImpl });
 
     const result = await geocoder.reverse(35.6762, 139.6503);
 
-    expect(result).toBe('Tokyo Tower, 4 Chome-2-8 Shibakoen, Minato City, Tokyo, Japan');
+    expect(result).toEqual({
+      displayName: 'Tokyo Tower, 4 Chome-2-8 Shibakoen, Minato City, Tokyo, Japan',
+      city: 'Minato City',
+    });
     expect(calls).toHaveLength(1);
     expect(calls[0]!.url).toContain('/reverse?');
     expect(calls[0]!.url).toContain('lat=35.6762');

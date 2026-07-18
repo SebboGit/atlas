@@ -134,6 +134,13 @@
       "when": 1784288760017,
       "tag": "0018_nifty_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784391735807,
+      "tag": "0019_spotty_mole_man",
+      "breakpoints": true
     }
   ]
 }

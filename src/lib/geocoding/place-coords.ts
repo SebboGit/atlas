@@ -14,26 +14,35 @@ import { normalizeQuery } from './normalize';
 import { decodePlusCode, tryParsePlusCode } from './plus-code';
 import { buildGeocodeQuery, type PlaceLike } from './segment-query';
 
+/** Coordinates + coarse locality for one resolved place. `city` is
+ * null when the cache row predates the column or the provider carried
+ * nothing usable — the card simply omits its city line then (#111). */
+export interface PlaceCoords {
+  lat: number;
+  lng: number;
+  city: string | null;
+}
+
 /**
- * Resolve a list of places to a map of `id → { lat, lng }`. Places with
- * no geocodable identity (e.g. a transit segment with no destination, a
- * note, a flight) are absent from the result map. Cache misses (the
- * worker hasn't filled the row yet) and explicit null results
- * (Nominatim returned nothing) are also absent — the caller treats
- * absence as "no badge to draw."
+ * Resolve a list of places to a map of `id → { lat, lng, city }`.
+ * Places with no geocodable identity (e.g. a transit segment with no
+ * destination, a note, a flight) are absent from the result map. Cache
+ * misses (the worker hasn't filled the row yet) and explicit null
+ * results (the geocoder returned nothing) are also absent — the caller
+ * treats absence as "no badge to draw."
  *
  * Single DB round-trip regardless of input size.
  */
 export async function getPlaceCoordsMap(
   places: ReadonlyArray<PlaceLike & { id: string }>,
-): Promise<Map<string, { lat: number; lng: number }>> {
+): Promise<Map<string, PlaceCoords>> {
   const view = await getPlaceCoordsView(places);
   return view.coordsById;
 }
 
 export interface PlaceCoordsView {
-  /** Resolved id → { lat, lng } map. Same shape `getPlaceCoordsMap` returns. */
-  coordsById: Map<string, { lat: number; lng: number }>;
+  /** Resolved id → { lat, lng, city } map. Same shape `getPlaceCoordsMap` returns. */
+  coordsById: Map<string, PlaceCoords>;
   /**
    * Count of geocodable places whose cache row is a miss (worker
    * hasn't filled yet). Drives the client-side router-refresh poll
@@ -55,8 +64,11 @@ export interface PlaceCoordsView {
 export async function getPlaceCoordsView(
   places: ReadonlyArray<PlaceLike & { id: string }>,
 ): Promise<PlaceCoordsView> {
-  const coordsById = new Map<string, { lat: number; lng: number }>();
+  const coordsById = new Map<string, PlaceCoords>();
   const queries: { id: string; key: string }[] = [];
+  // Full Plus Codes decoded offline this render — their cache row (the
+  // background reverse-geocode) may still supply the city line below.
+  const offlineDecoded = new Set<string>();
   for (const place of places) {
     const raw = buildGeocodeQuery(place);
     if (raw === null) continue;
@@ -70,8 +82,13 @@ export async function getPlaceCoordsView(
     if (parsed?.kind === 'full') {
       const coords = decodePlusCode(parsed.code);
       if (coords) {
-        coordsById.set(place.id, coords);
-        continue;
+        coordsById.set(place.id, { ...coords, city: null });
+        offlineDecoded.add(place.id);
+        // Fall through to the cache lookup anyway: the worker's
+        // reverse-geocode row carries the city (#111). A miss there
+        // never counts toward pendingCount — the coords are already
+        // final, the city is a nice-to-have that appears once the
+        // lifecycle job lands.
       }
     }
     const key = raw;
@@ -85,9 +102,22 @@ export async function getPlaceCoordsView(
   for (const { id, key } of queries) {
     const cached = cache.get(normalizeQuery(key));
     if (cached?.kind === 'hit') {
-      coordsById.set(id, { lat: cached.result.lat, lng: cached.result.lng });
+      if (offlineDecoded.has(id)) {
+        // Offline-decoded coords stay authoritative — the cache row
+        // (the worker's reverse geocode of the same code) contributes
+        // only the city line.
+        const existing = coordsById.get(id)!;
+        coordsById.set(id, { ...existing, city: cached.result.city ?? null });
+      } else {
+        coordsById.set(id, {
+          lat: cached.result.lat,
+          lng: cached.result.lng,
+          city: cached.result.city ?? null,
+        });
+      }
       continue;
     }
+    if (offlineDecoded.has(id)) continue;
     if (cached?.kind === 'miss' || cached === undefined) {
       // No cache row at all — the worker hasn't fired yet (just-saved
       // segment) or hasn't completed (in-flight job). Worth polling.

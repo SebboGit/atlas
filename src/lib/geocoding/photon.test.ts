@@ -75,6 +75,7 @@ describe('PhotonGeocoder.geocode', () => {
       lat: 35.6895,
       lng: 139.6917,
       displayName: 'Park Hyatt Tokyo, Nishishinjuku, Shinjuku, Tokyo, Japan',
+      city: 'Shinjuku',
       source: 'photon',
     });
     expect(calls).toHaveLength(1);

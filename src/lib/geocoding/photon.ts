@@ -268,7 +268,11 @@ function featureToResult(feature: PhotonFeature): GeocodeResult | null {
   const props = feature.properties ?? {};
   const displayName = synthesizeDisplayName(props);
   if (coords === null || displayName === null) return null;
-  return { lat: coords.lat, lng: coords.lng, displayName, source: 'photon' };
+  // City for the card line (#111): the city proper, else the district
+  // (Tokyo wards arrive as city already), else the state as the
+  // coarsest still-useful locality.
+  const city = str(props.city) ?? str(props.district) ?? str(props.state);
+  return { lat: coords.lat, lng: coords.lng, displayName, city, source: 'photon' };
 }
 
 function featureToCandidate(feature: PhotonFeature): GeocodeCandidate | null {

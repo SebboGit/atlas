@@ -53,12 +53,14 @@ import {
   type SegmentType,
 } from '@/lib/segments';
 
-import { normalizeForGeocoder } from './normalize-for-geocoder';
+import { normalizeForGeocoder, rejoinSplitDiacritics } from './normalize-for-geocoder';
 
 // The cleanup half of `normalizeForGeocoder` without the address-noise
 // stripping — for strings whose tokens are the search target itself.
+// Diacritic rejoining applies to names too: a propertyName extracted
+// from the same PDF carries the same glyph-split mangling.
 function cleanNameQuery(s: string): string {
-  return s.normalize('NFC').replace(/\s+/g, ' ').trim();
+  return rejoinSplitDiacritics(s.normalize('NFC').replace(/\s+/g, ' ').trim());
 }
 
 /**

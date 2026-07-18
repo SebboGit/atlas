@@ -1,0 +1,1 @@
+ALTER TABLE "geocode_cache" ADD COLUMN "city" text;

@@ -402,6 +402,16 @@ describe('buildGeocodeQuery — name protection vs address stripping (ADR-0018 r
     );
     expect(q).toBe('1-1-83 Simorenjaku, Mitaka, Tokyo');
   });
+  it('rejoins PDF-mangled diacritics in extracted names', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'hotel',
+        countryCode: 'VN',
+        data: { propertyName: 'Amana Living Nguy ễ n C ả nh Chân' },
+      }),
+    );
+    expect(q).toBe('Amana Living Nguyễn Cảnh Chân, Vietnam');
+  });
 });
 
 describe('buildGeocodeQuery — flight and note', () => {

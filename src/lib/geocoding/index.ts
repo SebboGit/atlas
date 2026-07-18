@@ -47,7 +47,7 @@ export { buildGeocodeQuery } from './segment-query';
 
 export { getPlaceCoordsMap, getPlaceCoordsView, type PlaceCoordsView } from './place-coords';
 
-export { normalizeForGeocoder } from './normalize-for-geocoder';
+export { normalizeForGeocoder, rejoinSplitDiacritics } from './normalize-for-geocoder';
 
 export { getGeocodeWorkerStatus, type GeocodeWorkerStatus } from './worker-health';
 

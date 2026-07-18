@@ -105,15 +105,17 @@ export class PlaceResolver implements Geocoder, GeocodeSearcher {
     }
 
     // Reverse-geocode at the decoded coords for an OSM-canonical
-    // display name. A null here doesn't sink the result — we keep the
-    // coords (they're correct) and synthesise a label so the cache row
-    // parses to a usable GeocodeResult.
-    const displayName = await this.deps.reverse.reverse(coords.lat, coords.lng);
+    // display name (and a city for the card line, #111). A null here
+    // doesn't sink the result — we keep the coords (they're correct)
+    // and synthesise a label so the cache row parses to a usable
+    // GeocodeResult.
+    const reversed = await this.deps.reverse.reverse(coords.lat, coords.lng);
 
     return {
       lat: coords.lat,
       lng: coords.lng,
-      displayName: displayName ?? `Plus Code ${fullCode}`,
+      displayName: reversed?.displayName ?? `Plus Code ${fullCode}`,
+      city: reversed?.city ?? null,
       // Provenance for geocode_cache.source (ADR-0018): these rows
       // came from offline decode, not from either free-text provider.
       source: 'plus-code',

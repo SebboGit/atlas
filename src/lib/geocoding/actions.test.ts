@@ -114,13 +114,13 @@ describe('searchPlaceCandidatesAction — result shaping & guards', () => {
     const c = candidate({ name: 'Place A' });
     search.mockResolvedValue([c]);
     const result = await searchPlaceCandidatesAction({ type: 'hotel', name: 'Place A' });
-    expect(result).toEqual({ ok: true, candidates: [c] });
+    expect(result).toEqual({ ok: true, candidates: [c], via: 'name' });
   });
 
   it('returns an empty list (still ok) when nothing matches', async () => {
     search.mockResolvedValue([]);
     const result = await searchPlaceCandidatesAction({ type: 'hotel', name: 'jdkslajd' });
-    expect(result).toEqual({ ok: true, candidates: [] });
+    expect(result).toEqual({ ok: true, candidates: [], via: 'name' });
   });
 
   it('rejects an unknown type without calling the geocoder', async () => {
@@ -149,5 +149,88 @@ describe('searchPlaceCandidatesAction — result shaping & guards', () => {
       'UNAUTHORIZED',
     );
     expect(search).not.toHaveBeenCalled();
+  });
+});
+
+describe('address fallback rung (ADR-0018 coverage gap)', () => {
+  const MANGLED_ADDRESS =
+    '6A/20 Nguy ễ n C ả nh Chân, C ầ u Ông Lãnh, Qu ậ n 1, H ồ Chí Minh, Vi ệ t Nam';
+
+  it('does not touch the address when the name search hits', async () => {
+    const c = candidate();
+    search.mockResolvedValueOnce([c]);
+
+    const result = await searchPlaceCandidatesAction({
+      type: 'hotel',
+      name: 'Park Hyatt Tokyo',
+      address: MANGLED_ADDRESS,
+    });
+
+    expect(result).toEqual({ ok: true, candidates: [c], via: 'name' });
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the normalized address when the name finds nothing', async () => {
+    const street = candidate({ name: 'Phố Nguyễn Cảnh Chân' });
+    search.mockResolvedValueOnce([]).mockResolvedValueOnce([street]);
+
+    const result = await searchPlaceCandidatesAction({
+      type: 'hotel',
+      name: 'Amana Living - Nguyen Canh Chan',
+      address: MANGLED_ADDRESS,
+    });
+
+    expect(result).toEqual({ ok: true, candidates: [street], via: 'address' });
+    expect(search).toHaveBeenCalledTimes(2);
+    // The fallback query must be de-mangled: PDF glyph splitting
+    // ("Nguy ễ n") poisons matching if sent raw.
+    const fallbackQuery = search.mock.calls[1]![0];
+    expect(fallbackQuery).toContain('Nguyễn Cảnh Chân');
+    expect(fallbackQuery).toContain('Việt Nam');
+    expect(fallbackQuery).not.toContain('ễ ');
+  });
+
+  it('stays a clean empty result when the name misses and no address is on file', async () => {
+    search.mockResolvedValueOnce([]);
+
+    const result = await searchPlaceCandidatesAction({
+      type: 'hotel',
+      name: 'Nowhere Inn',
+    });
+
+    expect(result).toEqual({ ok: true, candidates: [], via: 'name' });
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('address fallback — head+tail truncation for long addresses', () => {
+  it('retries with street head + locality tail when the full address misses', async () => {
+    const street = candidate({ name: 'Nguyễn Cảnh Chân' });
+    // name miss, full-address miss, truncated hit
+    search.mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([street]);
+
+    const result = await searchPlaceCandidatesAction({
+      type: 'hotel',
+      name: 'Amana Living - Nguyen Canh Chan',
+      address:
+        '6A/20 Nguy ễ n C ả nh Chân, C ầ u Ông Lãnh, Amana Living, Stadtbezirk 1, Ho Chi Minh Stadt, Vietnam, 700000 Qu ậ n 1, H ồ Chí Minh, Vi ệ t Nam',
+    });
+
+    expect(result).toEqual({ ok: true, candidates: [street], via: 'address' });
+    expect(search).toHaveBeenCalledTimes(3);
+    expect(search.mock.calls[2]![0]).toBe('6A/20 Nguyễn Cảnh Chân, Hồ Chí Minh, Việt Nam');
+  });
+
+  it('does not fire a redundant retry for short addresses', async () => {
+    search.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    const result = await searchPlaceCandidatesAction({
+      type: 'hotel',
+      name: 'Nowhere Inn',
+      address: 'Somestreet 5, Springfield',
+    });
+
+    expect(result).toEqual({ ok: true, candidates: [], via: 'address' });
+    expect(search).toHaveBeenCalledTimes(2);
   });
 });

@@ -19,6 +19,7 @@ interface FakeRow {
   source: string;
   fetchedAt: Date;
   expiresAt: Date;
+  city?: string | null;
 }
 
 const dbState = vi.hoisted(() => ({
@@ -106,7 +107,32 @@ describe('getPlaceCoordsMap', () => {
       },
     ]);
 
-    expect(result.get('food-1')).toEqual({ lat: 35.6655, lng: 139.717 });
+    expect(result.get('food-1')).toEqual({ lat: 35.6655, lng: 139.717, city: null });
+  });
+
+  it('carries the cached city through to the coords map (#111)', async () => {
+    dbState.rows.push({
+      queryNormalized: 'narisawa',
+      lat: 35.6655,
+      lng: 139.717,
+      displayName: 'Narisawa, Minato, Tokyo, Japan',
+      city: 'Minato',
+      source: 'photon',
+      fetchedAt: new Date(),
+      expiresAt: FUTURE,
+    });
+
+    const result = await getPlaceCoordsMap([
+      {
+        id: 'food-1',
+        type: 'food',
+        data: { venue: 'Narisawa' },
+        locationName: null,
+        countryCode: null,
+      },
+    ]);
+
+    expect(result.get('food-1')).toEqual({ lat: 35.6655, lng: 139.717, city: 'Minato' });
   });
 
   it('prefers the Plus Code cache key when plusCode is set (address ignored as key)', async () => {
@@ -136,7 +162,7 @@ describe('getPlaceCoordsMap', () => {
       },
     ]);
 
-    expect(result.get('hotel-1')).toEqual({ lat: 35.6968, lng: 139.7536 });
+    expect(result.get('hotel-1')).toEqual({ lat: 35.6968, lng: 139.7536, city: null });
   });
 
   it('decodes a FULL Plus Code offline — coords present with no cache row, not pending', async () => {
@@ -314,8 +340,8 @@ describe('getPlaceCoordsMap', () => {
     ]);
 
     expect(result.size).toBe(2);
-    expect(result.get('food-1')).toEqual({ lat: 35.6655, lng: 139.717 });
-    expect(result.get('act-1')).toEqual({ lat: 35.7148, lng: 139.7967 });
+    expect(result.get('food-1')).toEqual({ lat: 35.6655, lng: 139.717, city: null });
+    expect(result.get('act-1')).toEqual({ lat: 35.7148, lng: 139.7967, city: null });
     expect(result.has('act-2')).toBe(false);
   });
 });
