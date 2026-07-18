@@ -48,7 +48,6 @@ interface PdfPage {
 interface PdfDocument {
   readonly numPages: number;
   getPage(pageNumber: number): Promise<PdfPage>;
-  destroy(): Promise<void>;
 }
 
 export class PdfTextExtractor implements TextExtractor {
@@ -103,7 +102,11 @@ export class PdfTextExtractor implements TextExtractor {
         }
         combined = pages.join('\n').trim();
       } finally {
-        await doc.destroy().catch(() => undefined);
+        // Tear down via the loading task, not the document proxy:
+        // pdfjs-dist 6 removed PDFDocumentProxy.destroy ([api-major]),
+        // and loadingTask.destroy() has been the canonical cleanup in
+        // v5 too — it destroys the document AND the fake worker.
+        await loadingTask.destroy().catch(() => undefined);
       }
 
       if (combined.length < MIN_USEFUL_CHARS) {
