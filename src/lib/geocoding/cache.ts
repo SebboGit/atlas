@@ -43,8 +43,25 @@ export const CITY_BACKFILL_CUTOFF = new Date('2026-07-18T17:00:00Z');
 // checked), so the row doesn't re-enter the backfill loop forever.
 const CITY_NONE = '';
 
-function isCityPending(row: { lat: number | null; city: string | null; fetchedAt: Date }): boolean {
-  return row.lat !== null && ((row.city ?? null) === null || row.fetchedAt < CITY_BACKFILL_CUTOFF);
+/**
+ * Cooldown between backfill attempts for a row whose re-fetch FAILED
+ * (providers down / transient miss). The failure path bumps the row's
+ * `fetchedAt` without touching coords or city, which both takes the
+ * row past the cutoff and starts this clock — so an outage costs one
+ * provider round-trip per pending row per cooldown window, not one
+ * per render.
+ */
+export const CITY_RETRY_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+function isCityPending(
+  row: { lat: number | null; city: string | null; fetchedAt: Date },
+  now: Date,
+): boolean {
+  if (row.lat === null) return false;
+  if (row.fetchedAt < CITY_BACKFILL_CUTOFF) return true;
+  return (
+    (row.city ?? null) === null && row.fetchedAt.getTime() < now.getTime() - CITY_RETRY_COOLDOWN_MS
+  );
 }
 const HIT_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 const NULL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -84,7 +101,7 @@ export async function getCachedOrFetch(
     .where(eq(geocodeCache.queryNormalized, normalized))
     .limit(1);
 
-  if (row && row.expiresAt > current && !isCityPending(row)) {
+  if (row && row.expiresAt > current && !isCityPending(row, current)) {
     return { result: rowToResult(row), cached: true };
   }
 
@@ -98,6 +115,12 @@ export async function getCachedOrFetch(
   const fresh = await geocoder.geocode(query);
 
   if (fresh === null && livePositive) {
+    // Stamp the attempt so the retry cooldown starts (see
+    // CITY_RETRY_COOLDOWN_MS) — coords, city, and expiry untouched.
+    await db
+      .update(geocodeCache)
+      .set({ fetchedAt: current })
+      .where(eq(geocodeCache.queryNormalized, normalized));
     return { result: rowToResult(livePositive), cached: true };
   }
 
@@ -188,7 +211,11 @@ export async function getCachedMany(
     if (row.expiresAt <= current) continue;
     const result = rowToResult(row);
     if (result) {
-      out.set(row.queryNormalized, { kind: 'hit', result, cityPending: isCityPending(row) });
+      out.set(row.queryNormalized, {
+        kind: 'hit',
+        result,
+        cityPending: isCityPending(row, current),
+      });
     } else {
       out.set(row.queryNormalized, { kind: 'null', displayName: null });
     }

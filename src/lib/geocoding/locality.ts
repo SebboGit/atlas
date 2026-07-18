@@ -17,16 +17,13 @@
 // after "xã" can never match. Lookarounds on letters/digits do.
 const SUBCITY_RE = /(?<![\p{L}\p{N}])(?:ward|phường|xã|commune)(?![\p{L}\p{N}])/iu;
 
-const CLASSIFIER_PREFIXES = ['Thành phố ', 'Tỉnh ', 'Thị xã '];
+// Case-insensitive: OSM tag casing is inconsistent ("Thành Phố",
+// "thành phố"); /iu handles the Vietnamese letters correctly.
+const CLASSIFIER_PREFIX_RE = /^(?:thành phố|tỉnh|thị xã)\s+/iu;
 const CLASSIFIER_SUFFIX_RE = /\s+province$/iu;
 
 function cleanLocality(raw: string): string {
-  let s = raw.trim();
-  for (const prefix of CLASSIFIER_PREFIXES) {
-    if (s.startsWith(prefix)) s = s.slice(prefix.length);
-  }
-  s = s.replace(CLASSIFIER_SUFFIX_RE, '');
-  return s.trim();
+  return raw.trim().replace(CLASSIFIER_PREFIX_RE, '').replace(CLASSIFIER_SUFFIX_RE, '').trim();
 }
 
 export interface LocalityParts {

@@ -30,6 +30,12 @@ describe('chooseLocality', () => {
     expect(chooseLocality({ state: 'Tỉnh Ninh Bình' })).toBe('Ninh Bình');
   });
 
+  it('strips classifiers regardless of OSM tag casing', () => {
+    expect(chooseLocality({ city: 'Thành Phố Hà Nội' })).toBe('Hà Nội');
+    expect(chooseLocality({ city: 'thành phố Hà Nội' })).toBe('Hà Nội');
+    expect(chooseLocality({ state: 'TỈNH Ninh Bình' })).toBe('Ninh Bình');
+  });
+
   it('never strips an English "City" that is part of the name', () => {
     expect(chooseLocality({ city: 'Mexico City' })).toBe('Mexico City');
     expect(chooseLocality({ city: 'Quebec City' })).toBe('Quebec City');

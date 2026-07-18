@@ -95,10 +95,25 @@ vi.mock('@/db/client', () => {
     }),
   };
 
+  const updateChain = {
+    set: (patch: Partial<FakeRow>) => ({
+      where: () => {
+        const filter = dbState.pendingFilter;
+        dbState.pendingFilter = null;
+        if (filter?.kind === 'eq') {
+          const idx = dbState.rows.findIndex((r) => r.queryNormalized === filter.key);
+          if (idx >= 0) dbState.rows[idx] = { ...dbState.rows[idx]!, ...patch };
+        }
+        return Promise.resolve();
+      },
+    }),
+  };
+
   return {
     db: {
       select: () => selectChain,
       insert: () => insertChain,
+      update: () => updateChain,
     },
   };
 });
@@ -353,6 +368,57 @@ describe('city backfill (CITY_BACKFILL_CUTOFF)', () => {
     // Provider had no city → the row records '' (checked, none) so the
     // backfill terminates instead of re-fetching every view.
     expect(dbState.rows[0]!.city).toBe('');
+  });
+
+  it('a failed re-fetch starts the retry cooldown — no re-fetch until it lapses', async () => {
+    dbState.rows.push({
+      queryNormalized: 'harbor view inn',
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: null,
+      source: 'photon',
+      // Failed attempt stamped 1h ago (post-cutoff): inside the 6h
+      // cooldown, so the fresh row serves as a plain hit.
+      fetchedAt: new Date(NOW.getTime() - 60 * 60 * 1000),
+      expiresAt: FRESH_EXPIRY,
+    });
+    const g = fakeGeocoder([]);
+
+    const r = await getCachedOrFetch('harbor view inn', g, clock);
+
+    expect(g.calls).toHaveLength(0);
+    expect(r.cached).toBe(true);
+
+    const out = await getCachedMany(['harbor view inn'], clock);
+    const hit = out.get('harbor view inn');
+    if (hit?.kind === 'hit') expect(hit.cityPending).toBe(false);
+  });
+
+  it('retries the backfill after the cooldown lapses', async () => {
+    dbState.rows.push({
+      queryNormalized: 'harbor view inn',
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: null,
+      source: 'photon',
+      fetchedAt: new Date(NOW.getTime() - 7 * 60 * 60 * 1000),
+      expiresAt: FRESH_EXPIRY,
+    });
+    const fresh: GeocodeResult = {
+      lat: 10.7,
+      lng: 106.7,
+      displayName: 'Harbor View Inn',
+      city: 'Riverport City',
+      source: 'photon',
+    };
+    const g = fakeGeocoder([fresh]);
+
+    await getCachedOrFetch('harbor view inn', g, clock);
+
+    expect(g.calls).toHaveLength(1);
+    expect(dbState.rows[0]!.city).toBe('Riverport City');
   });
 
   it('a failed backfill re-fetch preserves the live positive row', async () => {
