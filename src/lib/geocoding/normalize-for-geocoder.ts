@@ -53,11 +53,12 @@
 const SPLIT_DIACRITIC_RE =
   /(^|[\s,])(\p{L}{1,4}) ((?![a-zA-Z])\p{L})(?: (\p{Ll}{1,3})(?=$|[\s,.;])|(?=$|[\s,.;]))/gu;
 
-// Genuine standalone Romance/Iberian single-letter words ("Prêt à
-// Manger", "é" in Portuguese). These only count as PDF-mangle orphans
-// when the left fragment is too short to be a real word (≤2 letters —
-// "Đ à Nẵng" repairs, "Prêt à Manger" survives).
-const STANDALONE_WORDS = new Set(['à', 'è', 'é', 'ô', 'ò', 'ì', 'ù']);
+// Genuine standalone single-letter words — Romance/Iberian ("Prêt à
+// Manger", "é" in Portuguese) and Vietnamese ("Nhà ở Huế" — ở means
+// "in/at"). These only count as PDF-mangle orphans when the left
+// fragment is too short to be a real word (≤2 letters), which is what
+// lets "Đ à Nẵng" and "Ph ở" still repair while the real words survive.
+const STANDALONE_WORDS = new Set(['à', 'è', 'é', 'ô', 'ò', 'ì', 'ù', 'ở']);
 
 export function rejoinSplitDiacritics(input: string): string {
   let prev = input;

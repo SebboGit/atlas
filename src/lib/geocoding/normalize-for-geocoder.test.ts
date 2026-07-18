@@ -331,3 +331,13 @@ describe('rejoinSplitDiacritics — false-positive guards (review findings)', ()
     expect(rejoinSplitDiacritics('Tr à Vinh')).toBe('Trà Vinh');
   });
 });
+
+describe('rejoinSplitDiacritics — standalone Vietnamese words (CodeRabbit)', () => {
+  it('preserves ở as a real word after a full word', () => {
+    expect(rejoinSplitDiacritics('Nhà ở Huế')).toBe('Nhà ở Huế');
+  });
+
+  it('still repairs ở as a mangle orphan after a short fragment', () => {
+    expect(rejoinSplitDiacritics('Ph ở Hà Nội')).toBe('Phở Hà Nội');
+  });
+});
