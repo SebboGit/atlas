@@ -64,10 +64,13 @@ describe('geocodeOnWishlistChange', () => {
     spy.mockRestore();
   });
 
-  it('re-enqueues when the address changes on update', () => {
+  it('re-enqueues when the venue changes on update', () => {
+    // Name-first (ADR-0018): the venue drives the query, so venue
+    // edits re-geocode; an added address under a stable venue no
+    // longer changes the derived query.
     const spy = vi.spyOn(geocoding, 'enqueueGeocodeFetch').mockImplementation(() => {});
     const prior = makeItem({ data: { venue: 'Ichiraku' } });
-    const next = makeItem({ data: { venue: 'Ichiraku', address: '1-2-3 Ginza' } });
+    const next = makeItem({ data: { venue: 'Ichiraku Honten' } });
     geocodeOnWishlistChange({ item: next, prior });
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
@@ -84,6 +87,7 @@ describe('buildGeocodeQuery — wishlist/segment cache sharing', () => {
       type: item.type,
       data: item.data,
       locationName: item.locationName,
+      countryCode: item.countryCode,
     });
     // Same shape as the materialised segment — verbatim data copy,
     // verbatim locationName, same type. Cache key must match.
@@ -91,6 +95,7 @@ describe('buildGeocodeQuery — wishlist/segment cache sharing', () => {
       type: 'food',
       data: item.data,
       locationName: item.locationName,
+      countryCode: item.countryCode,
     });
     expect(itemQuery).toBe(segmentQuery);
     expect(itemQuery).not.toBeNull();

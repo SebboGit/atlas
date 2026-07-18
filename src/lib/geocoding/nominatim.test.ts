@@ -62,6 +62,7 @@ describe('NominatimGeocoder.geocode', () => {
       lat: 48.8588443,
       lng: 2.2943506,
       displayName: 'Eiffel Tower, Paris, France',
+      source: 'nominatim',
     });
     expect(calls).toHaveLength(1);
     expect(calls[0]!.url).toContain('q=Eiffel+Tower');
@@ -155,7 +156,7 @@ describe('NominatimGeocoder.geocode', () => {
     const geocoder = makeGeocoder({ fetchImpl });
 
     const result = await geocoder.geocode('anywhere');
-    expect(result).toEqual({ lat: 1.5, lng: -2.5, displayName: 'somewhere' });
+    expect(result).toEqual({ lat: 1.5, lng: -2.5, displayName: 'somewhere', source: 'nominatim' });
   });
 });
 

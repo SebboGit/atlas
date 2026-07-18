@@ -153,7 +153,7 @@ export class NominatimGeocoder implements Geocoder, ReverseGeocoder, GeocodeSear
     }
 
     log.info({ queryHash, found: true }, 'geocoding.nominatim.ok');
-    return { lat, lng, displayName };
+    return { lat, lng, displayName, source: 'nominatim' };
   }
 
   /**

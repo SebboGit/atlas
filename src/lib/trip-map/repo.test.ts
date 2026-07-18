@@ -159,28 +159,23 @@ describe('getTripMapDataForUser — non-flight cache states', () => {
     expect(result.geocodeWorkerStatus).toBe('worker-down');
   });
 
-  it('chains buildGeocodeQuery → normalizeForGeocoder before cache lookup and enqueue', async () => {
-    // Regression guard: if a future change drops the normalizer from
-    // the read path, the cache key won't match what the lifecycle hook
-    // writes and the trip map will silently lose pins. Mock the
-    // normalizer as a non-identity mapper so a missed chain shows up
-    // as a wrong cache key / wrong enqueue payload.
+  it('uses buildGeocodeQuery output verbatim for cache lookup and enqueue (geocoder-ready, ADR-0018)', async () => {
+    // Regression guard: buildGeocodeQuery output is already
+    // geocoder-normalized. Re-applying normalizeForGeocoder on the
+    // read path would strip tokens from name-first queries ("Room 39,
+    // Bangkok" → "Bangkok") and fork the cache key away from what the
+    // lifecycle hook writes — the trip map would silently lose pins.
     dbState.rows = [makeHotel()];
-    geocodingMocks.buildGeocodeQuery.mockReturnValue('raw addr');
-    geocodingMocks.normalizeForGeocoder.mockImplementation((s) =>
-      s === 'raw addr' ? 'normalized addr' : s,
-    );
-    // Seed the cache miss under the normalized key — only a normalized
-    // lookup will find it.
+    geocodingMocks.buildGeocodeQuery.mockReturnValue('Room 39, Bangkok');
     geocodingMocks.getCachedMany.mockResolvedValue(
-      new Map([['normalized addr', { kind: 'miss' }]]),
+      new Map([['Room 39, Bangkok', { kind: 'miss' }]]),
     );
 
     await getTripMapDataForUser('user-1', 'trip-1');
 
-    expect(geocodingMocks.normalizeForGeocoder).toHaveBeenCalledWith('raw addr');
-    expect(geocodingMocks.getCachedMany).toHaveBeenCalledWith(['normalized addr']);
-    expect(geocodingMocks.enqueueGeocodeFetch).toHaveBeenCalledWith('normalized addr');
+    expect(geocodingMocks.normalizeForGeocoder).not.toHaveBeenCalled();
+    expect(geocodingMocks.getCachedMany).toHaveBeenCalledWith(['Room 39, Bangkok']);
+    expect(geocodingMocks.enqueueGeocodeFetch).toHaveBeenCalledWith('Room 39, Bangkok');
   });
 
   it('on cache null result: emits "couldn\'t find" and does NOT enqueue', async () => {

@@ -6,12 +6,7 @@ import { displayCarrier } from '@/lib/airlines';
 import { getAirportCoords } from '@/lib/airports';
 import { countryName } from '@/lib/countries';
 import { listManualVisitedCountriesForUser } from '@/lib/countries/repo';
-import {
-  buildGeocodeQuery,
-  getCachedMany,
-  normalizeForGeocoder,
-  normalizeQuery,
-} from '@/lib/geocoding';
+import { buildGeocodeQuery, getCachedMany, normalizeQuery } from '@/lib/geocoding';
 import { startOfDayUtc } from '@/lib/maintenance/status';
 import { flightDataSchema } from '@/lib/segments/validators';
 import { tripVisibleToViewer } from '@/lib/trips/repo';
@@ -248,7 +243,7 @@ async function resolveNonFlightPoints(segmentRows: SegmentRow[]): Promise<NonFli
   for (const seg of segmentRows) {
     if (seg.type === 'flight' || seg.type === 'note') continue;
     const raw = buildGeocodeQuery(seg);
-    const query = raw === null ? null : normalizeForGeocoder(raw);
+    const query = raw;
     if (!query) continue;
     pending.push({ label: nonFlightPointLabel(seg), query });
   }
