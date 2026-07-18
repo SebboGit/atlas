@@ -49,6 +49,10 @@ async function networkFirst(request, cacheName, fallbackUrl) {
   } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
+    // No fallbackUrl (the RSC branch): a real error response makes the
+    // router fall back to a hard navigation, which lands in the
+    // navigate branch above and gets the offline page properly.
+    if (!fallbackUrl) return Response.error();
     return (await caches.match(fallbackUrl)) ?? Response.error();
   }
 }
@@ -172,14 +176,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // RSC payloads (soft navigations + link prefetches). Caching these helps
-  // already-seen routes load offline. The Vary header keeps the RSC and HTML
-  // variants of a URL distinct, so this can't poison page loads — but Next
-  // also varies RSC on Next-Router-State-Tree (where you navigated from), so
-  // soft-nav offline is best-effort; full page loads (network-first above)
-  // are the reliable offline path.
+  // RSC payloads (soft navigations, link prefetches, and the refetches
+  // the router fires after a server action revalidates). These MUST be
+  // network-first: serving the cached copy first (the old
+  // stale-while-revalidate) meant every soft navigation showed
+  // last-seen data while online — a segment created by the background
+  // worker never appeared on its tab until a hard reload, and a
+  // post-action refetch could overwrite the action's fresh tree with
+  // the page-load-era payload (rename + Extract visibly "reverting").
+  // The cache write is purely the offline fallback for already-seen
+  // routes; the Vary header keeps RSC and HTML variants distinct, and
+  // offline soft-nav stays best-effort (full page loads are the
+  // reliable offline path).
   if (request.headers.has('RSC')) {
-    event.respondWith(staleWhileRevalidate(request, PAGES_CACHE));
+    event.respondWith(networkFirst(request, PAGES_CACHE, null));
     return;
   }
 
