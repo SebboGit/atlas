@@ -23,17 +23,29 @@ function makeSegment(overrides: Partial<Segment>): Segment {
 }
 
 describe('buildGeocodeQuery — hotel', () => {
-  it('uses address alone — propertyName is excluded to keep Nominatim happy', () => {
-    // Branded hotel names ("a long branded hotel name Managed By
-    // Another Brand") throw off Nominatim's left-to-right q-parser.
-    // The address is the reliable signal.
+  it('name-first: propertyName wins over the address (ADR-0018)', () => {
+    // The Photon → Nominatim ladder makes venue names the reliable
+    // signal; the address's building/floor tails are what used to
+    // null out. No locationName and no country on the row → the bare
+    // name is the whole query.
     const q = buildGeocodeQuery(
       makeSegment({
         type: 'hotel',
         data: { propertyName: 'Hotel California', address: '1 Sunset Blvd, Los Angeles' },
       }),
     );
-    expect(q).toBe('1 Sunset Blvd, Los Angeles');
+    expect(q).toBe('Hotel California');
+  });
+
+  it('appends the country name as context when the row has one but no locationName', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'hotel',
+        countryCode: 'US',
+        data: { propertyName: 'Hotel California', address: '1 Sunset Blvd, Los Angeles' },
+      }),
+    );
+    expect(q).toBe('Hotel California, United States');
   });
 
   it('falls back to propertyName when address is absent', () => {
@@ -53,20 +65,31 @@ describe('buildGeocodeQuery — hotel', () => {
     expect(q).toBe('Hotel California');
   });
 
-  it('ignores locationName entirely — locationName is the pin label, not the geocode source', () => {
-    // A user who entered "Shibuya" as the locationName for "Hotel
-    // Sakura, 1-2-3 Roppongi" should NOT see "Hotel Sakura, 1-2-3
-    // Roppongi, Shibuya" sent to Nominatim. The address is in the
-    // correct part of Tokyo already; locationName is purely the UI
-    // shorthand.
+  it('locationName beats the country as the context tail', () => {
+    // "Hotel Sakura, Shibuya" — the pin label is more specific than
+    // the country and wins; the address stays out of name queries.
     const q = buildGeocodeQuery(
       makeSegment({
         type: 'hotel',
         locationName: 'Shibuya',
+        countryCode: 'JP',
         data: { propertyName: 'Hotel Sakura', address: '1-2-3 Roppongi, Tokyo' },
       }),
     );
-    expect(q).toBe('1-2-3 Roppongi, Tokyo');
+    expect(q).toBe('Hotel Sakura, Shibuya');
+  });
+
+  it('returns null for a whitespace-only propertyName — the schema rejects it before any fallback', () => {
+    // hotelDataSchema requires a non-empty trimmed propertyName, so
+    // the in-code address fallback is defence-in-depth, not a live
+    // path: malformed data nulls out at the parse gate.
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'hotel',
+        data: { propertyName: '   ', address: '1 Sunset Blvd, Los Angeles' },
+      }),
+    );
+    expect(q).toBeNull();
   });
 
   it('returns null when data is malformed (missing propertyName)', () => {
@@ -103,6 +126,17 @@ describe('buildGeocodeQuery — activity', () => {
     expect(q).toBe('Mountain');
   });
 
+  it('appends the country name when the row has one but no locationName', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'activity',
+        countryCode: 'TH',
+        data: { title: 'Old Town' },
+      }),
+    );
+    expect(q).toBe('Old Town, Thailand');
+  });
+
   it('returns null when title is missing', () => {
     const q = buildGeocodeQuery(
       makeSegment({ type: 'activity', data: { description: 'no title here' } }),
@@ -112,22 +146,17 @@ describe('buildGeocodeQuery — activity', () => {
 });
 
 describe('buildGeocodeQuery — food', () => {
-  it('uses address alone when present — same address-first rule as hotels', () => {
-    // A restaurant address resolves far more reliably than a venue
-    // name, especially for chains or brand-y names. When the user (or
-    // the extractor) supplied an address, that wins outright.
+  it('name-first: venue wins over the address, same rule as hotels (ADR-0018)', () => {
     const q = buildGeocodeQuery(
       makeSegment({
         type: 'food',
         data: { venue: 'Narisawa', address: '2-6-15 Minami-Aoyama, Minato, Tokyo' },
       }),
     );
-    expect(q).toBe('2-6-15 Minami-Aoyama, Minato, Tokyo');
+    expect(q).toBe('Narisawa');
   });
 
-  it('uses address over venue + locationName when both are available', () => {
-    // Address-first means a present address suppresses the venue +
-    // locationName fallback entirely — mirroring the hotel case.
+  it('venue + locationName wins even when an address is on file', () => {
     const q = buildGeocodeQuery(
       makeSegment({
         type: 'food',
@@ -135,7 +164,18 @@ describe('buildGeocodeQuery — food', () => {
         data: { venue: 'Ippudo', address: '4-10-3 Ginza, Chuo, Tokyo' },
       }),
     );
-    expect(q).toBe('4-10-3 Ginza, Chuo, Tokyo');
+    expect(q).toBe('Ippudo, Ginza');
+  });
+
+  it('appends the country name when the row has one but no locationName', () => {
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        countryCode: 'JP',
+        data: { venue: 'Ippudo' },
+      }),
+    );
+    expect(q).toBe('Ippudo, Japan');
   });
 
   it('falls back to venue + locationName when address is whitespace-only', () => {
@@ -305,7 +345,62 @@ describe('buildGeocodeQuery — Plus Code precedence', () => {
         },
       }),
     );
-    expect(q).toBe('1 Sunset Blvd, Los Angeles');
+    expect(q).toBe('Hotel California');
+  });
+});
+
+describe('buildGeocodeQuery — name protection vs address stripping (ADR-0018 review)', () => {
+  it('never address-strips tokens from name-first queries', () => {
+    // "Room 39" is a real Bangkok venue; the address normalizer's
+    // unit-designator rule would reduce "Room 39, Bangkok" to
+    // "Bangkok" — a plausible-looking wrong pin cached for 90 days.
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        locationName: 'Bangkok',
+        data: { venue: 'Room 39' },
+      }),
+    );
+    expect(q).toBe('Room 39, Bangkok');
+  });
+
+  it('keeps number-branded hotel names intact under a country tail', () => {
+    // "Hotel 1898" (Barcelona) — the trailing-4-digit postcode rule
+    // must not fire on the name part.
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'hotel',
+        countryCode: 'ES',
+        data: { propertyName: 'Hotel 1898' },
+      }),
+    );
+    expect(q).toBe('Hotel 1898, Spain');
+  });
+
+  it('skips the country tail when the code does not resolve', () => {
+    // countryName echoes unknown codes back; "Sushi Zen, JA" is a
+    // junk token that costs matches the bare name would have made.
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'food',
+        countryCode: 'JA',
+        data: { venue: 'Sushi Zen' },
+      }),
+    );
+    expect(q).toBe('Sushi Zen');
+  });
+
+  it('still address-strips the name-less fallback branches', () => {
+    // Address branches keep the full normalizer — the JP postcode
+    // tail comes off inside buildGeocodeQuery now (normalization
+    // moved in; call sites no longer re-apply it).
+    const q = buildGeocodeQuery(
+      makeSegment({
+        type: 'activity',
+        data: { title: 'Ghibli Museum', address: '1-1-83 Simorenjaku, Mitaka, Tokyo 181-0013' },
+      }),
+    );
+    expect(q).toBe('1-1-83 Simorenjaku, Mitaka, Tokyo');
   });
 });
 

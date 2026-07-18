@@ -23,6 +23,11 @@ export {
 export { createNominatimGeocoder, NominatimGeocoder } from './nominatim';
 export type { NominatimGeocoderOptions } from './nominatim';
 
+export { createPhotonGeocoder, PhotonGeocoder } from './photon';
+export type { PhotonGeocoderOptions } from './photon';
+
+export { FallbackGeocoder } from './fallback';
+
 export { PlaceResolver } from './place-resolver';
 export type { PlaceResolverDeps } from './place-resolver';
 
@@ -46,24 +51,31 @@ export { normalizeForGeocoder } from './normalize-for-geocoder';
 
 export { getGeocodeWorkerStatus, type GeocodeWorkerStatus } from './worker-health';
 
+import { FallbackGeocoder } from './fallback';
 import { createNominatimGeocoder } from './nominatim';
+import { createPhotonGeocoder } from './photon';
 import { PlaceResolver } from './place-resolver';
 import type { Geocoder, GeocodeSearcher } from './types';
 
 /**
  * Lazy singleton geocoder. Returns a {@link PlaceResolver} so callers
- * automatically get Plus Code routing on top of free-text Nominatim
- * search, plus multi-candidate `search()` for the interactive address
- * picker. Keeps a single throttle bucket per process (the underlying
- * `NominatimGeocoder` is shared as forward, reverse, and searcher).
- * Tests inject their own implementation via vi.mock.
+ * automatically get Plus Code routing on top of the free-text ladder:
+ * Photon first (venue-name matching), Nominatim on a Photon null
+ * (structured-address backstop) — ADR-0018. Nominatim also stays the
+ * reverse geocoder for Plus Code display names. Each provider keeps
+ * its own throttle bucket; `search()` for the interactive picker rides
+ * the same ladder. Tests inject their own implementation via vi.mock.
  */
 let instance: (Geocoder & GeocodeSearcher) | null = null;
 
 export function getGeocoder(): Geocoder & GeocodeSearcher {
   if (!instance) {
     const nominatim = createNominatimGeocoder();
-    instance = new PlaceResolver({ forward: nominatim, reverse: nominatim });
+    const photon = createPhotonGeocoder();
+    instance = new PlaceResolver({
+      forward: new FallbackGeocoder(photon, nominatim),
+      reverse: nominatim,
+    });
   }
   return instance;
 }

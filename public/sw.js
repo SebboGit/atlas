@@ -16,6 +16,15 @@ const VERSION = 'atlas-v1';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGES_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = '/offline.html';
+const MANIFEST_URL = '/manifest.webmanifest';
+
+// Brand assets referenced by the app chrome (topbar, /signin). Precached at
+// install: runtime cache-what-you-visit doesn't guarantee these were ever
+// stored, and a cached page rendering a broken logo offline looks worse than
+// no offline support at all. The versioned icon PNGs are precached too, but
+// their URLs are read from the manifest at install time (see below) so the
+// list can't drift from ICON_REV in src/app/manifest.ts.
+const PRECACHE_URLS = [OFFLINE_URL, '/atlas_logo.svg', '/favicon.svg'];
 
 // Same-origin static assets worth caching lazily (the offline page leans on
 // these too). Map tiles live under /api and are intentionally excluded.
@@ -60,31 +69,68 @@ async function staleWhileRevalidate(request, cacheName) {
   const network = fetch(request)
     .then((response) => {
       if (cacheable(response)) {
-        caches.open(cacheName).then((cache) => cache.put(request, response.clone()));
+        // Clone synchronously, before respondWith can lock the body stream —
+        // cloning inside the caches.open() callback races the page consuming
+        // the response and intermittently skips the cache write.
+        const copy = response.clone();
+        caches.open(cacheName).then((cache) => cache.put(request, copy));
       }
       return response;
     })
-    // No cached copy AND the network failed: hand back a real error response.
-    // Resolving to `undefined` would make respondWith() a hard network error.
-    .catch(() => cached ?? Response.error());
+    // Network failed and there's no cached copy: retry the match ignoring
+    // the query string — versioned asset URLs (`/icons/icon-192.png?v=N`)
+    // orphan the previous revision's cache entry on every bump, and offline
+    // a one-rev-stale asset beats a broken image. Falls back to a real error
+    // response: resolving to `undefined` would make respondWith() a hard
+    // network error.
+    .catch(
+      async () =>
+        cached ?? (await caches.match(request, { ignoreSearch: true })) ?? Response.error(),
+    );
   return cached ?? network;
 }
 
 self.addEventListener('install', (event) => {
-  // Fetch + validate the offline page explicitly instead of `cache.add`:
-  // `cache.add` would store a redirect (e.g. a logged-out → /signin bounce)
-  // and would abort the whole install on any non-2xx. We apply the same
-  // `cacheable()` invariant used everywhere else, and never block activation
-  // on it — a missing offline page is degraded, not fatal.
+  // Fetch + validate each URL explicitly instead of `cache.addAll`:
+  // `cache.addAll` would store a redirect (e.g. a logged-out → /signin
+  // bounce) and would abort the whole install on any non-2xx. We apply the
+  // same `cacheable()` invariant used everywhere else, and never block
+  // activation on any of it — a missing precache entry is degraded, not
+  // fatal.
   event.waitUntil(
     (async () => {
-      try {
-        const cache = await caches.open(STATIC_CACHE);
-        const response = await fetch(OFFLINE_URL, { cache: 'reload' });
-        if (cacheable(response)) await cache.put(OFFLINE_URL, response.clone());
-      } catch {
-        // Offline page is best-effort.
-      }
+      const precache = async (url) => {
+        try {
+          const cache = await caches.open(STATIC_CACHE);
+          const response = await fetch(url, { cache: 'reload' });
+          if (cacheable(response)) await cache.put(url, response.clone());
+          return response;
+        } catch {
+          return undefined;
+        }
+      };
+
+      // The manifest lists the icon PNGs with their current `?v=` revision —
+      // precache exactly those URLs so the entries stay in sync with
+      // ICON_REV without duplicating it here. The manifest itself is only
+      // fetched as the icon-URL source, not cached: no fetch-handler branch
+      // serves it, and an installed PWA keeps its manifest metadata OS-side.
+      const precacheManifestIcons = async () => {
+        try {
+          const response = await fetch(MANIFEST_URL, { cache: 'reload' });
+          if (!cacheable(response)) return;
+          const manifest = await response.json();
+          const iconUrls = (manifest.icons ?? [])
+            .map((icon) => icon?.src)
+            .filter((src) => typeof src === 'string' && src.startsWith('/'));
+          await Promise.all(iconUrls.map(precache));
+        } catch {
+          // No manifest (or unparseable) — icons stay runtime-cached only.
+        }
+      };
+
+      await Promise.all([...PRECACHE_URLS.map(precache), precacheManifestIcons()]);
+
       await self.skipWaiting();
     })(),
   );

@@ -1,6 +1,6 @@
 ---
 name: atlas-env-vars
-description: Use when editing Atlas `.env` or `.env.example`, configuring a new deployment, or looking up what a specific environment variable controls. Reference for DATABASE_URL, AUTH_SECRET, OIDC_*, STORAGE_*, TILES_*/PROTOMAPS_PMTILES_URL, OCR_*/PADDLEOCR_URL, OLLAMA_*, NOMINATIM_CONTACT_EMAIL, NTFY_*, CRON_PRUNE_SCHEDULE/CRON_TZ, ATLAS_DEV_ORIGINS, NEXT_PUBLIC_ATLAS_DATE_FORMAT, and LOG_LEVEL/LOG_PRETTY.
+description: Use when editing Atlas `.env` or `.env.example`, configuring a new deployment, or looking up what a specific environment variable controls. Reference for DATABASE_URL, AUTH_SECRET, OIDC_*, STORAGE_*, TILES_*/PROTOMAPS_PMTILES_URL, OCR_*/PADDLEOCR_URL, OLLAMA_*, NOMINATIM_CONTACT_EMAIL/PHOTON_URL, NTFY_*, CRON_PRUNE_SCHEDULE/CRON_TZ, ATLAS_DEV_ORIGINS, NEXT_PUBLIC_ATLAS_DATE_FORMAT, and LOG_LEVEL/LOG_PRETTY.
 ---
 
 # Atlas — Environment Variables
@@ -22,7 +22,8 @@ See `.env.example` for the full documented list. At minimum:
 - `PADDLEOCR_URL` — base URL of the PaddleOCR sidecar (only when `OCR_ENGINE=paddle`)
 - `OLLAMA_URL` — base URL of the Ollama instance used for extraction (default `http://localhost:11434`)
 - `OLLAMA_MODEL` — model tag to use (e.g. `qwen2.5:7b`)
-- `NOMINATIM_CONTACT_EMAIL` — contact email sent in the Nominatim `User-Agent` (required per Nominatim usage policy)
+- `NOMINATIM_CONTACT_EMAIL` — contact email sent in the geocoder `User-Agent`, both providers (required per Nominatim usage policy)
+- `PHOTON_URL` — optional override for the Photon endpoint (defaults to the public https://photon.komoot.io; ADR-0018)
 - `NTFY_URL` — base URL of the self-hosted ntfy server (e.g. `https://ntfy.example.com`)
 - `NTFY_TOKEN` — optional access token when the ntfy server requires auth
 - `CRON_PRUNE_SCHEDULE` — six-field cron expression for the nightly prune (default `0 40 3 * * *`)

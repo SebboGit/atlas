@@ -242,7 +242,7 @@ export async function searchAll(query: string, currentUserId: string): Promise<S
         NULL::text AS segment_type,
         NULL::text AS wishlist_type,
         d.id::text AS id,
-        d.original_name AS title,
+        coalesce(d.title, d.original_name) AS title,
         'Trip: ' || tr.title ||
           coalesce(
             ' · ' || to_char(coalesce(tr.start_date, tr.end_date) AT TIME ZONE 'UTC', 'Mon YYYY'),

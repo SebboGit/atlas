@@ -520,6 +520,29 @@ export async function hardDelete(userId: string, id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+// Hard delete ONLY when no document links the segment. The extraction
+// orphan sweep uses this instead of `hardDelete`: a segment still
+// referenced by any document — e.g. a manual attach (#103) from a
+// *different* document than the one being re-extracted — is not an
+// orphan, and deleting it would cascade that other document's link
+// away with it. The NOT EXISTS folds into the DELETE itself so a
+// concurrent attach can't slip between a check and the delete.
+// Returns false both when the segment is already gone and when it was
+// left in place because something still references it.
+export async function hardDeleteIfUnreferenced(userId: string, id: string): Promise<boolean> {
+  const rows = await db
+    .delete(segments)
+    .where(
+      and(
+        eq(segments.id, id),
+        sql`${segments.tripId} IN (SELECT ${trips.id} FROM ${trips} WHERE ${tripVisibleToViewer(userId)})`,
+        sql`NOT EXISTS (SELECT 1 FROM ${documentSegments} WHERE ${documentSegments.segmentId} = ${segments.id})`,
+      ),
+    )
+    .returning({ id: segments.id });
+  return rows.length > 0;
+}
+
 // Segment types whose date is set / cleared via the quick reschedule
 // dialog: activities (undated = a candidate) and food (undated = an
 // in-trip shortlist pick). The `type` is passed by the action layer

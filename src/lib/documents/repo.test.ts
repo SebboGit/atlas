@@ -1,12 +1,24 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { documents, trips, users } from '@/db/schema';
+import { documentSegments, documents, segments, trips, users } from '@/db/schema';
 
-import { create, getByIdForUser, type CreateDocumentInput } from './repo';
+import { hardDeleteIfUnreferenced } from '@/lib/segments/repo';
+
+import {
+  create,
+  getByIdForUser,
+  listLinkedSegmentIds,
+  listSegmentLinkOptions,
+  markExtractionStarted,
+  rename,
+  setManualLink,
+  type CreateDocumentInput,
+} from './repo';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -222,5 +234,192 @@ describeIfDb('documents.repo.getByIdForUser — user scoping', () => {
   it('returns null for an id that does not exist', async () => {
     const owner = await makeUserWithTrip();
     expect(await getByIdForUser(owner.userId, randomUUID())).toBeNull();
+  });
+
+  it('rename sets, clears, and stays uploader-scoped', async () => {
+    const owner = await makeUserWithTrip();
+    const stranger = await makeUserWithTrip();
+    const { document } = await create(owner.userId, {
+      tripId: owner.tripId,
+      objectKey: uniqueObjectKey(),
+      mime: 'application/pdf',
+      bytes: 1234,
+      sha256: uniqueSha(),
+      originalName: 'gc-2039479-confirmation-final3.pdf',
+    });
+
+    const renamed = await rename(owner.userId, document.id, 'Marriott Tokyo confirmation');
+    expect(renamed?.title).toBe('Marriott Tokyo confirmation');
+    // originalName is immutable — the rename never touches it.
+    expect(renamed?.originalName).toBe('gc-2039479-confirmation-final3.pdf');
+
+    // Same scoping contract as getByIdForUser: another user's rename
+    // matches no row and must not change the title.
+    expect(await rename(stranger.userId, document.id, 'hijacked')).toBeNull();
+    expect((await getByIdForUser(owner.userId, document.id))?.title).toBe(
+      'Marriott Tokyo confirmation',
+    );
+
+    // null clears the custom title (display falls back to originalName).
+    const cleared = await rename(owner.userId, document.id, null);
+    expect(cleared?.title).toBeNull();
+  });
+});
+
+describeIfDb('documents.repo — manual segment links (#103)', () => {
+  // Manual links live outside the re-extract lifecycle: a re-extract
+  // wipes and orphan-sweeps only extraction-created rows, so a
+  // hand-linked, hand-made segment must be untouchable from here.
+  let pool: Pool;
+  let db: ReturnType<typeof drizzle>;
+  let userId: string;
+  let tripId: string;
+
+  beforeAll(async () => {
+    pool = new Pool({ connectionString: DATABASE_URL, max: 2 });
+    db = drizzle(pool);
+    await pool.query('SELECT 1');
+  });
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  beforeEach(async () => {
+    const [u] = await db
+      .insert(users)
+      .values({ email: `docs-links-${randomUUID()}@example.invalid` })
+      .returning({ id: users.id });
+    userId = u!.id;
+    const [t] = await db
+      .insert(trips)
+      .values({ userId, title: `links ${randomUUID()}` })
+      .returning({ id: trips.id });
+    tripId = t!.id;
+  });
+
+  async function makeSegment(forTripId = tripId): Promise<string> {
+    const [s] = await db
+      .insert(segments)
+      .values({ tripId: forTripId, type: 'hotel', data: { propertyName: 'Test Hotel' } })
+      .returning({ id: segments.id });
+    return s!.id;
+  }
+
+  async function makeDoc(): Promise<string> {
+    const { document } = await create(userId, {
+      tripId,
+      objectKey: uniqueObjectKey(),
+      mime: 'application/pdf',
+      bytes: 1,
+      sha256: uniqueSha(),
+      originalName: 'voucher.pdf',
+    });
+    return document.id;
+  }
+
+  async function linkSource(documentId: string, segmentId: string): Promise<string | undefined> {
+    const [row] = await db
+      .select({ source: documentSegments.source })
+      .from(documentSegments)
+      .where(
+        and(eq(documentSegments.documentId, documentId), eq(documentSegments.segmentId, segmentId)),
+      );
+    return row?.source;
+  }
+
+  it('attach writes a manual row, detach removes it, and scoping holds', async () => {
+    const docId = await makeDoc();
+    const segId = await makeSegment();
+
+    expect(await setManualLink(userId, docId, segId, true)).toBe(true);
+    expect(await linkSource(docId, segId)).toBe('manual');
+
+    // Stranger can neither attach nor detach.
+    const [stranger] = await db
+      .insert(users)
+      .values({ email: `docs-links-${randomUUID()}@example.invalid` })
+      .returning({ id: users.id });
+    expect(await setManualLink(stranger!.id, docId, segId, false)).toBe(false);
+    expect(await linkSource(docId, segId)).toBe('manual');
+
+    expect(await setManualLink(userId, docId, segId, false)).toBe(true);
+    expect(await linkSource(docId, segId)).toBeUndefined();
+  });
+
+  it('attach over an existing extraction row keeps it extraction-owned', async () => {
+    const docId = await makeDoc();
+    const segId = await makeSegment();
+    await db
+      .insert(documentSegments)
+      .values({ documentId: docId, segmentId: segId, source: 'extraction' });
+
+    expect(await setManualLink(userId, docId, segId, true)).toBe(true);
+    expect(await linkSource(docId, segId)).toBe('extraction');
+  });
+
+  it('refuses a segment from a different trip', async () => {
+    const docId = await makeDoc();
+    const [otherTrip] = await db
+      .insert(trips)
+      .values({ userId, title: `other ${randomUUID()}` })
+      .returning({ id: trips.id });
+    const foreignSegId = await makeSegment(otherTrip!.id);
+
+    expect(await setManualLink(userId, docId, foreignSegId, true)).toBe(false);
+    expect(await linkSource(docId, foreignSegId)).toBeUndefined();
+  });
+
+  it('markExtractionStarted wipes and snapshots only extraction links', async () => {
+    const docId = await makeDoc();
+    const extractionSeg = await makeSegment();
+    const manualSeg = await makeSegment();
+    await db
+      .insert(documentSegments)
+      .values({ documentId: docId, segmentId: extractionSeg, source: 'extraction' });
+    expect(await setManualLink(userId, docId, manualSeg, true)).toBe(true);
+
+    const result = await markExtractionStarted(userId, docId);
+    expect(result?.priorLinkedSegmentIds).toEqual([extractionSeg]);
+    // The manual link survives the wipe; the extraction link is gone.
+    expect(await linkSource(docId, manualSeg)).toBe('manual');
+    expect(await linkSource(docId, extractionSeg)).toBeUndefined();
+    // The bridge's idempotency view (extraction-only) is now empty even
+    // though a manual link exists — a re-extract proceeds normally.
+    expect(await listLinkedSegmentIds(userId, docId, { source: 'extraction' })).toEqual([]);
+    expect(await listLinkedSegmentIds(userId, docId)).toEqual([manualSeg]);
+  });
+
+  it('hardDeleteIfUnreferenced spares a segment any document still links', async () => {
+    const docId = await makeDoc();
+    const segId = await makeSegment();
+    await setManualLink(userId, docId, segId, true);
+
+    // Still referenced (by the manual link) -> kept in place.
+    expect(await hardDeleteIfUnreferenced(userId, segId)).toBe(false);
+    const [still] = await db
+      .select({ id: segments.id })
+      .from(segments)
+      .where(eq(segments.id, segId));
+    expect(still?.id).toBe(segId);
+
+    // Unlink, then the same call deletes it.
+    await setManualLink(userId, docId, segId, false);
+    expect(await hardDeleteIfUnreferenced(userId, segId)).toBe(true);
+  });
+
+  it('listSegmentLinkOptions flags only links to the given segment', async () => {
+    const docA = await makeDoc();
+    const docB = await makeDoc();
+    const segId = await makeSegment();
+    const otherSeg = await makeSegment();
+    await setManualLink(userId, docA, segId, true);
+    await setManualLink(userId, docB, otherSeg, true);
+
+    const options = await listSegmentLinkOptions(userId, tripId, segId);
+    const byId = new Map(options.map((o) => [o.id, o.linked]));
+    expect(byId.get(docA)).toBe(true);
+    // Linked elsewhere ≠ linked here — docB still shows attachable.
+    expect(byId.get(docB)).toBe(false);
   });
 });

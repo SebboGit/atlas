@@ -71,12 +71,13 @@ describe('getPlaceCoordsMap', () => {
 
   it('returns an empty map for places with no geocodable identity (notes, flights)', async () => {
     const result = await getPlaceCoordsMap([
-      { id: 'note-1', type: 'note', data: { body: 'foo' }, locationName: null },
+      { id: 'note-1', type: 'note', data: { body: 'foo' }, locationName: null, countryCode: null },
       {
         id: 'flight-1',
         type: 'flight',
         data: { originAirport: 'LHR', destinationAirport: 'HND' },
         locationName: null,
+        countryCode: null,
       },
     ]);
     expect(result.size).toBe(0);
@@ -86,7 +87,7 @@ describe('getPlaceCoordsMap', () => {
     // The lifecycle hook would have written this row under the
     // normalized form of `2-6-15 minami-aoyama, minato, tokyo`.
     dbState.rows.push({
-      queryNormalized: '2-6-15 minami-aoyama, minato, tokyo',
+      queryNormalized: 'narisawa',
       lat: 35.6655,
       lng: 139.717,
       displayName: 'Narisawa, Tokyo, Japan',
@@ -101,6 +102,7 @@ describe('getPlaceCoordsMap', () => {
         type: 'food',
         data: { venue: 'Narisawa', address: '2-6-15 Minami-Aoyama, Minato, Tokyo' },
         locationName: null,
+        countryCode: null,
       },
     ]);
 
@@ -130,6 +132,7 @@ describe('getPlaceCoordsMap', () => {
           plusCode: 'MQ8R+5C Chiyoda City, Tokyo',
         },
         locationName: 'Chiyoda',
+        countryCode: null,
       },
     ]);
 
@@ -148,6 +151,7 @@ describe('getPlaceCoordsMap', () => {
         type: 'food',
         data: { venue: 'Some Place', plusCode: '8Q7XMPWG+5V' },
         locationName: null,
+        countryCode: null,
       },
     ]);
 
@@ -179,6 +183,7 @@ describe('getPlaceCoordsMap', () => {
         type: 'activity',
         data: { title: "Friend's place — drinks" },
         locationName: null,
+        countryCode: null,
       },
     ]);
 
@@ -192,6 +197,7 @@ describe('getPlaceCoordsMap', () => {
         type: 'activity',
         data: { title: 'Brand New Place' },
         locationName: null,
+        countryCode: null,
       },
     ]);
     expect(result.has('act-1')).toBe(false);
@@ -204,7 +210,7 @@ describe('getPlaceCoordsMap', () => {
     // change the hit or the null result, only the missing row.
     dbState.rows.push(
       {
-        queryNormalized: '2-6-15 minami-aoyama, minato, tokyo',
+        queryNormalized: 'narisawa',
         lat: 35.6655,
         lng: 139.717,
         displayName: 'Narisawa',
@@ -229,18 +235,21 @@ describe('getPlaceCoordsMap', () => {
         type: 'food',
         data: { venue: 'Narisawa', address: '2-6-15 Minami-Aoyama, Minato, Tokyo' },
         locationName: null,
+        countryCode: null,
       },
       {
         id: 'act-null',
         type: 'activity',
         data: { title: "Friend's place — drinks" },
         locationName: null,
+        countryCode: null,
       },
       {
         id: 'act-pending',
         type: 'activity',
         data: { title: 'Brand New Place' },
         locationName: null,
+        countryCode: null,
       },
       // Not geocodable — should not count toward pending.
       {
@@ -248,6 +257,7 @@ describe('getPlaceCoordsMap', () => {
         type: 'note',
         data: { body: 'foo' },
         locationName: null,
+        countryCode: null,
       },
     ]);
 
@@ -259,7 +269,7 @@ describe('getPlaceCoordsMap', () => {
   it('returns only hits in a mixed input — one round-trip, multi-row select', async () => {
     dbState.rows.push(
       {
-        queryNormalized: '2-6-15 minami-aoyama, minato, tokyo',
+        queryNormalized: 'narisawa',
         lat: 35.6655,
         lng: 139.717,
         displayName: 'Narisawa',
@@ -284,12 +294,14 @@ describe('getPlaceCoordsMap', () => {
         type: 'food',
         data: { venue: 'Narisawa', address: '2-6-15 Minami-Aoyama, Minato, Tokyo' },
         locationName: null,
+        countryCode: null,
       },
       {
         id: 'act-1',
         type: 'activity',
         data: { title: 'Sensō-ji' },
         locationName: 'Asakusa',
+        countryCode: null,
       },
       // No cache row — should be absent from output.
       {
@@ -297,6 +309,7 @@ describe('getPlaceCoordsMap', () => {
         type: 'activity',
         data: { title: 'Unmapped Place' },
         locationName: null,
+        countryCode: null,
       },
     ]);
 

@@ -8,7 +8,6 @@ import {
   enqueueGeocodeFetch,
   getCachedMany,
   getGeocodeWorkerStatus,
-  normalizeForGeocoder,
   normalizeQuery,
   type GeocodeWorkerStatus,
 } from '@/lib/geocoding';
@@ -258,11 +257,11 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
 
     // hotel / activity / transit / food — geocode_cache resolves
     // these to a pin. buildGeocodeQuery owns the per-type derivation;
-    // normalizeForGeocoder strips address noise (postcodes, floor /
+    // buildGeocodeQuery output is geocoder-ready (address noise
     // suite designators) the same way the lifecycle hook does on the
     // write side, so identical inputs produce identical cache keys.
     const raw = buildGeocodeQuery(row);
-    const query = raw === null ? null : normalizeForGeocoder(raw);
+    const query = raw;
     if (!query) {
       ungeocoded.push({
         segmentId: row.id,
@@ -490,13 +489,15 @@ export async function getWishlistOverlayForTrip(
     type: 'food' | 'activity' | Segment['type'];
     data: unknown;
     locationName: string | null;
+    countryCode: string | null;
   }): string | null => {
     const raw = buildGeocodeQuery({
       type: place.type,
       data: place.data,
       locationName: place.locationName,
+      countryCode: place.countryCode,
     });
-    return raw === null ? null : normalizeForGeocoder(raw);
+    return raw;
   };
 
   // Belt-and-braces dedup. The FK-based `excludeMaterialisedOnTrip`

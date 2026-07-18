@@ -1,0 +1,2 @@
+CREATE TYPE "public"."document_segment_source" AS ENUM('extraction', 'manual');--> statement-breakpoint
+ALTER TABLE "document_segments" ADD COLUMN "source" "document_segment_source" DEFAULT 'extraction' NOT NULL;

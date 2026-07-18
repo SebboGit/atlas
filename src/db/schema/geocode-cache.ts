@@ -29,7 +29,7 @@ export const geocodeCache = pgTable('geocode_cache', {
   lat: doublePrecision('lat'),
   lng: doublePrecision('lng'),
   displayName: text('display_name'),
-  // Provider identifier. Constant 'nominatim' today; the column exists
+  // Provider identifier. 'photon' / 'nominatim' / 'plus-code' for hits, 'none' for misses (ADR-0018); the column exists
   // so a future second provider (per ADR-0010 "when to revisit") can be
   // distinguished from cached Nominatim rows for back-fills or debugging.
   source: text('source').notNull(),

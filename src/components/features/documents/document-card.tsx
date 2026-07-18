@@ -10,6 +10,7 @@ import { formatMimeLabel } from '@/lib/storage/mimes';
 
 import { DocumentDeleteButton } from './document-delete-button';
 import { DocumentExtractButton } from './document-extract-button';
+import { DocumentRenameDialog } from './document-rename-dialog';
 import { ParsedEditDialog } from './parsed-edit-dialog';
 
 interface DocumentCardProps {
@@ -23,6 +24,7 @@ interface DocumentCardProps {
 export function DocumentCard({ document, tripId }: DocumentCardProps) {
   const typeLabel = formatMimeLabel(document.mime);
   const extracted = parseExtracted(document.parsed);
+  const displayName = document.title ?? document.originalName;
 
   return (
     <Card variant="paper" className="relative overflow-hidden">
@@ -44,15 +46,23 @@ export function DocumentCard({ document, tripId }: DocumentCardProps) {
               <p className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
                 {typeLabel} · {formatBytes(document.bytes)}
               </p>
-              <a
-                href={`/api/documents/${document.id}?disposition=inline`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-display text-foreground hover:text-primary truncate text-[17px] leading-tight font-medium tracking-tight transition-colors"
-                title={document.originalName}
-              >
-                {document.originalName}
-              </a>
+              <div className="flex min-w-0 items-center gap-1">
+                <a
+                  href={`/api/documents/${document.id}?disposition=inline`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-display text-foreground hover:text-primary truncate text-[17px] leading-tight font-medium tracking-tight transition-colors"
+                  title={displayName}
+                >
+                  {displayName}
+                </a>
+                <DocumentRenameDialog
+                  tripId={tripId}
+                  documentId={document.id}
+                  title={document.title}
+                  originalName={document.originalName}
+                />
+              </div>
               <p className="text-muted-foreground font-mono text-[10px] tracking-wider">
                 Added {formatRelative(document.createdAt)}
                 {document.linkedSegmentCount > 0 && (

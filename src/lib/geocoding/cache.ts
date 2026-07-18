@@ -21,6 +21,7 @@ import { normalizeQuery } from './normalize';
 import type { Geocoder, GeocodeResult } from './types';
 
 const SOURCE_NOMINATIM = 'nominatim';
+const SOURCE_MISS = 'none';
 const HIT_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 const NULL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -66,6 +67,11 @@ export async function getCachedOrFetch(
   const fresh = await geocoder.geocode(query);
 
   const expiresAt = new Date(current.getTime() + (fresh ? HIT_TTL_MS : NULL_TTL_MS));
+  // Provenance for diagnostics: hits record which provider in the
+  // ladder produced them (ADR-0018); results predating the `source`
+  // field keep the historical 'nominatim' default; negative rows say
+  // 'none' — "every provider missed" has no single source.
+  const source = fresh ? (fresh.source ?? SOURCE_NOMINATIM) : SOURCE_MISS;
 
   await db
     .insert(geocodeCache)
@@ -74,7 +80,7 @@ export async function getCachedOrFetch(
       lat: fresh?.lat ?? null,
       lng: fresh?.lng ?? null,
       displayName: fresh?.displayName ?? null,
-      source: SOURCE_NOMINATIM,
+      source,
       fetchedAt: current,
       expiresAt,
     })
@@ -84,7 +90,7 @@ export async function getCachedOrFetch(
         lat: fresh?.lat ?? null,
         lng: fresh?.lng ?? null,
         displayName: fresh?.displayName ?? null,
-        source: SOURCE_NOMINATIM,
+        source,
         fetchedAt: current,
         expiresAt,
       },

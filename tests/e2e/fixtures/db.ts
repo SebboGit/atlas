@@ -241,6 +241,7 @@ export async function seedGeocodedActivitySegment(
     type: 'activity',
     data: { title: values.title },
     locationName: values.locationName,
+    countryCode: values.countryCode ?? null,
   });
   if (!query) throw new Error('E2E fixture: buildGeocodeQuery returned null.');
 
@@ -279,9 +280,9 @@ export async function seedUngeocodedActivitySegment(
       tripId,
       type: 'activity',
       data: { title: values.title },
-      // No `locationName` — keeps the cache key (built from title alone
-      // by buildGeocodeQuery) free of values that might collide with a
-      // real lookup elsewhere.
+      // No `locationName` — the cache key is the title plus the
+      // country tail when `countryCode` is passed (ADR-0018), and the
+      // seeding below derives it from the same fields it stores here.
       countryCode: values.countryCode ?? null,
     })
     .returning({ id: segments.id });
@@ -292,6 +293,7 @@ export async function seedUngeocodedActivitySegment(
     type: 'activity',
     data: { title: values.title },
     locationName: null,
+    countryCode: values.countryCode ?? null,
   });
   if (!query) throw new Error('E2E fixture: buildGeocodeQuery returned null for activity title.');
 
