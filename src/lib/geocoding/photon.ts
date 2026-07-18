@@ -18,7 +18,14 @@ import { createHash } from 'node:crypto';
 
 import { log } from '@/lib/log';
 
-import type { Geocoder, GeocodeCandidate, GeocodeResult, GeocodeSearcher } from './types';
+import { chooseLocality } from './locality';
+import type {
+  Geocoder,
+  GeocodeCandidate,
+  GeocodeResult,
+  GeocodeSearcher,
+  ReverseGeocoder,
+} from './types';
 
 const DEFAULT_BASE_URL = 'https://photon.komoot.io';
 const DEFAULT_MIN_INTERVAL_MS = 1100;
@@ -53,6 +60,7 @@ interface PhotonFeature {
     street?: unknown;
     district?: unknown;
     city?: unknown;
+    county?: unknown;
     state?: unknown;
     country?: unknown;
     countrycode?: unknown;
@@ -63,7 +71,7 @@ interface PhotonFeature {
   } | null;
 }
 
-export class PhotonGeocoder implements Geocoder, GeocodeSearcher {
+export class PhotonGeocoder implements Geocoder, GeocodeSearcher, ReverseGeocoder {
   private readonly baseUrl: string;
   private readonly userAgent: string;
   private readonly minIntervalMs: number;
@@ -143,6 +151,45 @@ export class PhotonGeocoder implements Geocoder, GeocodeSearcher {
 
     log.info({ queryHash, count: candidates.length }, 'geocoding.photon.search_ok');
     return candidates;
+  }
+
+  /**
+   * Reverse lookup for the Plus Code path. Photon runs FIRST in the
+   * reverse ladder (see index.ts): its localized layer names the
+   * metropolis a traveller would ("Ho Chi Minh City" where raw OSM
+   * says a sub-city), which is exactly what the card line wants.
+   * Same throttle, no-throw, hashed-coords logging contract.
+   */
+  async reverse(
+    lat: number,
+    lng: number,
+  ): Promise<{ displayName: string; city: string | null } | null> {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    await this.acquireSlot();
+
+    const queryHash = shortHash(`${lat.toFixed(6)},${lng.toFixed(6)}`);
+    const params = new URLSearchParams({
+      lat: lat.toString(),
+      lon: lng.toString(),
+      lang: 'en',
+    });
+    const payload = await this.fetchJson(
+      `${this.baseUrl}/reverse?${params.toString()}`,
+      queryHash,
+      'geocoding.photon.reverse_failed',
+    );
+    if (payload === undefined) return null;
+
+    const top = extractFeatures(payload)[0];
+    const result = top ? featureToResult(top) : null;
+    if (result === null) {
+      log.info({ queryHash, found: false }, 'geocoding.photon.reverse_ok');
+      return null;
+    }
+
+    log.info({ queryHash, found: true }, 'geocoding.photon.reverse_ok');
+    return { displayName: result.displayName, city: result.city ?? null };
   }
 
   private async acquireSlot(): Promise<void> {
@@ -268,10 +315,15 @@ function featureToResult(feature: PhotonFeature): GeocodeResult | null {
   const props = feature.properties ?? {};
   const displayName = synthesizeDisplayName(props);
   if (coords === null || displayName === null) return null;
-  // City for the card line (#111): the city proper, else the district
-  // (Tokyo wards arrive as city already), else the state as the
-  // coarsest still-useful locality.
-  const city = str(props.city) ?? str(props.district) ?? str(props.state);
+  // City for the card line (#111): shared locality logic — the
+  // traveller-level city, with ward-shaped values deferring to the
+  // state (see locality.ts).
+  const city = chooseLocality({
+    city: str(props.city),
+    district: str(props.district),
+    county: str(props.county),
+    state: str(props.state),
+  });
   return { lat: coords.lat, lng: coords.lng, displayName, city, source: 'photon' };
 }
 

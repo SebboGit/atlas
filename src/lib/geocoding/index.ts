@@ -26,7 +26,9 @@ export type { NominatimGeocoderOptions } from './nominatim';
 export { createPhotonGeocoder, PhotonGeocoder } from './photon';
 export type { PhotonGeocoderOptions } from './photon';
 
-export { FallbackGeocoder } from './fallback';
+export { FallbackGeocoder, FallbackReverse } from './fallback';
+
+export { chooseLocality } from './locality';
 
 export { PlaceResolver } from './place-resolver';
 export type { PlaceResolverDeps } from './place-resolver';
@@ -51,7 +53,7 @@ export { normalizeForGeocoder, rejoinSplitDiacritics } from './normalize-for-geo
 
 export { getGeocodeWorkerStatus, type GeocodeWorkerStatus } from './worker-health';
 
-import { FallbackGeocoder } from './fallback';
+import { FallbackGeocoder, FallbackReverse } from './fallback';
 import { createNominatimGeocoder } from './nominatim';
 import { createPhotonGeocoder } from './photon';
 import { PlaceResolver } from './place-resolver';
@@ -74,7 +76,10 @@ export function getGeocoder(): Geocoder & GeocodeSearcher {
     const photon = createPhotonGeocoder();
     instance = new PlaceResolver({
       forward: new FallbackGeocoder(photon, nominatim),
-      reverse: nominatim,
+      // Photon-first reverse too: its localized layer names the
+      // metropolis ("Ho Chi Minh City") where raw OSM data can carry a
+      // sub-city — the difference the card line exists to show.
+      reverse: new FallbackReverse(photon, nominatim),
     });
   }
   return instance;
