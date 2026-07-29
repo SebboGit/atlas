@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, notExists } from 'drizzle-orm';
+import { and, desc, eq, inArray, notExists, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import {
@@ -14,6 +14,7 @@ import { tripVisibleToViewer } from '@/lib/trips/repo';
 
 import type {
   WishlistItemCreateInput,
+  WishlistItemType,
   WishlistItemUpdateInput,
   WishlistListFilters,
 } from './validators';
@@ -206,14 +207,30 @@ export async function materialiseOnTrip(
   });
 }
 
-// Returns countries that have at least one wishlist item. Used by the
-// /wishlist page's country filter chips — only surface countries that
-// can actually filter the list.
-export async function listCountriesWithItems(): Promise<string[]> {
-  const rows = await db
-    .selectDistinct({ countryCode: wishlistItems.countryCode })
-    .from(wishlistItems);
-  return rows.map((r) => r.countryCode).sort();
+/** One (country, type) bucket and how many items sit in it. */
+export interface WishlistFacet {
+  countryCode: string;
+  type: WishlistItemType;
+  count: number;
+}
+
+// Everything the /wishlist filter row needs, in one grouped scan of
+// `wishlist_items_country_type_idx`: which countries have items, how
+// many of each type, and the totals behind the type chips.
+//
+// Replaces a `SELECT DISTINCT country_code` plus a second full
+// `list()` the page used only to count types — that one was capped at
+// LIST_LIMIT, so the chip counts would have silently under-reported
+// past 500 items. A GROUP BY is exact and cheaper than either.
+export async function listFilterFacets(): Promise<WishlistFacet[]> {
+  return db
+    .select({
+      countryCode: wishlistItems.countryCode,
+      type: wishlistItems.type,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(wishlistItems)
+    .groupBy(wishlistItems.countryCode, wishlistItems.type);
 }
 
 // Builds a userId → display-name map for the "added by …" tag on

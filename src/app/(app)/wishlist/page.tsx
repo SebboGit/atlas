@@ -8,6 +8,7 @@ import { SectionEyebrow } from '@/components/section-eyebrow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
+import { countryName } from '@/lib/countries';
 import { getPlaceCoordsView } from '@/lib/geocoding';
 import * as repo from '@/lib/wishlist/repo';
 import { WISHLIST_ITEM_TYPES, type WishlistItemType } from '@/lib/wishlist';
@@ -37,25 +38,40 @@ export default async function WishlistPage({ searchParams }: WishlistPageProps) 
   const activeType = parseType(rawType);
   const activeCountry = parseCountry(rawCountry);
 
-  // Three datasets: the filtered list (what we render), per-type counts
-  // for the chip labels (counted server-side from a separate cheap
-  // query — both indexes lit), and the country list for the chip
-  // strip. All household-shared.
-  const [items, allItems, countriesWithItems, nameById] = await Promise.all([
+  // Three datasets: the filtered list (what we render), the filter-row
+  // facets (one grouped scan giving both the type counts and the
+  // per-country counts), and the added-by names. All household-shared.
+  const [items, facets, nameById] = await Promise.all([
     repo.list({
       type: activeType ?? undefined,
       countryCode: activeCountry ?? undefined,
     }),
-    repo.list(),
-    repo.listCountriesWithItems(),
+    repo.listFilterFacets(),
     repo.listUserDisplayNames(),
   ]);
 
   const counts = {
-    all: allItems.length,
-    food: allItems.filter((i) => i.type === 'food').length,
-    activity: allItems.filter((i) => i.type === 'activity').length,
+    all: facets.reduce((n, f) => n + f.count, 0),
+    food: facets.reduce((n, f) => (f.type === 'food' ? n + f.count : n), 0),
+    activity: facets.reduce((n, f) => (f.type === 'activity' ? n + f.count : n), 0),
   };
+
+  // Country options are scoped to the active type — with "Food"
+  // selected, a country whose only item is an activity would filter to
+  // an empty list, and its count would be a lie. The active country is
+  // re-injected if the type switch drops it, so the trigger never
+  // labels a country the list can't offer.
+  const countryTotals = new Map<string, number>();
+  for (const f of facets) {
+    if (activeType && f.type !== activeType) continue;
+    countryTotals.set(f.countryCode, (countryTotals.get(f.countryCode) ?? 0) + f.count);
+  }
+  if (activeCountry && !countryTotals.has(activeCountry)) countryTotals.set(activeCountry, 0);
+  const countries = [...countryTotals]
+    .map(([code, count]) => ({ code, name: countryName(code), count }))
+    // Sort by the name the user reads, not the ISO code — code order
+    // puts Germany (DE) before Denmark (DK).
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // WishlistItem satisfies PlaceLike (type/data/locationName) — same
   // chain as segments, single round-trip against geocode_cache.
@@ -77,7 +93,7 @@ export default async function WishlistPage({ searchParams }: WishlistPageProps) 
         <WishlistFilters
           activeType={activeType}
           activeCountry={activeCountry}
-          countriesWithItems={countriesWithItems}
+          countries={countries}
           counts={counts}
         />
       </div>

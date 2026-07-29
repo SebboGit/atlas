@@ -1,14 +1,16 @@
 import { Pencil, Sparkles, UtensilsCrossed } from 'lucide-react';
+import { Fragment } from 'react';
 
 import { ClientOnly } from '@/components/client-only';
 import { PlusCodeBadge } from '@/components/features/segments/plus-code-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { countryName } from '@/lib/countries';
-import { activityDataSchema, foodDataSchema } from '@/lib/segments';
+import { placeCity } from '@/lib/geocoding/place-city';
 import type { WishlistItem } from '@/lib/wishlist';
 
 import { WishlistDeleteButton } from './wishlist-delete-button';
 import { WishlistFormDialog } from './wishlist-form-dialog';
+import { wishlistItemName, wishlistSubtitle } from './wishlist-item-text';
 
 interface WishlistCardProps {
   item: WishlistItem;
@@ -17,40 +19,22 @@ interface WishlistCardProps {
   /**
    * Cached coordinates from `geocode_cache`. When present, the card
    * shows a clickable Plus Code badge that deep-links to Google Maps —
-   * same pattern as segment cards.
+   * same pattern as segment cards. `city` is the geocoder's coarse
+   * locality, which is the only thing that says where an item saved
+   * with nothing but a Plus Code actually is.
    */
-  coords?: { lat: number; lng: number } | null;
-}
-
-// Pull the headline name for a wishlist item from its per-type `data`.
-// Falls back to a generic noun if the JSONB is malformed (shouldn't
-// happen — the validator enforces it on write, but defensive read).
-function headlineName(item: WishlistItem): string {
-  if (item.type === 'food') {
-    const parsed = foodDataSchema.safeParse(item.data);
-    return parsed.success ? parsed.data.venue : 'Food spot';
-  }
-  const parsed = activityDataSchema.safeParse(item.data);
-  return parsed.success ? parsed.data.title : 'Attraction';
-}
-
-// Pull the secondary descriptor — address when present (food/activity
-// both expose one), locationName otherwise. Both are optional.
-function subtitleText(item: WishlistItem): string | undefined {
-  if (item.type === 'food') {
-    const parsed = foodDataSchema.safeParse(item.data);
-    const addr = parsed.success ? parsed.data.address : undefined;
-    return addr || item.locationName || undefined;
-  }
-  const parsed = activityDataSchema.safeParse(item.data);
-  const desc = parsed.success ? parsed.data.description : undefined;
-  return desc || item.locationName || undefined;
+  coords?: { lat: number; lng: number; city?: string | null } | null;
 }
 
 export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) {
-  const name = headlineName(item);
-  const subtitle = subtitleText(item);
-  const country = countryName(item.countryCode) ?? item.countryCode;
+  const name = wishlistItemName(item);
+  const subtitle = wishlistSubtitle(item);
+  const country = countryName(item.countryCode);
+  // Coarse → fine, so a Plus-Code-only item still reads "Japan · Osaka"
+  // instead of just "Japan". The city is suppressed when the address or
+  // the user's own area label already says it (see placeCity).
+  const city = placeCity(coords, item.locationName, { country, text: subtitle });
+  const meta = [country, city, item.locationName].filter((p): p is string => Boolean(p));
   const isFood = item.type === 'food';
   const hasBadge =
     coords !== null &&
@@ -111,15 +95,18 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
             </p>
           )}
           <div className="text-foreground/65 mt-1 flex flex-wrap items-baseline gap-2 text-xs">
-            <span className="font-mono tracking-wider">{country}</span>
-            {item.locationName && (
-              <>
-                <span aria-hidden className="text-foreground/30">
-                  ·
-                </span>
-                <span>{item.locationName}</span>
-              </>
-            )}
+            {meta.map((part, i) => (
+              <Fragment key={`${i}:${part}`}>
+                {i > 0 && (
+                  <span aria-hidden className="text-foreground/30">
+                    ·
+                  </span>
+                )}
+                {/* Country leads and stays mono — it's an identity, not
+                 *  prose. City and area follow in plain type. */}
+                <span className={i === 0 ? 'font-mono tracking-wider' : undefined}>{part}</span>
+              </Fragment>
+            ))}
           </div>
           {item.notes && (
             <p className="text-foreground/70 mt-2 line-clamp-2 text-sm leading-snug">

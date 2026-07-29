@@ -47,14 +47,18 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
     segmentsRepo.listCountryCodesForTrip(user.id, id),
   ]);
 
-  // Suggestions (this tab's type) + coords, fetched in parallel.
-  const [suggestions, { coordsById: coordsBySegmentId, pendingCount }] = await Promise.all([
+  // Suggestions (this tab's type) + the added-by names, in parallel.
+  const [suggestions, namesByUserId] = await Promise.all([
     wishlistRepo.listForCountries(tripCountries, {
       type: 'activity',
       excludeMaterialisedOnTrip: id,
     }),
-    getPlaceCoordsView(activities),
+    wishlistRepo.listUserDisplayNames(),
   ]);
+
+  // One cache read covering both the segments and the suggestion rows —
+  // see the matching note on the Food tab.
+  const { coordsById, pendingCount } = await getPlaceCoordsView([...activities, ...suggestions]);
 
   const addButton = (
     <SegmentFormDialog
@@ -68,7 +72,13 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
     <>
       <TabHeader eyebrow="Activities" count={activities.length} action={addButton} />
 
-      <WishlistSuggestionsPanel tripId={id} items={suggestions} />
+      <WishlistSuggestionsPanel
+        tripId={id}
+        items={suggestions}
+        defaultOpen={activities.length === 0}
+        coordsById={coordsById}
+        namesByUserId={namesByUserId}
+      />
 
       {activities.length === 0 ? (
         <TabEmpty
@@ -84,7 +94,7 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
                 segment={segment}
                 tripId={id}
                 linkedDocuments={linkedDocsBySegment.get(segment.id)}
-                coords={coordsBySegmentId.get(segment.id) ?? null}
+                coords={coordsById.get(segment.id) ?? null}
                 showScheduleAction
                 showDate
               />

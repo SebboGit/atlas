@@ -1,11 +1,11 @@
 import { UtensilsCrossed } from 'lucide-react';
 
 import type { LinkedDocument } from '@/lib/documents';
+import { placeCity } from '@/lib/geocoding/place-city';
 import type { Segment } from '@/lib/segments';
 import { foodDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
-import { segmentCity } from './segment-city';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 import { SegmentTimeMeta } from './segment-time-meta';
@@ -55,7 +55,7 @@ export function SegmentCardFood({
 
   const subtitleText = foodCardSubtitle({ address, locationName: segment.locationName });
   const subtitle = subtitleWithPlusCodeBadge({
-    parts: [subtitleText, segmentCity(coords, subtitleText ?? segment.locationName)],
+    parts: [subtitleText, placeCity(coords, subtitleText ?? segment.locationName)],
     coords,
     venue: title,
   });

@@ -40,6 +40,7 @@ import {
 } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
+import { InfoRow, InfoSection } from './info-primitives';
 import { SegmentDocumentsManager } from './segment-documents-manager';
 import { SegmentFormDialog } from './segment-form-dialog';
 
@@ -507,60 +508,6 @@ function InfoHeader({
       <DialogTitle className="text-2xl break-words">{title}</DialogTitle>
       {subtitle && <p className="text-muted-foreground text-sm leading-relaxed">{subtitle}</p>}
     </DialogHeader>
-  );
-}
-
-function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
-  // Only render the section when at least one row inside it has a
-  // value — null InfoRow rows render nothing, so an "all-empty"
-  // section would otherwise leave a stranded header. We can't peek
-  // at children's output, but the per-type bodies above already gate
-  // each section on "any of the relevant fields exist" so this stays
-  // a presentation primitive.
-  return (
-    <section className="flex flex-col gap-2">
-      <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
-        {title}
-      </h4>
-      <dl className="border-foreground/10 divide-foreground/8 divide-y rounded-xl border">
-        {children}
-      </dl>
-    </section>
-  );
-}
-
-function InfoRow({
-  label,
-  value,
-  mono = false,
-  multiline = false,
-}: {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-  multiline?: boolean;
-}) {
-  if (value === null || value === undefined || value === '') return null;
-  return (
-    <div
-      className={cn(
-        'flex gap-4 px-4 py-2.5',
-        multiline ? 'flex-col gap-1 sm:flex-row sm:gap-4' : 'items-baseline',
-      )}
-    >
-      <dt className="text-foreground/70 w-24 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          'text-foreground/90 min-w-0 flex-1 text-sm leading-relaxed',
-          mono && 'font-mono tracking-wider',
-          multiline && 'whitespace-pre-wrap',
-        )}
-      >
-        {value}
-      </dd>
-    </div>
   );
 }
 

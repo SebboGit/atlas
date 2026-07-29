@@ -5,7 +5,7 @@ import * as React from 'react';
 
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ISO_COUNTRIES, countryName } from '@/lib/countries';
+import { ISO_COUNTRIES, countryName, searchCountries } from '@/lib/countries';
 import { cn } from '@/lib/utils';
 
 interface CountrySelectProps {
@@ -51,15 +51,12 @@ export function CountrySelect({
   // bounce back as the cursor crosses options and re-anchors the view.
   const keyboardNavRef = React.useRef(false);
 
-  // Filter on name or code, case-insensitive. Code search lets a power
-  // user type "JP" and land on Japan immediately.
-  const filtered = React.useMemo(() => {
-    if (!query.trim()) return ISO_COUNTRIES;
-    const q = query.trim().toLowerCase();
-    return ISO_COUNTRIES.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q),
-    );
-  }, [query]);
+  // Alias-aware and ranked (src/lib/countries/match.ts): "South Korea"
+  // finds "Korea, South", "usa" finds "United States", and an exact ISO
+  // code sorts first so typing "JP" lands on Japan. Results are ordered
+  // by match quality rather than alphabetically, so `filtered[0]` is
+  // the one Enter should commit.
+  const filtered = React.useMemo(() => searchCountries(query, ISO_COUNTRIES), [query]);
 
   const selectedName = value ? countryName(value) : undefined;
 

@@ -488,6 +488,7 @@ type WishlistFixture = {
   countryCode: string;
   locationName?: string;
   notes?: string;
+  tags?: string[];
   data: Record<string, unknown>;
   /** Materialise onto a specific trip as a startsAt=null segment. */
   materialiseOn?: 'hero' | 'lisbon';
@@ -499,6 +500,7 @@ const WISHLIST_ITEMS: WishlistFixture[] = [
     countryCode: 'JP',
     locationName: 'Akasaka',
     notes: 'Book months ahead through hotel concierge.',
+    tags: ['sushi', 'splurge'],
     data: { venue: 'Sushi Saito', address: 'Akasaka, Minato City, Tokyo' },
   },
   {
@@ -531,20 +533,75 @@ const WISHLIST_ITEMS: WishlistFixture[] = [
     locationName: 'Cais do Sodré',
     data: { venue: 'Cervejaria Ramiro' },
   },
+  {
+    // THE city-line case: a full Plus Code and nothing else — no
+    // address, no area label. Without the geocoder's resolved locality
+    // the card can only say "Korea, South", which is what #116 was
+    // filed about. Also the reason KR is here: it is the country whose
+    // stored name ("Korea, South") the filter must find when you type
+    // "South Korea".
+    type: 'food',
+    countryCode: 'KR',
+    tags: ['noodles'],
+    data: { venue: 'Myeongdong Kyoja', plusCode: '8Q98HX7P+86' },
+  },
+  {
+    // Country-only degradation: nothing geocodable resolves, so no
+    // badge and no city. Keeps the bare fallback visible in dev.
+    type: 'activity',
+    countryCode: 'KR',
+    notes: 'Ask the guesthouse which entrance is open in winter.',
+    data: { title: 'Unnamed ridge trail — ask locally' },
+  },
+  {
+    type: 'activity',
+    countryCode: 'VN',
+    locationName: 'Hội An',
+    tags: ['tailor'],
+    data: { title: 'Old town lantern walk', description: 'Best after sunset.' },
+  },
+  {
+    // Activity WITH an address and no description — the card used to
+    // drop the address entirely and show nothing but the title.
+    type: 'activity',
+    countryCode: 'IT',
+    data: { title: 'Palazzo Massimo', address: 'Largo di Villa Peretti 2, Rome' },
+  },
+  {
+    type: 'food',
+    countryCode: 'MX',
+    locationName: 'Roma Norte',
+    data: { venue: 'Contramar' },
+  },
 ];
 
 // Pre-geocoded wishlist items so their muted pin appears in the trip
-// map's wishlist overlay. Keyed by index into WISHLIST_ITEMS so the
-// cache key is derived through `buildGeocodeQuery` against the same
-// shape the repo layer will use to look it up. Keep aligned with the
-// matching index in WISHLIST_ITEMS.
-const WISHLIST_PINS: Array<{ index: number; lat: number; lng: number }> = [
-  // Sushi Saito — geocoded via address ("Akasaka, Minato City, Tokyo")
-  { index: 0, lat: 35.6735, lng: 139.7374 },
+// map's wishlist overlay, and so the card's city line has something to
+// show. Keyed by index into WISHLIST_ITEMS so the cache key is derived
+// through `buildGeocodeQuery` against the same shape the repo layer
+// will use to look it up. Keep aligned with the matching index in
+// WISHLIST_ITEMS.
+//
+// `city` mirrors what the provider's reverse geocode would carry — the
+// segment pins above already seed it, and without it here the wishlist
+// city line would look broken in a seeded worktree.
+const WISHLIST_PINS: Array<{ index: number; lat: number; lng: number; city?: string }> = [
+  // Sushi Saito — geocoded via address ("Akasaka, Minato City, Tokyo").
+  // City suppressed on the card: the address already spells out Tokyo.
+  { index: 0, lat: 35.6735, lng: 139.7374, city: 'Tokyo' },
   // Den — geocoded via "Den, Jingūmae" (no address; venue + locationName)
-  { index: 1, lat: 35.6727, lng: 139.7036 },
+  { index: 1, lat: 35.6727, lng: 139.7036, city: 'Tokyo' },
   // Ghibli Museum — geocoded via "Ghibli Museum, Mitaka"
-  { index: 2, lat: 35.6962, lng: 139.5704 },
+  { index: 2, lat: 35.6962, lng: 139.5704, city: 'Mitaka' },
+  // Myeongdong Kyoja — the Plus-Code-only item. Its coords decode
+  // offline; ONLY this cache row supplies the city, which is the whole
+  // point of the seed.
+  { index: 5, lat: 37.5633, lng: 126.9855, city: 'Seoul' },
+  // Palazzo Massimo — address-only activity.
+  { index: 8, lat: 41.9018, lng: 12.4983, city: 'Rome' },
+  // Contramar — venue + locationName, city adds the metropolis above
+  // the neighbourhood.
+  { index: 9, lat: 19.4155, lng: -99.1673, city: 'Mexico City' },
 ];
 
 // `buildGeocodeQuery` (the production helper imported above) needs the
@@ -912,6 +969,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         countryCode: w.countryCode,
         locationName: w.locationName ?? null,
         notes: w.notes ?? null,
+        tags: w.tags ?? [],
         data: w.data,
         createdBy: userId,
       })),
@@ -940,12 +998,19 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         lat: pin.lat,
         lng: pin.lng,
         displayName: query,
+        city: pin.city ?? null,
         source: 'nominatim',
         expiresAt: positiveExpiresAt,
       })
       .onConflictDoUpdate({
         target: geocodeCache.queryNormalized,
-        set: { lat: pin.lat, lng: pin.lng, displayName: query, expiresAt: positiveExpiresAt },
+        set: {
+          lat: pin.lat,
+          lng: pin.lng,
+          displayName: query,
+          city: pin.city ?? null,
+          expiresAt: positiveExpiresAt,
+        },
       });
   }
 
