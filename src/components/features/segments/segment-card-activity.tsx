@@ -1,11 +1,11 @@
 import { Sparkles } from 'lucide-react';
 
 import type { LinkedDocument } from '@/lib/documents';
+import { placeCity } from '@/lib/geocoding/place-city';
 import type { Segment } from '@/lib/segments';
 import { activityDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
-import { segmentCity } from './segment-city';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 import { SegmentTimeMeta } from './segment-time-meta';
@@ -39,7 +39,7 @@ export function SegmentCardActivity({
   );
 
   const subtitle = subtitleWithPlusCodeBadge({
-    parts: [segment.locationName, segmentCity(coords, segment.locationName), description],
+    parts: [segment.locationName, placeCity(coords, segment.locationName), description],
     coords,
     venue: title,
   });

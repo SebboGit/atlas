@@ -86,10 +86,7 @@ export async function getPlaceCoordsView(
         coordsById.set(place.id, { ...coords, city: null });
         offlineDecoded.add(place.id);
         // Fall through to the cache lookup anyway: the worker's
-        // reverse-geocode row carries the city (#111). A miss there
-        // never counts toward pendingCount — the coords are already
-        // final, the city is a nice-to-have that appears once the
-        // lifecycle job lands.
+        // reverse-geocode row carries the city (#111).
       }
     }
     const key = raw;
@@ -125,7 +122,18 @@ export async function getPlaceCoordsView(
       }
       continue;
     }
-    if (offlineDecoded.has(id)) continue;
+    if (offlineDecoded.has(id)) {
+      // The coords are already final, but the CITY still depends on the
+      // worker's reverse geocode. #111 skipped these, which left the
+      // one case that needs the city most — a place saved with nothing
+      // but a Plus Code, so no address and often no area label — showing
+      // its badge instantly and its locality never, until the user
+      // navigated away and back. Count it so the poller surfaces it.
+      // A `kind === 'null'` row still falls through: the worker ran and
+      // found nothing, so refreshing would change nothing.
+      if (cached?.kind === 'miss' || cached === undefined) pendingCount += 1;
+      continue;
+    }
     if (cached?.kind === 'miss' || cached === undefined) {
       // No cache row at all — the worker hasn't fired yet (just-saved
       // segment) or hasn't completed (in-flight job). Worth polling.

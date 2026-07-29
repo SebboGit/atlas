@@ -3,3 +3,4 @@
 // client bundles — server code imports it directly as
 // `import * as countriesRepo from '@/lib/countries/repo'`.
 export { ISO_COUNTRIES, countryName, type CountryRef } from './data';
+export { searchCountries } from './match';

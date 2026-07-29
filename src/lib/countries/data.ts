@@ -8,6 +8,8 @@
 //   - src/lib/countries/seed.ts          (Postgres source of truth;
 //                                         seeded on worker boot + db:seed)
 //   - src/components/ui/country-select.tsx (form dropdown)
+//   - src/lib/countries/match.ts            (alias-aware name search
+//                                            behind both typeaheads)
 //
 // Kept as a static TS module rather than fetched from the DB on the
 // client because (a) it changes once a decade, (b) it's ~6 KB and

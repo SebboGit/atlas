@@ -1,11 +1,11 @@
 import { BedDouble } from 'lucide-react';
 
 import type { LinkedDocument } from '@/lib/documents';
+import { placeCity } from '@/lib/geocoding/place-city';
 import type { Segment } from '@/lib/segments';
 import { hotelDataSchema } from '@/lib/segments';
 
 import { LinkedDocumentChips } from './linked-document-chips';
-import { segmentCity } from './segment-city';
 import { subtitleWithPlusCodeBadge } from './plus-code-badge';
 import { SegmentCardShell } from './segment-card-shell';
 
@@ -39,7 +39,7 @@ export function SegmentCardHotel({
   const subtitle = subtitleWithPlusCodeBadge({
     parts: [
       segment.locationName,
-      segmentCity(coords, segment.locationName),
+      placeCity(coords, segment.locationName),
       nights !== null ? `${nights} night${nights === 1 ? '' : 's'}` : null,
       roomType,
     ],

@@ -165,12 +165,11 @@ describe('getPlaceCoordsMap', () => {
     expect(result.get('hotel-1')).toEqual({ lat: 35.6968, lng: 139.7536, city: null });
   });
 
-  it('decodes a FULL Plus Code offline — coords present with no cache row, not pending', async () => {
+  it('decodes a FULL Plus Code offline — coords resolve with no cache row', async () => {
     // A picked candidate (or a typed full code) stores a self-contained
     // full Plus Code. Even with NO cache row (worker hasn't run yet), the
-    // badge must resolve immediately — so this decodes offline and never
-    // counts toward pending. Contrast: 'act-pending' below, an address
-    // with no row, IS absent + pending.
+    // badge must resolve immediately — so this decodes offline rather
+    // than waiting on the worker.
     const view = await getPlaceCoordsView([
       {
         id: 'food-pluscode',
@@ -182,7 +181,6 @@ describe('getPlaceCoordsMap', () => {
     ]);
 
     expect(view.coordsById.has('food-pluscode')).toBe(true);
-    expect(view.pendingCount).toBe(0);
     const coords = view.coordsById.get('food-pluscode')!;
     expect(Number.isFinite(coords.lat)).toBe(true);
     expect(Number.isFinite(coords.lng)).toBe(true);
@@ -190,6 +188,69 @@ describe('getPlaceCoordsMap', () => {
     expect(coords.lat).toBeLessThanOrEqual(90);
     expect(coords.lng).toBeGreaterThanOrEqual(-180);
     expect(coords.lng).toBeLessThanOrEqual(180);
+    // …but the CITY still needs the worker's reverse geocode, so the row
+    // counts as pending and the poller keeps looking. #111 skipped these,
+    // which left a Plus-Code-only place — the one case with no address
+    // and often no area label to fall back on — permanently city-less
+    // until the next navigation.
+    expect(coords.city).toBeNull();
+    expect(view.pendingCount).toBe(1);
+  });
+
+  it('stops polling an offline-decoded Plus Code once its city lands', async () => {
+    dbState.rows.push({
+      queryNormalized: '8q7xmpwg+5v',
+      lat: 35.6655,
+      lng: 139.717,
+      displayName: 'Some Place',
+      source: 'nominatim',
+      fetchedAt: new Date(),
+      expiresAt: FUTURE,
+      city: 'Osaka',
+    });
+
+    const view = await getPlaceCoordsView([
+      {
+        id: 'food-pluscode',
+        type: 'food',
+        data: { venue: 'Some Place', plusCode: '8Q7XMPWG+5V' },
+        locationName: null,
+        countryCode: null,
+      },
+    ]);
+
+    // The offline decode stays authoritative for the coords; the cache
+    // row contributes only the city line.
+    expect(view.coordsById.get('food-pluscode')?.city).toBe('Osaka');
+    expect(view.pendingCount).toBe(0);
+  });
+
+  it('does not poll an offline-decoded Plus Code whose reverse geocode found nothing', async () => {
+    dbState.rows.push({
+      queryNormalized: '8q7xmpwg+5v',
+      lat: null,
+      lng: null,
+      displayName: null,
+      source: 'nominatim',
+      fetchedAt: new Date(),
+      expiresAt: FUTURE,
+    });
+
+    const view = await getPlaceCoordsView([
+      {
+        id: 'food-pluscode',
+        type: 'food',
+        data: { venue: 'Some Place', plusCode: '8Q7XMPWG+5V' },
+        locationName: null,
+        countryCode: null,
+      },
+    ]);
+
+    // Coords survive (decoded offline), city stays null, and the worker
+    // already gave up — refreshing would change nothing.
+    expect(view.coordsById.has('food-pluscode')).toBe(true);
+    expect(view.coordsById.get('food-pluscode')?.city).toBeNull();
+    expect(view.pendingCount).toBe(0);
   });
 
   it('omits places whose cache row is a null-result (Nominatim gave up)', async () => {

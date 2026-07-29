@@ -1,17 +1,22 @@
 import Link from 'next/link';
 
 import { ScrollTabStrip } from '@/components/ui/scroll-tab-strip';
-import { countryName } from '@/lib/countries';
 import type { WishlistItemType } from '@/lib/wishlist';
 import { cn } from '@/lib/utils';
+
+import { WishlistCountryFilter, type WishlistCountryOption } from './wishlist-country-filter';
 
 interface WishlistFiltersProps {
   /** Current type filter; `null` means "all". */
   activeType: WishlistItemType | null;
   /** Current country ISO-2 filter; `null` means "all". */
   activeCountry: string | null;
-  /** Country codes that have at least one item, sorted. */
-  countriesWithItems: readonly string[];
+  /**
+   * Countries that have at least one item under the ACTIVE type
+   * filter, name-sorted, with their counts. Empty when nothing is
+   * saved yet.
+   */
+  countries: readonly WishlistCountryOption[];
   /** Per-type counts for the chip labels. */
   counts: { all: number; food: number; activity: number };
 }
@@ -55,24 +60,16 @@ function ChipLink({
   );
 }
 
-// Filter strip for /wishlist. Type chips on top, country chips below.
-// Both navigate via querystring so the server component re-renders
-// with the new filters — no client state.
+// Filter strip for /wishlist. Type chips on top, country typeahead
+// below. This file stays a server component: the type chips are plain
+// links that re-derive from searchParams, and the country control is a
+// self-contained client island that writes the same querystring.
 export function WishlistFilters({
   activeType,
   activeCountry,
-  countriesWithItems,
+  countries,
   counts,
 }: WishlistFiltersProps) {
-  // Country chips are URL-driven too. Type stays on the link when
-  // present so switching country doesn't reset type.
-  function countryHref(code: string | null): string {
-    const params = new URLSearchParams();
-    if (activeType) params.set('type', activeType);
-    if (code) params.set('country', code);
-    const qs = params.toString();
-    return qs ? `/wishlist?${qs}` : '/wishlist';
-  }
   function typeHref(type: WishlistItemType | null): string {
     const params = new URLSearchParams();
     if (type) params.set('type', type);
@@ -98,17 +95,13 @@ export function WishlistFilters({
           Activities
         </ChipLink>
       </ScrollTabStrip>
-      {countriesWithItems.length > 0 && (
-        <ScrollTabStrip ariaLabel="Filter by country" activeKey={activeCountry ?? '__all__'}>
-          <ChipLink href={countryHref(null)} active={activeCountry === null}>
-            All countries
-          </ChipLink>
-          {countriesWithItems.map((code) => (
-            <ChipLink key={code} href={countryHref(code)} active={activeCountry === code}>
-              {countryName(code) ?? code}
-            </ChipLink>
-          ))}
-        </ScrollTabStrip>
+      {/* Own row, deliberately not a ScrollTabStrip child: the strip is
+       *  a snap-scrolling overflow container, and opening a dropdown
+       *  from inside one repositions on every scroll. */}
+      {countries.length > 0 && (
+        <div className="flex">
+          <WishlistCountryFilter activeCountry={activeCountry} countries={countries} />
+        </div>
       )}
     </div>
   );

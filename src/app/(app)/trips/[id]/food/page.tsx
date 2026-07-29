@@ -47,15 +47,23 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
     segmentsRepo.listCountryCodesForTrip(user.id, id),
   ]);
 
-  // Suggestions + coords fetched in parallel — one await boundary, not two.
-  // `listForCountries` returns [] for an empty country list, so no guard.
-  const [suggestions, { coordsById: coordsBySegmentId, pendingCount }] = await Promise.all([
+  // Suggestions + the added-by names in parallel. `listForCountries`
+  // returns [] for an empty country list, so no guard.
+  const [suggestions, namesByUserId] = await Promise.all([
     wishlistRepo.listForCountries(tripCountries, {
       type: 'food',
       excludeMaterialisedOnTrip: id,
     }),
-    getPlaceCoordsView(food),
+    wishlistRepo.listUserDisplayNames(),
   ]);
+
+  // One cache read covering both the segments and the suggestion rows —
+  // suggestion coords can only be derived once we have the suggestions,
+  // so this can't join the Promise.all above, but merging the two lists
+  // keeps it a single geocode_cache round-trip and a single pendingCount
+  // for the one poller. Segment and wishlist ids are distinct UUIDs, so
+  // the shared map can't collide.
+  const { coordsById, pendingCount } = await getPlaceCoordsView([...food, ...suggestions]);
 
   const addButton = (
     <SegmentFormDialog
@@ -69,7 +77,15 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
     <>
       <TabHeader eyebrow="Food" count={food.length} action={addButton} />
 
-      <WishlistSuggestionsPanel tripId={id} items={suggestions} />
+      <WishlistSuggestionsPanel
+        tripId={id}
+        items={suggestions}
+        // Nothing else on the tab to act on, so don't make the user
+        // click to discover the one thing there is.
+        defaultOpen={food.length === 0}
+        coordsById={coordsById}
+        namesByUserId={namesByUserId}
+      />
 
       {food.length === 0 ? (
         <TabEmpty
@@ -85,7 +101,7 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
                 segment={segment}
                 tripId={id}
                 linkedDocuments={linkedDocsBySegment.get(segment.id)}
-                coords={coordsBySegmentId.get(segment.id) ?? null}
+                coords={coordsById.get(segment.id) ?? null}
                 showScheduleAction
                 showDate
               />
