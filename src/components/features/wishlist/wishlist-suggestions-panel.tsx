@@ -151,7 +151,10 @@ function SuggestionRow({
   const card = <SuggestionCard item={item} tripId={tripId} coords={coords} />;
   if (!mounted) return card;
   return (
-    <WishlistInfoDialog item={item} coords={coords} addedByLabel={addedByLabel}>
+    // `h-full` passes the grid row's height through the wrapper so the
+    // card's own `h-full` still resolves against the <li> — without it
+    // the cards stop equalising height the moment the trigger mounts.
+    <WishlistInfoDialog item={item} coords={coords} addedByLabel={addedByLabel} className="h-full">
       {card}
     </WishlistInfoDialog>
   );
@@ -207,8 +210,15 @@ function SuggestionCard({
          *  which a fixed lane would let overlap the title at 360px. It
          *  sits inside the dialog trigger, whose click filter defers to
          *  nested controls — the same arrangement document chips use
-         *  inside SegmentInfoDialog. */}
-        <WishlistAddToTripButton itemId={item.id} tripId={tripId} kind={item.type} />
+         *  inside SegmentInfoDialog.
+         *
+         *  `data-row-action` opts the whole lane out of the trigger, not
+         *  just the <button>: once added, this renders a role="status"
+         *  chip, and on failure a role="alert" line — neither of which
+         *  reads as a control to the click filter. */}
+        <div data-row-action className="shrink-0">
+          <WishlistAddToTripButton itemId={item.id} tripId={tripId} kind={item.type} />
+        </div>
       </CardContent>
     </Card>
   );

@@ -25,6 +25,14 @@ interface WishlistInfoDialogProps {
   coords?: { lat: number; lng: number; city?: string | null } | null;
   /** Display label such as "Sebastian" — surfaced as "added by …". */
   addedByLabel?: string | null;
+  /**
+   * Merged into the trigger wrapper. The wrapper sits BETWEEN the grid
+   * item and the card, so a card relying on `h-full` to equalise row
+   * heights needs the wrapper to pass the height through — otherwise
+   * the chain resolves against this element's auto height and the cards
+   * stop stretching the moment the trigger mounts.
+   */
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -42,6 +50,7 @@ export function WishlistInfoDialog({
   item,
   coords,
   addedByLabel,
+  className,
   children,
 }: WishlistInfoDialogProps) {
   const [open, setOpen] = React.useState(false);
@@ -49,11 +58,18 @@ export function WishlistInfoDialog({
   const isFood = item.type === 'food';
 
   function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement | null;
+    // A row action can render as something that is not a control at
+    // all: WishlistAddToTripButton swaps its <button> for a
+    // role="status" chip once the item is added, and can grow a
+    // role="alert" line on failure. Neither would be caught by the
+    // control selector below, so clicking the confirmation chip used
+    // to open this dialog. The wrapping element opts the whole lane out.
+    if (target?.closest('[data-row-action]')) return;
     // `closest` walks up from the target, and this wrapper carries
     // role="button" itself, so it would always match. A hit equal to
     // the wrapper means the click landed on the row surface rather
     // than on a real nested affordance.
-    const target = e.target as HTMLElement | null;
     const interactive = target?.closest('a, button, [role="button"]');
     if (interactive && interactive !== e.currentTarget) return;
     setOpen(true);
@@ -72,7 +88,13 @@ export function WishlistInfoDialog({
 
   const country = countryName(item.countryCode);
   const address = wishlistAddress(item);
-  const city = placeCity(coords, item.locationName, { country, text: address });
+  // Same arguments the suggestion row uses — deliberately NOT passing
+  // the address as `alongside.text`. That rule exists to stop a card's
+  // single dot-joined line repeating itself; here every value gets its
+  // own labelled row, so repetition is legible rather than noisy, and
+  // suppressing it made the dialog silently omit a locality the row
+  // that opened it had just displayed.
+  const city = placeCity(coords, item.locationName, { country });
   const plusCode = wishlistPlusCode(item);
   const hasCoords = coords !== null && coords !== undefined;
 
@@ -91,6 +113,7 @@ export function WishlistInfoDialog({
           'cursor-pointer transition-[transform,box-shadow] duration-200',
           '[@media(hover:hover)]:hover:-translate-y-px [@media(hover:hover)]:hover:shadow-[0_28px_60px_-30px_rgba(60,40,20,0.32)]',
           'focus-visible:ring-primary/40 focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2',
+          className,
         )}
       >
         {children}
@@ -125,7 +148,10 @@ export function WishlistInfoDialog({
 
           <InfoSection title="Location">
             <InfoRow label="Area" value={item.locationName} />
-            <InfoRow label="City" value={city} />
+            {/* "Locality", not "City": chooseLocality falls through to
+             *  district / county / state, so the value is legitimately a
+             *  province sometimes (e.g. "Ninh Bình"). */}
+            <InfoRow label="Locality" value={city} />
             <InfoRow label="Country" value={country} />
             <InfoRow label="Address" value={address} multiline />
             <InfoRow label="Plus Code" value={plusCode} mono />

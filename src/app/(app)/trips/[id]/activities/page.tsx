@@ -75,7 +75,9 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
       <WishlistSuggestionsPanel
         tripId={id}
         items={suggestions}
-        defaultOpen={activities.length === 0}
+        // Gated on there being no country filter — see the note on the
+        // Food tab: the segment list is filtered, the suggestions aren't.
+        defaultOpen={activities.length === 0 && !country}
         coordsById={coordsById}
         namesByUserId={namesByUserId}
       />

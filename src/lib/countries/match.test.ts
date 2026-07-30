@@ -113,6 +113,17 @@ describe('searchCountries', () => {
       expect(top('gb')).toBe('GB');
     });
 
+    it('lets the code "ST" reach São Tomé despite the st→saint rule', () => {
+      // Regression: folding the query to "saint" before the code compare
+      // made ST unreachable and dropped São Tomé from the results
+      // entirely, handing the list to the seven Saint * countries.
+      expect(top('ST')).toBe('ST');
+      expect(top('st')).toBe('ST');
+      // …and the Saint * countries still follow on the same query.
+      expect(codes('st')).toContain('LC');
+      expect(codes('st')).toContain('KN');
+    });
+
     it('ranks an exact name above a prefix above a substring', () => {
       // "Niger" is an exact name; "Nigeria" only a prefix match.
       expect(codes('niger').slice(0, 2)).toEqual(['NE', 'NG']);
