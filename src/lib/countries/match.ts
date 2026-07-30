@@ -65,15 +65,14 @@ export const COUNTRY_ALIASES: Readonly<Record<string, readonly string[]>> = {
  * Periods are deleted rather than spaced so "U.S.A." collapses to
  * "usa" and matches the alias; every other separator becomes a space
  * so "Timor-Leste" and "Timor Leste" agree. A leading article is
- * dropped ("the Netherlands"), and the "st"/"saint" token swap covers
- * the seven Saint * entries without seven alias rows.
+ * dropped ("the Netherlands").
  *
  * NOT shared with src/lib/geocoding/normalize.ts — that one is the
  * geocode_cache primary key and deliberately preserves accents.
  * Folding there would silently re-key every cached row.
  */
-function normalizeCountryText(value: string): string {
-  const folded = value
+function foldText(value: string): string {
+  return value
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
@@ -82,11 +81,27 @@ function normalizeCountryText(value: string): string {
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
     .replace(/^the /, '');
+}
+
+/**
+ * Expand a standalone "st" token to "saint", which earns all seven
+ * `Saint *` entries without seven alias rows.
+ *
+ * Applied ONLY to name matching, never before the ISO-code compare:
+ * `ST` is itself a country code (São Tomé and Príncipe), so folding
+ * the query "ST" straight to "saint" made that code unreachable and
+ * dropped São Tomé out of the results entirely.
+ */
+function expandSaint(folded: string): string {
   if (folded === '') return '';
   return folded
     .split(' ')
     .map((token) => (token === 'st' ? 'saint' : token))
     .join(' ');
+}
+
+function normalizeCountryText(value: string): string {
+  return expandSaint(foldText(value));
 }
 
 /**
@@ -140,16 +155,19 @@ const RANK_EXACT = 1;
 const RANK_PREFIX = 2;
 const RANK_SUBSTRING = 3;
 
-function rankOf(query: string, country: CountryRef): number | null {
-  if (query === country.code.toLowerCase()) return RANK_CODE;
+// `codeQuery` is folded but NOT saint-expanded, so a query of "st"
+// can still reach the São Tomé code; `nameQuery` is the expanded form
+// used against the name/alias variants.
+function rankOf(codeQuery: string, nameQuery: string, country: CountryRef): number | null {
+  if (codeQuery === country.code.toLowerCase()) return RANK_CODE;
   let best: number | null = null;
   for (const variant of variantsOf(country)) {
-    if (variant === query) return RANK_EXACT;
-    if (variant.startsWith(query)) {
+    if (variant === nameQuery) return RANK_EXACT;
+    if (variant.startsWith(nameQuery)) {
       if (best === null || best > RANK_PREFIX) best = RANK_PREFIX;
       continue;
     }
-    if (variant.includes(query)) {
+    if (variant.includes(nameQuery)) {
       if (best === null || best > RANK_SUBSTRING) best = RANK_SUBSTRING;
     }
   }
@@ -173,11 +191,12 @@ export function searchCountries<T extends CountryRef>(
   query: string,
   pool: readonly T[],
 ): readonly T[] {
-  const q = normalizeCountryText(query);
-  if (q === '') return pool;
+  const codeQuery = foldText(query);
+  if (codeQuery === '') return pool;
+  const nameQuery = expandSaint(codeQuery);
   const ranked: Array<{ item: T; rank: number }> = [];
   for (const item of pool) {
-    const rank = rankOf(q, item);
+    const rank = rankOf(codeQuery, nameQuery, item);
     if (rank !== null) ranked.push({ item, rank });
   }
   ranked.sort((a, b) => a.rank - b.rank);

@@ -124,7 +124,10 @@ export function WishlistCountryFilter({ activeCountry, countries }: WishlistCoun
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       keyboardNavRef.current = true;
-      setHighlighted((h) => Math.min(h + 1, rows.length - 1));
+      // Lower-bounded at 0: with an empty result set `rows.length - 1`
+      // is -1, which would park the highlight on a row that can never
+      // exist and leave Enter silently inert once matches came back.
+      setHighlighted((h) => Math.max(0, Math.min(h + 1, rows.length - 1)));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       keyboardNavRef.current = true;
@@ -182,7 +185,15 @@ export function WishlistCountryFilter({ activeCountry, countries }: WishlistCoun
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              // Re-home the highlight on every keystroke. Results are
+              // RANKED, so the ordering shifts as the query narrows —
+              // keeping a stale index means Enter commits whatever
+              // happens to sit at that position rather than the best
+              // match the user is looking at.
+              setHighlighted(0);
+            }}
             onKeyDown={onSearchKey}
             placeholder="Search countries…"
             aria-label="Search countries"

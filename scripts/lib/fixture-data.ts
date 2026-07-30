@@ -573,6 +573,21 @@ const WISHLIST_ITEMS: WishlistFixture[] = [
     locationName: 'Roma Norte',
     data: { venue: 'Contramar' },
   },
+  {
+    // Second JP food item so the hero trip's suggestions panel renders
+    // TWO rows — its 2-column grid, the height-equalising `h-full` chain
+    // through the dialog trigger, and the name truncation had no fixture
+    // coverage while every trip surfaced exactly one suggestion. Long
+    // name and no area label on purpose.
+    //
+    // APPEND ONLY, and keep WISHLIST_PINS below in sync: those entries
+    // are keyed by INDEX into this array, so inserting anywhere but the
+    // end silently re-points every pin after the insert.
+    type: 'food',
+    countryCode: 'JP',
+    notes: 'Counter seats only. Cash.',
+    data: { venue: 'Toriki Hanare — reservations by referral only' },
+  },
 ];
 
 // Pre-geocoded wishlist items so their muted pin appears in the trip

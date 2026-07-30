@@ -81,8 +81,11 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
         tripId={id}
         items={suggestions}
         // Nothing else on the tab to act on, so don't make the user
-        // click to discover the one thing there is.
-        defaultOpen={food.length === 0}
+        // click to discover the one thing there is. Gated on there being
+        // no country filter: `food` is filtered but the suggestions are
+        // not, so a filter that happens to match no food would otherwise
+        // auto-expand on a trip that has plenty.
+        defaultOpen={food.length === 0 && !country}
         coordsById={coordsById}
         namesByUserId={namesByUserId}
       />

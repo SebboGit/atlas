@@ -104,7 +104,10 @@ export function CountrySelect({
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       keyboardNavRef.current = true;
-      setHighlighted((h) => Math.min(h + 1, filtered.length - 1));
+      // Lower-bounded at 0 — an empty result set makes `length - 1` = -1,
+      // which parks the highlight out of range and leaves Enter inert
+      // once matches come back.
+      setHighlighted((h) => Math.max(0, Math.min(h + 1, filtered.length - 1)));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       keyboardNavRef.current = true;
@@ -163,7 +166,13 @@ export function CountrySelect({
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              // Results are ranked by match quality now, so the order
+              // shifts as the query narrows; a stale highlight index
+              // would make Enter pick a country the user isn't looking at.
+              setHighlighted(0);
+            }}
             onKeyDown={onSearchKey}
             placeholder="Search…"
             aria-autocomplete="list"
