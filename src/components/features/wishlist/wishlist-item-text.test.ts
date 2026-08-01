@@ -2,10 +2,20 @@ import { describe, expect, it } from 'vitest';
 
 import type { WishlistItem } from '@/lib/wishlist';
 
-import { wishlistItemName, wishlistPlusCode, wishlistSubtitle } from './wishlist-item-text';
+import {
+  wishlistAddress,
+  wishlistItemName,
+  wishlistPlusCode,
+  wishlistSubtitle,
+} from './wishlist-item-text';
 
+// No `as WishlistItem` cast: the literal supplies every field, so a new
+// required member on the row type fails typecheck here rather than being
+// silently suppressed.
 function item(over: Partial<WishlistItem>): WishlistItem {
-  return {
+  // Annotated, not cast — dropping the old `as WishlistItem` immediately
+  // surfaced the two generated search columns this fixture never set.
+  const base: WishlistItem = {
     id: 'wl-1',
     type: 'food',
     countryCode: 'JP',
@@ -16,8 +26,13 @@ function item(over: Partial<WishlistItem>): WishlistItem {
     createdBy: 'user-1',
     createdAt: new Date(),
     updatedAt: new Date(),
-    ...over,
-  } as WishlistItem;
+    searchText: null,
+    searchTsv: null,
+  };
+  // Object.assign rather than a spread literal: spreading a Partial<T>
+  // widens every overridden field to `| undefined`, which no longer
+  // satisfies T.
+  return Object.assign(base, over);
 }
 
 describe('wishlistItemName', () => {
@@ -33,6 +48,24 @@ describe('wishlistItemName', () => {
     expect(wishlistItemName(item({ type: 'activity', data: { nonsense: true } }))).toBe(
       'Attraction',
     );
+  });
+});
+
+describe('wishlistAddress', () => {
+  it('reads the address for both types', () => {
+    expect(wishlistAddress(item({ data: { venue: 'Den', address: 'Jingūmae 1-2' } }))).toBe(
+      'Jingūmae 1-2',
+    );
+    expect(
+      wishlistAddress(
+        item({ type: 'activity', data: { title: 'Senso-ji', address: 'Asakusa 2-3' } }),
+      ),
+    ).toBe('Asakusa 2-3');
+  });
+
+  it('is undefined when absent, blank, or the data is malformed', () => {
+    expect(wishlistAddress(item({ data: { venue: 'Den' } }))).toBeUndefined();
+    expect(wishlistAddress(item({ data: { nonsense: true } }))).toBeUndefined();
   });
 });
 
