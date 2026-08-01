@@ -76,8 +76,9 @@ export function SegmentCardShell({
           // pins at `top-3` — the edit/delete buttons reach ~40px down on
           // pointer devices, which a tighter band only half-covered, so
           // they read as sitting inside this strip rather than spilling
-          // past its lower edge. `pr-28` reserves their horizontal lane.
-          className="border-foreground/12 bg-foreground/[0.04] flex items-center gap-3 border-b py-4 pr-28 pl-5 sm:pl-6"
+          // past its lower edge. The right pad reserves their horizontal
+          // lane; see the note on CardContent below for the two widths.
+          className="border-foreground/12 bg-foreground/[0.04] flex items-center gap-3 border-b py-4 pr-[9.5rem] pl-5 sm:pl-6 [@media(hover:hover)]:pr-28"
         >
           <span className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
             Review
@@ -90,20 +91,34 @@ export function SegmentCardShell({
       )}
       <CardContent
         // Right padding is wider than left to reserve room for the
-        // absolutely-positioned action cluster (SegmentRow renders
-        // edit + delete, plus reschedule on activities — three
-        // h-7 w-7 buttons at top-3 right-3 add up to ~100px). pr-28
-        // unconditionally because the two-button case has lots of
-        // air to spare but the three-button case on mobile is the
-        // one that visually clips — covering both with the wider
-        // pad keeps the worst case comfortable. Notes use their own
-        // layout, not this shell.
-        className="flex gap-4 py-5 pr-28 pl-5 sm:gap-5 sm:py-6 sm:pl-6"
+        // absolutely-positioned action cluster SegmentRow pins at
+        // `top-3 right-3` (edit + delete, plus reschedule on activities
+        // and food).
+        //
+        // The lane has to be measured per input type, because the
+        // buttons are not one size: `size-7` on pointer → 88px of
+        // cluster, but `size-11` on touch to meet the 44px tap-target
+        // rule → 136px, plus the 12px `right-3` offset. A flat `pr-28`
+        // (112px) covered the pointer case and left the touch cluster
+        // sitting 35px INSIDE the text column, so a long title truncated
+        // underneath the buttons (#123). 9.5rem = 152px clears the touch
+        // cluster with 4px to spare; pointer keeps the tighter 112px.
+        // Notes use their own layout, not this shell.
+        className="flex gap-4 py-5 pr-[9.5rem] pl-5 sm:gap-5 sm:py-6 sm:pl-6 [@media(hover:hover)]:pr-28"
       >
+        {/* Decorative only — the eyebrow directly beside it already names
+         *  the type in words. Dropped on touch, where it and its gap cost
+         *  56px that the wider action lane needs back; the net is still
+         *  ~20px MORE text than before (#123). Gated on `hover: none`
+         *  rather than a width breakpoint on purpose: a tablet is `sm:`+
+         *  but still touch, and its two-column cards (344px at 768) are
+         *  the narrowest of any device — a width-based rule would hand
+         *  the worst case the widest lane AND keep the glyph. */}
         <div
           aria-hidden
           className={cn(
             'mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [&_svg]:size-5',
+            '[@media(hover:none)]:hidden',
             GLYPH_ACCENT[type],
           )}
         >
