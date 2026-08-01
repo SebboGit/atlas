@@ -39,7 +39,14 @@ export function SegmentCardActivity({
   );
 
   const subtitle = subtitleWithPlusCodeBadge({
-    parts: [segment.locationName, placeCity(coords, segment.locationName), description],
+    // The description is rendered right after the city, so it gets the
+    // one-way `text` rule: a description that already names the city
+    // shouldn't have it repeated two parts earlier.
+    parts: [
+      segment.locationName,
+      placeCity(coords, segment.locationName, { text: description }),
+      description,
+    ],
     coords,
     venue: title,
   });
