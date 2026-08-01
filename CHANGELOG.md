@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-01
+
+### Added
+
+- **Wishlist cards name the city** — a place saved with nothing but a Plus
+  Code used to show its name and its country and nothing else. Cards now
+  carry the locality the geocoder resolved, so "Myeongdong Kyoja" reads
+  "South Korea · Seoul" without you typing an address. The line appears
+  within a couple of seconds of saving, no reload.
+- **Search your countries** — the wishlist's country filter gained a search
+  field that narrows the row as you type, so it keeps working past a dozen
+  countries. It finds what you'd actually type: "South Korea", "USA", "UK",
+  "Holland", "Burma", "Czech Republic", accents optional. The same search now
+  backs the country picker in every form, where typing "South Korea" used to
+  find nothing at all.
+- **Wishlist suggestions say where they are** — the rows on a trip's Food and
+  Activities tabs showed a bare name. They now read "area · city · country",
+  and the row opens a detail view with the notes, tags, address, Plus Code
+  link and who saved it.
+- **"From your wishlist" is findable** — the disclosure on those tabs read as
+  a section divider. It is now a bordered panel that previews what is inside,
+  and it opens by default when the tab has nothing of its own yet.
+
+### Changed
+
+- **Countries read the way you say them** — "Korea, South" is now "South
+  Korea", "Korea, North" is "North Korea", and the DR Congo drops its inverted
+  form. Searching still finds the old spellings.
+
+### Fixed
+
+- **Places stopped updating after the third save in a sitting** — the
+  background refresh that fills in a city had a budget of three saves per
+  visit and never refilled while any one place stayed unresolved. Saving a
+  fourth place left it blank until you reloaded. It now refills on every save.
+- **The city no longer hides behind an address** — a place whose address
+  happened to end in "Tokyo" had its city suppressed as a duplicate. An
+  address buries the city mid-string; the meta line is where that question
+  gets answered, so it always answers it.
+- **Buttons no longer sit on the card text on phones and tablets** — the
+  edit / delete / reschedule cluster is larger on touch to stay tappable, but
+  the card reserved a lane sized for the smaller pointer buttons, so it
+  overlapped the title by 35px on every touch device. Cards also gained about
+  20px of room for their titles there.
+- **The Food and Activities tabs no longer scroll sideways** on a phone.
+- **Wishlist cards stopped repeating themselves** — an item with no address
+  printed its area twice, and an activity's address was never shown at all.
+
 ## [1.4.2] - 2026-07-18
 
 ### Added
@@ -315,7 +363,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/SebboGit/atlas/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/SebboGit/atlas/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/SebboGit/atlas/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/SebboGit/atlas/compare/v1.3.2...v1.4.0
