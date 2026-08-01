@@ -90,8 +90,11 @@ export default async function ActivitiesTabPage({ params, searchParams }: Activi
         />
       ) : (
         <ul className="atlas-rise grid gap-3 sm:grid-cols-2" style={{ animationDelay: '300ms' }}>
+          {/* `min-w-0` on each item — see the note on the Food tab: without
+           *  it the grid track sizes to the card's min-content and the page
+           *  scrolls sideways at 360px (#117). */}
           {activities.map((segment) => (
-            <li key={segment.id}>
+            <li key={segment.id} className="min-w-0">
               <SegmentRow
                 segment={segment}
                 tripId={id}
