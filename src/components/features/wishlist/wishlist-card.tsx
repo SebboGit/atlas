@@ -31,9 +31,10 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
   const subtitle = wishlistSubtitle(item);
   const country = countryName(item.countryCode);
   // Coarse → fine, so a Plus-Code-only item still reads "Japan · Osaka"
-  // instead of just "Japan". The city is suppressed when the address or
-  // the user's own area label already says it (see placeCity).
-  const city = placeCity(coords, item.locationName, { country, text: subtitle });
+  // instead of just "Japan". Suppressed only when the user's own area
+  // label already says it — an address containing the city does not
+  // count, since this row is where "where is this?" gets answered.
+  const city = placeCity(coords, item.locationName, { country });
   const meta = [country, city, item.locationName].filter((p): p is string => Boolean(p));
   const isFood = item.type === 'food';
   const hasBadge =
@@ -94,7 +95,11 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
               {hasBadge && <PlusCodeBadge lat={coords.lat} lng={coords.lng} venue={name} />}
             </p>
           )}
-          <div className="text-foreground/65 mt-1 flex flex-wrap items-baseline gap-2 text-xs">
+          {/* One identity strip, one typeface. Country, city and area are
+           *  the same KIND of value — where this is — so they read as a
+           *  single mono run rather than a mono country followed by two
+           *  sans place names. */}
+          <div className="text-foreground/65 mt-1 flex flex-wrap items-baseline gap-2 font-mono text-xs tracking-wider">
             {meta.map((part, i) => (
               <Fragment key={`${i}:${part}`}>
                 {i > 0 && (
@@ -102,9 +107,7 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
                     ·
                   </span>
                 )}
-                {/* Country leads and stays mono — it's an identity, not
-                 *  prose. City and area follow in plain type. */}
-                <span className={i === 0 ? 'font-mono tracking-wider' : undefined}>{part}</span>
+                <span>{part}</span>
               </Fragment>
             ))}
           </div>

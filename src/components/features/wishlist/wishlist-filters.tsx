@@ -1,9 +1,7 @@
-import Link from 'next/link';
-
 import { ScrollTabStrip } from '@/components/ui/scroll-tab-strip';
 import type { WishlistItemType } from '@/lib/wishlist';
-import { cn } from '@/lib/utils';
 
+import { FilterChipLink } from './filter-chip';
 import { WishlistCountryFilter, type WishlistCountryOption } from './wishlist-country-filter';
 
 interface WishlistFiltersProps {
@@ -21,49 +19,11 @@ interface WishlistFiltersProps {
   counts: { all: number; food: number; activity: number };
 }
 
-function ChipLink({
-  href,
-  active,
-  children,
-  count,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-  count?: number;
-}) {
-  return (
-    <Link
-      href={href}
-      data-active={active || undefined}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        // items-center (not baseline): with a 44px min-height touch target,
-        // baseline alignment parked the label + count at the top of the
-        // pill; centring keeps them vertically middled.
-        'inline-flex shrink-0 snap-start items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors',
-        // Tap target on touch per CLAUDE.md.
-        'min-h-11',
-        // Hover gated to pointer devices (rule 4) so it doesn't stick on tap.
-        active
-          ? 'border-foreground/45 bg-foreground/8 text-foreground'
-          : 'border-foreground/15 text-foreground/70 [@media(hover:hover)]:hover:border-foreground/30 [@media(hover:hover)]:hover:text-foreground',
-      )}
-    >
-      <span>{children}</span>
-      {typeof count === 'number' && (
-        <span className="text-foreground/60 font-mono text-[10px] tracking-wider">
-          {String(count).padStart(2, '0')}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-// Filter strip for /wishlist. Type chips on top, country typeahead
-// below. This file stays a server component: the type chips are plain
-// links that re-derive from searchParams, and the country control is a
-// self-contained client island that writes the same querystring.
+// Filter strip for /wishlist. Type chips on top, then the country row —
+// a search field over its own chip strip. This file stays a server
+// component: the type chips are plain links that re-derive from
+// searchParams, and only the country row (which holds the search query)
+// is a client island.
 export function WishlistFilters({
   activeType,
   activeCountry,
@@ -81,27 +41,22 @@ export function WishlistFilters({
   return (
     <div className="flex flex-col gap-3">
       <ScrollTabStrip ariaLabel="Filter by type" activeKey={activeType ?? '__all__'}>
-        <ChipLink href={typeHref(null)} active={activeType === null} count={counts.all}>
+        <FilterChipLink href={typeHref(null)} active={activeType === null} count={counts.all}>
           All
-        </ChipLink>
-        <ChipLink href={typeHref('food')} active={activeType === 'food'} count={counts.food}>
+        </FilterChipLink>
+        <FilterChipLink href={typeHref('food')} active={activeType === 'food'} count={counts.food}>
           Food
-        </ChipLink>
-        <ChipLink
+        </FilterChipLink>
+        <FilterChipLink
           href={typeHref('activity')}
           active={activeType === 'activity'}
           count={counts.activity}
         >
           Activities
-        </ChipLink>
+        </FilterChipLink>
       </ScrollTabStrip>
-      {/* Own row, deliberately not a ScrollTabStrip child: the strip is
-       *  a snap-scrolling overflow container, and opening a dropdown
-       *  from inside one repositions on every scroll. */}
       {countries.length > 0 && (
-        <div className="flex">
-          <WishlistCountryFilter activeCountry={activeCountry} countries={countries} />
-        </div>
+        <WishlistCountryFilter activeCountry={activeCountry} countries={countries} />
       )}
     </div>
   );

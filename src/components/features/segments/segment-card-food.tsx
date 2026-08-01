@@ -55,7 +55,10 @@ export function SegmentCardFood({
 
   const subtitleText = foodCardSubtitle({ address, locationName: segment.locationName });
   const subtitle = subtitleWithPlusCodeBadge({
-    parts: [subtitleText, placeCity(coords, subtitleText ?? segment.locationName)],
+    // Compared against the user's own area label, never against the
+    // address: an address that happens to end in "Tokyo" buries the city
+    // mid-string, so the city still earns its own place on the line.
+    parts: [subtitleText, placeCity(coords, segment.locationName)],
     coords,
     venue: title,
   });

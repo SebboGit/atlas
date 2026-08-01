@@ -536,7 +536,7 @@ const WISHLIST_ITEMS: WishlistFixture[] = [
   {
     // THE city-line case: a full Plus Code and nothing else — no
     // address, no area label. Without the geocoder's resolved locality
-    // the card can only say "Korea, South", which is what #116 was
+    // the card can only say "South Korea", which is what #116 was
     // filed about. Also the reason KR is here: it is the country whose
     // stored name ("Korea, South") the filter must find when you type
     // "South Korea".

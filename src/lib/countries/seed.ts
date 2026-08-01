@@ -1,3 +1,5 @@
+import { sql } from 'drizzle-orm';
+
 import type { Database } from '@/db/client';
 import { countries } from '@/db/schema';
 
@@ -19,6 +21,13 @@ import { ISO_COUNTRIES } from './data';
  * singleton so the one-shot seed script can own and close its own pool,
  * while the long-lived worker passes the shared client.
  *
+ * Names are UPDATED on conflict, not left alone. A display name can
+ * change without the code changing ("Korea, South" → "South Korea"),
+ * and `onConflictDoNothing` would have frozen every existing database
+ * on the old spelling forever — including production, where this table
+ * has been populated since the first boot. The code is the identity;
+ * the name is derived data this snapshot owns.
+ *
  * @returns the number of reference rows the seed covers.
  */
 export async function seedCountries(db: Pick<Database, 'insert'>): Promise<number> {
@@ -26,6 +35,6 @@ export async function seedCountries(db: Pick<Database, 'insert'>): Promise<numbe
   await db
     .insert(countries)
     .values([...ISO_COUNTRIES])
-    .onConflictDoNothing();
+    .onConflictDoUpdate({ target: countries.code, set: { name: sql`excluded.name` } });
   return ISO_COUNTRIES.length;
 }

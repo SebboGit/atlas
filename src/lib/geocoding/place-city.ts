@@ -16,11 +16,7 @@
 export function placeCity(
   coords: { city?: string | null } | null | undefined,
   locationName: string | null,
-  /**
-   * Other text rendered on the same card, so the city doesn't repeat
-   * something the user can already read. Each field gets the rule its
-   * failure mode deserves — see the comments below.
-   */
+  /** Other values rendered on the same row. */
   alongside?: {
     /**
      * Country name shown on the same row. Compared by EQUALITY only,
@@ -30,13 +26,6 @@ export function placeCity(
      * all contain their country's name and are worth printing.
      */
     country?: string | null;
-    /**
-     * Free text already on the card — an address, a description.
-     * ONE-WAY only: suppress when that text contains the city, never
-     * the reverse. A three-character description would otherwise
-     * delete "Kyoto" for being a superstring of it.
-     */
-    text?: string | null;
   },
 ): string | null {
   const city = coords?.city?.trim();
@@ -47,14 +36,16 @@ export function placeCity(
   // (or a label like "Shibuya, Tokyo" that contains the city) is noise,
   // not information — and so is the inverse, a "ho chi minh" label
   // against a "Ho Chi Minh City" locality.
+  //
+  // Deliberately NOT suppressed against the address or description. An
+  // address that happens to end in "Tokyo" buries the city mid-string
+  // where it doesn't read as the answer to "where is this?"; the meta
+  // row is where that question gets answered, so it always answers it.
   const label = locationName?.trim().toLowerCase();
   if (label && (label === c || label.includes(c) || c.includes(label))) return null;
 
   const country = alongside?.country?.trim().toLowerCase();
   if (country && country === c) return null;
-
-  const text = alongside?.text?.trim().toLowerCase();
-  if (text && text.includes(c)) return null;
 
   return city;
 }

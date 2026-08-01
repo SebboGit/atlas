@@ -52,7 +52,8 @@ export function CountrySelect({
   const keyboardNavRef = React.useRef(false);
 
   // Alias-aware and ranked (src/lib/countries/match.ts): "South Korea"
-  // finds "Korea, South", "usa" finds "United States", and an exact ISO
+  // still finds "Korea, South" (the retired ISO spelling), "usa" finds
+  // "United States", and an exact ISO
   // code sorts first so typing "JP" lands on Japan. Results are ordered
   // by match quality rather than alphabetically, so `filtered[0]` is
   // the one Enter should commit.

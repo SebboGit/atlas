@@ -28,19 +28,34 @@ const REFRESH_DELAYS_MS = [1500, 3500, 7000];
  * resolving it), the page-level RSC re-renders silently as soon as
  * the cache row appears.
  *
- * Per-page bounded: one poller, one timer at a time. When the missing
- * count drops to zero the attempt counter resets, so a *later* batch
- * of saves gets a fresh budget.
+ * Per-page bounded: one poller, one timer at a time. The attempt budget
+ * resets when the pending count drops to zero, and also whenever it
+ * RISES — see below.
  */
 export function GeocodePoller({ pending }: GeocodePollerProps) {
   const router = useRouter();
   const attemptsRef = React.useRef(0);
+  const prevPendingRef = React.useRef(pending);
 
   React.useEffect(() => {
     if (pending === 0) {
       attemptsRef.current = 0;
+      prevPendingRef.current = 0;
       return;
     }
+    // A rise means new unresolved work arrived — a place the user just
+    // saved — so it earns a fresh budget.
+    //
+    // Resetting only at zero was not enough. This effect re-runs only
+    // when `pending` CHANGES, so the budget is really "three saves per
+    // page visit", and it never refills while any place stays
+    // unresolved — one item the geocoder can't place is enough to hold
+    // the count above zero forever. Saving a third place then silently
+    // stopped updating: measured live, saves 1 and 2 resolved in 4.0s
+    // and 7.6s and saves 3 and 4 never did.
+    if (pending > prevPendingRef.current) attemptsRef.current = 0;
+    prevPendingRef.current = pending;
+
     if (attemptsRef.current >= REFRESH_DELAYS_MS.length) return;
     const delay = REFRESH_DELAYS_MS[attemptsRef.current]!;
     const timer = setTimeout(() => {

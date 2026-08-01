@@ -4,7 +4,8 @@
 //
 // Exists because a plain `name.includes(query)` fails the way people
 // actually type. "South Korea" finds nothing against the ISO display
-// name "Korea, South"; "USA" finds nothing against "United States";
+// retired ISO name "Korea, South"; "USA" finds nothing against
+// "United States";
 // "Turkiye" and "Türkiye" are different strings. Three layers fix that:
 // a normaliser that folds accents and punctuation, a generic
 // comma-inversion rule, and a small alias table for the names people
@@ -23,9 +24,12 @@ import { ISO_COUNTRIES, type CountryRef } from './data';
  * display name. Keyed by alpha-2 code; every value is run through the
  * same normaliser as the query, so "U.S.A." and "usa" both land here.
  *
+ * Includes the RETIRED ISO spellings for the three countries whose
+ * display names were flipped to spoken order ("Korea, South" → "South
+ * Korea"), so anyone typing the old form — or pasting it from an
+ * external list — still lands on the right country.
+ *
  * Deliberately NOT listed:
- *   - Korea (North/South) and the DR Congo's inverted form — the
- *     comma-inversion rule below already produces them.
  *   - "Türkiye" — accent folding makes it identical to the stored
  *     name; the alias people need is "Turkey".
  *   - "macedonia", "vatican", "czech" — already substrings of
@@ -34,6 +38,8 @@ import { ISO_COUNTRIES, type CountryRef } from './data';
  *     grows without bound once it starts accepting those.
  */
 export const COUNTRY_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  KR: ['korea south', 'republic of korea'],
+  KP: ['korea north', 'dprk'],
   US: ['usa', 'united states of america', 'america'],
   GB: ['uk', 'great britain', 'britain', 'england', 'scotland', 'wales', 'northern ireland'],
   AE: ['uae', 'emirates'],
@@ -45,7 +51,13 @@ export const COUNTRY_ALIASES: Readonly<Record<string, readonly string[]>> = {
   CZ: ['czech republic'],
   TR: ['turkey'],
   CV: ['cape verde'],
-  CD: ['drc', 'dr congo', 'democratic republic of congo', 'congo kinshasa'],
+  CD: [
+    'drc',
+    'democratic republic of congo',
+    'democratic republic of the congo',
+    'congo democratic republic of the',
+    'congo kinshasa',
+  ],
   CG: ['republic of the congo', 'congo brazzaville'],
   SZ: ['swaziland'],
   TL: ['east timor'],
@@ -104,31 +116,9 @@ function normalizeCountryText(value: string): string {
   return expandSaint(foldText(value));
 }
 
-/**
- * Flip an inverted ISO display name back to spoken order:
- * "Korea, South" → "South Korea".
- *
- * Only the first comma is considered, and a tail containing "and" is
- * skipped — "Bonaire, Sint Eustatius and Saba" is a LIST, not an
- * inversion, and flipping it yields the junk variant "sint eustatius
- * and saba bonaire". Those are the only four comma-bearing names in
- * the snapshot today (Korea ×2, Congo DR, Bonaire).
- */
-function invertOnComma(name: string): string | null {
-  const comma = name.indexOf(',');
-  if (comma === -1) return null;
-  const head = name.slice(0, comma).trim();
-  const tail = name.slice(comma + 1).trim();
-  if (head === '' || tail === '') return null;
-  if (/\band\b/i.test(tail)) return null;
-  return `${tail} ${head}`;
-}
-
 /** Every normalised string a country can be found by. */
 function variantsFor(country: CountryRef): readonly string[] {
   const out = [normalizeCountryText(country.name)];
-  const inverted = invertOnComma(country.name);
-  if (inverted) out.push(normalizeCountryText(inverted));
   for (const alias of COUNTRY_ALIASES[country.code] ?? []) {
     out.push(normalizeCountryText(alias));
   }
