@@ -14,34 +14,39 @@ function top(query: string): string | undefined {
 }
 
 describe('searchCountries', () => {
-  describe('comma inversion', () => {
-    it('finds "Korea, South" by the spoken order', () => {
+  describe('retired ISO spellings', () => {
+    it('finds the Koreas by their current spoken names', () => {
       expect(top('South Korea')).toBe('KR');
-    });
-
-    it('finds "Korea, North" by the spoken order', () => {
       expect(top('North Korea')).toBe('KP');
     });
 
-    it('still finds both Koreas by the stored form', () => {
-      expect(codes('Korea, South')[0]).toBe('KR');
+    it('still finds them by the retired comma form', () => {
+      // The display names were flipped to spoken order; anyone typing or
+      // pasting the old ISO spelling has to keep landing on them.
+      expect(top('Korea, South')).toBe('KR');
+      expect(top('Korea, North')).toBe('KP');
+    });
+
+    it('finds both on a bare "korea"', () => {
       expect(codes('korea')).toEqual(expect.arrayContaining(['KP', 'KR']));
     });
 
-    it('finds the DR Congo by its spoken order', () => {
+    it('finds the DR Congo by name and by the retired form', () => {
+      expect(top('DR Congo')).toBe('CD');
+      expect(top('Congo, Democratic Republic of the')).toBe('CD');
       expect(top('Democratic Republic of the Congo')).toBe('CD');
-    });
-
-    it('does not invert a list comma', () => {
-      // "Bonaire, Sint Eustatius and Saba" must not become the junk
-      // variant "sint eustatius and saba bonaire".
-      expect(codes('saba bonaire')).toEqual([]);
-      expect(top('Bonaire')).toBe('BQ');
     });
 
     it('ranks the plain Congo above the DR Congo on an exact name', () => {
       expect(top('congo')).toBe('CG');
       expect(codes('congo')).toContain('CD');
+    });
+
+    it('still finds the one remaining comma name', () => {
+      expect(top('Bonaire')).toBe('BQ');
+      // A LIST comma, not an inversion — the tail must not be flipped in
+      // front of the head.
+      expect(codes('saba bonaire')).toEqual([]);
     });
   });
 
@@ -153,11 +158,11 @@ describe('searchCountries', () => {
 
     it('works over an arbitrary pool and preserves the payload', () => {
       const pool = [
-        { code: 'KR', name: 'Korea, South', count: 4 },
+        { code: 'KR', name: 'South Korea', count: 4 },
         { code: 'JP', name: 'Japan', count: 9 },
       ];
       expect(searchCountries('south korea', pool)).toEqual([
-        { code: 'KR', name: 'Korea, South', count: 4 },
+        { code: 'KR', name: 'South Korea', count: 4 },
       ]);
     });
   });

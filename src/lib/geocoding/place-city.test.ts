@@ -42,22 +42,11 @@ describe('placeCity', () => {
     });
   });
 
-  describe('alongside.text', () => {
-    it('suppresses a city the address already spells out', () => {
-      expect(
-        placeCity({ city: 'Kyoto' }, null, { text: '294 Kiyomizu, Higashiyama Ward, Kyoto' }),
-      ).toBeNull();
-    });
-
-    it('does not suppress on the reverse containment', () => {
-      // A short description must never delete a longer city name.
-      expect(placeCity({ city: 'Kyoto' }, null, { text: 'Kyo' })).toBe('Kyoto');
-    });
-
-    it('keeps a city an unrelated description does not mention', () => {
-      expect(placeCity({ city: 'Kyoto' }, null, { text: 'Morning visit before crowds' })).toBe(
-        'Kyoto',
-      );
-    });
+  it('does NOT suppress a city the address already mentions', () => {
+    // The address buries the city mid-string where it doesn't read as
+    // the answer to "where is this?" — the meta row is where that gets
+    // answered, so it always answers it.
+    expect(placeCity({ city: 'Tokyo' }, null, { country: 'Japan' })).toBe('Tokyo');
+    expect(placeCity({ city: 'Munich' }, null, { country: 'Germany' })).toBe('Munich');
   });
 });
