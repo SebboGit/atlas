@@ -98,8 +98,13 @@ export default async function FoodTabPage({ params, searchParams }: FoodTabPageP
         />
       ) : (
         <ul className="atlas-rise grid gap-3 sm:grid-cols-2" style={{ animationDelay: '300ms' }}>
+          {/* `min-w-0` on each item: a grid item defaults to `min-width:
+           *  auto`, so the track sizes to the card's min-content rather
+           *  than the 312px available at 360px wide and the whole page
+           *  scrolls sideways (#117). Capping the item lets the card's own
+           *  `min-w-0` text column shrink and truncate instead. */}
           {food.map((segment) => (
-            <li key={segment.id}>
+            <li key={segment.id} className="min-w-0">
               <SegmentRow
                 segment={segment}
                 tripId={id}

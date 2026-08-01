@@ -147,6 +147,35 @@ export async function seedActivitySegment(
   return row.id;
 }
 
+export interface SeedFoodValues {
+  venue: string;
+  startsAt?: Date | null;
+  countryCode?: string | null;
+  locationName?: string | null;
+}
+
+// Food segment — same shell and same grid markup as activities, so the
+// horizontal-overflow guard needs one on the Food tab too (an empty tab
+// renders TabEmpty instead of the grid and would test nothing).
+export async function seedFoodSegment(tripId: string, values: SeedFoodValues): Promise<string> {
+  assertTestDatabase();
+  const inserted = await db
+    .insert(segments)
+    .values({
+      tripId,
+      type: 'food',
+      data: { venue: values.venue },
+      startsAt: values.startsAt ?? null,
+      endsAt: null,
+      locationName: values.locationName ?? null,
+      countryCode: values.countryCode ?? null,
+    })
+    .returning({ id: segments.id });
+  const row = inserted[0];
+  if (!row) throw new Error('E2E fixture: failed to seed food segment.');
+  return row.id;
+}
+
 export interface SeedHotelValues {
   propertyName: string;
   // A multi-day stay needs both ends so `continuesThroughDay` (and the
