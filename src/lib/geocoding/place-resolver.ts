@@ -24,6 +24,7 @@ import {
   type ParsedPlusCode,
 } from './plus-code';
 import {
+  canCompareStationName,
   STATION_OSM_TAGS,
   stationNameMatches,
   stationRungs,
@@ -103,7 +104,7 @@ export class PlaceResolver implements Geocoder, GeocodeSearcher, StationSearcher
    */
   async searchStation(q: StationQuery, opts?: { limit?: number }): Promise<GeocodeCandidate[]> {
     const tagged = this.deps.stations?.tagged;
-    if (!tagged) return [];
+    if (!tagged || !canCompareStationName(q.name)) return [];
     for (const rung of stationRungs(q)) {
       const candidates = await tagged.searchWithTags(rung.query, {
         tags: STATION_OSM_TAGS[q.mode],
@@ -119,6 +120,9 @@ export class PlaceResolver implements Geocoder, GeocodeSearcher, StationSearcher
   private async resolveStation(q: StationQuery): Promise<GeocodeResult | null> {
     const stations = this.deps.stations;
     if (!stations) return this.deps.forward.geocode(q.name);
+    // No Latin words to check a tagged hit against: don't spend the
+    // tagged requests on answers we couldn't accept.
+    if (!canCompareStationName(q.name)) return stations.fallback.geocode(q.name);
 
     for (const rung of stationRungs(q)) {
       const hits = await stations.tagged.geocodeWithTags(rung.query, {

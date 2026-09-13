@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { normalizeQuery } from './normalize';
 import {
+  canCompareStationName,
   encodeStationQuery,
   STATION_OSM_TAGS,
   stationNameMatches,
@@ -163,9 +164,12 @@ describe('stationNameMatches', () => {
     expect(stationNameMatches('Berlin Hbf', 'Berlin Hauptbahnhof (tief)')).toBe(false);
   });
 
-  it('skips the check when the query has no comparable Latin words', () => {
-    expect(stationNameMatches('東京駅', 'Tōkyō')).toBe(true);
-    expect(stationNameMatches('JR 京都駅', 'Kyoto')).toBe(true);
+  it('never matches a query with no comparable Latin words', () => {
+    expect(canCompareStationName('東京駅')).toBe(false);
+    expect(canCompareStationName('JR 京都駅')).toBe(false);
+    expect(canCompareStationName('Kyoto Station')).toBe(true);
+    expect(stationNameMatches('東京駅', 'Tōkyō')).toBe(false);
+    expect(stationNameMatches('JR 京都駅', 'Kyoto')).toBe(false);
   });
 
   it('rejects a nameless hit', () => {

@@ -81,9 +81,11 @@ guarantees below weaken accordingly.
   Photon endpoint, and to public Nominatim when Photon finds nothing
   (ADR-0018). A query is a venue or station name with its place or country
   context, or an address; Plus Code pins also send their decoded coordinates
-  for a display name. Train, bus, and ferry legs send both station names, and
-  Photon also receives a category filter and the segment's ISO country code;
-  the pin lookup sends Nominatim only the plain station name (ADR-0019). This is the
+  for a display name. Train, bus, and ferry legs look up each end by its
+  Plus Code or address when it has one, else by its station name; for a
+  station name Photon also receives a category filter and the segment's ISO
+  country code, and the pin lookup sends Nominatim only the plain name
+  (ADR-0019). This is the
   one place structured location data leaves the host; point `PHOTON_URL` and
   `NOMINATIM_URL` at self-hosted instances to close it.
 - Push notifications (planned) must keep PNRs, passport numbers, and document

@@ -270,6 +270,24 @@ describe('PlaceResolver — station keys (ADR-0019)', () => {
     expect(fallbackSpy).toHaveBeenCalledExactlyOnceWith('Tokyo Station');
   });
 
+  it('sends a name it cannot compare straight to the fallback', async () => {
+    const { resolver, geocodeWithTags, searchWithTags, fallbackSpy } = stationDeps({
+      tagged: () => [named('Tōkyō')],
+    });
+
+    await resolver.geocode('station:train:jp:東京駅');
+    const candidates = await resolver.searchStation({
+      mode: 'train',
+      countryCode: 'jp',
+      name: '東京駅',
+    });
+
+    expect(geocodeWithTags).not.toHaveBeenCalled();
+    expect(searchWithTags).not.toHaveBeenCalled();
+    expect(candidates).toEqual([]);
+    expect(fallbackSpy).toHaveBeenCalledExactlyOnceWith('東京駅');
+  });
+
   it('never sends the stripped name to the fallback', async () => {
     const { resolver, fallbackSpy } = stationDeps({});
     await resolver.geocode('station:ferry:gb:Dover Ferry Terminal');
