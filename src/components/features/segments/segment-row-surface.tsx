@@ -5,6 +5,7 @@ import type * as React from 'react';
 
 import { useMounted } from '@/components/client-only';
 import type { LinkedDocument } from '@/lib/documents';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment } from '@/lib/segments';
 
 import { ScheduleSegmentDialog } from './schedule-segment-dialog';
@@ -16,7 +17,7 @@ interface SegmentRowSurfaceProps {
   segment: Segment;
   tripId: string;
   linkedDocuments?: LinkedDocument[];
-  coords?: { lat: number; lng: number } | null;
+  coords?: PlaceCoordsEntry | null;
   showScheduleAction: boolean;
   // The card content, rendered by the parent server component so SegmentCard
   // stays a Server Component. Shown bare until mount, then wrapped as the

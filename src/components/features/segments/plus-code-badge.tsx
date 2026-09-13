@@ -25,6 +25,13 @@ interface PlusCodeBadgeProps {
   venue?: string | null;
 }
 
+// The quiet pill every map link-out chip wears (Plus Code badge,
+// Directions). `@media (hover: none)` (= touch devices, per CLAUDE.md)
+// gets a 44 px hit area so the link is tappable; pointer devices keep the
+// compact pill so the chip stays decorative.
+export const mapChipClassName =
+  'border-foreground/20 bg-foreground/[0.04] text-foreground/80 hover:bg-foreground/[0.08] hover:text-foreground hover:border-foreground/35 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs leading-none transition-colors [@media(hover:none)]:min-h-11 [@media(hover:none)]:px-3 [@media(hover:none)]:py-2.5';
+
 export function PlusCodeBadge({ lat, lng, venue }: PlusCodeBadgeProps) {
   const code = encodePlusCode(lat, lng);
   if (code === null) return null;
@@ -37,10 +44,7 @@ export function PlusCodeBadge({ lat, lng, venue }: PlusCodeBadgeProps) {
       target="_blank"
       rel="noopener noreferrer"
       title={venue ? `Open ${venue} in Google Maps` : 'Open in Google Maps'}
-      // `@media (hover: none)` (= touch devices, per CLAUDE.md) gets a
-      // 44 px hit area so the link is tappable; pointer devices keep
-      // the compact pill so the badge stays a quiet decorative chip.
-      className="border-foreground/20 bg-foreground/[0.04] text-foreground/80 hover:bg-foreground/[0.08] hover:text-foreground hover:border-foreground/35 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs leading-none transition-colors [@media(hover:none)]:min-h-11 [@media(hover:none)]:px-3 [@media(hover:none)]:py-2.5"
+      className={mapChipClassName}
     >
       <MapPin aria-hidden className="size-3.5" strokeWidth={1.75} />
       <span className="font-mono tracking-wide">{code}</span>
@@ -68,20 +72,38 @@ export function subtitleWithPlusCodeBadge({
   coords?: { lat: number; lng: number } | null;
   venue?: string | null;
 }): React.ReactNode {
-  const text = parts
-    .filter((p): p is string => typeof p === 'string' && p.trim() !== '')
-    .join(' · ');
   // Probe `encodePlusCode` directly (not just isFinite) so we don't
   // render an empty wrapper when coords pass the finite check but the
   // encoder rejects them (out-of-range, library edge case).
   const code =
     coords !== null && coords !== undefined ? encodePlusCode(coords.lat, coords.lng) : null;
-  const hasBadge = code !== null && coords !== null && coords !== undefined;
-  if (text === '' && !hasBadge) return undefined;
+  const chip =
+    code !== null && coords !== null && coords !== undefined ? (
+      <PlusCodeBadge lat={coords.lat} lng={coords.lng} venue={venue ?? null} />
+    ) : null;
+  return subtitleWithChip({ parts, chip });
+}
+
+/**
+ * The subtitle layout behind {@link subtitleWithPlusCodeBadge}, for any
+ * chip: text parts joined with " · ", then the chip, on one wrapping row.
+ * `undefined` when there's neither text nor chip.
+ */
+export function subtitleWithChip({
+  parts,
+  chip,
+}: {
+  parts: ReadonlyArray<string | null | undefined>;
+  chip: React.ReactNode;
+}): React.ReactNode {
+  const text = parts
+    .filter((p): p is string => typeof p === 'string' && p.trim() !== '')
+    .join(' · ');
+  if (text === '' && !chip) return undefined;
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
       {text !== '' && <span>{text}</span>}
-      {hasBadge && <PlusCodeBadge lat={coords.lat} lng={coords.lng} venue={venue ?? null} />}
+      {chip}
     </span>
   );
 }

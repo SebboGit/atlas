@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import type { LinkedDocument } from '@/lib/documents';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +22,7 @@ interface DayGroupProps {
    * `linkedDocumentsBySegment` — single page-side fetch, per-row
    * lookup. Drives the Plus Code badge on each card.
    */
-  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
+  coordsBySegmentId?: Map<string, PlaceCoordsEntry>;
   // Temporal position relative to today. Drives the header's "Today"
   // marker. Defaults to 'future' so the type-specific tabs and any
   // other caller that doesn't classify days render unchanged.

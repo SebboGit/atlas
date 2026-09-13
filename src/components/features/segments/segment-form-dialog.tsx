@@ -13,6 +13,7 @@ import {
 // rows — doesn't pull the geocoding cache / pg driver into the browser
 // bundle.
 import { encodePlusCode } from '@/lib/geocoding/plus-code';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment, SegmentType } from '@/lib/segments';
 import {
   createSegmentAction,
@@ -43,7 +44,7 @@ interface SegmentFormDialogProps {
    * when the segment has no stored Plus Code — so the form field
    * agrees with the badge on the card. Ignored on Add.
    */
-  coords?: { lat: number; lng: number } | null;
+  coords?: PlaceCoordsEntry | null;
 }
 
 // Types whose edit form prefills `data.plusCode` from the cached
@@ -92,10 +93,7 @@ const LOADING_GRACE_MS = 140;
 // intentional: the lifecycle hook re-keys the cache row off the Plus
 // Code, decode↔encode is stable, and the badge stays identical across
 // save. Transit is excluded (see PLUS_CODE_TYPES, ADR-0019).
-function segmentToFormInput(
-  segment: Segment,
-  coords?: { lat: number; lng: number } | null,
-): FormInput {
+function segmentToFormInput(segment: Segment, coords?: PlaceCoordsEntry | null): FormInput {
   let data = segment.data;
   if (
     coords &&
@@ -344,6 +342,7 @@ export function SegmentFormDialog({
             defaultType={defaultType}
             initialValues={initialValues}
             submitLabel={submitLabel}
+            coords={editingSegment ? coords : undefined}
             onSubmit={submit}
             onSuccess={() => handleOpenChange(false)}
             onCancel={() => handleOpenChange(false)}

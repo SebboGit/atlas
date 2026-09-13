@@ -13,6 +13,7 @@ import {
   dialogScrollContainer,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import { SEGMENT_TYPES, segmentCreateInput, type SegmentType } from '@/lib/segments';
 import type { FormError } from '@/lib/segments/actions';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,8 @@ interface SegmentFormProps {
   onSuccess?: (id: string) => void;
   onCancel?: () => void;
   submitLabel?: string;
+  /** Saved coordinates on edit — the transit From / To pin lines read them. */
+  coords?: PlaceCoordsEntry | null;
 }
 
 // Initial values for the per-type `data` subtree. Reset to this when
@@ -95,6 +98,7 @@ export function SegmentForm({
   onSuccess,
   onCancel,
   submitLabel,
+  coords,
 }: SegmentFormProps) {
   const [formError, setFormError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
@@ -244,7 +248,7 @@ export function SegmentForm({
         {currentType === 'flight' && <FlightFields form={form} />}
         {currentType === 'hotel' && <HotelFields form={form} />}
         {currentType === 'activity' && <ActivityFields form={form} />}
-        {currentType === 'transit' && <TransitFields form={form} />}
+        {currentType === 'transit' && <TransitFields form={form} coords={coords} />}
         {currentType === 'food' && <FoodFields form={form} />}
         {currentType === 'note' && <NoteFields form={form} />}
 

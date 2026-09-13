@@ -9,6 +9,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogEyebrow,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -34,21 +35,41 @@ type AnyForm = any;
 // default 10-char (~14 m) code.
 const PICK_CODE_LENGTH = 11;
 
-// Which `data.<field>` holds the venue / POI NAME for each geocoded
-// type. This — never the typed address — is what we search on (the
-// locked design: hand-typed addresses fail across much of Asia /
-// informal areas).
+// Which fields a picker reads and fills. `name` holds the venue / POI
+// NAME — never the typed address — and is what we search on (the locked
+// design: hand-typed addresses fail across much of Asia / informal
+// areas).
 type PickerType = 'hotel' | 'activity' | 'transit' | 'food';
-const NAME_FIELD: Record<PickerType, string> = {
-  hotel: 'data.propertyName',
-  activity: 'data.title',
-  transit: 'data.toName',
-  food: 'data.venue',
+export interface PlacePaths {
+  name: string;
+  address: string;
+  plusCode: string;
+}
+const DEFAULT_PATHS: Record<PickerType, PlacePaths> = {
+  hotel: { name: 'data.propertyName', address: 'data.address', plusCode: 'data.plusCode' },
+  activity: { name: 'data.title', address: 'data.address', plusCode: 'data.plusCode' },
+  transit: { name: 'data.toName', address: 'data.address', plusCode: 'data.plusCode' },
+  food: { name: 'data.venue', address: 'data.address', plusCode: 'data.plusCode' },
 };
 
 interface PlaceFinderProps {
   form: AnyForm;
   type: PickerType;
+  /** Fields to read and fill — defaults to the type's single place. */
+  paths?: PlacePaths;
+  /**
+   * Which end of a transit leg this picker locates (ADR-0019). The From
+   * side leaves out the segment's location label: it describes the
+   * destination, so it would steer an origin search to the wrong place.
+   */
+  side?: 'from' | 'to';
+  /**
+   * Fill an empty country from the pick. Off for a transit origin: the
+   * segment's single country is its destination's (ADR-0005).
+   */
+  fillCountry?: boolean;
+  /** A short "Find" button beside a name input, for the transit blocks. */
+  compact?: boolean;
 }
 
 type Phase =
@@ -75,19 +96,28 @@ type Phase =
  * Place it directly below the address Input in each geocoded type's
  * field module.
  */
-export function PlaceFinder({ form, type }: PlaceFinderProps) {
+export function PlaceFinder({
+  form,
+  type,
+  paths = DEFAULT_PATHS[type],
+  side,
+  fillCountry = true,
+  compact = false,
+}: PlaceFinderProps) {
   const [open, setOpen] = React.useState(false);
   const [phase, setPhase] = React.useState<Phase>({ status: 'idle' });
   const [pending, startTransition] = React.useTransition();
 
   const nameValue = useWatch({
     control: form.control,
-    name: NAME_FIELD[type] as never,
+    name: paths.name as never,
   }) as unknown;
   const name = typeof nameValue === 'string' ? nameValue.trim() : '';
   const hasName = name !== '';
   const isDisabled = !hasName || pending;
-  const hintId = `place-finder-hint-${type}`;
+  const hintId = React.useId();
+  // Two compact pickers share a transit form; name each for its end.
+  const sideWord = side === 'from' ? 'origin' : side === 'to' ? 'destination' : null;
 
   function runSearch() {
     setOpen(true);
@@ -95,11 +125,11 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
 
     const locationNameRaw = form.getValues('locationName' as never) as unknown;
     const countryRaw = form.getValues('countryCode' as never) as unknown;
-    const addressRaw = form.getValues('data.address' as never) as unknown;
+    const addressRaw = form.getValues(paths.address as never) as unknown;
     const address =
       typeof addressRaw === 'string' && addressRaw.trim() !== '' ? addressRaw.trim() : undefined;
     const locationName =
-      typeof locationNameRaw === 'string' && locationNameRaw.trim() !== ''
+      side !== 'from' && typeof locationNameRaw === 'string' && locationNameRaw.trim() !== ''
         ? locationNameRaw.trim()
         : undefined;
     const countryCode =
@@ -147,7 +177,7 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
     // long" error; the pin is unaffected (it rides the Plus Code).
     if (via === 'name') {
       const address = candidate.addressLabel.slice(0, 500);
-      form.setValue('data.address' as never, address as never, {
+      form.setValue(paths.address as never, address as never, {
         shouldDirty: true,
         shouldValidate: true,
       });
@@ -161,14 +191,14 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
     // falls back to the free-text query (name-first for hotels/food
     // since ADR-0018; address only for name-less rows).
     const code = encodePlusCode(candidate.lat, candidate.lng, PICK_CODE_LENGTH);
-    form.setValue('data.plusCode' as never, (code ?? '') as never, {
+    form.setValue(paths.plusCode as never, (code ?? '') as never, {
       shouldDirty: true,
       shouldValidate: true,
     });
 
     // Country: fill ONLY if empty — never overwrite a country the user
     // set. Mirrors the flight IATA→country autofill rule.
-    if (candidate.countryCode) {
+    if (fillCountry && candidate.countryCode) {
       const current = form.getValues('countryCode' as never) as unknown;
       const isEmpty = current === '' || current === null || current === undefined;
       if (isEmpty) {
@@ -194,14 +224,24 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
         // touch devices meets the 44px target. The native `disabled`
         // already exposes the state to AT — no redundant aria-disabled;
         // the reason is wired via aria-describedby to the visible hint.
-        className="-mt-1 self-start [@media(hover:none)]:min-h-11"
+        className={cn(
+          '[@media(hover:none)]:min-h-11',
+          // Beside a name input: match its h-11 height.
+          compact ? 'h-11 shrink-0' : '-mt-1 self-start',
+        )}
         aria-describedby={!hasName ? hintId : undefined}
       >
         <Search aria-hidden />
-        Find location
+        {compact ? 'Find' : 'Find location'}
+        {sideWord && <span className="sr-only"> {sideWord}</span>}
       </Button>
       {!hasName && (
-        <p id={hintId} className="text-muted-foreground -mt-1 text-xs leading-snug">
+        <p
+          id={hintId}
+          // Beside a name input there's no room for the line; the hint
+          // stays for assistive tech.
+          className={compact ? 'sr-only' : 'text-muted-foreground -mt-1 text-xs leading-snug'}
+        >
           Add a name to search for this place.
         </p>
       )}
@@ -216,7 +256,15 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
           className="sm:max-w-[30rem]"
         >
           <DialogHeader>
-            <DialogTitle>Find location</DialogTitle>
+            {side && (
+              <DialogEyebrow>
+                <span aria-hidden className="bg-foreground/30 h-px w-6" />
+                <span>{side === 'from' ? 'From' : 'To'}</span>
+              </DialogEyebrow>
+            )}
+            <DialogTitle>
+              Find {sideWord && <span className="sr-only">{sideWord} </span>}location
+            </DialogTitle>
             <DialogDescription>Pick the match to pin it precisely on the map.</DialogDescription>
           </DialogHeader>
           <PickerBody phase={phase} onPick={pick} onRetry={runSearch} />

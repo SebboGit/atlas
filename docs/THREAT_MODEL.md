@@ -88,6 +88,11 @@ guarantees below weaken accordingly.
   (ADR-0019). This is the
   one place structured location data leaves the host; point `PHOTON_URL` and
   `NOMINATIM_URL` at self-hosted instances to close it.
+- The transit Directions link puts both ends of a leg into a Google Maps URL:
+  each end's station name, decoded Plus Code, or address (ADR-0019). It leaves
+  the host only when the user opens the link in their own browser, sent with
+  `noreferrer`, and the server never calls Google. The Plus Code badge link
+  is the same class of disclosure.
 - Push notifications (planned) must keep PNRs, passport numbers, and document
   contents out of their bodies — this is a design constraint, not yet enforced
   by code.
