@@ -36,7 +36,10 @@ import {
 } from '../../src/db/schema';
 import { ISO_COUNTRIES } from '../../src/lib/countries/data';
 import { normalizeQuery } from '../../src/lib/geocoding/normalize';
-import { buildGeocodeQuery } from '../../src/lib/geocoding/segment-query';
+import {
+  buildGeocodeQuery,
+  buildTransitEndpointQueries,
+} from '../../src/lib/geocoding/segment-query';
 import { tryParseStationQuery } from '../../src/lib/geocoding/station-query';
 
 export const FIXTURE_SUB = 'screenshot-fixture-user';
@@ -102,7 +105,9 @@ const VISITED_COUNTRIES = [
 // Every geocodable segment needs a `pin` — or `pin: null` for a
 // deliberately-ungeocoded edge case, which seeds a negative cache row.
 // Seeding throws on a geocodable segment with neither, so a seeded
-// worktree renders without live geocoder calls. (A pin without a `city`
+// worktree renders without live geocoder calls. Train, bus and ferry
+// legs have two endpoints (ADR-0019): `pin` is the destination and
+// `fromPin` the origin, under the same rule. (A pin without a `city`
 // still gets one background city re-resolve once its row ages — see
 // place-coords.)
 type HeroSegment = {
@@ -125,6 +130,11 @@ type HeroSegment = {
    * `null` seeds a negative row (the geocoder "found nothing").
    */
   pin?: { lat: number; lng: number; city?: string } | null;
+  /**
+   * The origin's pin for a train / bus / ferry leg, where `pin` is the
+   * destination's. Same `null` rule. Ignored for every other segment.
+   */
+  fromPin?: { lat: number; lng: number; city?: string } | null;
 };
 
 const HERO_SEGMENTS: HeroSegment[] = [
@@ -231,6 +241,7 @@ const HERO_SEGMENTS: HeroSegment[] = [
     locationName: 'Tokyo → Kyoto',
     countryCode: 'JP',
     pin: { lat: 34.9858, lng: 135.7588 },
+    fromPin: { lat: 35.6812, lng: 139.7671, city: 'Chiyoda' },
   },
   // Date-only stay (00:00Z both ends, like a form-entered hotel) checking in
   // on the train day — the same-day transit→hotel ordering case. Plain
@@ -255,7 +266,7 @@ const HERO_SEGMENTS: HeroSegment[] = [
   },
   // Second ungeocoded edge case: a hotel with no address on file. The
   // geocode query is the property name alone, and that's pre-cached as
-  // null so the chip count reads two.
+  // null. With the bus below, the chip count reads three.
   {
     type: 'hotel',
     data: {
@@ -274,6 +285,23 @@ const HERO_SEGMENTS: HeroSegment[] = [
     locationName: 'Fushimi',
     countryCode: 'JP',
     pin: { lat: 34.9671, lng: 135.7727 },
+  },
+  // Half-pinned route (ADR-0019): the origin station resolves, the
+  // pickup point doesn't. The map draws the Kyoto Station pin with no
+  // line, and the leg lands in the "Not pinned" chip once, as an arrival
+  // point the geocoder couldn't find.
+  {
+    type: 'transit',
+    data: {
+      mode: 'bus',
+      fromName: 'Kyoto Station',
+      toName: 'Ryokan pickup — TBC',
+    },
+    startsAt: d(2025, 10, 8, 14),
+    locationName: 'Kyoto',
+    countryCode: 'JP',
+    pin: null,
+    fromPin: { lat: 34.9858, lng: 135.7588 },
   },
   {
     type: 'activity',
@@ -434,6 +462,8 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     locationName: 'Lago Pehoé',
     countryCode: 'CL',
     pin: { lat: -51.06, lng: -73.07 },
+    // The Pudeto catamaran dock on Pehoé's eastern shore.
+    fromPin: { lat: -51.0614, lng: -72.9899 },
   },
   // Onward leg — the same-day flight→hotel ordering case made visible.
   // An evening flight back to Santiago (lands 21:30) and a date-only
@@ -616,16 +646,16 @@ const WISHLIST_PINS: Array<{ index: number; lat: number; lng: number; city?: str
   { index: 9, lat: 19.4155, lng: -99.1673, city: 'Mexico City' },
 ];
 
-// `buildGeocodeQuery` (the production helper imported above) needs the
-// segment row shape; `HeroSegment` is the fixture's input shape. Adapt
-// here so cache keys we seed match the keys the read path looks up.
-function queryForHeroSegment(seg: HeroSegment): string | null {
-  return buildGeocodeQuery({
+// The production query builders take the segment row shape; `HeroSegment`
+// is the fixture's input shape. Adapt here so cache keys we seed match
+// the keys the read path looks up.
+function placeForHeroSegment(seg: HeroSegment) {
+  return {
     type: seg.type,
     data: seg.data,
     locationName: seg.locationName ?? null,
     countryCode: seg.countryCode ?? null,
-  });
+  };
 }
 
 export interface FixtureGeocodeSeed {
@@ -636,25 +666,42 @@ export interface FixtureGeocodeSeed {
 
 /**
  * The geocode-cache rows the fixture seeds for its segments — one per
- * geocodable segment, keyed through the production query builder so a
- * seeded worktree renders without live geocoder calls. Throws when a
- * geocodable segment declares neither a pin nor `pin: null`: a missing
- * seed would silently hit the public geocoders on first render.
+ * geocodable segment, or one per endpoint for a train / bus / ferry leg
+ * — keyed through the production query builders so a seeded worktree
+ * renders without live geocoder calls. Throws when a derived query has
+ * no matching pin field (`pin`, or `fromPin` for an origin): a missing
+ * seed would silently hit the public geocoders on first render. Rows are
+ * deduped by cache key, and two seeds that share a key must agree.
  * Exported so the seed can be checked without a database.
  */
 export function fixtureGeocodeSeeds(): FixtureGeocodeSeed[] {
-  const seeds: FixtureGeocodeSeed[] = [];
+  const byKey = new Map<string, FixtureGeocodeSeed>();
   for (const seg of [...HERO_SEGMENTS, ...PATAGONIA_SEGMENTS]) {
-    const query = queryForHeroSegment(seg);
-    if (!query) continue;
-    if (seg.pin === undefined) {
-      throw new Error(
-        `Fixture ${seg.type} segment derives geocode query "${query}" but has no pin — add one, or pin: null for an ungeocoded edge case.`,
-      );
+    const place = placeForHeroSegment(seg);
+    const endpoints = buildTransitEndpointQueries(place);
+    const wanted = endpoints
+      ? [
+          { query: endpoints.destination, pin: seg.pin, field: 'pin' },
+          { query: endpoints.origin, pin: seg.fromPin, field: 'fromPin' },
+        ]
+      : [{ query: buildGeocodeQuery(place), pin: seg.pin, field: 'pin' }];
+    for (const { query, pin, field } of wanted) {
+      if (!query) continue;
+      if (pin === undefined) {
+        throw new Error(
+          `Fixture ${seg.type} segment derives geocode query "${query}" but has no ${field} — add one, or ${field}: null for an ungeocoded edge case.`,
+        );
+      }
+      const key = normalizeQuery(query);
+      const existing = byKey.get(key);
+      if (!existing) {
+        byKey.set(key, { query, pin });
+      } else if (existing.pin?.lat !== pin?.lat || existing.pin?.lng !== pin?.lng) {
+        throw new Error(`Fixture seeds disagree on the pin for geocode query "${query}".`);
+      }
     }
-    seeds.push({ query, pin: seg.pin });
   }
-  return seeds;
+  return [...byKey.values()];
 }
 
 export interface FixturePayload {

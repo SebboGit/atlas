@@ -115,10 +115,11 @@ function timeLabelFor(seg: Segment): string | null {
 }
 
 // Builds a single rail item, resolving its map presence by segmentId
-// against the geometry index. Flights map to their arc (the per-leg
-// geometry); hotel / activity / transit / food map to their pin when
-// the geocode cache resolved it; notes — and any segment with no pin
-// or arc — are off-map with a quiet reason.
+// against the geometry index. Flights and routed transit (a train / bus /
+// ferry with a drawn line, ADR-0019) map to their arc — the per-leg
+// geometry; hotel / activity / food and any other transit map
+// to their pin when the geocode cache resolved it; notes — and any
+// segment with no pin or arc — are off-map with a quiet reason.
 function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
   const icon = iconForType(seg.type);
   const label = labelForSegment(seg);
@@ -137,7 +138,7 @@ function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
     };
   }
 
-  if (seg.type === 'flight') {
+  if (seg.type === 'flight' || seg.type === 'transit') {
     const arc = geometry.arcBySegmentId.get(seg.id);
     if (arc) {
       return {
@@ -146,13 +147,13 @@ function buildRailItem(seg: Segment, geometry: MapGeometryIndex): RailItem {
         label,
         locationName: seg.locationName,
         timeLabel,
-        // The arc's destination is the flight's primary country
-        // (ADR-0005); chip dimming treats the leg by where it lands.
+        // The arc's destination is the leg's primary country (ADR-0005);
+        // chip dimming treats the leg by where it lands.
         country: arc.destCountry ?? seg.countryCode,
         mapKind: 'arc',
       };
     }
-    // A flight pin with no arc still places a single airport marker —
+    // A flight or transit pin with no arc still places a single marker —
     // fall through to the pin branch below.
   }
 

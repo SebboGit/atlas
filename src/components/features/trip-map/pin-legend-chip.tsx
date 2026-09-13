@@ -4,8 +4,10 @@ import { Bed, ChevronUp, Plane, Star, Train, UtensilsCrossed, type LucideIcon } 
 import * as React from 'react';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import type { TripMapPinKind } from '@/lib/trip-map/repo';
+import type { TripMapArc, TripMapPinKind } from '@/lib/trip-map/repo';
 import { cn } from '@/lib/utils';
+
+import { legendRows, type RouteStyle } from './legend-rows';
 
 // Mirrors pin-marker.tsx's ICON_BY_KIND and FILL_BY_KIND so the legend
 // swatch reads as the same mark the user sees on the map. Kept local
@@ -20,21 +22,17 @@ const ICON_BY_KIND: Readonly<Record<TripMapPinKind, LucideIcon>> = {
   food: UtensilsCrossed,
 };
 
-// Singular nouns, in the order kinds should read in the legend. Flights
-// first (they own the arcs), then where-you-slept, then what-you-did.
-const KIND_ORDER: readonly TripMapPinKind[] = ['flight', 'hotel', 'activity', 'transit', 'food'];
-const LABEL_BY_KIND: Readonly<Record<TripMapPinKind, string>> = {
-  flight: 'Flight',
-  hotel: 'Hotel',
-  activity: 'Activity',
-  transit: 'Transit',
-  food: 'Food',
-};
-
 interface PinLegendChipProps {
   /** All pin kinds present on this trip — the legend lists only these. */
   kinds: ReadonlySet<TripMapPinKind>;
+  /**
+   * Route kinds drawn on this trip. A present kind adds its line swatch —
+   * dashed beside Flight, solid beside Transit (ADR-0019).
+   */
+  routeKinds?: ReadonlySet<TripMapArc['kind']>;
 }
+
+const NO_ROUTES: ReadonlySet<TripMapArc['kind']> = new Set();
 
 /**
  * Bottom-left disclosure decoding the trip-map's pin kinds. The map can
@@ -49,11 +47,12 @@ interface PinLegendChipProps {
  * Lists ONLY the kinds actually on the trip — a flights-only itinerary
  * shows one row, not five greyed placeholders.
  */
-export function PinLegendChip({ kinds }: PinLegendChipProps) {
+export function PinLegendChip({ kinds, routeKinds = NO_ROUTES }: PinLegendChipProps) {
   const [open, setOpen] = React.useState(false);
 
   // Stable, kind-ordered list of just the present kinds.
-  const present = KIND_ORDER.filter((k) => kinds.has(k));
+  const rows = legendRows(kinds, routeKinds);
+  const present = rows.map((row) => row.kind);
   if (present.length === 0) return null;
 
   return (
@@ -62,7 +61,7 @@ export function PinLegendChip({ kinds }: PinLegendChipProps) {
         <button
           type="button"
           aria-expanded={open}
-          aria-label="Map pin legend"
+          aria-label="Map legend"
           className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
         >
           {/* A miniature stack of the present swatches doubles as the icon —
@@ -91,14 +90,15 @@ export function PinLegendChip({ kinds }: PinLegendChipProps) {
       >
         <div className="border-foreground/10 border-b px-4 pt-3 pb-2">
           <h3 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
-            Pin legend
+            Legend
           </h3>
         </div>
         <ul role="list" className="divide-foreground/8 divide-y">
-          {present.map((kind) => (
+          {rows.map(({ kind, label, route }) => (
             <li key={kind} className="flex items-center gap-3 px-4 py-2.5">
               <LegendSwatch kind={kind} size="md" />
-              <span className="text-foreground/90 text-sm font-medium">{LABEL_BY_KIND[kind]}</span>
+              <span className="text-foreground/90 text-sm font-medium">{label}</span>
+              {route && <RouteSwatch style={route} />}
             </li>
           ))}
         </ul>
@@ -123,5 +123,47 @@ function LegendSwatch({ kind, size }: { kind: TripMapPinKind; size: 'xs' | 'md' 
     >
       <Icon aria-hidden className={size === 'xs' ? 'size-2.5' : 'size-3.5'} strokeWidth={2.2} />
     </span>
+  );
+}
+
+// A short sample of the line a kind draws on the map, echoing the layer
+// paint in arc-layers.ts: the flight's dashed thread, the transit line's
+// ivory casing under a solid core. Decorative — the row label names it.
+function RouteSwatch({ style }: { style: RouteStyle }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 8" className="text-primary ml-auto h-2 w-6 shrink-0">
+      {style === 'dashed' ? (
+        <line
+          x1="1"
+          y1="4"
+          x2="23"
+          y2="4"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
+        />
+      ) : (
+        <>
+          <line
+            x1="2"
+            y1="4"
+            x2="22"
+            y2="4"
+            stroke="rgba(255, 253, 248, 0.9)"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+          <line
+            x1="2"
+            y1="4"
+            x2="22"
+            y2="4"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </>
+      )}
+    </svg>
   );
 }

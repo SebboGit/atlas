@@ -5,21 +5,40 @@ import { segments, trips, type Segment } from '@/db/schema';
 import { getAirportCoords } from '@/lib/airports';
 import {
   buildGeocodeQuery,
+  buildTransitEndpointQueries,
+  decodePlusCode,
   enqueueGeocodeFetch,
   getCachedMany,
   getGeocodeWorkerStatus,
   normalizeQuery,
+  tryParsePlusCode,
   type GeocodeWorkerStatus,
 } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
+import {
+  hasTransitEndpoints,
+  resolveTransitEndpoints,
+  type TransitEndpointMode,
+} from '@/lib/segments/transit-endpoints';
 import { tripVisibleToViewer } from '@/lib/trips/repo';
 import {
   activityDataSchema,
   flightDataSchema,
   foodDataSchema,
   hotelDataSchema,
+  transitDataSchema,
+  type TransitData,
 } from '@/lib/segments/validators';
 import * as wishlistRepo from '@/lib/wishlist/repo';
+
+import {
+  NOT_FOUND_REASON,
+  PENDING_REASON,
+  resolveTransitRoute,
+  transitEndpointLabel,
+  transitRouteLabel,
+  type EndpointLookup,
+} from './transit-route';
 
 // Re-exported so the client trip-map component can type its prop off
 // the repo barrel (a type-only import) without reaching into the
@@ -61,19 +80,40 @@ export interface TripMapPin {
   country: string | null;
   lat: number;
   lng: number;
-  /** Primary date for the segment; null for undated activity wishlists. */
+  /**
+   * Primary date for the segment; null for undated activity wishlists.
+   * The arrival date (`endsAt`, else `startsAt`) on a transit
+   * destination pin.
+   */
   date: Date | null;
+  /**
+   * Which end of a train / bus / ferry leg this pin marks (ADR-0019).
+   * Set only on those pins — flight airport pins are deduped across legs,
+   * so they belong to no single end.
+   */
+  endpoint?: 'origin' | 'destination';
 }
 
 export interface TripMapArc {
   segmentId: string;
-  /** Origin coordinates (from the flight's origin airport). */
+  /**
+   * `flight` arcs join airports and draw as the dashed course; `transit`
+   * arcs join the two stations of a train / bus / ferry leg and draw as a
+   * solid line (ADR-0019). Required so no constructor silently defaults.
+   */
+  kind: 'flight' | 'transit';
+  /** Transit mode, on `transit` arcs only. */
+  mode?: TransitEndpointMode;
+  /** Origin coordinates (the origin airport or station). */
   originLat: number;
   originLng: number;
-  /** Destination coordinates (from the flight's destination airport). */
+  /** Destination coordinates (the destination airport or station). */
   destLat: number;
   destLng: number;
-  /** ISO 3166-1 alpha-2 of each endpoint — drives chip-strip dimming. */
+  /**
+   * ISO 3166-1 alpha-2 of each endpoint — drives chip-strip dimming.
+   * Transit carries one country (ADR-0005), so both ends share it.
+   */
   originCountry: string | null;
   destCountry: string | null;
 }
@@ -98,9 +138,11 @@ export interface TripMapData {
    */
   arcs: TripMapArc[];
   /**
-   * Segments we couldn't place on the map. Surfaced under the map so
-   * "missing" data is visible rather than silently dropped — no pin
-   * is the most surprising bug class for a map view.
+   * Segments we couldn't fully place on the map, at most one entry per
+   * segment. Surfaced under the map so "missing" data is visible rather
+   * than silently dropped — no pin is the most surprising bug class for
+   * a map view. A transit leg with one resolved station still lists here
+   * (with its pin drawn) when the other end couldn't be found.
    */
   ungeocoded: UngeocodedSegment[];
   /**
@@ -173,6 +215,15 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
   // Non-flight rows that have a geocodable query — these get resolved
   // in one batch SELECT against the cache after the row scan.
   const pending: Array<{ row: Segment; query: string }> = [];
+  // Train / bus / ferry legs resolve per endpoint (ADR-0019), in the
+  // same batch SELECT.
+  const transitPending: Array<{
+    row: Segment;
+    data: TransitData;
+    mode: TransitEndpointMode;
+    origin: string | null;
+    destination: string | null;
+  }> = [];
 
   for (const row of rows) {
     if (row.type === 'note') continue;
@@ -244,6 +295,7 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
       if (originCoords) {
         arcs.push({
           segmentId: row.id,
+          kind: 'flight',
           originLat: originCoords.lat,
           originLng: originCoords.lng,
           destLat: destCoords.lat,
@@ -255,8 +307,36 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
       continue;
     }
 
-    // hotel / activity / transit / food — geocode_cache resolves
-    // these to a pin. buildGeocodeQuery owns the per-type derivation;
+    // Train / bus / ferry: two endpoints, a line between them. car /
+    // other (and unparseable rows) fall through to the single-pin branch —
+    // `buildTransitEndpointQueries` returns null for them.
+    const endpoints = buildTransitEndpointQueries(row);
+    if (endpoints) {
+      // Re-parsed only to narrow the types; the builder already checked.
+      const parsed = transitDataSchema.safeParse(row.data);
+      if (parsed.success && hasTransitEndpoints(parsed.data.mode)) {
+        if (!endpoints.origin && !endpoints.destination) {
+          ungeocoded.push({
+            segmentId: row.id,
+            type: 'transit',
+            label: transitRouteLabel(parsed.data, row.locationName),
+            reason: noQueryReason('transit'),
+          });
+          continue;
+        }
+        transitPending.push({
+          row,
+          data: parsed.data,
+          mode: parsed.data.mode,
+          origin: endpoints.origin,
+          destination: endpoints.destination,
+        });
+        continue;
+      }
+    }
+
+    // hotel / activity / transit (car / other) / food — geocode_cache
+    // resolves these to a pin. buildGeocodeQuery owns the per-type derivation;
     // buildGeocodeQuery output is geocoder-ready (address noise
     // suite designators) the same way the lifecycle hook does on the
     // write side, so identical inputs produce identical cache keys.
@@ -274,8 +354,11 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
     pending.push({ row, query });
   }
 
-  if (pending.length > 0) {
-    const cache = await getCachedMany(pending.map((p) => p.query));
+  const endpointQueries = transitPending.flatMap((t) =>
+    [t.origin, t.destination].filter((q): q is string => q !== null),
+  );
+  if (pending.length > 0 || endpointQueries.length > 0) {
+    const cache = await getCachedMany([...pending.map((p) => p.query), ...endpointQueries]);
     for (const { row, query } of pending) {
       const cached = cache.get(normalizeQuery(query));
       if (cached?.kind === 'hit') {
@@ -308,7 +391,7 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
           segmentId: row.id,
           type: row.type,
           label: pinLabelForType(row),
-          reason: "We couldn't find this place on the map.",
+          reason: NOT_FOUND_REASON,
         });
         continue;
       }
@@ -327,8 +410,92 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
         segmentId: row.id,
         type: row.type,
         label: pinLabelForType(row),
-        reason: 'Geocoding pending — try again in a moment.',
+        reason: PENDING_REASON,
       });
+    }
+
+    // Each distinct missed endpoint enqueues once, even when two legs
+    // share a station.
+    const enqueued = new Set<string>();
+    const lookup = (query: string | null): EndpointLookup => {
+      if (query === null) return { state: 'none' };
+      // A full Plus Code is self-contained — decode it here so a picked
+      // station shows without waiting on the worker (place-coords does
+      // the same for card badges).
+      const plus = tryParsePlusCode(query);
+      if (plus?.kind === 'full') {
+        const coords = decodePlusCode(plus.code);
+        if (coords) return { state: 'hit', lat: coords.lat, lng: coords.lng };
+      }
+      const key = normalizeQuery(query);
+      const cached = cache.get(key);
+      if (cached?.kind === 'hit') {
+        return { state: 'hit', lat: cached.result.lat, lng: cached.result.lng };
+      }
+      if (cached?.kind === 'null') return { state: 'null' };
+      // Same defensive enqueue as the single-pin branch: a legacy row's
+      // origin was never looked up before ADR-0019.
+      hasPendingMiss = true;
+      if (!enqueued.has(key)) {
+        enqueued.add(key);
+        enqueueGeocodeFetch(query);
+      }
+      return { state: 'miss' };
+    };
+
+    for (const { row, data, mode, origin, destination } of transitPending) {
+      const from = lookup(origin);
+      const to = lookup(destination);
+      const ends = resolveTransitEndpoints(data);
+      const carrier = data.carrier?.trim();
+      if (from.state === 'hit') {
+        pins.push({
+          segmentId: row.id,
+          kind: 'transit',
+          endpoint: 'origin',
+          label: transitEndpointLabel(ends.origin, 'origin'),
+          ...(carrier ? { sublabel: carrier } : {}),
+          country: row.countryCode,
+          lat: from.lat,
+          lng: from.lng,
+          date: row.startsAt,
+        });
+      }
+      if (to.state === 'hit') {
+        pins.push({
+          segmentId: row.id,
+          kind: 'transit',
+          endpoint: 'destination',
+          label: transitEndpointLabel(ends.destination, 'destination'),
+          ...(carrier ? { sublabel: carrier } : {}),
+          country: row.countryCode,
+          lat: to.lat,
+          lng: to.lng,
+          date: row.endsAt ?? row.startsAt,
+        });
+      }
+      const { drawRoute, reason } = resolveTransitRoute(mode, from, to);
+      if (drawRoute && from.state === 'hit' && to.state === 'hit') {
+        arcs.push({
+          segmentId: row.id,
+          kind: 'transit',
+          mode,
+          originLat: from.lat,
+          originLng: from.lng,
+          destLat: to.lat,
+          destLng: to.lng,
+          originCountry: row.countryCode,
+          destCountry: row.countryCode,
+        });
+      }
+      if (reason) {
+        ungeocoded.push({
+          segmentId: row.id,
+          type: 'transit',
+          label: transitRouteLabel(data, row.locationName),
+          reason,
+        });
+      }
     }
   }
 

@@ -16,7 +16,17 @@ import type {
 } from '@/lib/trip-map/repo';
 import { cn } from '@/lib/utils';
 
-import { curvedArcCoords } from './arc-geometry';
+import {
+  ARC_ENDPOINTS_SOURCE_ID,
+  arcEndpointsLayer,
+  arcEndpointsToFeatureCollection,
+  ARCS_SOURCE_ID,
+  arcsToFeatureCollection,
+  firstSymbolLayerId,
+  flightArcLayer,
+  presentRouteKinds,
+  transitRouteLayers,
+} from './arc-layers';
 import { buildBasemapStyle } from './basemap-style';
 import { CountryChipStrip } from './country-chip-strip';
 import { GeocodeWorkerBanner } from './geocode-worker-banner';
@@ -24,6 +34,7 @@ import { MapOfflineBanner } from './map-offline-banner';
 import { PinLegendChip } from './pin-legend-chip';
 import { PinMarker } from './pin-marker';
 import { PinTooltip } from './pin-tooltip';
+import { resolveFocusTarget, type FramePoint } from './map-focus';
 import { NotPinnedChip } from './not-pinned-chip';
 import { isArcDimmed, isPinDimmed } from './timeline-model';
 
@@ -105,8 +116,11 @@ interface TripMapProps {
   recenterNonce?: number;
   /** Fired when a pin / flight marker is clicked — reflects into the rail. */
   onPinClick?: (segmentId: string) => void;
-  /** Fired on pin hover enter (segmentId) / leave (null) — laptop only. */
-  onPinHover?: (segmentId: string | null) => void;
+  /**
+   * Fired on pin hover enter (segmentId, plus which end of a transit leg
+   * the pin marks) / leave (null) — laptop only.
+   */
+  onPinHover?: (segmentId: string | null, endpoint?: 'origin' | 'destination') => void;
   /**
    * Override the map card's height via a className (Tailwind utilities,
    * incl. responsive variants). The standalone map uses its own inline
@@ -146,14 +160,6 @@ const COUNTRIES_GEOJSON_URL = '/geo/world-countries-110m.geojson';
 const COUNTRIES_SOURCE_ID = 'countries';
 const COUNTRIES_FILL_LAYER_ID = 'country-fill';
 const COUNTRIES_LINE_LAYER_ID = 'country-line';
-const ARCS_SOURCE_ID = 'trip-arcs';
-const ARCS_LAYER_ID = 'trip-arcs-lines';
-// Endpoint dots sit on the same arc source but key off the dedicated
-// `endpoints` GeoJSON below — one small terracotta mark per airport so a
-// flight reads as a plotted course (origin → stitched line → destination),
-// not an anonymous great-circle hairline.
-const ARC_ENDPOINTS_SOURCE_ID = 'trip-arc-endpoints';
-const ARC_ENDPOINTS_LAYER_ID = 'trip-arc-endpoints-dots';
 
 // Background colour for the area outside the basemap's data extent
 // (or when the tile file is missing). Matches the Protomaps White
@@ -208,13 +214,6 @@ interface ManagedMarker {
   el: HTMLDivElement;
 }
 
-// A bare lat/lng the camera framing works in. Shared by the country
-// fit and the timeline day fit.
-interface FramePoint {
-  lat: number;
-  lng: number;
-}
-
 // Fits the map to a set of points. Single-point sets stay capped at
 // city scale (maxZoom) so a one-pin day doesn't slam to street level.
 // `animate` is gated on `firstFitDone` so the very first frame snaps
@@ -248,49 +247,6 @@ function fitMapToPoints(
       duration: firstFitDone ? 600 : 0,
     },
   );
-}
-
-function arcsToFeatureCollection(arcs: TripMapArc[]): GeoJSON.FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: arcs.map((arc, idx) => ({
-      type: 'Feature',
-      id: idx,
-      geometry: {
-        type: 'MultiLineString',
-        coordinates: curvedArcCoords(arc),
-      },
-      properties: {
-        idx,
-        originCountry: arc.originCountry ?? '',
-        destCountry: arc.destCountry ?? '',
-      },
-    })),
-  };
-}
-
-// One point feature per airport endpoint. Carries the owning arc's
-// `idx` so the dot dims in lockstep with its line via the same
-// feature-state the arc layer uses. Deduping isn't worth it — a shared
-// airport just stacks two coincident dots at the same pixel, invisible.
-function arcEndpointsToFeatureCollection(arcs: TripMapArc[]): GeoJSON.FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: arcs.flatMap((arc, idx) => [
-      {
-        type: 'Feature' as const,
-        id: idx * 2,
-        geometry: { type: 'Point' as const, coordinates: [arc.originLng, arc.originLat] },
-        properties: { idx },
-      },
-      {
-        type: 'Feature' as const,
-        id: idx * 2 + 1,
-        geometry: { type: 'Point' as const, coordinates: [arc.destLng, arc.destLat] },
-        properties: { idx },
-      },
-    ]),
-  };
 }
 
 export function TripMap({
@@ -398,6 +354,8 @@ export function TripMap({
     for (const pin of pins) set.add(pin.kind);
     return set;
   }, [pins]);
+  // Route kinds drawn — the legend adds a line swatch for each.
+  const routeKinds = React.useMemo(() => presentRouteKinds(arcs), [arcs]);
 
   // Mount the map exactly once. Data-bound logic lives in separate
   // effects so this stays stable across pin/country changes.
@@ -555,64 +513,29 @@ export function TripMap({
 
       const primary = readCssColor('--color-primary', PRIMARY_FALLBACK);
 
-      // Arcs render BEFORE pins so the DOM markers (added later via
-      // maplibregl.Marker — those go in a separate DOM overlay above
-      // the canvas) sit above their endpoints.
+      // Routes render BEFORE pins so the DOM markers (added later via
+      // maplibregl.Marker — those go in a separate DOM overlay above the
+      // canvas) sit above their endpoints. Both route kinds share one
+      // source; filtered layers split them.
       map.addSource(ARCS_SOURCE_ID, {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
       });
-      map.addLayer({
-        id: ARCS_LAYER_ID,
-        type: 'line',
-        source: ARCS_SOURCE_ID,
-        layout: { 'line-cap': 'butt', 'line-join': 'round' },
-        paint: {
-          'line-color': primary,
-          'line-width': 1.5,
-          // Stitched, not solid — a dashed thread reads as a plotted
-          // course on a logbook chart, the one geometry unique to a
-          // travel map. [2,2] = dash length 2, gap 2 (× line-width), the
-          // tightest stitch that still resolves as dashes at our widths.
-          // `line-cap: butt` (above) keeps each dash a clean tick;
-          // `round` would bleed the gaps shut.
-          'line-dasharray': [2, 2],
-          // Dimmed = arc isn't fully within the active country (when a
-          // chip is active). Otherwise a soft default so arcs read as
-          // connective tissue, not the headline.
-          'line-opacity': ['case', ['boolean', ['feature-state', 'dimmed'], false], 0.12, 0.55],
-        },
-      });
+      // Transit lines slide in under the basemap's place labels, like a
+      // road (ADR-0019). Flights stay on top: a course plotted over the
+      // chart, not part of it.
+      const beforeLabels = firstSymbolLayerId(map.getStyle().layers);
+      for (const layer of transitRouteLayers(primary)) map.addLayer(layer, beforeLabels);
+      map.addLayer(flightArcLayer(primary));
 
-      // Terracotta endpoint dots — the start/end marks of each plotted
-      // course. Drawn just above the line so they cap the stitched
-      // thread at every airport. Their feature-state `dimmed` is set
-      // from the SAME arc idx as the line, so a country filter fades a
-      // route's dots and thread together.
+      // Terracotta endpoint dots — the start/end marks of each route.
+      // Their feature-state `dimmed` is set from the SAME arc idx as the
+      // line, so a country filter fades a route's dots and line together.
       map.addSource(ARC_ENDPOINTS_SOURCE_ID, {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
       });
-      map.addLayer({
-        id: ARC_ENDPOINTS_LAYER_ID,
-        type: 'circle',
-        source: ARC_ENDPOINTS_SOURCE_ID,
-        paint: {
-          'circle-radius': 2.6,
-          'circle-color': primary,
-          // A hairline ivory ring lifts the dot off a dark coastline or
-          // the dashed line crossing under it.
-          'circle-stroke-width': 1,
-          'circle-stroke-color': 'rgba(255, 253, 248, 0.9)',
-          'circle-opacity': ['case', ['boolean', ['feature-state', 'dimmed'], false], 0.15, 0.9],
-          'circle-stroke-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'dimmed'], false],
-            0.15,
-            0.9,
-          ],
-        },
-      });
+      map.addLayer(arcEndpointsLayer(primary));
 
       setMapReady(true);
     });
@@ -743,7 +666,7 @@ export function TripMap({
         // Reflect the hover into the rail (laptop hover-capable only —
         // touch devices don't fire a meaningful hover). The callback is
         // ref-mirrored so it stays current across the once-bound effect.
-        onPinHoverRef.current?.(pin.segmentId);
+        onPinHoverRef.current?.(pin.segmentId, pin.endpoint);
       });
 
       el.addEventListener('mouseleave', () => {
@@ -1049,11 +972,13 @@ export function TripMap({
   // ONLY on `focusNonce` (the parent bumps it on each explicit segment
   // click) + mapReady, reading the segment id / pins / arcs off refs — so
   // re-rendering with fresh pins/arcs (a day click's soft nav) does NOT
-  // re-fly to a stale selection.
+  // re-fly to a stale selection. What the camera does per kind lives in
+  // `resolveFocusTarget`:
   //
-  //   - flight (an arc exists) → fit the WHOLE route, both airport
-  //     endpoints, not a single pin; no tooltip (the IATA label is
-  //     always on);
+  //   - a route (flight, or a train / bus / ferry with a drawn line) →
+  //     fit its two ends; transit names its arrival station, a flight
+  //     shows no tooltip (the IATA label is always on);
+  //   - a train / bus / ferry with two pins but no line → fit both;
   //   - any other pin → fly to it + open its tooltip;
   //   - deselected (focus id cleared, nonce still bumped) → just close
   //     the tooltip, leave the camera to the recenter effect.
@@ -1066,45 +991,12 @@ export function TripMap({
       return;
     }
 
-    // A flight is identified by having an arc — its origin pin shares the
-    // flight's segment id, so checking the arc first (not the pin) is what
-    // frames the route instead of zooming to the origin airport.
-    const arc = arcsRef.current.find((a) => a.segmentId === focusId);
-    if (arc) {
-      fitMapToPoints(
-        map,
-        [
-          { lat: arc.originLat, lng: arc.originLng },
-          { lat: arc.destLat, lng: arc.destLng },
-        ],
-        firstFitDoneRef.current,
-        { padding: 80, maxZoom: 8 },
-      );
-      firstFitDoneRef.current = true;
-      setHover(null);
-      return;
-    }
-
-    const pin = pinsRef.current.find((p) => p.segmentId === focusId);
-    if (!pin) {
-      setHover(null);
-      return;
-    }
-
-    map.flyTo({
-      center: [pin.lng, pin.lat],
-      zoom: Math.max(map.getZoom(), PIN_CLICK_ZOOM),
-      duration: 800,
-    });
-
-    // Open the floating tooltip for a non-flight pin so the focused
-    // segment is named on the map. A lone flight pin (no arc) skips it.
-    if (pin.kind !== 'flight') {
-      const rect = map.getCanvas().getBoundingClientRect();
-      const point = map.project([pin.lng, pin.lat]);
-      // The map's 'move' handler reprojects the tooltip every frame
-      // during the fly, so seeding it at the destination coords keeps
-      // it glued to the pin through the animation.
+    // Seed the floating tooltip at the pin's projected position. The map's
+    // 'move' handler reprojects it every frame of the camera animation, so
+    // it stays glued to the pin until the camera settles.
+    function showTooltipFor(m: MapLibreMap, pin: TripMapPin) {
+      const rect = m.getCanvas().getBoundingClientRect();
+      const point = m.project([pin.lng, pin.lat]);
       setHover({
         x: point.x,
         y: point.y,
@@ -1112,8 +1004,31 @@ export function TripMap({
         containerWidth: rect.width,
         containerHeight: rect.height,
       });
-    } else {
-      setHover(null);
+    }
+
+    const target = resolveFocusTarget(focusId, pinsRef.current, arcsRef.current);
+    switch (target.type) {
+      case 'fit':
+        fitMapToPoints(map, target.points, firstFitDoneRef.current, {
+          padding: 80,
+          maxZoom: target.maxZoom,
+        });
+        firstFitDoneRef.current = true;
+        if (target.tooltipPin) showTooltipFor(map, target.tooltipPin);
+        else setHover(null);
+        return;
+      case 'fly':
+        map.flyTo({
+          center: [target.pin.lng, target.pin.lat],
+          zoom: Math.max(map.getZoom(), PIN_CLICK_ZOOM),
+          duration: 800,
+        });
+        if (target.showTooltip) showTooltipFor(map, target.pin);
+        else setHover(null);
+        return;
+      case 'none':
+        setHover(null);
+        return;
     }
   }, [focusNonce, mapReady]);
 
@@ -1192,7 +1107,7 @@ export function TripMap({
           <div
             className={cn('absolute left-3 z-10', ungeocoded.length > 0 ? 'bottom-16' : 'bottom-3')}
           >
-            <PinLegendChip kinds={presentPinKinds} />
+            <PinLegendChip kinds={presentPinKinds} routeKinds={routeKinds} />
           </div>
         )}
         {wishlistPins.length > 0 && (

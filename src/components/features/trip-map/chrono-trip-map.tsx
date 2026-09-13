@@ -13,6 +13,9 @@ import type {
 } from '@/lib/trip-map/repo';
 
 import {
+  dayKeyForPinHover,
+  highlightIdsForDay,
+  indexSegmentDays,
   mappableSegmentIds,
   resolveRailDays,
   type RailDay,
@@ -186,23 +189,7 @@ export function ChronoTripMap({
     if (!day) return null;
     const baseIds = mappableSegmentIds(day);
     if (baseIds.length === 0) return null;
-    const ids = new Set(baseIds);
-    // A flight must un-dim BOTH its airport pins. Flight pins dedupe by
-    // airport, so the destination pin can carry a different segment id
-    // than the flight (a return leg sharing the airport keyed it first) —
-    // it wouldn't be in the day's mappable ids. Match pins to the flight
-    // arc's endpoints (pin coords and arc endpoints both come from the
-    // same airport snapshot, so they're equal) and add those pin ids.
-    for (const id of baseIds) {
-      const arc = arcs.find((a) => a.segmentId === id);
-      if (!arc) continue;
-      for (const pin of pins) {
-        const atOrigin = pin.lat === arc.originLat && pin.lng === arc.originLng;
-        const atDest = pin.lat === arc.destLat && pin.lng === arc.destLng;
-        if (atOrigin || atDest) ids.add(pin.segmentId);
-      }
-    }
-    return ids;
+    return highlightIdsForDay(baseIds, pins, arcs);
   }, [hoveredDayKey, focusedDayKey, dayByKey, pins, arcs]);
 
   // The fitBounds target: the focused day's mappable ids (hover does NOT
@@ -286,19 +273,13 @@ export function ChronoTripMap({
   // Map-pin hover (laptop) → highlight the owning day so hovering a pin
   // lights up its day in the rail's dim logic, symmetric with hovering
   // a day lighting up its pins. We map the pin back to its day via the
-  // segment id.
-  const segmentToDayKey = React.useMemo(() => {
-    const m = new Map<string, string>();
-    for (const day of resolvedDays) {
-      for (const item of day.items) m.set(item.segmentId, day.key);
-    }
-    return m;
-  }, [resolvedDays]);
+  // segment id — a transit departure pin to the leg's first day.
+  const segmentDays = React.useMemo(() => indexSegmentDays(resolvedDays), [resolvedDays]);
   const onPinHover = React.useCallback(
-    (segmentId: string | null) => {
-      setHoveredDay(segmentId ? (segmentToDayKey.get(segmentId) ?? null) : null);
+    (segmentId: string | null, endpoint?: 'origin' | 'destination') => {
+      setHoveredDay(segmentId ? dayKeyForPinHover(segmentDays, segmentId, endpoint) : null);
     },
-    [segmentToDayKey, setHoveredDay],
+    [segmentDays, setHoveredDay],
   );
 
   const hasDays = resolvedDays.length > 0;

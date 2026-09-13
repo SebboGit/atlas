@@ -9,19 +9,29 @@ import type { TripMapArc } from '@/lib/trip-map/repo';
 //
 // `CURVE_RATIO` is the control-point offset as a fraction of the
 // great-circle-ish distance between endpoints. 0.15 reads as a clear
-// arc at every scale without becoming loopy.
+// arc at every scale without becoming loopy. Transit lines (ADR-0019)
+// bend far less — a ground route shouldn't read as a flight path — but
+// keep a slight curve so an out-and-back pair still fans apart.
 //
 // `CURVE_SEGMENTS` is the line-string fidelity. 24 segments is well
 // past the perceptible-smoothness threshold for the line widths we
 // render at.
 export const CURVE_RATIO = 0.15;
+export const TRANSIT_CURVE_RATIO = 0.06;
 export const CURVE_SEGMENTS = 24;
+
+export function curveRatioFor(kind: TripMapArc['kind']): number {
+  return kind === 'transit' ? TRANSIT_CURVE_RATIO : CURVE_RATIO;
+}
 
 // Returns one or more line strings whose longitudes are all in
 // [-180, 180]. A bezier that crosses the antimeridian is split into
 // multiple segments so it renders correctly under `renderWorldCopies:
 // false` — without the split, the segment past ±180 is simply clipped.
-export function curvedArcCoords(arc: TripMapArc): [number, number][][] {
+export function curvedArcCoords(
+  arc: Pick<TripMapArc, 'originLat' | 'originLng' | 'destLat' | 'destLng' | 'kind'>,
+  ratio: number = curveRatioFor(arc.kind),
+): [number, number][][] {
   const x0 = arc.originLng;
   const y0 = arc.originLat;
   // Take the shorter way around the globe by shifting destLng into
@@ -48,7 +58,7 @@ export function curvedArcCoords(arc: TripMapArc): [number, number][][] {
   // Perpendicular (right of travel) = travel vector rotated -90°.
   const perpX = dy / dist;
   const perpY = -dx / dist;
-  const offset = dist * CURVE_RATIO;
+  const offset = dist * ratio;
   const cx = (x0 + x2) / 2 + perpX * offset;
   const cy = (y0 + y2) / 2 + perpY * offset;
   const points: [number, number][] = [];

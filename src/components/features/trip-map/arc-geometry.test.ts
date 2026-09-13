@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
-import { curvedArcCoords, splitAtAntimeridian } from './arc-geometry';
+import {
+  CURVE_RATIO,
+  curveRatioFor,
+  curvedArcCoords,
+  splitAtAntimeridian,
+  TRANSIT_CURVE_RATIO,
+} from './arc-geometry';
 
 import type { TripMapArc } from '@/lib/trip-map/repo';
 
-function arc(originLat: number, originLng: number, destLat: number, destLng: number): TripMapArc {
+function arc(
+  originLat: number,
+  originLng: number,
+  destLat: number,
+  destLng: number,
+  kind: TripMapArc['kind'] = 'flight',
+): TripMapArc {
   return {
     segmentId: 'seg-test',
+    kind,
     originLat,
     originLng,
     destLat,
@@ -142,5 +155,46 @@ describe('curvedArcCoords', () => {
       [0, 0],
       [0, 0],
     ]);
+  });
+});
+
+describe('curvedArcCoords — curve strength by route kind (ADR-0019)', () => {
+  // Largest perpendicular distance of any sample from the straight chord.
+  function maxDeviation(line: [number, number][], a: [number, number], b: [number, number]) {
+    const [x1, y1] = a;
+    const [x2, y2] = b;
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    return Math.max(
+      ...line.map(([x, y]) => Math.abs((x2 - x1) * (y1 - y) - (x1 - x) * (y2 - y1)) / len),
+    );
+  }
+
+  it('picks the ratio from the arc kind', () => {
+    expect(curveRatioFor('flight')).toBe(CURVE_RATIO);
+    expect(curveRatioFor('transit')).toBe(TRANSIT_CURVE_RATIO);
+    expect(TRANSIT_CURVE_RATIO).toBeLessThan(CURVE_RATIO);
+  });
+
+  it('bends a transit line less than a flight arc between the same points', () => {
+    const flight = curvedArcCoords(arc(35.68, 139.77, 34.99, 135.76, 'flight'))[0]!;
+    const transit = curvedArcCoords(arc(35.68, 139.77, 34.99, 135.76, 'transit'))[0]!;
+    const ends: [[number, number], [number, number]] = [
+      [139.77, 35.68],
+      [135.76, 34.99],
+    ];
+    expect(maxDeviation(transit, ...ends)).toBeGreaterThan(0);
+    expect(maxDeviation(transit, ...ends)).toBeLessThan(maxDeviation(flight, ...ends));
+  });
+
+  it('draws a straight line at ratio 0', () => {
+    const line = curvedArcCoords(arc(0, 0, 10, 10, 'transit'), 0)[0]!;
+    for (const [x, y] of line) expect(x).toBeCloseTo(y, 9);
+  });
+
+  it('bows an out-and-back transit pair to opposite sides', () => {
+    const out = curvedArcCoords(arc(0, 0, 0, 10, 'transit'))[0]!;
+    const back = curvedArcCoords(arc(0, 10, 0, 0, 'transit'))[0]!;
+    const mid = Math.floor(out.length / 2);
+    expect(Math.sign(out[mid]![1])).toBe(-Math.sign(back[mid]![1]));
   });
 });

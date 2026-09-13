@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { TripMapArc, TripMapPin } from '@/lib/trip-map/repo';
 
 import {
+  dayKeyForPinHover,
+  highlightIdsForDay,
   indexMapGeometry,
+  indexSegmentDays,
   isArcDimmed,
   isPinDimmed,
   mappableSegmentIds,
@@ -28,6 +31,7 @@ function pin(overrides: Partial<TripMapPin> & { segmentId: string }): TripMapPin
 
 function arc(overrides: Partial<TripMapArc> & { segmentId: string }): TripMapArc {
   return {
+    kind: 'flight',
     originLat: 51.47,
     originLng: -0.45,
     destLat: 35.55,
@@ -259,5 +263,77 @@ describe('isArcDimmed (country × day-highlight composition)', () => {
   it('dims an arc not in the active day-highlight set', () => {
     expect(isArcDimmed(gbJpArc, null, new Set(['other']))).toBe(true);
     expect(isArcDimmed(gbJpArc, null, new Set(['f1']))).toBe(false);
+  });
+});
+
+describe('isArcDimmed — transit routes carry one country (ADR-0019)', () => {
+  const train = arc({
+    segmentId: 't1',
+    kind: 'transit',
+    mode: 'train',
+    originCountry: 'JP',
+    destCountry: 'JP',
+  });
+
+  it('stays lit under its own country and dims under another', () => {
+    expect(isArcDimmed(train, 'JP', null)).toBe(false);
+    expect(isArcDimmed(train, 'FR', null)).toBe(true);
+    expect(isArcDimmed(train, null, new Set(['other']))).toBe(true);
+  });
+});
+
+describe('indexSegmentDays / dayKeyForPinHover', () => {
+  // An overnight train: its own row on day 1, a continuation on day 2.
+  const days = [
+    day({ key: '2025-10-05', items: [item({ segmentId: 'night-train' })] }),
+    day({
+      key: '2025-10-06',
+      items: [item({ segmentId: 'night-train', continuation: true }), item({ segmentId: 'hotel' })],
+    }),
+  ];
+  const index = indexSegmentDays(days);
+
+  it('maps a departure pin to the first day and anything else to the last', () => {
+    expect(dayKeyForPinHover(index, 'night-train', 'origin')).toBe('2025-10-05');
+    expect(dayKeyForPinHover(index, 'night-train', 'destination')).toBe('2025-10-06');
+    expect(dayKeyForPinHover(index, 'night-train')).toBe('2025-10-06');
+    expect(dayKeyForPinHover(index, 'hotel')).toBe('2025-10-06');
+  });
+
+  it('returns null for a segment not on the rail', () => {
+    expect(dayKeyForPinHover(index, 'unknown')).toBeNull();
+  });
+});
+
+describe('highlightIdsForDay', () => {
+  it('lights the flight that owns a deduped airport pin', () => {
+    // Leg 2 keyed the shared airport pin first, so leg 1's arrival pin
+    // carries leg 2's id.
+    const leg1 = arc({ segmentId: 'leg1', destLat: 50.04, destLng: 8.56 });
+    const fra = pin({ segmentId: 'leg2', kind: 'flight', lat: 50.04, lng: 8.56 });
+    expect([...highlightIdsForDay(['leg1'], [fra], [leg1])].sort()).toEqual(['leg1', 'leg2']);
+  });
+
+  it('does not light another transit leg that shares a station', () => {
+    const kyoto = { lat: 34.9858, lng: 135.7588 };
+    const legA = arc({
+      segmentId: 'A',
+      kind: 'transit',
+      mode: 'train',
+      destLat: kyoto.lat,
+      destLng: kyoto.lng,
+    });
+    const legB = arc({
+      segmentId: 'B',
+      kind: 'transit',
+      mode: 'train',
+      originLat: kyoto.lat,
+      originLng: kyoto.lng,
+    });
+    const bDeparture = pin({ segmentId: 'B', kind: 'transit', endpoint: 'origin', ...kyoto });
+    const aArrival = pin({ segmentId: 'A', kind: 'transit', endpoint: 'destination', ...kyoto });
+    const ids = highlightIdsForDay(['A'], [aArrival, bDeparture], [legA, legB]);
+    expect([...ids]).toEqual(['A']);
+    expect(isArcDimmed(legB, null, ids)).toBe(true);
   });
 });
