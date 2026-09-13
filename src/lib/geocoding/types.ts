@@ -177,3 +177,31 @@ export interface StationQuery {
 export interface StationSearcher {
   searchStation(q: StationQuery, opts?: { limit?: number }): Promise<GeocodeCandidate[]>;
 }
+
+/** Coordinates + coarse locality for one resolved place. `city` is null
+ * when the cache row predates the column or the provider carried nothing
+ * usable — the card simply omits its city line then (#111). */
+export interface PlaceCoords {
+  lat: number;
+  lng: number;
+  city: string | null;
+}
+
+/** Each end of a train / bus / ferry leg, where resolved (ADR-0019). */
+export interface TransitEndpointCoords {
+  origin: PlaceCoords | null;
+  destination: PlaceCoords | null;
+}
+
+/**
+ * What a segment card, inspector or edit form receives for one place:
+ * its primary point (a transit leg's destination, else its origin) plus,
+ * for train / bus / ferry, each end on its own. `city` is optional so a
+ * bare `{ lat, lng }` still fits.
+ */
+export interface PlaceCoordsEntry {
+  lat: number;
+  lng: number;
+  city?: string | null;
+  endpoints?: TransitEndpointCoords;
+}

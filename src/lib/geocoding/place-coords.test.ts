@@ -415,7 +415,7 @@ describe('getPlaceCoordsMap', () => {
   });
 });
 
-describe('getPlaceCoordsView — station keys (ADR-0019)', () => {
+describe('getPlaceCoordsView — train, bus and ferry endpoints (ADR-0019)', () => {
   const train = {
     id: 'train-1',
     type: 'transit' as const,
@@ -423,51 +423,79 @@ describe('getPlaceCoordsView — station keys (ADR-0019)', () => {
     locationName: 'Tokyo → Kyoto',
     countryCode: 'JP',
   };
+  const row = (queryNormalized: string, lat: number | null, lng: number | null, city?: string) => ({
+    queryNormalized,
+    lat,
+    lng,
+    displayName: lat === null ? null : 'x',
+    source: lat === null ? 'none' : 'photon-station',
+    fetchedAt: new Date(),
+    expiresAt: FUTURE,
+    city: city ?? null,
+  });
 
-  it('reads a train by its destination station key', async () => {
-    dbState.rows.push({
-      queryNormalized: 'station:train:jp:kyoto station',
-      lat: 34.9858,
-      lng: 135.7588,
-      displayName: 'Kyoto, Shimogyō',
-      source: 'photon-station',
-      fetchedAt: new Date(),
-      expiresAt: FUTURE,
-      city: 'Kyoto',
-    });
+  it('resolves both stations, with the destination as the primary point', async () => {
+    dbState.rows.push(
+      row('station:train:jp:tokyo station', 35.6812, 139.7671, 'Chiyoda'),
+      row('station:train:jp:kyoto station', 34.9858, 135.7588, 'Kyoto'),
+    );
 
     const view = await getPlaceCoordsView([train]);
 
-    expect(view.coordsById.get('train-1')).toEqual({ lat: 34.9858, lng: 135.7588, city: 'Kyoto' });
+    expect(view.coordsById.get('train-1')).toEqual({
+      lat: 34.9858,
+      lng: 135.7588,
+      city: 'Kyoto',
+      endpoints: {
+        origin: { lat: 35.6812, lng: 139.7671, city: 'Chiyoda' },
+        destination: { lat: 34.9858, lng: 135.7588, city: 'Kyoto' },
+      },
+    });
     expect(view.pendingCount).toBe(0);
     expect(dbState.enqueued).toEqual([]);
   });
 
-  it('enqueues a train whose station key has no row yet', async () => {
+  it('counts and enqueues each unresolved end, keeping the one that resolved', async () => {
+    dbState.rows.push(row('station:train:jp:tokyo station', 35.6812, 139.7671));
+
     const view = await getPlaceCoordsView([train]);
 
+    expect(view.coordsById.get('train-1')).toMatchObject({
+      lat: 35.6812,
+      endpoints: { origin: { lat: 35.6812 }, destination: null },
+    });
     expect(view.pendingCount).toBe(1);
     expect(dbState.enqueued).toEqual(['station:train:jp:Kyoto Station']);
   });
 
-  it('does not enqueue a station key the worker already gave up on', async () => {
-    dbState.rows.push({
-      queryNormalized: 'station:train:jp:kyoto station',
-      lat: null,
-      lng: null,
-      displayName: null,
-      source: 'nominatim',
-      fetchedAt: new Date(),
-      expiresAt: FUTURE,
-    });
+  it('does not enqueue an end the worker already gave up on', async () => {
+    dbState.rows.push(
+      row('station:train:jp:tokyo station', null, null),
+      row('station:train:jp:kyoto station', null, null),
+    );
 
     const view = await getPlaceCoordsView([train]);
 
+    expect(view.coordsById.has('train-1')).toBe(false);
     expect(view.pendingCount).toBe(0);
     expect(dbState.enqueued).toEqual([]);
   });
 
-  it('keeps other types read-only on a miss', async () => {
+  it('decodes a full origin Plus Code offline', async () => {
+    dbState.rows.push(row('station:train:jp:kyoto station', 34.9858, 135.7588));
+
+    const view = await getPlaceCoordsView([
+      { ...train, data: { ...train.data, fromPlusCode: '8Q7XMQJ8+FV' } },
+    ]);
+
+    const origin = view.coordsById.get('train-1')?.endpoints?.origin;
+    expect(origin?.lat).toBeCloseTo(35.68, 1);
+    expect(origin?.city).toBeNull();
+    // The code's reverse-geocode row (its city) is still pending.
+    expect(view.pendingCount).toBe(1);
+  });
+
+  it('keeps other types and car legs read-only on a miss', async () => {
     const view = await getPlaceCoordsView([
       {
         id: 'act-pending',

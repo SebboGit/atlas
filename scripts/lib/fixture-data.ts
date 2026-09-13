@@ -36,6 +36,7 @@ import {
 } from '../../src/db/schema';
 import { ISO_COUNTRIES } from '../../src/lib/countries/data';
 import { normalizeQuery } from '../../src/lib/geocoding/normalize';
+import { encodePlusCode } from '../../src/lib/geocoding/plus-code';
 import {
   buildGeocodeQuery,
   buildTransitEndpointQueries,
@@ -355,6 +356,13 @@ const HERO_SEGMENTS: HeroSegment[] = [
   },
 ];
 
+// The Pudeto catamaran dock on Pehoé's eastern shore, the Patagonia
+// ferry's origin. Its full Plus Code is encoded, not typed, so the code
+// can't drift from the pin; it is also the origin's cache key.
+const PUDETO_DOCK = { lat: -51.0614, lng: -72.9899 };
+const PUDETO_PLUS_CODE = encodePlusCode(PUDETO_DOCK.lat, PUDETO_DOCK.lng, 11);
+if (!PUDETO_PLUS_CODE) throw new Error('Fixture: failed to encode the Pudeto Plus Code.');
+
 // --- Active trip: Patagonia, dated relative to "now" ------------------
 //
 // The hero trip is `completed`, so it can't exercise the chronological
@@ -454,6 +462,8 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
       mode: 'ferry',
       carrier: 'Hielos Patagónicos',
       fromName: 'Pudeto',
+      // Exercises the pinned From state; Directions still links the name.
+      fromPlusCode: PUDETO_PLUS_CODE,
       toName: 'Refugio Paine Grande',
       referenceNumber: 'FERRY-77',
     },
@@ -462,8 +472,7 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     locationName: 'Lago Pehoé',
     countryCode: 'CL',
     pin: { lat: -51.06, lng: -73.07 },
-    // The Pudeto catamaran dock on Pehoé's eastern shore.
-    fromPin: { lat: -51.0614, lng: -72.9899 },
+    fromPin: PUDETO_DOCK,
   },
   // Onward leg — the same-day flight→hotel ordering case made visible.
   // An evening flight back to Santiago (lands 21:30) and a date-only

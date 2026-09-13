@@ -29,20 +29,25 @@ import { getAirportTimezone } from '@/lib/airports';
 import { countryName } from '@/lib/countries';
 import type { LinkedDocument } from '@/lib/documents';
 import { formatTime, zoneAbbreviation } from '@/lib/format';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment, TransitData } from '@/lib/segments';
 import {
   activityDataSchema,
   flightDataSchema,
   foodDataSchema,
+  hasTransitEndpoints,
   hotelDataSchema,
   noteDataSchema,
   transitDataSchema,
 } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
+import { DirectionsChip } from './directions-chip';
 import { InfoRow, InfoSection } from './info-primitives';
+import { PlusCodeBadge } from './plus-code-badge';
 import { SegmentDocumentsManager } from './segment-documents-manager';
 import { SegmentFormDialog } from './segment-form-dialog';
+import { transitDirectionsUrl } from './transit-directions';
 
 interface SegmentInfoDialogProps {
   segment: Segment;
@@ -54,7 +59,7 @@ interface SegmentInfoDialogProps {
    * Cached coordinates, threaded from the row — forwarded to the edit
    * flow so the Plus Code field prefills to match the card badge.
    */
-  coords?: { lat: number; lng: number } | null;
+  coords?: PlaceCoordsEntry | null;
   children: React.ReactNode;
 }
 
@@ -121,7 +126,7 @@ export function SegmentInfoDialog({
           aria-describedby={undefined}
           className="gap-5 sm:p-6"
         >
-          <SegmentInfoBody segment={segment} />
+          <SegmentInfoBody segment={segment} coords={coords} />
           {segment.type !== 'note' && (
             <SegmentDocumentsManager
               tripId={tripId}
@@ -163,7 +168,13 @@ export function SegmentInfoDialog({
 // because their content IS the body, not a structured key-value list.
 // ---------------------------------------------------------------------------
 
-function SegmentInfoBody({ segment }: { segment: Segment }) {
+function SegmentInfoBody({
+  segment,
+  coords,
+}: {
+  segment: Segment;
+  coords?: PlaceCoordsEntry | null;
+}) {
   switch (segment.type) {
     case 'flight':
       return <FlightInfoBody segment={segment} />;
@@ -172,7 +183,7 @@ function SegmentInfoBody({ segment }: { segment: Segment }) {
     case 'activity':
       return <ActivityInfoBody segment={segment} />;
     case 'transit':
-      return <TransitInfoBody segment={segment} />;
+      return <TransitInfoBody segment={segment} coords={coords} />;
     case 'food':
       return <FoodInfoBody segment={segment} />;
     case 'note':
@@ -360,10 +371,31 @@ const TRANSIT_LABEL: Record<TransitData['mode'], string> = {
   other: 'Transit',
 };
 
-function TransitInfoBody({ segment }: { segment: Segment }) {
+function TransitInfoBody({
+  segment,
+  coords,
+}: {
+  segment: Segment;
+  coords?: PlaceCoordsEntry | null;
+}) {
   const parse = transitDataSchema.safeParse(segment.data);
   const data = parse.success ? parse.data : { mode: 'other' as const };
   const label = TRANSIT_LABEL[data.mode];
+  const directionsUrl = parse.success ? transitDirectionsUrl(parse.data) : null;
+  // Train / bus / ferry locate each end (ADR-0019). car / other have one
+  // pin — the destination's, or the From name's when the To end is blank.
+  const endpointMode = hasTransitEndpoints(data.mode);
+  const toIdentified = !!(data.toName?.trim() || data.address?.trim() || data.plusCode?.trim());
+  const originCoords = endpointMode
+    ? (coords?.endpoints?.origin ?? null)
+    : toIdentified
+      ? null
+      : (coords ?? null);
+  const destinationCoords = endpointMode
+    ? (coords?.endpoints?.destination ?? null)
+    : toIdentified
+      ? (coords ?? null)
+      : null;
 
   const titleParts = [data.fromName, data.toName].filter(Boolean);
   const title =
@@ -390,11 +422,38 @@ function TransitInfoBody({ segment }: { segment: Segment }) {
         </InfoSection>
       )}
 
-      {(data.fromName || data.toName || data.referenceNumber) && (
+      {(data.fromName ||
+        data.toName ||
+        data.fromAddress ||
+        data.address ||
+        data.referenceNumber ||
+        directionsUrl ||
+        originCoords ||
+        destinationCoords) && (
         <InfoSection title="Route">
-          <InfoRow label="From" value={data.fromName} />
-          <InfoRow label="To" value={data.toName} />
+          <InfoRow
+            label="From"
+            value={endpointValue({
+              name: data.fromName,
+              address: endpointMode ? data.fromAddress : undefined,
+              coords: originCoords,
+            })}
+          />
+          <InfoRow
+            label="To"
+            value={endpointValue({
+              name: data.toName,
+              address: data.address,
+              coords: destinationCoords,
+            })}
+          />
           <InfoRow label="Reference" value={data.referenceNumber} mono />
+          <InfoRow
+            label="Directions"
+            value={
+              directionsUrl ? <DirectionsChip href={directionsUrl} label="Google Maps" /> : null
+            }
+          />
         </InfoSection>
       )}
 
@@ -638,4 +697,28 @@ function triggerLabel(segment: Segment): string {
     case 'note':
       return 'View note';
   }
+}
+
+// One end of a transit leg in the inspector: its name, a muted address
+// line, and its own Plus Code badge when that end is located. Null when
+// there's nothing to show, so the row disappears.
+function endpointValue({
+  name,
+  address,
+  coords,
+}: {
+  name: string | undefined;
+  address: string | undefined;
+  coords: { lat: number; lng: number } | null;
+}): React.ReactNode {
+  const title = name?.trim();
+  const line = address?.trim();
+  if (!title && !line && !coords) return null;
+  return (
+    <span className="flex flex-col items-start gap-1">
+      {title && <span>{title}</span>}
+      {line && <span className="text-muted-foreground text-xs leading-snug">{line}</span>}
+      {coords && <PlusCodeBadge lat={coords.lat} lng={coords.lng} venue={title ?? null} />}
+    </span>
+  );
 }

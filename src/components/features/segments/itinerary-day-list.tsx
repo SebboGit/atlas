@@ -6,6 +6,7 @@ import * as React from 'react';
 import { useMounted } from '@/components/client-only';
 import { parseDateString } from '@/components/ui/date-picker';
 import type { LinkedDocument } from '@/lib/documents';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
@@ -106,7 +107,7 @@ interface ItineraryDayListProps {
   isActive: boolean;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
   /** Trip-wide segmentId → cached coordinates map. Drives the Plus Code badge. */
-  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
+  coordsBySegmentId?: Map<string, PlaceCoordsEntry>;
 }
 
 function formatRangeLabel(d: Date): string {
@@ -187,7 +188,7 @@ function ExpandedPastGroup({
   days: ItineraryDay[];
   tripId: string;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
-  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
+  coordsBySegmentId?: Map<string, PlaceCoordsEntry>;
   continuations: Map<string, Segment[]>;
   onContinuationActivate?: () => void;
   onCollapse: () => void;
@@ -250,7 +251,7 @@ function PastGroup({
   days: ItineraryDay[];
   tripId: string;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
-  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
+  coordsBySegmentId?: Map<string, PlaceCoordsEntry>;
   continuations: Map<string, Segment[]>;
   onContinuationActivate?: () => void;
   isExpanded: boolean;

@@ -1,4 +1,5 @@
 import type { LinkedDocument } from '@/lib/documents';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment } from '@/lib/segments';
 
 import { SegmentCardActivity } from './segment-card-activity';
@@ -30,7 +31,7 @@ export function SegmentCard({
    * via the IATA snapshot (handled inside the flight card itself); the
    * non-flight variants take this through.
    */
-  coords?: { lat: number; lng: number } | null;
+  coords?: PlaceCoordsEntry | null;
   /**
    * Show the segment's own date in the meta. On for the flat Activity /
    * Food tabs (no day-group header there); off for the day-grouped

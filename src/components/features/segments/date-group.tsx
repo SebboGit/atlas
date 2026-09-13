@@ -1,4 +1,5 @@
 import type { LinkedDocument } from '@/lib/documents';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment } from '@/lib/segments';
 
 import { SegmentRow } from './segment-row';
@@ -11,7 +12,7 @@ interface DateGroupProps {
   tripId: string;
   linkedDocumentsBySegment?: Map<string, LinkedDocument[]>;
   /** Trip-wide segmentId → cached coordinates map. Drives the Plus Code badge. */
-  coordsBySegmentId?: Map<string, { lat: number; lng: number }>;
+  coordsBySegmentId?: Map<string, PlaceCoordsEntry>;
   // Forwarded to SegmentRow — surfaces the reschedule affordance on
   // activity / food cards. The flat Activity and Food tabs render rows
   // directly (not via DateGroup), so today this stays off here; kept for

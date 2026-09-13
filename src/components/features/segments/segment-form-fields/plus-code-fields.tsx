@@ -26,6 +26,8 @@ interface PlusCodeFieldsProps {
    * that convention rather than inventing a new one).
    */
   idPrefix?: string;
+  /** Field holding the code — `data.fromPlusCode` for a transit origin. */
+  path?: string;
 }
 
 type DataErrors = Record<string, { message?: string } | undefined>;
@@ -40,12 +42,18 @@ function dataErrorsOf(errors: unknown): DataErrors {
  * place it directly below the address input (NOT here) so the user
  * sees it the moment they paste a Plus Code into the wrong field.
  */
-export function PlusCodeFields({ form, idPrefix = 'seg' }: PlusCodeFieldsProps) {
+export function PlusCodeFields({
+  form,
+  idPrefix = 'seg',
+  path = 'data.plusCode',
+}: PlusCodeFieldsProps) {
   const e = dataErrorsOf(form.formState.errors);
+  const errorKey = path.replace(/^data\./, '');
+  const error = e[errorKey];
   const id = `${idPrefix}-plus-code`;
   const plusCodeValue = useWatch({
     control: form.control,
-    name: 'data.plusCode' as never,
+    name: path as never,
   }) as unknown;
   const plusCodeStr = typeof plusCodeValue === 'string' ? plusCodeValue : undefined;
 
@@ -67,11 +75,11 @@ export function PlusCodeFields({ form, idPrefix = 'seg' }: PlusCodeFieldsProps) 
         className="font-mono"
         autoCapitalize="characters"
         spellCheck={false}
-        aria-invalid={!!e.plusCode || undefined}
-        {...form.register('data.plusCode' as never)}
+        aria-invalid={!!error || undefined}
+        {...form.register(path as never)}
       />
-      {e.plusCode?.message && <FieldError>{e.plusCode.message}</FieldError>}
-      {hint && !e.plusCode?.message && (
+      {error?.message && <FieldError>{error.message}</FieldError>}
+      {hint && !error?.message && (
         <p className="text-muted-foreground text-xs leading-snug">{hint}</p>
       )}
     </div>
@@ -88,14 +96,22 @@ export function PlusCodeFields({ form, idPrefix = 'seg' }: PlusCodeFieldsProps) 
  * happens — surfacing it under the Plus Code field would miss the
  * teachable moment.
  */
-export function PlusCodeNudge({ form }: { form: AnyForm }) {
+export function PlusCodeNudge({
+  form,
+  addressPath = 'data.address',
+  plusCodePath = 'data.plusCode',
+}: {
+  form: AnyForm;
+  addressPath?: string;
+  plusCodePath?: string;
+}) {
   const addressValue = useWatch({
     control: form.control,
-    name: 'data.address' as never,
+    name: addressPath as never,
   }) as unknown;
   const plusCodeValue = useWatch({
     control: form.control,
-    name: 'data.plusCode' as never,
+    name: plusCodePath as never,
   }) as unknown;
   const addressStr = typeof addressValue === 'string' ? addressValue : undefined;
   const plusCodeStr = typeof plusCodeValue === 'string' ? plusCodeValue : undefined;
@@ -110,11 +126,11 @@ export function PlusCodeNudge({ form }: { form: AnyForm }) {
 
   function move() {
     if (!addressStr) return;
-    form.setValue('data.plusCode' as never, addressStr.trim() as never, {
+    form.setValue(plusCodePath as never, addressStr.trim() as never, {
       shouldDirty: true,
       shouldValidate: true,
     });
-    form.setValue('data.address' as never, '' as never, {
+    form.setValue(addressPath as never, '' as never, {
       shouldDirty: true,
       shouldValidate: true,
     });

@@ -1,12 +1,14 @@
 'use client';
 
+import { useWatch } from 'react-hook-form';
+
 import { Input, Select } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { TransitData } from '@/lib/segments';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
+import { hasTransitEndpoints, type TransitData } from '@/lib/segments';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
-import { PlaceFinder } from './place-finder';
-import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
+import { TransitEndpointFields } from './transit-endpoint-fields';
 
 // Reuses the Zod-inferred TransitData['mode'] union — no second source
 // of truth for the mode literal list.
@@ -22,14 +24,25 @@ const TRANSIT_MODE_LABELS: Record<TransitData['mode'], string> = {
   other: 'Other',
 };
 
-export function TransitFields({ form }: { form: Form }) {
+export function TransitFields({
+  form,
+  coords,
+}: {
+  form: Form;
+  /** The saved segment's coordinates, for the From / To pin lines. */
+  coords?: PlaceCoordsEntry | null;
+}) {
   const e = getDataErrors(form.formState.errors);
+  const mode = useWatch({ control: form.control, name: 'data.mode' as never }) as unknown;
+  // Train / bus / ferry locate both ends (ADR-0019); car / other keep a
+  // name-only From and a located To. From values survive a switch to car
+  // (ignored there) so switching back restores them.
+  const endpointMode = hasTransitEndpoints(mode);
   return (
     <div className="flex flex-col gap-5">
       {/* [&>*]:min-w-0 — the Mode field is a native <select>, which iOS
           won't shrink below its widest option; same guard as the trip
-          form's status/visibility row. The From/To row below is plain
-          text inputs, which shrink fine, so it doesn't need it. */}
+          form's status/visibility row. */}
       <div className="grid gap-5 sm:grid-cols-2 [&>*]:min-w-0">
         <div className="flex flex-col gap-2">
           <Label htmlFor="seg-mode">Mode</Label>
@@ -52,37 +65,22 @@ export function TransitFields({ form }: { form: Form }) {
           />
         </div>
       </div>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="seg-from">From</Label>
-          <Input
-            id="seg-from"
-            placeholder="Tokyo Stn"
-            {...form.register('data.fromName' as never)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="seg-to">To</Label>
-          <Input
-            id="seg-to"
-            placeholder="Hakone-Yumoto"
-            {...form.register('data.toName' as never)}
-          />
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="seg-transit-address">
-          Address <Optional />
-        </Label>
-        <Input
-          id="seg-transit-address"
-          placeholder="707-1 Yumoto, Hakone"
-          {...form.register('data.address' as never)}
+      {/* Side by side from sm:, stacked on phone. min-w-0 lets the name
+          inputs shrink beside their Find buttons instead of overflowing. */}
+      <div className="grid gap-5 sm:grid-cols-2 sm:items-start [&>*]:min-w-0">
+        <TransitEndpointFields
+          form={form}
+          side="from"
+          locate={endpointMode}
+          located={endpointMode ? coords?.endpoints?.origin : null}
         />
-        <PlaceFinder form={form} type="transit" />
-        <PlusCodeNudge form={form} />
+        <TransitEndpointFields
+          form={form}
+          side="to"
+          locate
+          located={endpointMode ? coords?.endpoints?.destination : coords}
+        />
       </div>
-      <PlusCodeFields form={form} idPrefix="seg-transit" />
       <div className="flex flex-col gap-2">
         <Label htmlFor="seg-transit-ref">
           Reference <Optional />

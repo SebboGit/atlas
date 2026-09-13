@@ -69,7 +69,8 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
   // surfaces on the trip map's "Not pinned" disclosure separately).
   // Only train / bus / ferry misses enqueue a fetch here — their keys
   // became station keys (ADR-0019). `pendingCount` is the number of
-  // geocodable segments whose cache row hasn't landed yet — the
+  // lookups (one per place, or per train / bus / ferry end) whose cache
+  // row hasn't landed yet — the
   // poller below uses it to silently refresh until they do. Covers the
   // undated card too (a transit can be geocoded).
   const { coordsById: coordsBySegmentId, pendingCount } = await getPlaceCoordsView([
