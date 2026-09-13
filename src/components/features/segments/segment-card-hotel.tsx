@@ -29,8 +29,9 @@ export function SegmentCardHotel({
   const roomType = parse.success ? parse.data.roomType : undefined;
   // Check-in time is display-only `data` metadata (the form's own field),
   // not derived from `startsAt` — `startsAt` stays a date-only day anchor
-  // so the hotel orders by check-in DATE alone. Check-out time is shown on
-  // the last-day "Staying" continuation, not here on the check-in card.
+  // so the hotel orders by its check-in DATE and that day's arrivals (see
+  // `sortDaySegments`). Check-out time is shown on the last-day "Staying"
+  // continuation, not here on the check-in card.
   const checkInTime = parse.success ? parse.data.checkInTime : undefined;
 
   const nights =

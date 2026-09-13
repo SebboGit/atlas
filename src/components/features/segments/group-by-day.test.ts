@@ -106,9 +106,9 @@ describe('groupSegmentsByDay — within-day ordering', () => {
     expect(orderedIds([activity, hotel, flight])).toEqual(['flight', 'hotel', 'activity']);
   });
 
-  it('does not move a date-only hotel on a day with no flight', () => {
-    // The minimal rule: only flights pull a hotel down. With no flight the
-    // day stays chronological — the date-only hotel keeps its 00:00Z.
+  it('does not move a date-only hotel on a day with no flight or transit', () => {
+    // The minimal rule: only arrivals pull a hotel down. With none the day
+    // stays chronological — the date-only hotel keeps its 00:00Z.
     const hotel = makeSegment({ id: 'hotel', type: 'hotel', startsAt: dateOnly });
     const activity = makeSegment({ id: 'activity', type: 'activity', startsAt: utc(9) });
     expect(orderedIds([activity, hotel])).toEqual(['hotel', 'activity']);
@@ -119,6 +119,77 @@ describe('groupSegmentsByDay — within-day ordering', () => {
     const f2 = makeSegment({ id: 'f2', type: 'flight', startsAt: utc(14), endsAt: utc(17) });
     const hotel = makeSegment({ id: 'hotel', type: 'hotel', startsAt: dateOnly });
     expect(orderedIds([hotel, f1, f2])).toEqual(['f1', 'f2', 'hotel']);
+  });
+
+  it('sorts a timed train before a date-only hotel check-in on the same day', () => {
+    const hotel = makeSegment({ id: 'hotel', type: 'hotel', startsAt: dateOnly });
+    const activity = makeSegment({ id: 'activity', type: 'activity', startsAt: utc(8) });
+    const train = makeSegment({
+      id: 'train',
+      type: 'transit',
+      startsAt: utc(9, 12),
+      endsAt: utc(11, 30),
+    });
+    // Same shape as a flight: the hotel binds to the 11:30 arrival, while the
+    // morning activity keeps its own earlier time.
+    expect(orderedIds([hotel, train, activity])).toEqual(['activity', 'train', 'hotel']);
+  });
+
+  it('binds a hotel to the last arrival across flights and transit', () => {
+    // Fly in, take the airport train, then check in. Binding to the landing
+    // alone would wedge the hotel between the flight and the train.
+    const flight = makeSegment({ id: 'flight', type: 'flight', startsAt: utc(8), endsAt: utc(14) });
+    const train = makeSegment({
+      id: 'train',
+      type: 'transit',
+      startsAt: utc(14, 45),
+      endsAt: utc(15, 30),
+    });
+    const hotel = makeSegment({ id: 'hotel', type: 'hotel', startsAt: dateOnly });
+    expect(orderedIds([hotel, flight, train])).toEqual(['flight', 'train', 'hotel']);
+  });
+
+  it('reads an arrival stored before its departure as the departure', () => {
+    // An arrival date entered without a time stores 00:00Z, before the 09:12
+    // departure. Taken raw it would never lift the hotel.
+    const train = makeSegment({
+      id: 'train',
+      type: 'transit',
+      startsAt: utc(9, 12),
+      endsAt: dateOnly,
+    });
+    const hotel = makeSegment({ id: 'hotel', type: 'hotel', startsAt: dateOnly });
+    expect(orderedIds([hotel, train])).toEqual(['train', 'hotel']);
+  });
+
+  it('ignores a transit that arrives on a later day', () => {
+    // A rental car picked up at 17:00 and returned four days later is an
+    // ongoing span, not an arrival — the hotel binds to the train instead of
+    // sinking below the whole day.
+    const train = makeSegment({ id: 'train', type: 'transit', startsAt: utc(9), endsAt: utc(11) });
+    const car = makeSegment({
+      id: 'car',
+      type: 'transit',
+      startsAt: utc(17),
+      endsAt: new Date(Date.UTC(2025, 9, 24, 10)),
+    });
+    const food = makeSegment({ id: 'food', type: 'food', startsAt: utc(20) });
+    const hotel = makeSegment({ id: 'hotel', type: 'hotel', startsAt: dateOnly });
+    expect(orderedIds([hotel, car, food, train])).toEqual(['train', 'hotel', 'car', 'food']);
+  });
+
+  it('still binds a hotel to a flight that lands on a later day', () => {
+    // Unlike transit, a red-eye counts across midnight: a hotel booked from
+    // the departure night follows the flight.
+    const food = makeSegment({ id: 'food', type: 'food', startsAt: utc(19) });
+    const flight = makeSegment({
+      id: 'flight',
+      type: 'flight',
+      startsAt: utc(22),
+      endsAt: new Date(Date.UTC(2025, 9, 21, 7)),
+    });
+    const hotel = makeSegment({ id: 'hotel', type: 'hotel', startsAt: dateOnly });
+    expect(orderedIds([hotel, flight, food])).toEqual(['food', 'flight', 'hotel']);
   });
 
   it('breaks an exact-time tie by segment type (transit before activity before note)', () => {

@@ -225,6 +225,11 @@ const HERO_SEGMENTS: HeroSegment[] = [
     countryCode: 'JP',
     pin: { lat: 34.9858, lng: 135.7588 },
   },
+  // Date-only stay (00:00Z both ends, like a form-entered hotel) checking in
+  // on the train day — the same-day transit→hotel ordering case. Plain
+  // chronological order would float it above the 09:12 Shinkansen; bound to
+  // the train's arrival it reads train → hotel, under Hotel Niwa's check-out
+  // "Staying" row.
   {
     type: 'hotel',
     data: {
@@ -235,8 +240,8 @@ const HERO_SEGMENTS: HeroSegment[] = [
       checkInTime: '15:00',
       checkOutTime: '10:00',
     },
-    startsAt: d(2025, 10, 7),
-    endsAt: d(2025, 10, 10),
+    startsAt: d(2025, 10, 7, 0),
+    endsAt: d(2025, 10, 10, 0),
     locationName: 'Kamigyō',
     countryCode: 'JP',
     pin: { lat: 35.0292, lng: 135.7592 },
