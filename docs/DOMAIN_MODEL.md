@@ -59,6 +59,7 @@
 ### Location
 
 - Geocoded point. Fields: `id`, `tripId?`, `segmentId?`, `name`, `lat`, `lng`, `address`, `countryCode`.
+- A `train`, `bus`, or `ferry` transit segment contributes two points, its origin and its destination, and the trip map draws a line between them when both resolve. `car` and `other` transit keep one. See ADR-0019.
 
 ## Invariants
 

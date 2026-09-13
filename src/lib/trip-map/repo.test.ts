@@ -65,7 +65,23 @@ const geocodingMocks = vi.hoisted(() => ({
   normalizeForGeocoder: vi.fn((s: string) => s),
 }));
 
-vi.mock('@/lib/geocoding', () => geocodingMocks);
+// The transit endpoint builders and Plus Code helpers stay real: the
+// repo's per-endpoint branch is only meaningful against the actual
+// station keys (ADR-0019).
+vi.mock('@/lib/geocoding', async () => {
+  const segmentQuery = await vi.importActual<typeof import('@/lib/geocoding/segment-query')>(
+    '@/lib/geocoding/segment-query',
+  );
+  const plusCode = await vi.importActual<typeof import('@/lib/geocoding/plus-code')>(
+    '@/lib/geocoding/plus-code',
+  );
+  return {
+    ...geocodingMocks,
+    buildTransitEndpointQueries: segmentQuery.buildTransitEndpointQueries,
+    decodePlusCode: plusCode.decodePlusCode,
+    tryParsePlusCode: plusCode.tryParsePlusCode,
+  };
+});
 
 const airportMocks = vi.hoisted(() => ({
   getAirportCoords: vi.fn<(iata: string) => { lat: number; lng: number } | null>(),
@@ -271,6 +287,7 @@ describe('getTripMapDataForUser — non-flight cache states', () => {
     expect(byLabel.get('MUC')!.country).toBe('DE');
     // Two arcs (one per leg) — origin-pin dedup must not collapse arcs.
     expect(result.arcs).toHaveLength(2);
+    expect(result.arcs.every((a) => a.kind === 'flight')).toBe(true);
   });
 
   it('pins both endpoints of a single-leg flight (HND and LAX)', async () => {
@@ -394,5 +411,255 @@ describe('getTripMapDataForUser — non-flight cache states', () => {
     const result = await getTripMapDataForUser('user-1', 'trip-1');
     expect(geocodingMocks.enqueueGeocodeFetch).not.toHaveBeenCalled();
     expect(result.ungeocoded[0]!.reason).toContain('stop name');
+  });
+});
+
+describe('getTripMapDataForUser — train, bus and ferry routes (ADR-0019)', () => {
+  const TOKYO = { lat: 35.6812, lng: 139.7671 };
+  const KYOTO = { lat: 34.9858, lng: 135.7588 };
+  const TOKYO_KEY = 'station:train:jp:tokyo station';
+  const KYOTO_KEY = 'station:train:jp:kyoto station';
+
+  function makeTransit(
+    id: string,
+    data: Record<string, unknown>,
+    overrides: Partial<Segment> = {},
+  ) {
+    return makeHotel({
+      id,
+      type: 'transit',
+      data: { mode: 'train', ...data },
+      locationName: 'Tokyo → Kyoto',
+      countryCode: 'JP',
+      startsAt: new Date('2025-10-07T09:12:00Z'),
+      endsAt: new Date('2025-10-07T11:30:00Z'),
+      ...overrides,
+    });
+  }
+  const hit = (p: { lat: number; lng: number }) => ({
+    kind: 'hit',
+    result: { ...p, displayName: 'x' },
+    cityPending: false,
+  });
+  const SHINKANSEN = { fromName: 'Tokyo Station', toName: 'Kyoto Station', carrier: 'JR Central' };
+
+  it('pins both stations and draws a transit arc between them', async () => {
+    dbState.rows = [makeTransit('seg-train', SHINKANSEN)];
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([
+        [TOKYO_KEY, hit(TOKYO)],
+        [KYOTO_KEY, hit(KYOTO)],
+      ]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(geocodingMocks.getCachedMany).toHaveBeenCalledOnce();
+    expect(geocodingMocks.getCachedMany.mock.calls[0]![0]).toEqual([
+      'station:train:jp:Tokyo Station',
+      'station:train:jp:Kyoto Station',
+    ]);
+    expect(result.pins).toEqual([
+      {
+        segmentId: 'seg-train',
+        kind: 'transit',
+        endpoint: 'origin',
+        label: 'Tokyo Station',
+        sublabel: 'JR Central',
+        country: 'JP',
+        ...TOKYO,
+        date: new Date('2025-10-07T09:12:00Z'),
+      },
+      {
+        segmentId: 'seg-train',
+        kind: 'transit',
+        endpoint: 'destination',
+        label: 'Kyoto Station',
+        sublabel: 'JR Central',
+        country: 'JP',
+        ...KYOTO,
+        date: new Date('2025-10-07T11:30:00Z'),
+      },
+    ]);
+    expect(result.arcs).toEqual([
+      {
+        segmentId: 'seg-train',
+        kind: 'transit',
+        mode: 'train',
+        originLat: TOKYO.lat,
+        originLng: TOKYO.lng,
+        destLat: KYOTO.lat,
+        destLng: KYOTO.lng,
+        originCountry: 'JP',
+        destCountry: 'JP',
+      },
+    ]);
+    expect(result.ungeocoded).toEqual([]);
+    expect(geocodingMocks.enqueueGeocodeFetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps the found station and names the missing one when an end has no match', async () => {
+    dbState.rows = [makeTransit('seg-train', SHINKANSEN)];
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([
+        [TOKYO_KEY, { kind: 'null' }],
+        [KYOTO_KEY, hit(KYOTO)],
+      ]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.pins.map((p) => p.endpoint)).toEqual(['destination']);
+    expect(result.arcs).toEqual([]);
+    expect(result.ungeocoded).toEqual([
+      {
+        segmentId: 'seg-train',
+        type: 'transit',
+        label: 'Tokyo Station → Kyoto Station',
+        reason: "We couldn't find the departure point on the map.",
+      },
+    ]);
+  });
+
+  it('enqueues only the missing end and reports one pending entry', async () => {
+    dbState.rows = [makeTransit('seg-train', SHINKANSEN)];
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([
+        [TOKYO_KEY, { kind: 'miss' }],
+        [KYOTO_KEY, hit(KYOTO)],
+      ]),
+    );
+    geocodingMocks.getGeocodeWorkerStatus.mockResolvedValue('worker-down');
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(geocodingMocks.enqueueGeocodeFetch).toHaveBeenCalledExactlyOnceWith(
+      'station:train:jp:Tokyo Station',
+    );
+    expect(result.ungeocoded).toHaveLength(1);
+    expect(result.ungeocoded[0]!.reason).toMatch(/pending/i);
+    expect(result.geocodeWorkerStatus).toBe('worker-down');
+  });
+
+  it('lists a leg once with the generic reason when neither station is found', async () => {
+    dbState.rows = [makeTransit('seg-train', SHINKANSEN)];
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([
+        [TOKYO_KEY, { kind: 'null' }],
+        [KYOTO_KEY, { kind: 'null' }],
+      ]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.pins).toEqual([]);
+    expect(result.ungeocoded.map((u) => u.reason)).toEqual([
+      "We couldn't find this place on the map.",
+    ]);
+  });
+
+  it('draws both pins but no line for an implausibly long bus leg, with no entry', async () => {
+    dbState.rows = [makeTransit('seg-bus', { ...SHINKANSEN, mode: 'bus' })];
+    const lisbon = { lat: 38.7223, lng: -9.1393 };
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([
+        ['station:bus:jp:tokyo station', hit(TOKYO)],
+        ['station:bus:jp:kyoto station', hit(lisbon)],
+      ]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.pins).toHaveLength(2);
+    expect(result.arcs).toEqual([]);
+    expect(result.ungeocoded).toEqual([]);
+  });
+
+  it('pins a leg with only one station named, without an entry', async () => {
+    dbState.rows = [makeTransit('seg-train', { toName: 'Kyoto Station' })];
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([[KYOTO_KEY, hit(KYOTO)]]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.pins).toHaveLength(1);
+    expect(result.arcs).toEqual([]);
+    expect(result.ungeocoded).toEqual([]);
+  });
+
+  it('decodes a full origin Plus Code without waiting on the cache', async () => {
+    dbState.rows = [
+      makeTransit('seg-train', {
+        toName: 'Kyoto Station',
+        fromName: 'Tokyo Station',
+        fromPlusCode: '8Q7XMQJ8+FV',
+      }),
+    ];
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([[KYOTO_KEY, hit(KYOTO)]]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.arcs).toHaveLength(1);
+    expect(result.arcs[0]!.originLat).toBeCloseTo(35.68, 1);
+    expect(geocodingMocks.enqueueGeocodeFetch).not.toHaveBeenCalled();
+  });
+
+  it('labels an end with only a Plus Code by its role, not the other station', async () => {
+    dbState.rows = [
+      makeTransit('seg-train', { fromName: 'Tokyo Station', plusCode: '8Q6QXQXV+8G' }),
+    ];
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([[TOKYO_KEY, hit(TOKYO)]]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.pins.map((p) => [p.endpoint, p.label])).toEqual([
+      ['origin', 'Tokyo Station'],
+      ['destination', 'Arrival'],
+    ]);
+  });
+
+  it('keeps car legs on the single-pin path', async () => {
+    dbState.rows = [makeTransit('seg-car', { ...SHINKANSEN, mode: 'car' })];
+    geocodingMocks.buildGeocodeQuery.mockReturnValue('Kyoto Station');
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([['kyoto station', hit(KYOTO)]]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(result.pins).toHaveLength(1);
+    expect(result.pins[0]!.endpoint).toBeUndefined();
+    expect(result.arcs).toEqual([]);
+  });
+
+  it('gives a round trip its own pins and line per leg and enqueues a shared miss once', async () => {
+    dbState.rows = [
+      makeTransit('seg-out', SHINKANSEN),
+      makeTransit('seg-back', { fromName: 'Kyoto Station', toName: 'Tokyo Station' }),
+      makeHotel({ id: 'seg-hotel', countryCode: 'JP' }),
+    ];
+    geocodingMocks.buildGeocodeQuery.mockReturnValue('Hotel California');
+    geocodingMocks.getCachedMany.mockResolvedValue(
+      new Map<string, object>([
+        [TOKYO_KEY, hit(TOKYO)],
+        [KYOTO_KEY, { kind: 'miss' }],
+        ['hotel california', { kind: 'null' }],
+      ]),
+    );
+
+    const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+    expect(geocodingMocks.enqueueGeocodeFetch).toHaveBeenCalledExactlyOnceWith(
+      'station:train:jp:Kyoto Station',
+    );
+    expect(result.pins.filter((p) => p.kind === 'transit')).toHaveLength(2);
+    const ids = result.ungeocoded.map((u) => u.segmentId);
+    expect(ids).toEqual([...new Set(ids)]);
+    expect(ids.sort()).toEqual(['seg-back', 'seg-hotel', 'seg-out']);
   });
 });

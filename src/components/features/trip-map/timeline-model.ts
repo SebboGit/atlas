@@ -20,11 +20,12 @@ import type { TripMapArc, TripMapPin } from '@/lib/trip-map/repo';
 // a second lookup, which items are mappable and where they sit.
 
 // What a single rail row represents on the map. Drives the focus /
-// fit behaviour: a `flight` item focuses on its arc endpoints (flight
-// pins are deduped + keyed to the first leg's segmentId, so the arc is
-// the reliable per-segment geometry), every other mappable kind
-// focuses on its single pin, and `none` items (notes, ungeocoded
-// segments) render in the rail but never touch the map.
+// fit behaviour: an `arc` item — a flight, or a train / bus / ferry with
+// a drawn line (ADR-0019) — focuses on its route's two ends
+// (flight pins are deduped + keyed to the first leg's segmentId, so the
+// arc is the reliable per-segment geometry), a `pin` item focuses on its
+// pin, and `none` items (notes, ungeocoded segments) render in the rail
+// but never touch the map.
 export type RailItemMapKind = 'pin' | 'arc' | 'none';
 
 // Icon glyph for the rail row. Mirrors `TripMapPinKind` plus `note`
@@ -286,4 +287,63 @@ export function isArcDimmed(
   }
   if (highlightIds !== null && !highlightIds.has(arc.segmentId)) return true;
   return false;
+}
+
+// The segment ids a highlighted day lights up: the day's own mappable
+// ids, plus — for flights — whichever flight owns each airport pin the
+// day's arcs touch. Flight pins dedupe by airport, so a destination pin
+// can carry another leg's id and wouldn't otherwise un-dim. Pin coords and
+// arc endpoints come from the same airport snapshot, so they're equal.
+// Transit is left out on purpose: station pins carry their own leg's id,
+// and matching by coordinates would light a whole other leg that merely
+// shares a station (ADR-0019).
+export function highlightIdsForDay(
+  baseIds: readonly string[],
+  pins: readonly TripMapPin[],
+  arcs: readonly TripMapArc[],
+): Set<string> {
+  const ids = new Set(baseIds);
+  for (const id of baseIds) {
+    const arc = arcs.find((a) => a.segmentId === id && a.kind === 'flight');
+    if (!arc) continue;
+    for (const pin of pins) {
+      if (pin.kind !== 'flight') continue;
+      const atOrigin = pin.lat === arc.originLat && pin.lng === arc.originLng;
+      const atDest = pin.lat === arc.destLat && pin.lng === arc.destLng;
+      if (atOrigin || atDest) ids.add(pin.segmentId);
+    }
+  }
+  return ids;
+}
+
+// The first and last rail day each segment appears on (a multi-day leg
+// or stay also shows as continuation rows on later days).
+export interface SegmentDaySpan {
+  first: string;
+  last: string;
+}
+
+export function indexSegmentDays(days: readonly ResolvedRailDay[]): Map<string, SegmentDaySpan> {
+  const index = new Map<string, SegmentDaySpan>();
+  for (const day of days) {
+    for (const item of day.items) {
+      const span = index.get(item.segmentId);
+      if (span) span.last = day.key;
+      else index.set(item.segmentId, { first: day.key, last: day.key });
+    }
+  }
+  return index;
+}
+
+// The day a map-pin hover highlights. A transit origin pin marks the
+// departure, so it lights up the leg's first day; everything else keeps
+// the segment's last day.
+export function dayKeyForPinHover(
+  index: ReadonlyMap<string, SegmentDaySpan>,
+  segmentId: string,
+  endpoint?: 'origin' | 'destination',
+): string | null {
+  const span = index.get(segmentId);
+  if (!span) return null;
+  return endpoint === 'origin' ? span.first : span.last;
 }

@@ -50,6 +50,7 @@ const flightPin: TripMapPin = {
 };
 const flightArc: TripMapArc = {
   segmentId: 'flight-1',
+  kind: 'flight',
   originLat: 51.47,
   originLng: -0.45,
   destLat: 35.55,
@@ -68,6 +69,53 @@ const hotelPin: TripMapPin = {
 };
 
 describe('buildRailDays', () => {
+  it('maps a train with both stations placed to its arc (ADR-0019)', () => {
+    const train = seg({
+      id: 'train-1',
+      type: 'transit',
+      data: { mode: 'train', fromName: 'Tokyo Station', toName: 'Kyoto Station' },
+    });
+    const trainArc: TripMapArc = {
+      segmentId: 'train-1',
+      kind: 'transit',
+      mode: 'train',
+      originLat: 35.68,
+      originLng: 139.77,
+      destLat: 34.99,
+      destLng: 135.76,
+      originCountry: 'JP',
+      destCountry: 'JP',
+    };
+    const [day] = buildRailDays([dayBucket([train])], indexMapGeometry([], [trainArc]));
+    expect(day!.items[0]).toMatchObject({
+      mapKind: 'arc',
+      label: 'Tokyo Station → Kyoto Station',
+      country: 'JP',
+    });
+  });
+
+  it('maps a train with one station placed to its pin, and with none off the map', () => {
+    const train = seg({
+      id: 'train-1',
+      type: 'transit',
+      data: { mode: 'train', fromName: 'Tokyo Station', toName: 'Kyoto Station' },
+    });
+    const kyoto: TripMapPin = {
+      segmentId: 'train-1',
+      kind: 'transit',
+      endpoint: 'destination',
+      label: 'Kyoto Station',
+      country: 'JP',
+      lat: 34.99,
+      lng: 135.76,
+      date: null,
+    };
+    const [pinned] = buildRailDays([dayBucket([train])], indexMapGeometry([kyoto], []));
+    expect(pinned!.items[0]!.mapKind).toBe('pin');
+    const [unplaced] = buildRailDays([dayBucket([train])], indexMapGeometry([], []));
+    expect(unplaced!.items[0]!.mapKind).toBe('none');
+  });
+
   it('maps a flight to its arc, headlining the origin→dest IATA pair', () => {
     const flight = seg({
       id: 'flight-1',

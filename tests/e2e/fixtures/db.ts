@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { geocodeCache, segments, sessions, trips, users, wishlistItems } from '@/db/schema';
 import { normalizeQuery } from '@/lib/geocoding/normalize';
-import { buildGeocodeQuery } from '@/lib/geocoding/segment-query';
+import { buildGeocodeQuery, buildTransitEndpointQueries } from '@/lib/geocoding/segment-query';
 
 import { assertTestDatabase } from './safety';
 
@@ -274,6 +274,7 @@ export async function seedGeocodedActivitySegment(
   });
   if (!query) throw new Error('E2E fixture: buildGeocodeQuery returned null.');
 
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await db
     .insert(geocodeCache)
     .values({
@@ -282,11 +283,19 @@ export async function seedGeocodedActivitySegment(
       lng: values.lng,
       displayName: query,
       source: 'nominatim',
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expiresAt,
     })
     .onConflictDoUpdate({
       target: geocodeCache.queryNormalized,
-      set: { lat: values.lat, lng: values.lng, displayName: query },
+      // The TTL is refreshed too: this key is fixed, and a row left by a
+      // run more than a day ago would otherwise read as an expired miss.
+      set: {
+        lat: values.lat,
+        lng: values.lng,
+        displayName: query,
+        fetchedAt: new Date(),
+        expiresAt,
+      },
     });
 
   return row.id;
@@ -326,6 +335,9 @@ export async function seedUngeocodedActivitySegment(
   });
   if (!query) throw new Error('E2E fixture: buildGeocodeQuery returned null for activity title.');
 
+  // 1d is plenty for a test run. Refreshed on conflict as well, so a row
+  // left behind by an older run never reads as an expired miss.
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await db
     .insert(geocodeCache)
     .values({
@@ -334,14 +346,92 @@ export async function seedUngeocodedActivitySegment(
       lng: null,
       displayName: null,
       source: 'nominatim',
-      // 1d is plenty for a test run; the cleanup deletes the row when
-      // it cascades from the trip anyway, so TTL is advisory only.
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expiresAt,
     })
     .onConflictDoUpdate({
       target: geocodeCache.queryNormalized,
-      set: { lat: null, lng: null, displayName: null },
+      set: { lat: null, lng: null, displayName: null, fetchedAt: new Date(), expiresAt },
     });
+
+  return row.id;
+}
+
+export interface SeedTransitValues {
+  mode: 'train' | 'bus' | 'ferry';
+  fromName?: string;
+  toName?: string;
+  countryCode: string;
+  startsAt?: Date;
+  endsAt?: Date;
+  // Per endpoint: coordinates seed a hit row, 'null' a negative row
+  // (the geocoder found nothing), undefined no row at all (pending).
+  origin: { lat: number; lng: number } | 'null' | undefined;
+  destination: { lat: number; lng: number } | 'null' | undefined;
+}
+
+// Train / bus / ferry segment with a geocode_cache row per endpoint
+// (ADR-0019). The keys come from the production
+// buildTransitEndpointQueries, so the trip-map repo reads each end
+// exactly as seeded — hit, null, or missing — without a live Photon
+// call. Hit rows mimic a station lookup: source 'photon-station', the
+// typed name as the display name.
+export async function seedTransitSegment(
+  tripId: string,
+  values: SeedTransitValues,
+): Promise<string> {
+  assertTestDatabase();
+  const data = {
+    mode: values.mode,
+    ...(values.fromName !== undefined && { fromName: values.fromName }),
+    ...(values.toName !== undefined && { toName: values.toName }),
+  };
+  const inserted = await db
+    .insert(segments)
+    .values({
+      tripId,
+      type: 'transit',
+      data,
+      startsAt: values.startsAt ?? null,
+      endsAt: values.endsAt ?? null,
+      countryCode: values.countryCode,
+    })
+    .returning({ id: segments.id });
+  const row = inserted[0];
+  if (!row) throw new Error('E2E fixture: failed to seed transit segment.');
+
+  const queries = buildTransitEndpointQueries({
+    type: 'transit',
+    data,
+    locationName: null,
+    countryCode: values.countryCode,
+  });
+  if (!queries) throw new Error('E2E fixture: buildTransitEndpointQueries returned null.');
+
+  const ends = [
+    { query: queries.origin, seed: values.origin, name: values.fromName },
+    { query: queries.destination, seed: values.destination, name: values.toName },
+  ];
+  for (const { query, seed, name } of ends) {
+    if (seed === undefined) continue;
+    if (!query) throw new Error('E2E fixture: a seeded transit endpoint has no geocode query.');
+    const hit = seed === 'null' ? null : seed;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // 'none' is what the cache layer writes when every provider missed.
+    const fields = {
+      lat: hit?.lat ?? null,
+      lng: hit?.lng ?? null,
+      displayName: hit ? (name ?? null) : null,
+      source: hit ? 'photon-station' : 'none',
+      expiresAt,
+    };
+    await db
+      .insert(geocodeCache)
+      .values({ queryNormalized: normalizeQuery(query), ...fields })
+      .onConflictDoUpdate({
+        target: geocodeCache.queryNormalized,
+        set: { ...fields, fetchedAt: new Date() },
+      });
+  }
 
   return row.id;
 }

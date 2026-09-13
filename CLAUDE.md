@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 **Atlas** is a self-hosted personal travel companion. It manages trips, flights, hotels, activities, documents (boarding passes, reservations, tickets), and maps — all in one place. Designed for single-user / small-household use on a homelab, but built to professional standards so it remains extensible.
 
-Two map surfaces ship today: a visited-countries world choropleth at `/map`, and a per-trip map at `/trips/[id]/map` showing flight arcs plus geocoded pins for hotels, activities, and transit. Both run on a self-hosted Protomaps PMTiles basemap (ADR-0011) with non-flight locations resolved via Nominatim (ADR-0010).
+Two map surfaces ship today: a visited-countries world choropleth at `/map`, and a per-trip map at `/trips/[id]/map` showing flight arcs, station-to-station lines for train, bus, and ferry legs, and geocoded pins for hotels, activities, and transit. Both run on a self-hosted Protomaps PMTiles basemap (ADR-0011), with non-flight locations resolved through Photon, then Nominatim (ADR-0010, ADR-0018, ADR-0019).
 
 **Core principles:**
 
@@ -101,7 +101,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── trips/           # Trip repo + server actions
 │   │   ├── segments/        # Flight/hotel/activity/transit/food/note repo + actions
 │   │   ├── wishlist/        # Reusable household place list (food + activity), materialised onto trips
-│   │   ├── trip-map/        # Per-trip map data shaping (flight arcs, geocoded pins)
+│   │   ├── trip-map/        # Per-trip map data shaping (flight arcs, transit routes, geocoded pins)
 │   │   ├── geocoding/       # Photon + Nominatim clients, fallback ladder, DB cache (ADR-0010/0018)
 │   │   ├── airlines/        # Reference data — static IATA → airline-name lookup (OpenFlights snapshot)
 │   │   ├── airports/        # Reference data — static IATA → airport (coords, tz, country)
