@@ -324,12 +324,16 @@ describe('transit endpoints — train, bus and ferry (ADR-0019)', () => {
     });
   });
 
-  it('keeps a legacy from-only row on its existing key, as the origin', () => {
+  it('reads a from-only row’s plusCode as the destination, keeping its single-pin key', () => {
     const seg = makeSegment({
       type: 'transit',
+      countryCode: 'GB',
       data: { mode: 'train', fromName: 'Paddington Station', plusCode: '9C3XGV4C+VR' },
     });
-    expect(buildTransitEndpointQueries(seg)).toEqual({ origin: '9C3XGV4C+VR', destination: null });
+    expect(buildTransitEndpointQueries(seg)).toEqual({
+      origin: 'station:train:gb:Paddington Station',
+      destination: '9C3XGV4C+VR',
+    });
     expect(buildGeocodeQuery(seg)).toBe('9C3XGV4C+VR');
   });
 

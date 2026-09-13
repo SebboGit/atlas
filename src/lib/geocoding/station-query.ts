@@ -195,6 +195,17 @@ function distinctiveTokens(s: string): Set<string> {
 }
 
 /**
+ * Whether a station name has Latin-script words the name check can
+ * compare. Photon answers in English, so "東京駅" can't be checked
+ * against "Tōkyō" — such a name skips the tagged lookups and goes
+ * straight to the raw-name fallback rather than trusting whatever
+ * category-tagged hit ranks first.
+ */
+export function canCompareStationName(name: string): boolean {
+  return distinctiveTokens(name).size > 0;
+}
+
+/**
  * Does a tagged hit name exactly the station that was asked for? Its
  * distinctive words must equal the query's — containing them isn't
  * enough. A category filter happily returns the nearest bus stop with any
@@ -202,13 +213,13 @@ function distinctiveTokens(s: string): Set<string> {
  * just as wrong: "Yokohama Station" contains-matched Mutsu-Yokohama, 640
  * km away, and "Kobe Station" matched Kobe Airport. When no hit agrees
  * exactly, the raw-name fallback did as well or better in every probe.
- * A query with no comparable words (non-Latin script, or only generic
- * words) skips the check.
+ * A query with no comparable words never matches (see
+ * {@link canCompareStationName}).
  */
 export function stationNameMatches(queryName: string, hitName: string | null): boolean {
   if (hitName === null || hitName.trim() === '') return false;
   const wanted = distinctiveTokens(queryName);
-  if (wanted.size === 0) return true;
+  if (wanted.size === 0) return false;
   const got = distinctiveTokens(hitName);
   return got.size === wanted.size && [...wanted].every((t) => got.has(t));
 }

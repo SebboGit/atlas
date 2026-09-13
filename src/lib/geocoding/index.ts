@@ -61,6 +61,7 @@ export {
 export {
   encodeStationQuery,
   STATION_OSM_TAGS,
+  canCompareStationName,
   stationNameMatches,
   stationRungs,
   stripStationName,

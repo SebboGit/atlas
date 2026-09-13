@@ -47,10 +47,11 @@ first, the map line second, and the form and Directions link third.
 
 1. **Endpoint data.** `address` and `plusCode` keep meaning the
    destination; optional `fromAddress` and `fromPlusCode` hold the
-   origin's. The schema stays `.strict()`. A legacy row with a
-   `fromName`, no `toName`, no `from*` fields, and an `address` or
-   `plusCode` reads those as the origin's, because that is where the old
-   single-query fallback pinned it.
+   origin's. The schema stays `.strict()`. There is no shape-based
+   exception for old rows: a row that only names its origin still reads
+   `address` and `plusCode` as the destination, because a row can't tell
+   whether it predates the origin fields. Its single-pin cache key is
+   unchanged either way.
 2. **Modes.** Train, bus and ferry get two endpoints and a map line. Car
    and other keep their single pin, current queries and current cache
    keys. One module defines the mode set. Transit keeps a single
@@ -76,8 +77,10 @@ first, the map line second, and the form and Directions link third.
    return a clean miss. A name check folds accents, drops generic words
    such as station, hbf, bahnhof, terminal and JR, and requires the hit's
    remaining Latin words to equal the query's — containing them isn't
-   enough. It skips queries with no comparable Latin words, since Photon
-   answers with English names. The first exactly matching hit across the
+   enough. A name with no comparable Latin words (e.g. 東京駅) skips the
+   tagged lookups for the raw-name fallback, since Photon answers with
+   English names and a hit it can't check isn't trusted. The first exactly
+   matching hit across the
    rungs wins and is cached with source `photon-station`. If every tagged
    rung misses, the raw name goes to Nominatim, then Photon. Nominatim
    goes first because unfiltered Photon is the failure above.
