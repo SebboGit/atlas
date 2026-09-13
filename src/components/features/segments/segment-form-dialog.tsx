@@ -46,9 +46,12 @@ interface SegmentFormDialogProps {
   coords?: { lat: number; lng: number } | null;
 }
 
-// Types that support `data.plusCode`. Mirrors the schema set in
-// segments/validators.ts.
-const PLUS_CODE_TYPES: ReadonlySet<SegmentType> = new Set(['hotel', 'food', 'activity', 'transit']);
+// Types whose edit form prefills `data.plusCode` from the cached
+// coordinates. Transit is left out on purpose (ADR-0019): a saved code
+// outranks the station name, so prefilling it would freeze the pin on
+// whatever the geocoder picked and never let station-aware lookups
+// correct it.
+const PLUS_CODE_TYPES: ReadonlySet<SegmentType> = new Set(['hotel', 'food', 'activity']);
 
 const CREATE_TITLES: Record<SegmentType, string> = {
   flight: 'New flight',
@@ -81,13 +84,14 @@ const LOADING_GRACE_MS = 140;
 // `dateInput` union in validators.ts); strings on the row come
 // through unchanged.
 //
-// When `coords` is supplied and the segment supports `plusCode` AND
-// has no stored Plus Code, the field is prefilled with the encoded
-// form of the cached coordinates. Same value the card badge shows —
-// makes the form field agree with the badge instead of looking empty.
-// Saving without touching the prefill is intentional: the lifecycle
-// hook re-keys the cache row off the Plus Code, decode↔encode is
-// stable, and the badge stays identical across save.
+// When `coords` is supplied, the segment's type is in PLUS_CODE_TYPES
+// AND it has no stored Plus Code, the field is prefilled with the
+// encoded form of the cached coordinates. Same value the card badge
+// shows — makes the form field agree with the badge instead of looking
+// empty. For those types, saving without touching the prefill is
+// intentional: the lifecycle hook re-keys the cache row off the Plus
+// Code, decode↔encode is stable, and the badge stays identical across
+// save. Transit is excluded (see PLUS_CODE_TYPES, ADR-0019).
 function segmentToFormInput(
   segment: Segment,
   coords?: { lat: number; lng: number } | null,

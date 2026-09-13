@@ -24,7 +24,11 @@ import type {
   GeocodeCandidate,
   GeocodeResult,
   GeocodeSearcher,
+  NamedGeocodeResult,
+  OsmTag,
   ReverseGeocoder,
+  TagFilteredGeocoder,
+  TagFilterOptions,
 } from './types';
 
 const DEFAULT_BASE_URL = 'https://photon.komoot.io';
@@ -71,7 +75,9 @@ interface PhotonFeature {
   } | null;
 }
 
-export class PhotonGeocoder implements Geocoder, GeocodeSearcher, ReverseGeocoder {
+export class PhotonGeocoder
+  implements Geocoder, GeocodeSearcher, ReverseGeocoder, TagFilteredGeocoder
+{
   private readonly baseUrl: string;
   private readonly userAgent: string;
   private readonly minIntervalMs: number;
@@ -150,6 +156,74 @@ export class PhotonGeocoder implements Geocoder, GeocodeSearcher, ReverseGeocode
     }
 
     log.info({ queryHash, count: candidates.length }, 'geocoding.photon.search_ok');
+    return candidates;
+  }
+
+  /**
+   * Category-restricted forward lookup for station-aware transit
+   * endpoints (ADR-0019). Asks Photon for `include=osm.<key>.<value>`
+   * categories and, when given, a hard `countrycode` filter. Hits are
+   * re-checked locally against the requested tags, so an installation
+   * that ignores `include` degrades to a clean miss instead of a
+   * city-centre pin. Nameless hits are dropped — the caller's name
+   * guard needs a name to compare.
+   */
+  async geocodeWithTags(query: string, opts: TagFilterOptions): Promise<NamedGeocodeResult[]> {
+    const trimmed = query.trim();
+    if (trimmed.length === 0 || opts.tags.length === 0) return [];
+
+    const limit = clampSearchLimit(opts.limit);
+
+    await this.acquireSlot();
+
+    const queryHash = shortHash(trimmed);
+    const payload = await this.fetchJson(
+      this.buildUrl(trimmed, limit, opts),
+      queryHash,
+      'geocoding.photon.tagged_failed',
+    );
+    if (payload === undefined) return [];
+
+    const results: NamedGeocodeResult[] = [];
+    for (const raw of extractFeatures(payload)) {
+      if (!matchesTags(raw, opts.tags)) continue;
+      const name = str(raw.properties?.name);
+      const result = name === null ? null : featureToResult(raw);
+      if (name === null || result === null) continue;
+      results.push({ ...result, name });
+      if (results.length >= limit) break;
+    }
+
+    log.info({ queryHash, count: results.length }, 'geocoding.photon.tagged_ok');
+    return results;
+  }
+
+  /** Picker variant of {@link geocodeWithTags}: the same filters, candidate-shaped hits. */
+  async searchWithTags(query: string, opts: TagFilterOptions): Promise<GeocodeCandidate[]> {
+    const trimmed = query.trim();
+    if (trimmed.length === 0 || opts.tags.length === 0) return [];
+
+    const limit = clampSearchLimit(opts.limit);
+
+    await this.acquireSlot();
+
+    const queryHash = shortHash(trimmed);
+    const payload = await this.fetchJson(
+      this.buildUrl(trimmed, limit, opts),
+      queryHash,
+      'geocoding.photon.tagged_search_failed',
+    );
+    if (payload === undefined) return [];
+
+    const candidates: GeocodeCandidate[] = [];
+    for (const raw of extractFeatures(payload)) {
+      if (!matchesTags(raw, opts.tags) || str(raw.properties?.name) === null) continue;
+      const candidate = featureToCandidate(raw);
+      if (candidate) candidates.push(candidate);
+      if (candidates.length >= limit) break;
+    }
+
+    log.info({ queryHash, count: candidates.length }, 'geocoding.photon.tagged_search_ok');
     return candidates;
   }
 
@@ -239,7 +313,11 @@ export class PhotonGeocoder implements Geocoder, GeocodeSearcher, ReverseGeocode
     }
   }
 
-  private buildUrl(query: string, limit: number): string {
+  private buildUrl(
+    query: string,
+    limit: number,
+    filter?: Pick<TagFilterOptions, 'tags' | 'countryCode'>,
+  ): string {
     const params = new URLSearchParams({
       q: query,
       limit: String(limit),
@@ -248,6 +326,12 @@ export class PhotonGeocoder implements Geocoder, GeocodeSearcher, ReverseGeocode
       // for the normalized cache keys the render path looks rows up by.
       lang: 'en',
     });
+    if (filter) {
+      // Comma-separated categories are OR'd by Photon.
+      params.set('include', filter.tags.map((t) => `osm.${t.key}.${t.value}`).join(','));
+      const cc = filter.countryCode?.trim() ?? '';
+      if (/^[a-z]{2}$/i.test(cc)) params.set('countrycode', cc.toUpperCase());
+    }
     return `${this.baseUrl}/api/?${params.toString()}`;
   }
 }
@@ -258,6 +342,12 @@ function clampSearchLimit(requested: number | undefined): number {
   if (floored < 1) return 1;
   if (floored > MAX_SEARCH_LIMIT) return MAX_SEARCH_LIMIT;
   return floored;
+}
+
+function matchesTags(feature: PhotonFeature, tags: ReadonlyArray<OsmTag>): boolean {
+  const key = str(feature.properties?.osm_key);
+  const value = str(feature.properties?.osm_value);
+  return tags.some((t) => t.key === key && t.value === value);
 }
 
 function extractFeatures(payload: unknown): PhotonFeature[] {

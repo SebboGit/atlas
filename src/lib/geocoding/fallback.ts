@@ -24,6 +24,8 @@ export class FallbackGeocoder implements Geocoder, GeocodeSearcher {
   constructor(
     private readonly primary: Geocoder & GeocodeSearcher,
     private readonly secondary: Geocoder & GeocodeSearcher,
+    /** Names the ladder in logs when more than one is wired (ADR-0019's station fallback). */
+    private readonly ladder = 'free-text',
   ) {}
 
   async geocode(query: string): Promise<GeocodeResult | null> {
@@ -33,7 +35,10 @@ export class FallbackGeocoder implements Geocoder, GeocodeSearcher {
     // Providers log their own hit/miss with the hashed query; this
     // line only records that the ladder had to fall through, which is
     // the signal to watch if Photon's hit rate ever degrades.
-    log.info({ recovered: second !== null }, 'geocoding.fallback.secondary_used');
+    log.info(
+      { ladder: this.ladder, recovered: second !== null },
+      'geocoding.fallback.secondary_used',
+    );
     return second;
   }
 

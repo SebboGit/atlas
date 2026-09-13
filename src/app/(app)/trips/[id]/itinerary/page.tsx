@@ -65,9 +65,10 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
   const undatedSurfaced = surfaceUndatedOnItinerary(undatedSegments);
 
   // Coordinates feed the Plus Code badge on each card. Reads the
-  // geocode_cache only — never enqueues fetches; absent rows just
-  // mean no badge yet (cache miss surfaces on the trip map's "Not
-  // pinned" disclosure separately). `pendingCount` is the number of
+  // geocode_cache; absent rows just mean no badge yet (cache miss
+  // surfaces on the trip map's "Not pinned" disclosure separately).
+  // Only train / bus / ferry misses enqueue a fetch here — their keys
+  // became station keys (ADR-0019). `pendingCount` is the number of
   // geocodable segments whose cache row hasn't landed yet — the
   // poller below uses it to silently refresh until they do. Covers the
   // undated card too (a transit can be geocoded).

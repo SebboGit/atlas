@@ -25,6 +25,13 @@ interface FakeRow {
 const dbState = vi.hoisted(() => ({
   rows: [] as FakeRow[],
   pendingFilter: null as { kind: 'inArray'; keys: ReadonlySet<string> } | null,
+  enqueued: [] as string[],
+}));
+
+vi.mock('./enqueue', () => ({
+  enqueueGeocodeFetch: (query: string) => {
+    dbState.enqueued.push(query);
+  },
 }));
 
 vi.mock('drizzle-orm', async () => ({
@@ -62,6 +69,7 @@ const FUTURE = new Date('2099-01-01');
 beforeEach(() => {
   dbState.rows = [];
   dbState.pendingFilter = null;
+  dbState.enqueued = [];
 });
 
 describe('getPlaceCoordsMap', () => {
@@ -404,5 +412,80 @@ describe('getPlaceCoordsMap', () => {
     expect(result.get('food-1')).toEqual({ lat: 35.6655, lng: 139.717, city: null });
     expect(result.get('act-1')).toEqual({ lat: 35.7148, lng: 139.7967, city: null });
     expect(result.has('act-2')).toBe(false);
+  });
+});
+
+describe('getPlaceCoordsView — station keys (ADR-0019)', () => {
+  const train = {
+    id: 'train-1',
+    type: 'transit' as const,
+    data: { mode: 'train', fromName: 'Tokyo Station', toName: 'Kyoto Station' },
+    locationName: 'Tokyo → Kyoto',
+    countryCode: 'JP',
+  };
+
+  it('reads a train by its destination station key', async () => {
+    dbState.rows.push({
+      queryNormalized: 'station:train:jp:kyoto station',
+      lat: 34.9858,
+      lng: 135.7588,
+      displayName: 'Kyoto, Shimogyō',
+      source: 'photon-station',
+      fetchedAt: new Date(),
+      expiresAt: FUTURE,
+      city: 'Kyoto',
+    });
+
+    const view = await getPlaceCoordsView([train]);
+
+    expect(view.coordsById.get('train-1')).toEqual({ lat: 34.9858, lng: 135.7588, city: 'Kyoto' });
+    expect(view.pendingCount).toBe(0);
+    expect(dbState.enqueued).toEqual([]);
+  });
+
+  it('enqueues a train whose station key has no row yet', async () => {
+    const view = await getPlaceCoordsView([train]);
+
+    expect(view.pendingCount).toBe(1);
+    expect(dbState.enqueued).toEqual(['station:train:jp:Kyoto Station']);
+  });
+
+  it('does not enqueue a station key the worker already gave up on', async () => {
+    dbState.rows.push({
+      queryNormalized: 'station:train:jp:kyoto station',
+      lat: null,
+      lng: null,
+      displayName: null,
+      source: 'nominatim',
+      fetchedAt: new Date(),
+      expiresAt: FUTURE,
+    });
+
+    const view = await getPlaceCoordsView([train]);
+
+    expect(view.pendingCount).toBe(0);
+    expect(dbState.enqueued).toEqual([]);
+  });
+
+  it('keeps other types read-only on a miss', async () => {
+    const view = await getPlaceCoordsView([
+      {
+        id: 'act-pending',
+        type: 'activity',
+        data: { title: 'Brand New Place' },
+        locationName: null,
+        countryCode: null,
+      },
+      {
+        id: 'car-1',
+        type: 'transit',
+        data: { mode: 'car', toName: 'Siena' },
+        locationName: null,
+        countryCode: 'IT',
+      },
+    ]);
+
+    expect(view.pendingCount).toBe(2);
+    expect(dbState.enqueued).toEqual([]);
   });
 });

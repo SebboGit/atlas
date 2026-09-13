@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { PlaceResolver } from './place-resolver';
+import { STATION_OSM_TAGS } from './station-query';
 import type {
   Geocoder,
   GeocodeCandidate,
   GeocodeResult,
   GeocodeSearcher,
   ReverseGeocoder,
+  TagFilterOptions,
 } from './types';
 
 function deps(opts?: {
@@ -157,5 +159,160 @@ describe('PlaceResolver — search (multi-candidate)', () => {
     const resolver = new PlaceResolver({ forward, reverse: { reverse: vi.fn(async () => null) } });
 
     expect(await resolver.search('anything')).toEqual([]);
+  });
+});
+
+describe('PlaceResolver — station keys (ADR-0019)', () => {
+  const REVERSE: ReverseGeocoder = { reverse: async () => null };
+
+  function named(name: string, lat = 35.6813, lng = 139.7667) {
+    return { lat, lng, displayName: `${name}, Chiyoda`, city: 'Chiyoda', source: 'photon', name };
+  }
+
+  function stationDeps(opts: {
+    tagged?: (query: string, cc: string | null | undefined) => ReturnType<typeof named>[];
+    candidates?: (query: string, cc: string | null | undefined) => GeocodeCandidate[];
+    fallback?: GeocodeResult | null;
+  }) {
+    const geocodeWithTags = vi.fn(async (query: string, o: TagFilterOptions) =>
+      (opts.tagged ?? (() => []))(query, o.countryCode),
+    );
+    const searchWithTags = vi.fn(async (query: string, o: TagFilterOptions) =>
+      (opts.candidates ?? (() => []))(query, o.countryCode),
+    );
+    const fallbackSpy = vi.fn(async (_query: string) => opts.fallback ?? null);
+    const forwardSpy = vi.fn(async () => null);
+    const resolver = new PlaceResolver({
+      forward: { geocode: forwardSpy },
+      reverse: REVERSE,
+      stations: {
+        tagged: { geocodeWithTags, searchWithTags },
+        fallback: { geocode: fallbackSpy },
+      },
+    });
+    return { resolver, geocodeWithTags, searchWithTags, fallbackSpy, forwardSpy };
+  }
+
+  it('returns the first tagged hit whose name agrees, tagged as photon-station', async () => {
+    const { resolver, geocodeWithTags, fallbackSpy, forwardSpy } = stationDeps({
+      tagged: (query) => (query === 'Tokyo' ? [named('Tōkyō')] : []),
+    });
+
+    const result = await resolver.geocode('station:train:jp:Tokyo Station');
+
+    expect(result).toEqual({
+      lat: 35.6813,
+      lng: 139.7667,
+      displayName: 'Tōkyō, Chiyoda',
+      city: 'Chiyoda',
+      source: 'photon-station',
+    });
+    // Raw name first (miss), then the stripped name with the country.
+    expect(geocodeWithTags.mock.calls.map(([q, o]) => [q, o.countryCode])).toEqual([
+      ['Tokyo Station', 'jp'],
+      ['Tokyo', 'jp'],
+    ]);
+    expect(fallbackSpy).not.toHaveBeenCalled();
+    expect(forwardSpy).not.toHaveBeenCalled();
+  });
+
+  it('skips hits that name a different station and moves to the next rung', async () => {
+    const { resolver, geocodeWithTags } = stationDeps({
+      tagged: (query, cc) => {
+        if (query === 'Tokyo Station') return [named('Shakujii-kōen')];
+        if (cc === 'jp') return [named('Shinjuku')];
+        return [named('Tōkyō')];
+      },
+    });
+
+    const result = await resolver.geocode('station:train:jp:Tokyo Station');
+
+    expect(result?.source).toBe('photon-station');
+    expect(geocodeWithTags).toHaveBeenCalledTimes(3);
+    expect(geocodeWithTags.mock.calls[2]![1].countryCode).toBeNull();
+  });
+
+  it('passes a hit that only contains the name and takes the exact match a later rung finds', async () => {
+    const { resolver } = stationDeps({
+      tagged: (query) =>
+        query === 'Yokohama Station'
+          ? [named('Mutsu-Yokohama Station', 41.0862, 141.2496)]
+          : [named('Yokohama', 35.4658, 139.6223)],
+    });
+
+    const result = await resolver.geocode('station:train:jp:Yokohama Station');
+
+    expect(result).toMatchObject({ lat: 35.4658, lng: 139.6223, source: 'photon-station' });
+  });
+
+  it('sends each mode its own category filter', async () => {
+    const { resolver, geocodeWithTags, searchWithTags } = stationDeps({});
+
+    await resolver.geocode('station:ferry:gb:Dover Ferry Terminal');
+    await resolver.searchStation({
+      mode: 'bus',
+      countryCode: 'gb',
+      name: 'Victoria Coach Station',
+    });
+
+    expect(geocodeWithTags.mock.calls.every(([, o]) => o.tags === STATION_OSM_TAGS.ferry)).toBe(
+      true,
+    );
+    expect(searchWithTags.mock.calls.every(([, o]) => o.tags === STATION_OSM_TAGS.bus)).toBe(true);
+    expect(searchWithTags).toHaveBeenCalled();
+  });
+
+  it('hands the RAW name to the fallback when every tagged rung misses', async () => {
+    const fallbackHit: GeocodeResult = { lat: 1, lng: 2, displayName: 'Tokyo Station' };
+    const { resolver, fallbackSpy } = stationDeps({ fallback: fallbackHit });
+
+    expect(await resolver.geocode('station:train:jp:Tokyo Station')).toEqual(fallbackHit);
+    expect(fallbackSpy).toHaveBeenCalledExactlyOnceWith('Tokyo Station');
+  });
+
+  it('never sends the stripped name to the fallback', async () => {
+    const { resolver, fallbackSpy } = stationDeps({});
+    await resolver.geocode('station:ferry:gb:Dover Ferry Terminal');
+    expect(fallbackSpy.mock.calls.map(([q]) => q)).toEqual(['Dover Ferry Terminal']);
+  });
+
+  it('resolves a station key as its raw name when no station deps are wired', async () => {
+    const { resolver, forwardSpy } = deps();
+    await resolver.geocode('station:bus:-:Victoria Coach Station');
+    expect(forwardSpy).toHaveBeenCalledExactlyOnceWith('Victoria Coach Station');
+  });
+
+  it('searchStation returns only agreeing candidates from the first rung that has any', async () => {
+    const candidate = (name: string): GeocodeCandidate => ({
+      lat: 0,
+      lng: 0,
+      displayName: name,
+      name,
+      addressLabel: name,
+      osmType: 'station',
+      category: 'railway',
+      countryCode: 'JP',
+    });
+    const { resolver, searchWithTags } = stationDeps({
+      candidates: (query) =>
+        query === 'Kyoto Station'
+          ? [candidate('Torokko Arashiyama')]
+          : [candidate('Kyoto'), candidate('Nijō')],
+    });
+
+    const result = await resolver.searchStation(
+      { mode: 'train', countryCode: 'jp', name: 'Kyoto Station' },
+      { limit: 3 },
+    );
+
+    expect(result.map((c) => c.name)).toEqual(['Kyoto']);
+    expect(searchWithTags).toHaveBeenCalledTimes(2);
+  });
+
+  it('searchStation returns [] without station deps', async () => {
+    const { resolver } = deps();
+    expect(
+      await resolver.searchStation({ mode: 'train', countryCode: null, name: 'Kyoto' }),
+    ).toEqual([]);
   });
 });

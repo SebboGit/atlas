@@ -34,7 +34,9 @@ export const geocodeCache = pgTable('geocode_cache', {
   // cards (#111). NULL on negative rows and on rows written before
   // the column existed (they self-heal on the next re-geocode).
   city: text('city'),
-  // Provider identifier. 'photon' / 'nominatim' / 'plus-code' for hits, 'none' for misses (ADR-0018); the column exists
+  // Provider identifier. 'photon' / 'nominatim' / 'plus-code' for hits, 'none' for misses (ADR-0018);
+  // 'photon-station' for a category-filtered station hit, whose row key is
+  // a `station:<mode>:<cc>:<name>` query (ADR-0019). The column exists
   // so a future second provider (per ADR-0010 "when to revisit") can be
   // distinguished from cached Nominatim rows for back-fills or debugging.
   source: text('source').notNull(),

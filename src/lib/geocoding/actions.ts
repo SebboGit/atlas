@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { requireUser } from '@/lib/auth/session';
 import { countryName } from '@/lib/countries';
 import { log } from '@/lib/log';
+import { hasTransitEndpoints, transitDataSchema } from '@/lib/segments';
 
 import { getGeocoder } from './index';
 import { normalizeForGeocoder, rejoinSplitDiacritics } from './normalize-for-geocoder';
@@ -52,6 +53,8 @@ const placeSearchInput = z.object({
       return t === '' ? undefined : t.toUpperCase();
     })
     .refine((s) => s === undefined || s.length === 2, 'Choose a valid country'),
+  /** Transit mode — train / bus / ferry search stations first (ADR-0019). */
+  mode: transitDataSchema.shape.mode.optional(),
 });
 
 export type PlaceSearchInput = z.input<typeof placeSearchInput>;
@@ -74,8 +77,10 @@ export type PlaceSearchResult =
  * picker. Fires from a button, never as-you-type (public-endpoint
  * etiquette); at most THREE ladder rungs per click — name, full
  * address, truncated address — each a single `search()` that tries
- * Photon first and Nominatim only on a Photon empty, so the absolute
- * worst case is six throttled requests across the two providers.
+ * Photon first and Nominatim only on a Photon empty. Train / bus /
+ * ferry endpoints first try up to three category-filtered Photon
+ * station lookups (ADR-0019), so the absolute worst case is nine
+ * throttled requests across the two providers.
  * The primary query is the venue NAME (+ optional locationName +
  * country name); the address rungs exist for properties OSM simply
  * doesn't have (ADR-0018's coverage gap).
@@ -111,6 +116,20 @@ export async function searchPlaceCandidatesAction(raw: unknown): Promise<PlaceSe
       );
     }
     return { ok: false, reason: 'unconfigured' };
+  }
+
+  // Stations first for train / bus / ferry: an unfiltered "Kyoto Station"
+  // search offers a car park. `[]` falls through to the ordinary rungs.
+  if (parsed.data.type === 'transit' && hasTransitEndpoints(parsed.data.mode)) {
+    const stations = await geocoder.searchStation(
+      {
+        mode: parsed.data.mode,
+        countryCode: parsed.data.countryCode?.toLowerCase() ?? null,
+        name: rejoinSplitDiacritics(parsed.data.name.normalize('NFC')),
+      },
+      { limit: 3 },
+    );
+    if (stations.length > 0) return { ok: true, candidates: stations, via: 'name' };
   }
 
   // `search` is no-throw by contract; [] covers down / rate-limited /

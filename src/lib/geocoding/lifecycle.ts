@@ -24,7 +24,8 @@ import type { Segment } from '@/lib/segments';
 import { getCachedOrFetch } from './cache';
 import { enqueueGeocodeFetch, GEOCODE_FETCH_JOB, type GeocodeFetchJobData } from './enqueue';
 import { getGeocoder } from './index';
-import { buildGeocodeQuery } from './segment-query';
+import { normalizeQuery } from './normalize';
+import { buildGeocodeQueries } from './segment-query';
 
 // Re-exported for existing consumers (worker registration, health
 // checks, the barrel) — the implementation moved to ./enqueue.
@@ -35,10 +36,10 @@ export interface GeocodeOnSegmentChangeArgs {
   /** The segment row as written. */
   segment: Segment;
   /**
-   * The prior segment row, on the update path. Omit on create. When
-   * provided AND the derived geocode query is identical to the new
-   * one, the call is a no-op so an edit that didn't change a
-   * geocodable field (e.g. just a date) doesn't re-fire a fetch.
+   * The prior segment row, on the update path. Omit on create. Only
+   * queries the prior row didn't already derive are enqueued, so an
+   * edit that didn't change a geocodable field (e.g. just a date)
+   * doesn't re-fire a fetch.
    */
   prior?: Segment;
 }
@@ -50,21 +51,23 @@ export interface GeocodeOnSegmentChangeArgs {
  * provider down, no result) surface as log lines, not exceptions.
  */
 export function geocodeOnSegmentChange(args: GeocodeOnSegmentChangeArgs): void {
-  // buildGeocodeQuery output is geocoder-ready (ADR-0018): address
+  // buildGeocodeQueries output is geocoder-ready (ADR-0018): address
   // branches are noise-stripped inside it, name branches deliberately
   // are not — re-applying normalizeForGeocoder here would delete
   // tokens from number-branded venue names ("Room 39, Bangkok").
-  const nextQuery = buildGeocodeQuery(args.segment);
-  if (nextQuery === null || nextQuery === '') return;
+  // Train / bus / ferry derive one query per endpoint (ADR-0019).
+  const next = buildGeocodeQueries(args.segment);
+  if (next.length === 0) return;
 
-  if (args.prior) {
-    // An edit that didn't change the derived query (e.g. a date, or a
-    // postcode inside an address the normalizer strips) is a no-op.
-    const priorQuery = buildGeocodeQuery(args.prior);
-    if (priorQuery === nextQuery) return;
+  // An edit that didn't change a derived query (a date, a postcode the
+  // normalizer strips, a case-only rename) enqueues nothing; adding or
+  // renaming one endpoint enqueues just that endpoint.
+  const prior = new Set(
+    (args.prior ? buildGeocodeQueries(args.prior) : []).map((q) => normalizeQuery(q)),
+  );
+  for (const query of next) {
+    if (!prior.has(normalizeQuery(query))) enqueueGeocodeFetch(query);
   }
-
-  enqueueGeocodeFetch(nextQuery);
 }
 
 /**

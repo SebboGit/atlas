@@ -6,4 +6,5 @@
 // `export type { Segment }` is a TS re-export and is erased at compile
 // time — no runtime import of repo.ts happens here.
 export * from './validators';
+export * from './transit-endpoints';
 export type { Segment } from './repo';

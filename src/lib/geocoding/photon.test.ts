@@ -256,3 +256,123 @@ describe('PhotonGeocoder.search', () => {
     expect(await geocoder.search('x')).toEqual([]);
   });
 });
+
+describe('PhotonGeocoder.geocodeWithTags / searchWithTags (ADR-0019)', () => {
+  const TRAIN_TAGS = [
+    { key: 'railway', value: 'station' },
+    { key: 'building', value: 'train_station' },
+  ];
+
+  it('asks for the categories and an uppercased country filter', async () => {
+    const { fetchImpl, calls } = queuedFetch([() => jsonResponse({ features: [] })]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    await geocoder.geocodeWithTags('Tokyo', { tags: TRAIN_TAGS, countryCode: 'jp', limit: 3 });
+
+    const url = new URL(calls[0]!.url);
+    expect(url.searchParams.get('q')).toBe('Tokyo');
+    expect(url.searchParams.get('include')).toBe('osm.railway.station,osm.building.train_station');
+    expect(url.searchParams.get('countrycode')).toBe('JP');
+    expect(url.searchParams.get('limit')).toBe('3');
+  });
+
+  it('omits the country filter when there is no valid country', async () => {
+    const { fetchImpl, calls } = queuedFetch([
+      () => jsonResponse({ features: [] }),
+      () => jsonResponse({ features: [] }),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    await geocoder.geocodeWithTags('Tokyo', { tags: TRAIN_TAGS, countryCode: null });
+    await geocoder.searchWithTags('Tokyo', { tags: TRAIN_TAGS, countryCode: 'JPN' });
+
+    expect(new URL(calls[0]!.url).searchParams.has('countrycode')).toBe(false);
+    expect(new URL(calls[1]!.url).searchParams.has('countrycode')).toBe(false);
+  });
+
+  it('returns named results in the requested categories only', async () => {
+    const { fetchImpl } = queuedFetch([
+      () =>
+        jsonResponse({
+          features: [
+            // An installation that ignored `include` answers with anything.
+            feature({ name: 'Tokyo', osm_key: 'place', osm_value: 'city' }, 139.7, 35.69),
+            feature({ osm_key: 'railway', osm_value: 'station', city: 'Chiyoda' }),
+            feature(
+              { name: 'Tōkyō', osm_key: 'railway', osm_value: 'station', city: 'Chiyoda' },
+              139.7667,
+              35.6813,
+            ),
+          ],
+        }),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const results = await geocoder.geocodeWithTags('Tokyo', { tags: TRAIN_TAGS });
+
+    expect(results).toEqual([
+      {
+        lat: 35.6813,
+        lng: 139.7667,
+        displayName: 'Tōkyō, Chiyoda',
+        city: 'Chiyoda',
+        source: 'photon',
+        name: 'Tōkyō',
+      },
+    ]);
+  });
+
+  it('filters picker candidates the same way', async () => {
+    const { fetchImpl } = queuedFetch([
+      () =>
+        jsonResponse({
+          features: [
+            feature({ name: 'Kyoto Tower', osm_key: 'tourism', osm_value: 'attraction' }),
+            feature({ name: 'Kyoto', osm_key: 'building', osm_value: 'train_station' }),
+          ],
+        }),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    const candidates = await geocoder.searchWithTags('Kyoto', { tags: TRAIN_TAGS });
+
+    expect(candidates.map((c) => c.name)).toEqual(['Kyoto']);
+    expect(candidates[0]!.osmType).toBe('train_station');
+  });
+
+  it('returns [] on HTTP error, invalid JSON, an empty query or no tags', async () => {
+    const { fetchImpl, calls } = queuedFetch([
+      () => new Response('boom', { status: 500 }),
+      () => new Response('not json', { status: 200 }),
+    ]);
+    const geocoder = makeGeocoder({ fetchImpl });
+
+    expect(await geocoder.geocodeWithTags('Tokyo', { tags: TRAIN_TAGS })).toEqual([]);
+    expect(await geocoder.searchWithTags('Tokyo', { tags: TRAIN_TAGS })).toEqual([]);
+    expect(await geocoder.geocodeWithTags('  ', { tags: TRAIN_TAGS })).toEqual([]);
+    expect(await geocoder.geocodeWithTags('Tokyo', { tags: [] })).toEqual([]);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('waits for a throttle slot like every other Photon call', async () => {
+    const sleeps: number[] = [];
+    const { fetchImpl } = queuedFetch([
+      () => jsonResponse({ features: [] }),
+      () => jsonResponse({ features: [] }),
+    ]);
+    const geocoder = new PhotonGeocoder({
+      userAgent: USER_AGENT,
+      fetchImpl,
+      minIntervalMs: 1000,
+      now: () => 0,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    await geocoder.geocodeWithTags('Tokyo', { tags: TRAIN_TAGS });
+    await geocoder.searchWithTags('Kyoto', { tags: TRAIN_TAGS });
+
+    expect(sleeps).toEqual([1000]);
+  });
+});

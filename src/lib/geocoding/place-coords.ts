@@ -13,7 +13,7 @@ import { getCachedMany } from './cache';
 import { enqueueGeocodeFetch } from './enqueue';
 import { normalizeQuery } from './normalize';
 import { decodePlusCode, tryParsePlusCode } from './plus-code';
-import { buildGeocodeQuery, type PlaceLike } from './segment-query';
+import { buildGeocodeQuery, buildTransitEndpointQueries, type PlaceLike } from './segment-query';
 
 /** Coordinates + coarse locality for one resolved place. `city` is
  * null when the cache row predates the column or the provider carried
@@ -66,7 +66,13 @@ export async function getPlaceCoordsView(
   places: ReadonlyArray<PlaceLike & { id: string }>,
 ): Promise<PlaceCoordsView> {
   const coordsById = new Map<string, PlaceCoords>();
-  const queries: { id: string; key: string }[] = [];
+  // `fetchOnMiss`: train / bus / ferry rows enqueue their own misses
+  // (ADR-0019). Their name-only keys moved to station keys, so an existing
+  // row would otherwise lose its badge until someone opened the trip map;
+  // a Plus Code or address endpoint on the same modes is treated the same
+  // way for simplicity. Other types keep the read-only behaviour — a miss
+  // there means the lifecycle hook's job is still running.
+  const queries: { id: string; key: string; fetchOnMiss: boolean }[] = [];
   // Full Plus Codes decoded offline this render — their cache row (the
   // background reverse-geocode) may still supply the city line below.
   const offlineDecoded = new Set<string>();
@@ -91,13 +97,13 @@ export async function getPlaceCoordsView(
     }
     const key = raw;
     if (key === '') continue;
-    queries.push({ id: place.id, key });
+    queries.push({ id: place.id, key, fetchOnMiss: buildTransitEndpointQueries(place) !== null });
   }
   if (queries.length === 0) return { coordsById, pendingCount: 0 };
 
   const cache = await getCachedMany(queries.map((q) => q.key));
   let pendingCount = 0;
-  for (const { id, key } of queries) {
+  for (const { id, key, fetchOnMiss } of queries) {
     const cached = cache.get(normalizeQuery(key));
     if (cached?.kind === 'hit') {
       // City backfill: rows fetched before the current locality rules
@@ -131,13 +137,18 @@ export async function getPlaceCoordsView(
       // navigated away and back. Count it so the poller surfaces it.
       // A `kind === 'null'` row still falls through: the worker ran and
       // found nothing, so refreshing would change nothing.
-      if (cached?.kind === 'miss' || cached === undefined) pendingCount += 1;
+      if (cached?.kind === 'miss' || cached === undefined) {
+        pendingCount += 1;
+        if (fetchOnMiss) enqueueGeocodeFetch(key);
+      }
       continue;
     }
     if (cached?.kind === 'miss' || cached === undefined) {
       // No cache row at all — the worker hasn't fired yet (just-saved
       // segment) or hasn't completed (in-flight job). Worth polling.
       pendingCount += 1;
+      // Singleton-keyed, so repeated renders coalesce into one job.
+      if (fetchOnMiss) enqueueGeocodeFetch(key);
     }
     // `kind === 'null'` falls through silently: the row exists and
     // says "no result", so a refresh wouldn't change anything until
