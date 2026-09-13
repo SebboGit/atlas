@@ -19,7 +19,14 @@ vi.mock('@/lib/auth/session', () => ({
 // action's call site expects at runtime; the action only ever calls
 // `search`).
 const search = vi.fn<(query: string, opts?: { limit?: number }) => Promise<GeocodeCandidate[]>>();
-const getGeocoder = vi.fn(() => ({ search, geocode: vi.fn() }));
+const searchStation =
+  vi.fn<
+    (
+      q: { mode: string; countryCode: string | null; name: string },
+      opts?: { limit?: number },
+    ) => Promise<GeocodeCandidate[]>
+  >();
+const getGeocoder = vi.fn(() => ({ search, searchStation, geocode: vi.fn() }));
 vi.mock('./index', () => ({
   getGeocoder: () => getGeocoder(),
 }));
@@ -44,8 +51,9 @@ function candidate(over: Partial<GeocodeCandidate> = {}): GeocodeCandidate {
 beforeEach(() => {
   vi.clearAllMocks();
   requireUser.mockResolvedValue({ id: 'user-1' });
-  getGeocoder.mockReturnValue({ search, geocode: vi.fn() });
+  getGeocoder.mockReturnValue({ search, searchStation, geocode: vi.fn() });
   search.mockResolvedValue([candidate()]);
+  searchStation.mockResolvedValue([]);
 });
 
 describe('searchPlaceCandidatesAction — query composition', () => {
@@ -232,5 +240,56 @@ describe('address fallback — head+tail truncation for long addresses', () => {
 
     expect(result).toEqual({ ok: true, candidates: [], via: 'address' });
     expect(search).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('station-first search for train, bus and ferry (ADR-0019)', () => {
+  const station = candidate({ name: 'Kyoto', osmType: 'station', category: 'railway' });
+
+  it('asks for stations with the mode, lowercased country and raw name', async () => {
+    searchStation.mockResolvedValueOnce([station]);
+
+    const result = await searchPlaceCandidatesAction({
+      type: 'transit',
+      mode: 'train',
+      name: 'Kyoto Station',
+      locationName: 'Tokyo → Kyoto',
+      countryCode: 'JP',
+    });
+
+    expect(searchStation).toHaveBeenCalledExactlyOnceWith(
+      { mode: 'train', countryCode: 'jp', name: 'Kyoto Station' },
+      { limit: 3 },
+    );
+    expect(search).not.toHaveBeenCalled();
+    expect(result).toEqual({ ok: true, candidates: [station], via: 'name' });
+  });
+
+  it('falls through to the ordinary name search when no station agrees', async () => {
+    await searchPlaceCandidatesAction({ type: 'transit', mode: 'ferry', name: 'Pudeto' });
+
+    expect(searchStation).toHaveBeenCalledOnce();
+    expect(search).toHaveBeenCalledExactlyOnceWith('Pudeto', { limit: 3 });
+  });
+
+  it('never searches stations for car, other, a missing mode or non-transit types', async () => {
+    await searchPlaceCandidatesAction({ type: 'transit', mode: 'car', name: 'Siena' });
+    await searchPlaceCandidatesAction({ type: 'transit', mode: 'other', name: 'Siena' });
+    await searchPlaceCandidatesAction({ type: 'transit', name: 'Siena' });
+    await searchPlaceCandidatesAction({ type: 'hotel', mode: 'train', name: 'Park Hyatt' });
+
+    expect(searchStation).not.toHaveBeenCalled();
+    expect(search).toHaveBeenCalledTimes(4);
+  });
+
+  it('rejects an unknown mode without calling the geocoder', async () => {
+    const result = await searchPlaceCandidatesAction({
+      type: 'transit',
+      mode: 'rocket',
+      name: 'Kyoto Station',
+    });
+
+    expect(result).toEqual({ ok: false, reason: 'invalid' });
+    expect(getGeocoder).not.toHaveBeenCalled();
   });
 });

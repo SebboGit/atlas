@@ -33,8 +33,9 @@ guarantees below weaken accordingly.
   identity that signs in becomes a full household account.
 - **Extraction, geocoding cache, and tile serving run on the operator's own
   hardware.** Document content never leaves the host for the LLM; the one
-  exception is geocoding, which sends address fields to the public Nominatim
-  endpoint unless a self-hosted instance is configured.
+  exception is geocoding, which sends place names and addresses to the public
+  Photon endpoint, with public Nominatim as the fallback, unless self-hosted
+  instances are configured.
 
 ## Threats considered, and what answers them
 
@@ -48,7 +49,7 @@ guarantees below weaken accordingly.
   Stored files are write-once.
 - **Path traversal and SSRF** — storage keys resolve only under `STORAGE_DIR`,
   the tile route is constrained to `TILES_DIR`, and outbound calls go only to
-  the configured Nominatim, Ollama, and tile endpoints.
+  the configured Photon, Nominatim, Ollama, and tile endpoints.
 - **Session theft and revocation** — sessions are database-backed (not JWTs)
   so they can be revoked; mutations run through Next.js server actions, which
   are CSRF-protected by default.
@@ -76,9 +77,15 @@ guarantees below weaken accordingly.
 
 - Anyone who can authenticate through the configured PocketID instance gains
   full household access. Gate this with PocketID's client group restriction.
-- Geocoding a hotel, activity, or transit address sends those address fields
-  to the public Nominatim endpoint. It is the one place structured location
-  data leaves the host; run a self-hosted Nominatim to close it.
+- Geocoding sends each hotel, food, activity, and transit query to the public
+  Photon endpoint, and to public Nominatim when Photon finds nothing
+  (ADR-0018). A query is a venue or station name with its place or country
+  context, or an address; Plus Code pins also send their decoded coordinates
+  for a display name. Train, bus, and ferry legs send both station names, and
+  Photon also receives a category filter and the segment's ISO country code;
+  the pin lookup sends Nominatim only the plain station name (ADR-0019). This is the
+  one place structured location data leaves the host; point `PHOTON_URL` and
+  `NOMINATIM_URL` at self-hosted instances to close it.
 - Push notifications (planned) must keep PNRs, passport numbers, and document
   contents out of their bodies — this is a design constraint, not yet enforced
   by code.

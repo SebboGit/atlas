@@ -12,7 +12,7 @@
 // manual country marks are wiped and rebuilt every time.
 //
 // New features should extend `HERO_SEGMENTS`, `WISHLIST_ITEMS`, or
-// `UNGEOCODED_CACHE_NULLS` here so the dataset stays a useful smoke
+// `pin: null` edge cases here so the dataset stays a useful smoke
 // target for worktree testing. Keep it minimal — one sample per
 // feature shape, not a stress test.
 
@@ -37,6 +37,7 @@ import {
 import { ISO_COUNTRIES } from '../../src/lib/countries/data';
 import { normalizeQuery } from '../../src/lib/geocoding/normalize';
 import { buildGeocodeQuery } from '../../src/lib/geocoding/segment-query';
+import { tryParseStationQuery } from '../../src/lib/geocoding/station-query';
 
 export const FIXTURE_SUB = 'screenshot-fixture-user';
 export const FIXTURE_EMAIL = 'screenshot@atlas.local';
@@ -98,10 +99,12 @@ const VISITED_COUNTRIES = [
 // Each entry is a segment plus, for non-flight segments, the coordinates
 // the geocode cache should resolve its query to. Flights are placed from
 // the committed IATA airport snapshot, so they need no pin coords here.
-// Segments without a `pin` AND without a matching cache row in
-// `UNGEOCODED_CACHE_NULLS` would fall through to a live Nominatim call;
-// that's intentional only for new edge cases — anything we want pinned
-// on the demo map needs a `pin` here.
+// Every geocodable segment needs a `pin` — or `pin: null` for a
+// deliberately-ungeocoded edge case, which seeds a negative cache row.
+// Seeding throws on a geocodable segment with neither, so a seeded
+// worktree renders without live geocoder calls. (A pin without a `city`
+// still gets one background city re-resolve once its row ages — see
+// place-coords.)
 type HeroSegment = {
   type: 'flight' | 'hotel' | 'activity' | 'transit' | 'food' | 'note';
   data: Record<string, unknown>;
@@ -117,8 +120,11 @@ type HeroSegment = {
   // the create action that normally computes it from the trip's ±2 day
   // window (ADR-0008). Defaults to false in the insert mapping.
   needsReview?: boolean;
-  /** Lat/lng the geocode cache should return for this segment's query. */
-  pin?: { lat: number; lng: number; city?: string };
+  /**
+   * Lat/lng the geocode cache should return for this segment's query.
+   * `null` seeds a negative row (the geocoder "found nothing").
+   */
+  pin?: { lat: number; lng: number; city?: string } | null;
 };
 
 const HERO_SEGMENTS: HeroSegment[] = [
@@ -176,14 +182,15 @@ const HERO_SEGMENTS: HeroSegment[] = [
     pin: { lat: 35.6499, lng: 139.7906, city: 'Kōtō' },
   },
   // Ungeocoded edge case: an activity at a friend's place with no
-  // public address. Its geocode query nulls in the cache (see
-  // UNGEOCODED_CACHE_NULLS), so it surfaces in the trip map's
-  // "Not pinned" chip without making a live Nominatim call.
+  // public address. Its geocode query nulls in the cache (`pin: null`),
+  // so it surfaces in the trip map's "Not pinned" chip without making a
+  // live geocoder call.
   {
     type: 'activity',
     data: { title: "Friend's place — drinks" },
     startsAt: d(2025, 10, 6, 19),
     countryCode: 'JP',
+    pin: null,
   },
   // Timed food reservation — exercises the Food tab's date+time card and
   // the reschedule affordance (a dated meal alongside the undated "Den"
@@ -258,6 +265,7 @@ const HERO_SEGMENTS: HeroSegment[] = [
     startsAt: d(2025, 10, 9),
     endsAt: d(2025, 10, 10),
     countryCode: 'JP',
+    pin: null,
   },
   {
     type: 'activity',
@@ -409,6 +417,7 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     data: { title: "Ranger's cabin — gear swap" },
     startsAt: relDay(0, 18),
     countryCode: 'CL',
+    pin: null,
   },
   {
     // Future — a preview day, rendered but past the today anchor.
@@ -463,23 +472,6 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     countryCode: 'CL',
     pin: { lat: -33.4372, lng: -70.6394 },
   },
-];
-
-// Negative geocode-cache rows so the deliberately-ungeocoded segments
-// above never hit Nominatim during fixture rendering. Queries here must
-// match what `buildGeocodeQuery` would produce for the segment above,
-// pre-normalisation. Keep this list aligned with the no-pin entries in
-// HERO_SEGMENTS and PATAGONIA_SEGMENTS.
-const UNGEOCODED_CACHE_NULLS: string[] = [
-  // Activity "Friend's place — drinks" — no locationName, so the query
-  // is the title alone.
-  "Friend's place — drinks",
-  // Hotel "Guest house — TBC" — no address, so the query is the
-  // property name alone.
-  'Guest house — TBC',
-  // Patagonia activity "Ranger's cabin — gear swap" — no locationName,
-  // so the query is the title alone.
-  "Ranger's cabin — gear swap",
 ];
 
 // Wishlist items — the household's reusable place list. A few JP food
@@ -634,6 +626,35 @@ function queryForHeroSegment(seg: HeroSegment): string | null {
     locationName: seg.locationName ?? null,
     countryCode: seg.countryCode ?? null,
   });
+}
+
+export interface FixtureGeocodeSeed {
+  /** Geocoder-ready query, pre-normalisation. */
+  query: string;
+  pin: { lat: number; lng: number; city?: string } | null;
+}
+
+/**
+ * The geocode-cache rows the fixture seeds for its segments — one per
+ * geocodable segment, keyed through the production query builder so a
+ * seeded worktree renders without live geocoder calls. Throws when a
+ * geocodable segment declares neither a pin nor `pin: null`: a missing
+ * seed would silently hit the public geocoders on first render.
+ * Exported so the seed can be checked without a database.
+ */
+export function fixtureGeocodeSeeds(): FixtureGeocodeSeed[] {
+  const seeds: FixtureGeocodeSeed[] = [];
+  for (const seg of [...HERO_SEGMENTS, ...PATAGONIA_SEGMENTS]) {
+    const query = queryForHeroSegment(seg);
+    if (!query) continue;
+    if (seg.pin === undefined) {
+      throw new Error(
+        `Fixture ${seg.type} segment derives geocode query "${query}" but has no pin — add one, or pin: null for an ungeocoded edge case.`,
+      );
+    }
+    seeds.push({ query, pin: seg.pin });
+  }
+  return seeds;
 }
 
 export interface FixturePayload {
@@ -814,46 +835,32 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
   //    up means a manual prune on a worktree behaves as documented.
   const positiveExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
   const nullExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  for (const seg of [...HERO_SEGMENTS, ...PATAGONIA_SEGMENTS]) {
-    if (!seg.pin) continue;
-    const query = queryForHeroSegment(seg);
-    if (!query) continue;
+  for (const { query, pin } of fixtureGeocodeSeeds()) {
+    // Station keys (ADR-0019) carry the typed name — show that, not the
+    // key, wherever the row's display name surfaces.
+    const station = tryParseStationQuery(query);
+    const displayName = pin ? (station?.name ?? query) : null;
+    const expiresAt = pin ? positiveExpiresAt : nullExpiresAt;
     await db
       .insert(geocodeCache)
       .values({
         queryNormalized: normalizeQuery(query),
-        lat: seg.pin.lat,
-        lng: seg.pin.lng,
-        displayName: query,
-        city: seg.pin.city ?? null,
-        source: 'nominatim',
-        expiresAt: positiveExpiresAt,
+        lat: pin?.lat ?? null,
+        lng: pin?.lng ?? null,
+        displayName,
+        city: pin?.city ?? null,
+        source: pin && station ? 'photon-station' : 'nominatim',
+        expiresAt,
       })
       .onConflictDoUpdate({
         target: geocodeCache.queryNormalized,
         set: {
-          lat: seg.pin.lat,
-          lng: seg.pin.lng,
-          displayName: query,
-          city: seg.pin.city ?? null,
-          expiresAt: positiveExpiresAt,
+          lat: pin?.lat ?? null,
+          lng: pin?.lng ?? null,
+          displayName,
+          city: pin?.city ?? null,
+          expiresAt,
         },
-      });
-  }
-  for (const nullQuery of UNGEOCODED_CACHE_NULLS) {
-    await db
-      .insert(geocodeCache)
-      .values({
-        queryNormalized: normalizeQuery(nullQuery),
-        lat: null,
-        lng: null,
-        displayName: null,
-        source: 'nominatim',
-        expiresAt: nullExpiresAt,
-      })
-      .onConflictDoUpdate({
-        target: geocodeCache.queryNormalized,
-        set: { lat: null, lng: null, displayName: null, expiresAt: nullExpiresAt },
       });
   }
 

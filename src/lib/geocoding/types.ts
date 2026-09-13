@@ -3,6 +3,8 @@
 // Nominatim; see ADR-0010). Feature code imports from `@/lib/geocoding`
 // only, never from an implementation file.
 
+import type { TransitEndpointMode } from '@/lib/segments/transit-endpoints';
+
 /**
  * A successful geocode. Coordinates are decimal degrees in WGS84
  * (the same datum MapLibre + the segment country attribution use,
@@ -125,4 +127,53 @@ export interface GeocodeSearcher {
  */
 export interface ReverseGeocoder {
   reverse(lat: number, lng: number): Promise<{ displayName: string; city: string | null } | null>;
+}
+
+/** One OSM main tag, e.g. `{ key: 'railway', value: 'station' }`. */
+export interface OsmTag {
+  key: string;
+  value: string;
+}
+
+export interface TagFilterOptions {
+  /** OR-set of categories a hit must belong to. */
+  tags: ReadonlyArray<OsmTag>;
+  /** ISO 3166-1 alpha-2 hard filter; null / absent searches worldwide. */
+  countryCode?: string | null;
+  limit?: number;
+}
+
+/** A forward result that also carries the provider's short place name,
+ * so a caller can check the hit is the place it asked for. */
+export interface NamedGeocodeResult extends GeocodeResult {
+  name: string;
+}
+
+/**
+ * Category-restricted lookups (ADR-0019). Photon only — Nominatim has no
+ * tag filter. The method names are deliberately distinct from
+ * `geocode` / `search`: structural typing would otherwise let any
+ * `Geocoder` satisfy an options overload and quietly receive a stripped
+ * station name with the filter dropped.
+ */
+export interface TagFilteredGeocoder {
+  geocodeWithTags(query: string, opts: TagFilterOptions): Promise<NamedGeocodeResult[]>;
+  searchWithTags(query: string, opts: TagFilterOptions): Promise<GeocodeCandidate[]>;
+}
+
+/**
+ * A transit endpoint looked up as a station of a given mode. `name` is
+ * the raw cleaned name as typed; suffix stripping happens at resolve
+ * time (see station-query.ts).
+ */
+export interface StationQuery {
+  mode: TransitEndpointMode;
+  /** Lowercase ISO 3166-1 alpha-2, or null when the segment has none. */
+  countryCode: string | null;
+  name: string;
+}
+
+/** Station candidates for the interactive picker. Same no-throw contract as {@link GeocodeSearcher}. */
+export interface StationSearcher {
+  searchStation(q: StationQuery, opts?: { limit?: number }): Promise<GeocodeCandidate[]>;
 }

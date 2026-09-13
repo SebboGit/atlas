@@ -104,6 +104,9 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
         : undefined;
     const countryCode =
       typeof countryRaw === 'string' && countryRaw.trim() !== '' ? countryRaw.trim() : undefined;
+    // Train / bus / ferry search stations first (ADR-0019).
+    const modeRaw = type === 'transit' ? (form.getValues('data.mode' as never) as unknown) : null;
+    const mode = typeof modeRaw === 'string' && modeRaw !== '' ? modeRaw : undefined;
 
     startTransition(async () => {
       const result: PlaceSearchResult = await searchPlaceCandidatesAction({
@@ -111,6 +114,7 @@ export function PlaceFinder({ form, type }: PlaceFinderProps) {
         name,
         ...(locationName ? { locationName } : {}),
         ...(countryCode ? { countryCode } : {}),
+        ...(mode ? { mode } : {}),
         // Fallback rung only — the server searches the name first and
         // reaches for the address when the name finds nothing.
         ...(address ? { address } : {}),

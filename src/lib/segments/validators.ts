@@ -176,6 +176,12 @@ const activityData = z
 // Transit endpoints are often stations rather than addresses, but a
 // precise pin via `plusCode` or a street `address` is still useful for
 // the long tail (obscure ferry terminals, bus stops by street).
+//
+// `address` / `plusCode` locate the DESTINATION; `fromAddress` /
+// `fromPlusCode` locate the origin (ADR-0019). The from* pair is
+// accepted for every mode so a mode switch in the form never fails
+// validation, but only train / bus / ferry geocode it — see
+// `transit-endpoints.ts`.
 const transitData = z
   .object({
     mode: z.enum(['train', 'bus', 'ferry', 'car', 'other']),
@@ -184,6 +190,8 @@ const transitData = z
     toName: z.string().trim().max(200).optional(),
     address: z.string().trim().max(500).optional(),
     plusCode,
+    fromAddress: z.string().trim().max(500).optional(),
+    fromPlusCode: plusCode,
     referenceNumber: z.string().trim().max(50).optional(),
   })
   .strict();

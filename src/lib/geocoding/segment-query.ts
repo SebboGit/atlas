@@ -13,7 +13,9 @@
 //
 //   hotel    → plusCode → propertyName (+ context) → address
 //   activity → plusCode → address → title (+ context)
-//   transit  → plusCode → address → toName → fromName
+//   transit  → train / bus / ferry: per endpoint, plusCode → address →
+//              station key (ADR-0019); car / other: plusCode → address →
+//              toName → fromName
 //   food     → plusCode → venue (+ context) → address
 //
 // **Why plusCode wins.** Plus Codes resolve to coordinates offline
@@ -48,12 +50,19 @@ import { countryName } from '@/lib/countries';
 import {
   activityDataSchema,
   foodDataSchema,
+  hasTransitEndpoints,
   hotelDataSchema,
+  resolveTransitEndpoints,
   transitDataSchema,
   type SegmentType,
+  type TransitEndpoint,
+  type TransitEndpointMode,
 } from '@/lib/segments';
 
+import { normalizeQuery } from './normalize';
 import { normalizeForGeocoder, rejoinSplitDiacritics } from './normalize-for-geocoder';
+import { tryParsePlusCode } from './plus-code';
+import { encodeStationQuery } from './station-query';
 
 // The cleanup half of `normalizeForGeocoder` without the address-noise
 // stripping — for strings whose tokens are the search target itself.
@@ -147,6 +156,12 @@ export function buildGeocodeQuery(segment: PlaceLike): string | null {
     }
 
     case 'transit': {
+      // Train / bus / ferry: the single-point consumers (card badge,
+      // stats, edit prefill) get the destination, else the origin.
+      const endpoints = buildTransitEndpointQueries(segment);
+      if (endpoints) return endpoints.destination ?? endpoints.origin;
+      // car / other: the pre-ADR-0019 chain, byte-for-byte, so their
+      // cache keys and pins don't move.
       const parsed = transitDataSchema.safeParse(segment.data);
       if (!parsed.success) return null;
       const plus = parsed.data.plusCode?.trim();
@@ -184,4 +199,66 @@ export function buildGeocodeQuery(segment: PlaceLike): string | null {
     case 'note':
       return null;
   }
+}
+
+export interface TransitEndpointQueries {
+  origin: string | null;
+  destination: string | null;
+}
+
+/**
+ * Per-endpoint geocoder queries for a train / bus / ferry segment
+ * (ADR-0019), or null for anything else — other segment types, car /
+ * other transit, malformed data. Each endpoint resolves plusCode →
+ * address → a station key built from its name and the segment's
+ * country. The country rides as an ISO code, never `locationName`:
+ * on transit that label is route-shaped ("Tokyo → Kyoto").
+ */
+export function buildTransitEndpointQueries(place: PlaceLike): TransitEndpointQueries | null {
+  if (place.type !== 'transit') return null;
+  const parsed = transitDataSchema.safeParse(place.data);
+  if (!parsed.success || !hasTransitEndpoints(parsed.data.mode)) return null;
+  const { origin, destination } = resolveTransitEndpoints(parsed.data);
+  return {
+    origin: endpointQuery(origin, parsed.data.mode, place),
+    destination: endpointQuery(destination, parsed.data.mode, place),
+  };
+}
+
+function endpointQuery(
+  endpoint: TransitEndpoint,
+  mode: TransitEndpointMode,
+  place: PlaceLike,
+): string | null {
+  if (endpoint.plusCode) return cleanNameQuery(endpoint.plusCode);
+  if (endpoint.address) {
+    const address = normalizeForGeocoder(endpoint.address);
+    // An address the stripper empties out falls through to the name.
+    if (address !== '') return address;
+  }
+  if (!endpoint.name) return null;
+  const name = cleanNameQuery(endpoint.name);
+  // A Plus Code typed into From / To keeps winning, as it always has.
+  if (tryParsePlusCode(name) !== null) return name;
+  return encodeStationQuery({ mode, countryCode: place.countryCode, name });
+}
+
+/**
+ * Every geocoder query a place needs — both endpoints for train / bus /
+ * ferry, the single query otherwise — deduped by cache key, so a leg
+ * that starts and ends at the same station enqueues one fetch.
+ */
+export function buildGeocodeQueries(place: PlaceLike): string[] {
+  const endpoints = buildTransitEndpointQueries(place);
+  const all = endpoints ? [endpoints.destination, endpoints.origin] : [buildGeocodeQuery(place)];
+  const seen = new Set<string>();
+  const queries: string[] = [];
+  for (const query of all) {
+    if (!query) continue;
+    const key = normalizeQuery(query);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    queries.push(query);
+  }
+  return queries;
 }

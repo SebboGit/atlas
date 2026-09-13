@@ -351,6 +351,46 @@ describe('segmentCreateInput — Plus Code field', () => {
   });
 });
 
+describe('segmentCreateInput — transit origin location (ADR-0019)', () => {
+  it('accepts fromAddress and fromPlusCode on a train', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'transit',
+      data: {
+        mode: 'train',
+        fromName: 'Tokyo Station',
+        toName: 'Kyoto Station',
+        fromAddress: '1-9-1 Marunouchi, Chiyoda',
+        fromPlusCode: '8Q7XMQJ8+FV',
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts the origin fields on a car too — a mode switch must not fail validation', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'transit',
+      data: { mode: 'car', fromName: 'Florence', fromAddress: 'Piazza della Stazione' },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a bare local fromPlusCode, same as the destination field', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'transit',
+      data: { mode: 'train', fromName: 'Tokyo Station', fromPlusCode: 'MP7J+CV' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('still rejects unknown keys on transit data', () => {
+    const result = segmentCreateInput.safeParse({
+      type: 'transit',
+      data: { mode: 'train', toName: 'Kyoto Station', fromLat: 35.68 },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe('segmentCreateInput — hotel check-in / check-out times', () => {
   const HOTEL_BASE = { type: 'hotel' as const, data: { propertyName: 'Hotel Sakura' } };
 

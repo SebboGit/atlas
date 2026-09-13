@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { Segment } from '@/lib/segments';
 
-import { buildGeocodeQuery } from './segment-query';
+import {
+  buildGeocodeQueries,
+  buildGeocodeQuery,
+  buildTransitEndpointQueries,
+} from './segment-query';
 
 function makeSegment(overrides: Partial<Segment>): Segment {
   return {
@@ -222,30 +226,148 @@ describe('buildGeocodeQuery — food', () => {
   });
 });
 
-describe('buildGeocodeQuery — transit', () => {
+describe('buildGeocodeQuery — transit, car and other (unchanged chain)', () => {
   it('uses destination (toName) as the pin location', () => {
     const q = buildGeocodeQuery(
       makeSegment({
         type: 'transit',
-        data: { mode: 'train', fromName: 'Paddington Station', toName: 'Heathrow T5' },
+        data: { mode: 'car', fromName: 'Florence', toName: 'Siena' },
       }),
     );
-    expect(q).toBe('Heathrow T5');
+    expect(q).toBe('Siena');
   });
 
   it('falls back to fromName when toName is missing', () => {
     const q = buildGeocodeQuery(
       makeSegment({
         type: 'transit',
-        data: { mode: 'train', fromName: 'Paddington Station' },
+        data: { mode: 'other', fromName: 'Paddington Station' },
       }),
     );
     expect(q).toBe('Paddington Station');
   });
 
+  it('keeps address and plusCode ahead of the names, and ignores from* fields', () => {
+    const withAddress = makeSegment({
+      type: 'transit',
+      countryCode: 'IT',
+      data: { mode: 'car', toName: 'Siena', address: 'Piazza del Campo', fromAddress: 'Via Roma' },
+    });
+    const withPlus = makeSegment({
+      type: 'transit',
+      data: { mode: 'car', toName: 'Siena', plusCode: '8FMGP2RG+2V', fromPlusCode: '8FHJVHXG+9C' },
+    });
+    expect(buildGeocodeQuery(withAddress)).toBe('Piazza del Campo');
+    expect(buildGeocodeQuery(withPlus)).toBe('8FMGP2RG+2V');
+    expect(buildTransitEndpointQueries(withAddress)).toBeNull();
+    expect(buildGeocodeQueries(withPlus)).toEqual(['8FMGP2RG+2V']);
+  });
+
   it('returns null when neither toName nor fromName is set', () => {
-    const q = buildGeocodeQuery(makeSegment({ type: 'transit', data: { mode: 'bus' } }));
+    const q = buildGeocodeQuery(makeSegment({ type: 'transit', data: { mode: 'car' } }));
     expect(q).toBeNull();
+  });
+});
+
+describe('transit endpoints — train, bus and ferry (ADR-0019)', () => {
+  it('builds a station key per endpoint with the ISO country, never locationName', () => {
+    const seg = makeSegment({
+      type: 'transit',
+      countryCode: 'JP',
+      locationName: 'Tokyo → Kyoto',
+      data: { mode: 'train', fromName: 'Tokyo Station', toName: 'Kyoto Station' },
+    });
+    expect(buildTransitEndpointQueries(seg)).toEqual({
+      origin: 'station:train:jp:Tokyo Station',
+      destination: 'station:train:jp:Kyoto Station',
+    });
+    expect(buildGeocodeQuery(seg)).toBe('station:train:jp:Kyoto Station');
+    expect(buildGeocodeQueries(seg)).toEqual([
+      'station:train:jp:Kyoto Station',
+      'station:train:jp:Tokyo Station',
+    ]);
+  });
+
+  it("writes '-' for a missing or unusable country", () => {
+    const seg = makeSegment({
+      type: 'transit',
+      countryCode: null,
+      data: { mode: 'bus', toName: 'Victoria Coach Station' },
+    });
+    expect(buildGeocodeQuery(seg)).toBe('station:bus:-:Victoria Coach Station');
+  });
+
+  it('falls back to the origin for single-point consumers when there is no destination', () => {
+    const seg = makeSegment({
+      type: 'transit',
+      countryCode: 'GB',
+      data: { mode: 'train', fromName: 'Paddington Station' },
+    });
+    expect(buildGeocodeQuery(seg)).toBe('station:train:gb:Paddington Station');
+  });
+
+  it('prefers each endpoint’s own plusCode, then address, over its name', () => {
+    const seg = makeSegment({
+      type: 'transit',
+      countryCode: 'CL',
+      data: {
+        mode: 'ferry',
+        fromName: 'Pudeto',
+        toName: 'Paine Grande',
+        fromPlusCode: '47Q3WVX9+GH',
+        address: 'Refugio Paine Grande, Torres del Paine',
+      },
+    });
+    expect(buildTransitEndpointQueries(seg)).toEqual({
+      origin: '47Q3WVX9+GH',
+      destination: 'Refugio Paine Grande, Torres del Paine',
+    });
+  });
+
+  it('keeps a legacy from-only row on its existing key, as the origin', () => {
+    const seg = makeSegment({
+      type: 'transit',
+      data: { mode: 'train', fromName: 'Paddington Station', plusCode: '9C3XGV4C+VR' },
+    });
+    expect(buildTransitEndpointQueries(seg)).toEqual({ origin: '9C3XGV4C+VR', destination: null });
+    expect(buildGeocodeQuery(seg)).toBe('9C3XGV4C+VR');
+  });
+
+  it('keeps a Plus Code typed into a name field as a Plus Code', () => {
+    const seg = makeSegment({
+      type: 'transit',
+      countryCode: 'JP',
+      data: { mode: 'train', toName: '8Q7XMQJ8+FV' },
+    });
+    expect(buildGeocodeQuery(seg)).toBe('8Q7XMQJ8+FV');
+  });
+
+  it('falls through to the name when the address normalizes to nothing', () => {
+    const seg = makeSegment({
+      type: 'transit',
+      countryCode: 'JP',
+      data: { mode: 'train', toName: 'Kyoto Station', address: ', ,' },
+    });
+    expect(buildGeocodeQuery(seg)).toBe('station:train:jp:Kyoto Station');
+  });
+
+  it('dedupes a leg that starts and ends at the same station', () => {
+    const seg = makeSegment({
+      type: 'transit',
+      countryCode: 'JP',
+      data: { mode: 'bus', fromName: 'Kyoto Station', toName: 'kyoto  station' },
+    });
+    expect(buildGeocodeQueries(seg)).toEqual(['station:bus:jp:kyoto station']);
+  });
+
+  it('returns null endpoints for malformed data and non-transit places', () => {
+    expect(
+      buildTransitEndpointQueries(makeSegment({ type: 'transit', data: { mode: 'rocket' } })),
+    ).toBeNull();
+    expect(
+      buildTransitEndpointQueries(makeSegment({ type: 'hotel', data: { propertyName: 'X' } })),
+    ).toBeNull();
+    expect(buildGeocodeQueries(makeSegment({ type: 'note', data: { body: 'x' } }))).toEqual([]);
   });
 });
 

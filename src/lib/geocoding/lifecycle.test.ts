@@ -166,6 +166,69 @@ describe('geocodeOnSegmentChange — update path', () => {
   });
 });
 
+describe('geocodeOnSegmentChange — transit endpoints (ADR-0019)', () => {
+  const train = (data: Record<string, unknown>) =>
+    makeSegment({ type: 'transit', countryCode: 'JP', data: { mode: 'train', ...data } });
+  const sentQueries = () =>
+    mocks.send.mock.calls.map(([, data]) => (data as { query: string }).query);
+
+  it('enqueues both stations when a train is created', () => {
+    geocodeOnSegmentChange({
+      segment: train({ fromName: 'Tokyo Station', toName: 'Kyoto Station' }),
+    });
+    expect(sentQueries()).toEqual([
+      'station:train:jp:Kyoto Station',
+      'station:train:jp:Tokyo Station',
+    ]);
+  });
+
+  it('enqueues only the origin when a From name is added', () => {
+    geocodeOnSegmentChange({
+      prior: train({ toName: 'Kyoto Station' }),
+      segment: train({ fromName: 'Tokyo Station', toName: 'Kyoto Station' }),
+    });
+    expect(sentQueries()).toEqual(['station:train:jp:Tokyo Station']);
+  });
+
+  it('enqueues only the origin when only the From name changes', () => {
+    geocodeOnSegmentChange({
+      prior: train({ fromName: 'Shinagawa Station', toName: 'Kyoto Station' }),
+      segment: train({ fromName: 'Tokyo Station', toName: 'Kyoto Station' }),
+    });
+    expect(sentQueries()).toEqual(['station:train:jp:Tokyo Station']);
+  });
+
+  it('enqueues nothing for a date-only or case-only edit', () => {
+    const before = train({ fromName: 'Tokyo Station', toName: 'Kyoto Station' });
+    geocodeOnSegmentChange({
+      prior: before,
+      segment: { ...before, startsAt: new Date('2026-10-07T09:12:00Z') },
+    });
+    geocodeOnSegmentChange({
+      prior: before,
+      segment: train({ fromName: 'tokyo station', toName: 'KYOTO STATION' }),
+    });
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('enqueues once for a leg that starts and ends at the same station', () => {
+    geocodeOnSegmentChange({
+      segment: train({ fromName: 'Kyoto Station', toName: 'Kyoto Station' }),
+    });
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('enqueues only the destination for a car with both names', () => {
+    geocodeOnSegmentChange({
+      segment: makeSegment({
+        type: 'transit',
+        data: { mode: 'car', fromName: 'Florence', toName: 'Siena' },
+      }),
+    });
+    expect(sentQueries()).toEqual(['Siena']);
+  });
+});
+
 describe('enqueueGeocodeFetch — singleton key', () => {
   it('passes a normalised singletonKey so pg-boss can dedupe cross-process', () => {
     enqueueGeocodeFetch('111 Dedup Ave, Testville');
@@ -206,6 +269,11 @@ describe('runGeocodeFetchJob — handler body', () => {
     });
     await expect(runGeocodeFetchJob({ query: 'anywhere' })).resolves.toBeUndefined();
     expect(mocks.getCachedOrFetch).not.toHaveBeenCalled();
+  });
+
+  it('passes a station key through verbatim — never re-normalized', async () => {
+    await runGeocodeFetchJob({ query: 'station:train:jp:Kyoto Station' });
+    expect(mocks.getCachedOrFetch.mock.calls[0]![0]).toBe('station:train:jp:Kyoto Station');
   });
 
   it('short-circuits empty queries', async () => {
