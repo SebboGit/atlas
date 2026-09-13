@@ -76,13 +76,23 @@ export function TransitFields({ form }: { form: Form }) {
         </Label>
         <Input
           id="seg-transit-address"
-          placeholder="1-9-1 Marunouchi, Chiyoda"
+          placeholder="707-1 Yumoto, Hakone"
           {...form.register('data.address' as never)}
         />
         <PlaceFinder form={form} type="transit" />
         <PlusCodeNudge form={form} />
       </div>
       <PlusCodeFields form={form} idPrefix="seg-transit" />
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="seg-transit-ref">
+          Reference <Optional />
+        </Label>
+        <Input
+          id="seg-transit-ref"
+          placeholder="KX-20931"
+          {...form.register('data.referenceNumber' as never)}
+        />
+      </div>
       {e.mode?.message && <FieldError>{e.mode.message}</FieldError>}
     </div>
   );
