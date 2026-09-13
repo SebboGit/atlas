@@ -129,10 +129,11 @@ const plusCode = z
 // metadata in `data` — e.g. a hotel check-in / check-out time. Floating
 // local time (ADR-0014): no date, no timezone, just the clock face the
 // user typed. Deliberately NOT folded into `startsAt`/`endsAt` so it never
-// influences day ordering — a hotel sorts by its check-in DATE alone (see
-// `sortDaySegments` in group-by-day.ts). A blank field (the form submits
-// '') normalises to undefined so an empty input doesn't trip the format
-// check. The native `<input type="time">` already emits this exact shape.
+// influences day ordering — a hotel sorts by its check-in DATE and that
+// day's arrivals (see `sortDaySegments` in group-by-day.ts). A blank field
+// (the form submits '') normalises to undefined so an empty input doesn't
+// trip the format check. The native `<input type="time">` already emits
+// this exact shape.
 const clockTime = z
   .string()
   .trim()

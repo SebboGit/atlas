@@ -47,27 +47,39 @@ const DAY_TYPE_RANK: Record<Segment['type'], number> = {
 };
 
 // Orders one day's segments. Plain chronological order is right except for
-// one case: a hotel check-in can't really precede a flight you took the same
-// day — you land first, then check in. The stored check-in is usually the
-// property's policy open-time (or just a bare date the form parses to 00:00Z),
-// not your real arrival, so chronological order can float a hotel above a
-// later flight. So a hotel sorts no earlier than the last flight to land that
-// day; everything else keeps its own time. With no flight in the day this is a
-// no-op and the day stays purely chronological.
+// one case: a hotel check-in can't really precede the travel that got you
+// there — you land or pull in first, then check in. The stored check-in is
+// usually the property's policy open-time (or just a bare date the form
+// parses to 00:00Z), not your real arrival, so chronological order can float
+// a hotel above a later flight or train. So a hotel sorts no earlier than the
+// last flight or transit to arrive that day; everything else keeps its own
+// time. With no flight or transit in the day this is a no-op and the day
+// stays purely chronological.
+//
+// A transit only counts when it arrives the same day it departs. One that
+// ends on a later day is an ongoing span — a rental car picked up today and
+// returned in four days — not an arrival, and binding to it would sink the
+// hotel below the rest of the day. Flights keep binding across midnight, so
+// a red-eye still pulls a hotel booked from the night before below it.
 function sortDaySegments(segments: Segment[]): void {
-  let lastFlightLanding: number | null = null;
+  let lastArrival: number | null = null;
   for (const s of segments) {
-    if (s.type !== 'flight' || !s.startsAt) continue;
-    // Landing = arrival when we have it, else departure (a date-only flight
-    // or one with no parsed arrival time).
-    const landing = (s.endsAt ?? s.startsAt).getTime();
-    lastFlightLanding = lastFlightLanding === null ? landing : Math.max(lastFlightLanding, landing);
+    if ((s.type !== 'flight' && s.type !== 'transit') || !s.startsAt) continue;
+    // Arrival = the arrival time when we have it, else departure (a date-only
+    // leg or one with no parsed arrival time). Clamped to departure: create
+    // and update don't enforce end-after-start, so an arrival date entered
+    // without a time stores 00:00Z — before a timed departure — and would
+    // otherwise leave the hotel on top.
+    const departure = s.startsAt.getTime();
+    const arrival = Math.max(departure, s.endsAt?.getTime() ?? departure);
+    if (s.type === 'transit' && dayKey(new Date(arrival)) !== dayKey(s.startsAt)) continue;
+    lastArrival = lastArrival === null ? arrival : Math.max(lastArrival, arrival);
   }
 
   const effectiveTime = (s: Segment): number => {
     // Every segment in a bucket was grouped on a non-null startsAt.
     const own = s.startsAt!.getTime();
-    if (s.type === 'hotel' && lastFlightLanding !== null) return Math.max(own, lastFlightLanding);
+    if (s.type === 'hotel' && lastArrival !== null) return Math.max(own, lastArrival);
     return own;
   };
 
