@@ -122,6 +122,9 @@ export async function registerWorkerJobs(
   // in the prior UTC day, lagging every transition by a day. See
   // schedule-config.ts for the full rationale (ADR-0016).
   const schedule = resolveScheduleConfig();
+  if (schedule.rejectedTz !== undefined) {
+    log.warn({ cronTz: schedule.rejectedTz, fallback: 'UTC' }, 'worker.schedules.invalid_tz');
+  }
 
   await jobs.schedule(PRUNE_JOB, schedule.prune.cron, null, { tz: schedule.prune.tz });
   await jobs.schedule(STATUS_SWEEP_JOB, schedule.status.cron, null, { tz: schedule.status.tz });

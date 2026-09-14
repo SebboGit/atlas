@@ -25,22 +25,41 @@ export interface JobSchedule {
 export interface ScheduleConfig {
   prune: JobSchedule;
   status: JobSchedule;
+  /** The CRON_TZ value that failed validation and was replaced with UTC. */
+  rejectedTz?: string;
 }
 
 /**
  * Resolve the prune + status-sweep schedules from the environment.
  * `CRON_TZ` shifts the prune run window; the status sweep ignores it and
  * always runs in UTC (see the module docstring).
+ *
+ * An unknown `CRON_TZ` falls back to UTC and is reported via `rejectedTz`.
+ * pg-boss's `schedule()` throws on an unknown zone, which would stop the
+ * worker from booting — and the app waits on a healthy worker — so a typo
+ * in an optional knob must not take the whole stack down.
  */
 export function resolveScheduleConfig(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): ScheduleConfig {
-  const tz = env.CRON_TZ?.trim() || DEFAULT_TZ;
+  const requestedTz = env.CRON_TZ?.trim() || DEFAULT_TZ;
+  const tzValid = isKnownTimeZone(requestedTz);
+  const tz = tzValid ? requestedTz : DEFAULT_TZ;
   const pruneCron = env.CRON_PRUNE_SCHEDULE?.trim() || DEFAULT_PRUNE_SCHEDULE;
   const statusCron = env.CRON_STATUS_SCHEDULE?.trim() || DEFAULT_STATUS_SCHEDULE;
 
   return {
     prune: { cron: pruneCron, tz },
     status: { cron: statusCron, tz: DEFAULT_TZ },
+    ...(tzValid ? {} : { rejectedTz: requestedTz }),
   };
+}
+
+function isKnownTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -28,7 +28,7 @@ See `.env.example` for the full documented list. At minimum:
 - `NTFY_TOKEN` — optional access token when the ntfy server requires auth
 - `CRON_PRUNE_SCHEDULE` — six-field cron expression for the nightly prune (default `0 40 3 * * *`)
 - `CRON_STATUS_SCHEDULE` — cron expression for the daily trip status sweep (default `5 0 * * *`, i.e. 00:05 UTC)
-- `CRON_TZ` — IANA timezone for the **prune** run window (default `UTC`). The status sweep ignores it and always runs in UTC: its day math is UTC (ADR-0016), so a non-UTC trigger would fire it in the prior UTC day and lag trip transitions by a day.
+- `CRON_TZ` — IANA timezone for the **prune** run window (default `UTC`). The status sweep ignores it and always runs in UTC: its day math is UTC (ADR-0016), so a non-UTC trigger would fire it in the prior UTC day and lag trip transitions by a day. An unknown zone falls back to UTC with a `worker.schedules.invalid_tz` warning.
 - `ATLAS_DEV_ORIGINS` — comma-separated origins allowed for cross-origin RSC/HMR in `pnpm dev` (homelab LAN access). No effect in prod.
 - `NEXT_PUBLIC_ATLAS_DATE_FORMAT` — client-side date display format (default `iso`)
 - `LOG_LEVEL` — pino log level (`trace` | `debug` | `info` | `warn` | `error`), default `info`
