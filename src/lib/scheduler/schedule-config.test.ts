@@ -33,6 +33,22 @@ describe('resolveScheduleConfig — status sweep is always UTC', () => {
   });
 });
 
+describe('resolveScheduleConfig — unknown CRON_TZ', () => {
+  // pg-boss rejects an unknown zone in schedule(), which would crash-loop
+  // the worker; the resolver has to hand it a zone it will accept.
+  it('falls back to UTC for prune and reports the rejected value', () => {
+    const cfg = resolveScheduleConfig({ CRON_TZ: 'America/New_Yrok' });
+    expect(cfg.prune.tz).toBe('UTC');
+    expect(cfg.status.tz).toBe('UTC');
+    expect(cfg.rejectedTz).toBe('America/New_Yrok');
+  });
+
+  it('reports nothing for a valid zone or an unset CRON_TZ', () => {
+    expect(resolveScheduleConfig({ CRON_TZ: 'Europe/Berlin' }).rejectedTz).toBeUndefined();
+    expect(resolveScheduleConfig({}).rejectedTz).toBeUndefined();
+  });
+});
+
 describe('resolveScheduleConfig — cron resolution', () => {
   it('uses default crons when overrides are unset', () => {
     const cfg = resolveScheduleConfig({});
