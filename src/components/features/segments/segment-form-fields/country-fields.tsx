@@ -151,9 +151,7 @@ function useAirportCountryAutofill({
   countryField: 'originCountryCode' | 'countryCode';
 }): void {
   const iata = useWatch({ control: form.control, name: iataField as never }) as
-    | string
-    | null
-    | undefined;
+    string | null | undefined;
 
   React.useEffect(() => {
     const resolved = getAirportCountry(iata ?? null);

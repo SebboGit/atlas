@@ -64,9 +64,7 @@ export function buildValidators(stats: { size: number; mtimeMs: number; mtime: D
 }
 
 export type ParsedRange =
-  | { kind: 'ok'; start: number; end: number }
-  | { kind: 'invalid' }
-  | { kind: 'absent' };
+  { kind: 'ok'; start: number; end: number } | { kind: 'invalid' } | { kind: 'absent' };
 
 // Parses an RFC 7233 single-range Byte-Range Request and clamps the
 // end to `total - 1` per §2.1 (an inclusive last-byte-pos at or

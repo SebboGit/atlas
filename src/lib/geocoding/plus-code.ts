@@ -31,8 +31,7 @@ const LOCAL_CODE_RE = new RegExp(
 );
 
 export type ParsedPlusCode =
-  | { kind: 'full'; code: string }
-  | { kind: 'local'; code: string; reference: string | null };
+  { kind: 'full'; code: string } | { kind: 'local'; code: string; reference: string | null };
 
 /**
  * Recognise an input as either a full or local Plus Code. Returns

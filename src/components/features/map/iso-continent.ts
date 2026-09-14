@@ -7,13 +7,7 @@
 // total above stays authoritative.
 
 export type Continent =
-  | 'Africa'
-  | 'Asia'
-  | 'Europe'
-  | 'North America'
-  | 'Oceania'
-  | 'South America'
-  | 'Antarctica';
+  'Africa' | 'Asia' | 'Europe' | 'North America' | 'Oceania' | 'South America' | 'Antarctica';
 
 // Stable display order for the tally — the order continents read in the
 // panel, not alphabetical.

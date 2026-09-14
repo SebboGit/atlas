@@ -332,8 +332,4 @@ export interface LLMExtractor {
  * here so the interfaces and their failure vocabulary travel together.
  */
 export type ExtractionFailureReason =
-  | 'pdf-empty'
-  | 'ocr-empty'
-  | 'llm-unavailable'
-  | 'llm-invalid-json'
-  | 'all-extractors-failed';
+  'pdf-empty' | 'ocr-empty' | 'llm-unavailable' | 'llm-invalid-json' | 'all-extractors-failed';
