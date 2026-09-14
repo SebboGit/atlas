@@ -1092,7 +1092,7 @@ export function TripMap({
         {showEmptyState && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <p className="text-muted-foreground bg-card/85 border-foreground/10 max-w-xs rounded-full border px-4 py-2 text-center text-sm shadow-sm backdrop-blur-sm">
-              Add a flight to see it on the map.
+              Add a place or route to see it on the map.
             </p>
           </div>
         )}
