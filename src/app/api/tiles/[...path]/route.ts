@@ -24,7 +24,14 @@ export const dynamic = 'force-dynamic';
 // Resolved once at module load. Default mirrors the storage adapter
 // convention (project-relative for `pnpm dev`; docker-compose
 // overrides to the absolute container path).
-const TILES_ROOT = path.resolve(process.env.TILES_DIR ?? './data/tiles');
+//
+// The turbopackIgnore markers here and on the fs calls below keep Next's
+// output tracer from treating this runtime-configured path as "anything
+// in the project" — without them the standalone build copies the whole
+// repo (source, docs, tests) into the server output.
+const TILES_ROOT = path.resolve(
+  /* turbopackIgnore: true */ process.env.TILES_DIR ?? './data/tiles',
+);
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
@@ -160,7 +167,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 
   let stats;
   try {
-    stats = await stat(resolved);
+    stats = await stat(/* turbopackIgnore: true */ resolved);
   } catch {
     return notFound();
   }
@@ -207,7 +214,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
   const rangeResponseHeader: Record<string, string> =
     range.kind === 'ok' ? { 'Content-Range': `bytes ${start}-${end}/${total}` } : {};
 
-  const nodeStream = createReadStream(resolved, { start, end });
+  const nodeStream = createReadStream(/* turbopackIgnore: true */ resolved, { start, end });
   // Node 18+ Readable.toWeb — the supported Node → web stream bridge.
   // Cast through unknown because the typing returns
   // ReadableStream<unknown> rather than ReadableStream<Uint8Array>.
