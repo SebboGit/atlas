@@ -33,9 +33,7 @@ const dbState = vi.hoisted(() => ({
   // lookup (eq), index 1 is batch (inArray). The fake just looks at
   // what keys the caller asked for via a stash variable.
   pendingFilter: null as
-    | { kind: 'eq'; key: string }
-    | { kind: 'inArray'; keys: ReadonlySet<string> }
-    | null,
+    { kind: 'eq'; key: string } | { kind: 'inArray'; keys: ReadonlySet<string> } | null,
   upserts: 0,
 }));
 

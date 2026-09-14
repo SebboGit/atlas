@@ -126,22 +126,12 @@ export async function create(
 }
 
 export type ParsedBy =
-  | 'pdf-text'
-  | 'ocr-tesseract'
-  | 'ocr-paddle'
-  | 'llm-haiku'
-  | 'llm-local'
-  | 'pkpass'
-  | 'manual';
+  'pdf-text' | 'ocr-tesseract' | 'ocr-paddle' | 'llm-haiku' | 'llm-local' | 'pkpass' | 'manual';
 
 export type TextMethod = 'pdf-text' | 'ocr-tesseract' | 'email';
 
 export type ExtractionFailureReason =
-  | 'pdf-empty'
-  | 'ocr-empty'
-  | 'llm-unavailable'
-  | 'llm-invalid-json'
-  | 'all-extractors-failed';
+  'pdf-empty' | 'ocr-empty' | 'llm-unavailable' | 'llm-invalid-json' | 'all-extractors-failed';
 
 export interface ExtractionRecord {
   parsed: unknown | null;

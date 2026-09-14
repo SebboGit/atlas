@@ -722,8 +722,7 @@ export function TripMap({
     if (source) source.setData(arcsToFeatureCollection(arcs));
     // Keep the endpoint dots in lockstep with the threads.
     const endpoints = map.getSource(ARC_ENDPOINTS_SOURCE_ID) as
-      | maplibregl.GeoJSONSource
-      | undefined;
+      maplibregl.GeoJSONSource | undefined;
     if (endpoints) endpoints.setData(arcEndpointsToFeatureCollection(arcs));
   }, [arcs, mapReady]);
 
