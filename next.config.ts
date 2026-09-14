@@ -101,6 +101,10 @@ const nextConfig: NextConfig = {
   // `typedRoutes` moved to top-level in Next 15.5 — `experimental` is
   // the deprecated location.
   typedRoutes: true,
+  // Next 16.3+ `next dev` appends a managed rules block to CLAUDE.md
+  // whenever it detects a coding agent in the environment. CLAUDE.md is
+  // hand-maintained here, so opt out rather than dirty every worktree.
+  agentRules: false,
   // pdfjs-dist's legacy build loads `pdf.worker.mjs` next to `pdf.mjs`
   // via a dynamic import. When Turbopack bundles the package into
   // .next/dev/server/chunks/ssr/, the worker sibling isn't copied
