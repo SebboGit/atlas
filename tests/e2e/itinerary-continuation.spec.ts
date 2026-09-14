@@ -142,8 +142,11 @@ test.describe('itinerary continuation re-activation', () => {
       .first();
 
     // Open via the continuation, then fold the past back up via its chevron
-    // (which "releases" this exact deep-link hash).
+    // (which "releases" this exact deep-link hash). Wait for the mount-time
+    // collapse first: a tap that races hydration follows the bare anchor,
+    // and the router's first commit then drops the hash.
     await expect(continuation).toBeVisible();
+    await expect(hotelCard).toHaveCount(0);
     await continuation.click();
     await expect(hotelCard).toBeVisible();
 
