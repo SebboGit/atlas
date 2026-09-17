@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { z } from 'zod';
 
 import { requireUser } from '@/lib/auth/session';
 import * as documentsRepo from '@/lib/documents/repo';
@@ -17,6 +18,23 @@ const SECURITY_HEADERS = {
   'Cache-Control': 'private, no-store',
 } as const;
 
+// `documents.id` is a Postgres `uuid` column, so a malformed path param
+// reaches the driver as a 22P02 (invalid_text_representation) rather
+// than as a missing row — a 500 in the log for what is really a typo'd
+// URL. Validate at the trust boundary and answer with the route's
+// existing 404 instead, so a probe can't tell "malformed" from "not
+// yours" either. Zod's uuid is case-insensitive but strictly narrower
+// than Postgres's own uuid parser: it pins the version and variant
+// nibbles and rejects the braced and unhyphenated forms Postgres would
+// have taken. That is fine here because every id we mint comes from
+// `uuidv7()` (see uuidv7Pk in db/schema/_helpers), so no id that can
+// actually match a row is turned away — and no normalisation is needed.
+const idSchema = z.string().uuid();
+
+function notFoundResponse(): NextResponse {
+  return new NextResponse('Not found', { status: 404, headers: SECURITY_HEADERS });
+}
+
 // RFC 5987 filename* encoding so the original filename survives any
 // non-ASCII characters in the download dialog. The plain `filename=` is
 // also set as a fallback for old clients that don't read filename*.
@@ -31,11 +49,10 @@ function encodeFilenameStar(name: string): string {
 export async function GET(req: NextRequest, ctx: RouteContext) {
   const user = await requireUser();
   const { id } = await ctx.params;
+  if (!idSchema.safeParse(id).success) return notFoundResponse();
 
   const doc = await documentsRepo.getByIdForUser(user.id, id);
-  if (!doc) {
-    return new NextResponse('Not found', { status: 404, headers: SECURITY_HEADERS });
-  }
+  if (!doc) return notFoundResponse();
 
   const url = new URL(req.url);
   const disposition = url.searchParams.get('disposition') === 'inline' ? 'inline' : 'attachment';
@@ -48,7 +65,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     if (e instanceof StorageNotFoundError) {
       // Row exists, file doesn't. Treat as not found from the client's
       // perspective; the periodic sweep will eventually reconcile.
-      return new NextResponse('Not found', { status: 404, headers: SECURITY_HEADERS });
+      return notFoundResponse();
     }
     throw e;
   }

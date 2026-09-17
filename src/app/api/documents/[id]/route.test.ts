@@ -1,9 +1,10 @@
 // Wiring tests for the authenticated document-download proxy. The route
 // is the only path by which stored files reach a client, so the security
 // contract matters: lookups are scoped to the signed-in user, a missing
-// row or missing file is an indistinguishable 404, and every response
-// carries nosniff + no-store. The byte-streaming itself is exercised by
-// the browser smoke test; here we pin the headers and the 404 boundary.
+// row, missing file, or malformed id is an indistinguishable 404, and
+// every response carries nosniff + no-store. The byte-streaming itself is
+// exercised by the browser smoke test; here we pin the headers and the
+// 404 boundary.
 //
 // vi.mock is hoisted above imports, so the factories close over hoisted
 // vi.fn() handles (same pattern as documents/actions.test.ts).
@@ -37,17 +38,22 @@ import { StorageNotFoundError } from '@/lib/storage';
 
 import { GET } from './route';
 
+// `documents.id` is a uuid column, so the route only reaches the repo
+// for a well-formed id. Fixtures use a real UUIDv7 (what uuidv7Pk()
+// generates) rather than a readable stand-in.
+const DOC_ID = '0197f3c2-1f8a-7c3a-8f21-3a6d9b2c4e51';
+
 // The handler only reads `req.url`, so a minimal stand-in is enough.
-function req(url = 'http://localhost/api/documents/doc-1'): NextRequest {
+function req(url = `http://localhost/api/documents/${DOC_ID}`): NextRequest {
   return { url } as unknown as NextRequest;
 }
 
-function ctx(id = 'doc-1') {
+function ctx(id: string = DOC_ID) {
   return { params: Promise.resolve({ id }) };
 }
 
 const DOC = {
-  id: 'doc-1',
+  id: DOC_ID,
   userId: 'user-1',
   objectKey: '2026/05/abc.pdf',
   mime: 'application/pdf',
@@ -79,8 +85,8 @@ describe('GET /api/documents/[id]', () => {
     // getByIdForUser, exercised directly in documents/repo.test.ts. Here we
     // only assert the route hands it the authenticated user's id.
     mocks.getByIdForUser.mockResolvedValue(null);
-    await GET(req(), ctx('doc-1'));
-    expect(mocks.getByIdForUser).toHaveBeenCalledWith('user-1', 'doc-1');
+    await GET(req(), ctx());
+    expect(mocks.getByIdForUser).toHaveBeenCalledWith('user-1', DOC_ID);
   });
 
   it('returns 404 with nosniff + no-store when the row is absent', async () => {
@@ -122,13 +128,54 @@ describe('GET /api/documents/[id]', () => {
   it('honours ?disposition=inline', async () => {
     mocks.getByIdForUser.mockResolvedValue(DOC);
     storageReturning(oneByteStream());
-    const res = await GET(req('http://localhost/api/documents/doc-1?disposition=inline'), ctx());
+    const res = await GET(
+      req(`http://localhost/api/documents/${DOC_ID}?disposition=inline`),
+      ctx(),
+    );
     expect((res.headers.get('Content-Disposition') ?? '').startsWith('inline;')).toBe(true);
+  });
+
+  // A uuid column rejects malformed input at the driver (22P02), so an
+  // unvalidated id turned a typo'd URL into a 500. The route now answers
+  // with the same 404 it uses for an unknown id.
+  it.each([
+    ['not a uuid at all', 'not-a-uuid'],
+    ['a uuid with a trailing segment', `${DOC_ID}x`],
+    ['an empty id', ''],
+    ['a numeric id', '42'],
+  ])('returns 404 without touching the repo for %s', async (_label, id) => {
+    const res = await GET(req(), ctx(id));
+    expect(res.status).toBe(404);
+    expect(mocks.getByIdForUser).not.toHaveBeenCalled();
+    // Indistinguishable from the unknown-row 404 — same body and headers.
+    expect(await res.text()).toBe('Not found');
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('Cache-Control')).toBe('private, no-store');
+  });
+
+  // Postgres accepts uppercase uuid literals and compares them
+  // case-insensitively, so the route passes the id through verbatim
+  // rather than normalising it.
+  it('accepts a mixed-case uuid and hands it to the repo unchanged', async () => {
+    const mixed = '0197F3C2-1f8a-7C3A-8f21-3A6D9B2C4E51';
+    mocks.getByIdForUser.mockResolvedValue(null);
+    const res = await GET(req(), ctx(mixed));
+    expect(mocks.getByIdForUser).toHaveBeenCalledWith('user-1', mixed);
+    expect(res.status).toBe(404);
   });
 
   it('never looks up a document for an unauthenticated request', async () => {
     mocks.requireUser.mockRejectedValue(new Error('redirect'));
     await expect(GET(req(), ctx())).rejects.toThrow();
+    expect(mocks.getByIdForUser).not.toHaveBeenCalled();
+  });
+
+  // Auth comes first, so a signed-out caller gets the redirect and learns
+  // nothing about the id's shape. A hoisted guard would answer 404 here
+  // without ever consulting the session.
+  it('rejects an unauthenticated request before it validates the id', async () => {
+    mocks.requireUser.mockRejectedValue(new Error('redirect'));
+    await expect(GET(req(), ctx('not-a-uuid'))).rejects.toThrow();
     expect(mocks.getByIdForUser).not.toHaveBeenCalled();
   });
 });
