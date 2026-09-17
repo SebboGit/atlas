@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fixed when the image is built: a runtime `STORAGE_MAX_BYTES` above the built
   ceiling is clamped to it and logged, and raising it for real means rebuilding
   with `--build-arg STORAGE_MAX_BYTES=<bytes>`.
+- **A mistyped document link answers 404** — `/api/documents/<id>` used to
+  hand a malformed id straight to the database and fail with a server error.
+  It now checks the id first and returns the same not-found response an
+  unknown id gets.
 
 ## [1.6.1] - 2026-09-18
 
