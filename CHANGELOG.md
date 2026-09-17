@@ -7,6 +7,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-17
+
+### Added
+
+- **Trains, buses and ferries have a start and an end** — a transit leg used
+  to hold one location, so a train from Kyoto to Tokyo put a single pin at its
+  destination. On a train, bus or ferry the form now has a From and a To block,
+  each with its own name, its own Find button and its own address and Plus
+  Code. The map draws a pin at each station and a solid line between them, so a
+  rail day reads like the journey it was; flights keep their dashed arcs. Cars
+  and other modes keep one pin and a name-only From. A leg whose two stations
+  sit further apart than the mode plausibly travels — a train beyond 7,000 km —
+  draws both pins without a line.
+- **Find searches stations, not streets** — looking up a train, bus or ferry
+  stop asks the geocoder for a station first. "Tokyo Station" landed about
+  3.6 km away near Ueno before, and "Kyoto Station" on a car park; both now hit
+  the station itself. A stop named in a non-Latin script falls back to a plain
+  name search. Cars and other modes are unchanged.
+- **Directions from a transit card** — every transit card carries a Directions
+  chip that opens the leg in Google Maps: transit mode for a train, bus or
+  ferry, driving for a car. It sends each station by name, falling back to its
+  Plus Code or address. The card's detail view lists the From and To rows with
+  their own Plus Code links.
+- **A reference field for transit** — cards and the detail view already showed
+  a booking reference, but no form field existed to enter one.
+
+### Changed
+
+- **The transit form keeps the detail out of the way** — each end holds its
+  address and Plus Code behind a collapsed "Address · Plus Code" section, and a
+  card with both ends known shows the Directions chip in place of its Plus Code
+  badge.
+- **The trip map's empty state** talks about places and routes rather than only
+  flights.
+- **A smaller app image** — the published image no longer carries the source
+  tree, tests and docs, which the build had been copying in by accident. It
+  drops from 409 MB to 359 MB on disk, and rather less to pull.
+- **Dependencies** — Next.js 16.3.4, pg-boss 12.30.0, React, Zod and the PDF
+  parser among others.
+
+### Fixed
+
+- **A hotel check-in sorted before the train that got you there** — same-day
+  ordering already put flights before the hotel, but a train, bus, ferry or car
+  arrival still landed after it. Arriving by rail now reads in the order it
+  happened.
+- **Documents between 10 and 20 MB failed to upload** — the file was cut off in
+  transit and the upload died as "Something went wrong.", even though Atlas
+  accepts up to 20 MB. Larger scans and multi-page tickets now go through.
+- **A mistyped CRON_TZ silently disabled the nightly cleanup** — the unknown
+  zone was stored and the prune job simply never fired. Schedules now fall back
+  to UTC and the worker says so in its log. This release's job-queue upgrade
+  would otherwise have turned the same typo into a worker that refuses to
+  start.
+
+### Security
+
+- Clears 20 of the 32 findings `pnpm audit --prod` reported on 1.5.0. Among
+  them two critical Next.js advisories — a remote code execution through image
+  optimization, and one affecting Windows hosts — and a high one in the PDF
+  parser the worker uses when you extract a document. The 12 that remain are in
+  Auth.js and MapLibre, whose vulnerable paths Atlas doesn't use.
+
+### Upgrading
+
+Take a database backup first. Update the worker and the app together, which the
+usual `docker compose pull` followed by `up -d` already does. The worker's
+first start migrates the job queue's own schema — additive, and a matter of
+seconds on a personal queue — and the app deliberately waits for the worker to
+be healthy, so it stays down until that finishes.
+
+Transit pins are re-geocoded once, the first time you open each trip's
+itinerary or map, so a route line may only appear on a second visit. Give your
+trip maps a look afterwards: a departure stop that is only a name can land in
+the wrong region, and Atlas caches that for 90 days. Setting a From Plus Code
+or address on the leg fixes it.
+
+Rolling back to 1.5.0 keeps your data, but any transit leg you create or edit
+on 1.6.0 shows there as a plain "Transit" card that can't be saved, and drops
+off the trip map until you upgrade again.
+
 ## [1.5.0] - 2026-08-01
 
 ### Added
@@ -363,7 +444,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/SebboGit/atlas/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/SebboGit/atlas/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/SebboGit/atlas/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/SebboGit/atlas/compare/v1.4.0...v1.4.1
