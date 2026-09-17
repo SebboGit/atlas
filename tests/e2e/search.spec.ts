@@ -32,6 +32,9 @@ test.describe('search palette', () => {
     // Need at least 2 chars before the query fires; type the unique
     // slug so the result set is unambiguous.
     await input.fill(tripTitle);
-    await expect(palette.getByText(tripTitle)).toBeVisible();
+    // Match the result row itself, not the sr-only aria-live status that
+    // also echoes the query ("1 result for …"). A bare getByText matches
+    // both once the live region catches up, and strict mode fails.
+    await expect(palette.getByRole('option').filter({ hasText: tripTitle })).toBeVisible();
   });
 });
