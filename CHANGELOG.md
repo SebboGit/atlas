@@ -7,12 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-09-18
+
 ### Fixed
 
 - **Sign-in against PocketID 2.10 and later** — the authorize request now
   carries a `state` parameter next to PKCE. PocketID 2.10 and later reject a
   request without one as `invalid_state`, so every sign-in bounced straight
-  back to `/signin?error=OAuthCallbackError`.
+  back to `/signin?error=OAuthCallbackError`. Older PocketID releases accepted
+  the request either way and are unaffected.
 
 ## [1.6.0] - 2026-09-17
 
@@ -451,7 +454,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/SebboGit/atlas/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/SebboGit/atlas/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/SebboGit/atlas/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/SebboGit/atlas/compare/v1.4.1...v1.4.2
