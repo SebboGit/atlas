@@ -53,6 +53,10 @@ Feature code never sees the `sub` again — it uses `user.id`.
 - Default lifetime: 30 days, sliding.
 - Stored via the Drizzle adapter alongside the rest of the schema.
 
+## Callback checks
+
+The provider sets `checks: ['pkce', 'state']`. Auth.js's default for a custom OIDC provider is PKCE alone. PocketID 2.10 and later reject an authorize request that carries no `state`: the browser is sent back to the callback with `error=invalid_state`, which Auth.js reports as `OAuthCallbackError` and the sign-in page shows as `?error=OAuthCallbackError`. The real reason only appears in PocketID's own log. Keep both checks.
+
 ## Required env vars
 
 | Var                  | Source                          |

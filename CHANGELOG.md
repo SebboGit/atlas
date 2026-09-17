@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sign-in against PocketID 2.10 and later** — the authorize request now
+  carries a `state` parameter next to PKCE. PocketID 2.10 and later reject a
+  request without one as `invalid_state`, so every sign-in bounced straight
+  back to `/signin?error=OAuthCallbackError`.
+
 ## [1.6.0] - 2026-09-17
 
 ### Added
