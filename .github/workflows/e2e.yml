@@ -4,6 +4,20 @@ name: E2E
 # doc-only PRs and unrelated config changes skip the (heavier) browser
 # job, while typecheck/lint/test/build still runs on everything.
 #
+# The two `paths` lists below must stay byte-identical, and the standard
+# for what goes in them is every file this job executes — not just
+# `src/**`. That is why the toolchain and config inputs are listed:
+# `next dev` reads `next.config.ts` (where a spec guards the upload body
+# caps), `postcss.config.mjs` and `tsconfig.json` feed route compilation
+# and the `@/` alias, `.nvmrc` picks the Node version, and `db:setup`
+# seeds via `scripts/seed.ts`. Each can break the suite with no source
+# file touched. Two files are deliberately absent: the Dockerfile,
+# because this job runs `next dev` on the runner and never the image, so
+# it cannot observe a change there (`release.yml` builds that); and
+# `drizzle.config.ts`, because `src/db/migrate.ts` hardcodes the
+# migrations folder and only drizzle-kit reads that config, which this
+# job never invokes.
+#
 # DO NOT make this job a required status check on `main`. GitHub does
 # not emit a success result when a `paths`-filtered workflow is skipped
 # — the check simply never reports — so any PR that doesn't touch the
@@ -16,8 +30,13 @@ on:
     paths:
       - 'src/**'
       - 'tests/e2e/**'
+      - 'scripts/seed.ts'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - '.nvmrc'
+      - 'next.config.ts'
+      - 'postcss.config.mjs'
+      - 'tsconfig.json'
       - 'playwright.config.ts'
       - '.github/workflows/e2e.yml'
   pull_request:
@@ -25,8 +44,13 @@ on:
     paths:
       - 'src/**'
       - 'tests/e2e/**'
+      - 'scripts/seed.ts'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - '.nvmrc'
+      - 'next.config.ts'
+      - 'postcss.config.mjs'
+      - 'tsconfig.json'
       - 'playwright.config.ts'
       - '.github/workflows/e2e.yml'
 
