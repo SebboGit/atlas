@@ -27,9 +27,12 @@ const isDev = process.env.NODE_ENV !== 'production';
 // limit so storage (not Next) owns the real cap and its message — the few
 // hundred bytes of multipart framing fit comfortably in the 1 MB headroom.
 //
-// NB: `output: 'standalone'` bakes this value into the build, so raising
-// STORAGE_MAX_BYTES at runtime needs an image rebuild to keep the two in
-// sync — otherwise storage would accept files Next then 413s.
+// NB: `output: 'standalone'` bakes this value into the build, and the
+// Dockerfile's build stage passes no STORAGE_MAX_BYTES, so a published
+// image always carries the envelope for the 20 MB default. Raising
+// STORAGE_MAX_BYTES at runtime does NOT widen it — storage would accept
+// files the envelope then rejects. Changing the ceiling means teaching the
+// build stage the value, not just setting it in the runtime env.
 const storageMaxBytes = Number(process.env.STORAGE_MAX_BYTES ?? 20 * 1024 * 1024);
 const serverActionBodyLimit =
   Number.isFinite(storageMaxBytes) && storageMaxBytes > 0
@@ -121,6 +124,22 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: serverActionBodyLimit,
     },
+    // Second cap on the same request. Every non-GET request matched by
+    // `src/proxy.ts` gets its body buffered, and past this limit Next
+    // TRUNCATES the stream and logs a warning instead of erroring, so the
+    // Server Action receives half a multipart body and the upload dies as
+    // a generic "Something went wrong." The default is 10 MB, which cut
+    // off uploads well under the storage limit. Both caps carry the same
+    // value, so storage owns the real ceiling for anything the envelope
+    // admits; a body past the envelope is still truncated, and "File is
+    // too large." stays out of reach for those.
+    //
+    // Cost: Next buffers the body into two streams without backpressure,
+    // and starts before the proxy's auth decision — so a matched POST can
+    // hold ~2× this value in memory before it is even rejected. Fine for a
+    // single-user homelab behind Tailscale; a public deployment should cap
+    // the body at the reverse proxy (Caddy `request_body max_size`).
+    proxyClientMaxBodySize: serverActionBodyLimit,
   },
   // Allow `next dev` HMR + RSC requests from extra hosts so the app can
   // be exercised on a phone over the LAN. Dev-only — production builds
