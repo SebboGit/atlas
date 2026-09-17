@@ -33,6 +33,15 @@ export function pocketIdProvider(): OIDCConfig<PocketIDProfile> {
     clientId: process.env.OIDC_CLIENT_ID ?? '',
     clientSecret: process.env.OIDC_CLIENT_SECRET ?? '',
     authorization: { params: { scope: 'openid profile email groups' } },
+    // Auth.js defaults a custom OIDC provider to `checks: ['pkce']` — no
+    // `state`. PocketID 2.10 moved its OAuth logic to Fosite (pocket-id
+    // PR #1520), which rejects an authorize request that carries no `state`:
+    // it sends the browser back to our callback with `error=invalid_state`,
+    // and Auth.js surfaces that as `OAuthCallbackError`. Earlier PocketID
+    // releases accepted the request without one. Send both: PKCE binds the
+    // code to this browser, `state` is the RFC 6749 §10.12 CSRF check on
+    // the callback.
+    checks: ['pkce', 'state'],
     // Map claims → adapter-facing profile shape.
     //
     // `id` is REQUIRED even though we don't want it on the User row.

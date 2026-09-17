@@ -18,6 +18,17 @@ function mapper() {
   return (p: PocketIDProfile) => map(p, {} as never);
 }
 
+describe('pocketIdProvider.checks', () => {
+  // Auth.js only sends `state` when it is listed explicitly — its default
+  // for a custom OIDC provider is `['pkce']`. PocketID 2.10 and later
+  // answer an authorize request without `state` by redirecting back to
+  // the callback with `error=invalid_state`, so dropping it locks every
+  // user out at sign-in.
+  it('configures both the pkce and state checks', () => {
+    expect(pocketIdProvider().checks).toEqual(expect.arrayContaining(['pkce', 'state']));
+  });
+});
+
 describe('pocketIdProvider.profile', () => {
   it('maps the OIDC sub to id (the providerAccountId)', async () => {
     const mapped = await mapper()({ sub: 'oidc-sub-123', email: 'a@b.test', name: 'Alice' });
