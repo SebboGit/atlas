@@ -78,7 +78,8 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   └── DOMAIN_MODEL.md      # Entities, relationships, invariants
 ├── public/                  # Static assets
 │   ├── basemaps-assets/     # Self-hosted MapLibre fonts + sprites (no third-party origins)
-│   └── geo/                 # Static GeoJSON for the visited-countries world map
+│   ├── geo/                 # Static GeoJSON for the visited-countries world map
+│   └── maplibre/            # MapLibre's tile-decoder worker, staged per version (GITIGNORED)
 ├── scripts/                 # Dev/ops scripts
 ├── src/
 │   ├── app/                 # Next.js App Router (routes, layouts, server actions)
@@ -103,6 +104,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── wishlist/        # Reusable household place list (food + activity), materialised onto trips
 │   │   ├── trip-map/        # Per-trip map data shaping (flight arcs, transit routes, geocoded pins)
 │   │   ├── geocoding/       # Photon + Nominatim clients, fallback ladder, DB cache (ADR-0010/0018)
+│   │   ├── maplibre/        # MapLibre worker-URL bootstrap (worker staged under public/maplibre/)
 │   │   ├── airlines/        # Reference data — static IATA → airline-name lookup (OpenFlights snapshot)
 │   │   ├── airports/        # Reference data — static IATA → airport (coords, tz, country)
 │   │   ├── countries/       # Reference data — country names + ISO codes

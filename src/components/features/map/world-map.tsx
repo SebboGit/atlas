@@ -1,10 +1,12 @@
 'use client';
 
-import maplibregl, { type Map as MapLibreMap, type MapGeoJSONFeature } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import type { Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { VisitedCountry } from '@/lib/countries/repo';
+import '@/lib/maplibre/worker-url';
 import { cn } from '@/lib/utils';
 
 import { VisitedPanel } from './visited-panel';

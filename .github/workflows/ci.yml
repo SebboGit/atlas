@@ -124,15 +124,14 @@ jobs:
       # `pnpm.auditConfig.ignoreGhsas`, so this goes yellow only on a NEW
       # advisory. Every entry is a finding whose fix we have not adopted
       # yet — the upstream patches exist (next-auth beta.32, @auth/core
-      # 0.41.3, maplibre-gl 6.4.1); it is our upgrade that is deferred, and
-      # issue #148 tracks it. Prune an entry the moment we upgrade past it:
+      # 0.41.3); it is our upgrade that is deferred, and issue #148 tracks
+      # it. Prune an entry the moment we upgrade past it:
       # one left behind silences a real signal. Which entry covers what:
       #
       #   next-auth and @auth/core   GHSA-7rqj-j65f-68wh
       #                              GHSA-xmf8-cvqr-rfgj
       #                              GHSA-x445-f3h2-j279
       #   next-auth only             GHSA-8fpg-xm3f-6cx3
-      #   maplibre-gl                GHSA-jrc7-96c5-q579
       #   browserslist               GHSA-c83g-rgw3-j3cx
       #                              GHSA-73wf-gq98-2v4g
       #   baseline-browser-mapping   GHSA-w5vr-8v7q-w6rv

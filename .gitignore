@@ -100,6 +100,10 @@ tesseract-cache/
 *.pmtiles
 public/tiles/
 
+# MapLibre's tile-decoder worker — staged from node_modules on every
+# `pnpm dev` / `pnpm build` by scripts/copy-maplibre-worker.ts.
+public/maplibre/
+
 # Misc
 .cache/
 .turbo/
