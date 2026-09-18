@@ -323,9 +323,10 @@ export function ChronoTripMap({
         ONE map instance, ONE layout that reflows by breakpoint:
           - laptop (lg+): the rail is an inline column to the left; the
             map fills the rest. Both share a height so the columns align.
-          - mobile (<lg): the rail column is hidden (the vaul sheet
-            renders the same content instead) and the map takes the full
-            width and nearly the full viewport height.
+          - mobile (<lg): the rail column is hidden by class and the vaul
+            sheet mounts in its place (that one is a media-query mount
+            gate, not a class), and the map takes the full width and
+            nearly the full viewport height.
         Rendering the map once avoids two live MapLibre WebGL contexts.
       */}
       <div className="flex gap-6">
@@ -354,8 +355,11 @@ export function ChronoTripMap({
         </div>
       </div>
 
-      {/* Mobile bottom sheet — the same rail content, lg:hidden so it
-       *  only exists on phone / small tablet. */}
+      {/* Mobile bottom sheet — the same rail content. It gates its own
+       *  mounting on a media query below `lg`, so on laptop it is absent
+       *  from the DOM rather than merely hidden (a hidden vaul sheet
+       *  still aria-hides the rest of the page — see the sheet's own
+       *  comment). */}
       <TripTimelineSheet hasDays={hasDays} {...railProps} />
     </>
   );

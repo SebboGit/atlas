@@ -7,6 +7,19 @@ import { cn } from '@/lib/utils';
 
 import type { ResolvedRailDay } from './timeline-model';
 import { TripTimelineRail, type TripTimelineRailProps } from './trip-timeline-rail';
+import { useMediaQuery } from './use-media-query';
+
+// Tailwind's `lg` breakpoint in Tailwind's own unit: `--breakpoint-lg`
+// is `64rem`, and a rem media query resolves against the browser's
+// default font size — so a hard-coded `1024px` would drift from `lg:`
+// for anyone who has raised theirs, and the rail and the sheet would
+// both vanish in the gap. Keep this in step with `--breakpoint-lg`.
+const LG = '64rem';
+
+// The sheet's range: strictly below `lg`, the width at which the inline
+// rail takes over. Range syntax rather than `max-width: …px`, so there
+// is no sub-pixel gap between the two at fractional viewport widths.
+const SHEET_VIEWPORT = `(width < ${LG})`;
 
 // Snap points for the bottom sheet. "Peek" shows the handle + the
 // today/summary header (≈ the bottom 18% of the screen); "open" pulls
@@ -40,12 +53,44 @@ interface TripTimelineSheetProps extends TripTimelineRailProps {
 }
 
 /**
+ * Breakpoint gate for the bottom sheet below.
+ *
+ * This is a mount gate, not a CSS class, and it has to be: vaul builds
+ * the sheet on a Radix dialog and never forwards its own `modal={false}`
+ * to it, so Radix's `modal` default applies and `aria-hidden="true"`
+ * lands on every sibling subtree for as long as the sheet exists. A
+ * `lg:hidden` class hid the sheet on laptop but left it mounted, which
+ * quietly took the map, the rail and the page chrome out of the
+ * accessibility tree at desktop width (#150).
+ *
+ * Known residual below `lg`: for as long as the sheet exists, Radix
+ * takes everything outside it out of the accessibility tree — the map
+ * and its controls, the page heading, the back link and the top bar —
+ * so a screen reader sees only the sheet, and focus that enters it
+ * cannot leave (Escape is swallowed by `dismissible={false}`). Clearing
+ * that needs vaul to forward `modal` to the Radix dialog, or the sheet
+ * to stop being a dialog — tracked in #159.
+ */
+export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetProps) {
+  const isSheetViewport = useMediaQuery(SHEET_VIEWPORT);
+
+  // Unmounting on the way up (rather than gating inside the sheet) also
+  // resets its snap + open state, so coming back down re-runs vaul's
+  // open lifecycle from scratch instead of resuming mid-drag.
+  if (!hasDays || !isSheetViewport) return null;
+
+  return <TimelineSheet {...railProps} />;
+}
+
+/**
  * Mobile bottom sheet (vaul) wrapping the shared timeline rail. Pinned
  * to the bottom over a full-screen map:
  *   - peek snap shows a handle + "Today · N items";
  *   - drag up → expands to ~82% revealing the full timeline;
- *   - non-modal (`modal={false}`) so the map underneath stays tappable
- *     and pinch-zoomable while the sheet is peeking;
+ *   - `modal={false}` so the map underneath stays tappable and
+ *     pinch-zoomable while the sheet is peeking (vaul honours this for
+ *     pointer events; it does not pass it through to Radix, hence the
+ *     mount gate above);
  *   - never fully dismissible — the lowest snap point keeps it on
  *     screen (the timeline is the primary control, not a transient
  *     overlay).
@@ -53,7 +98,7 @@ interface TripTimelineSheetProps extends TripTimelineRailProps {
  * Selecting a segment in the sheet pans the map beneath it; the sheet
  * stays where it is so the user keeps their place in the timeline.
  */
-export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetProps) {
+function TimelineSheet(railProps: TripTimelineRailProps) {
   // Controlled snap so a drag/tap settles on a known point and the
   // header summary reflects it. Starts at the peek floor.
   const [snap, setSnap] = React.useState<number | string | null>(SNAP_PEEK);
@@ -65,10 +110,9 @@ export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetPr
   // default 100% off-screen transform.
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => {
-    if (!hasDays) return;
     const raf = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(raf);
-  }, [hasDays]);
+  }, []);
 
   // Selecting a segment (a tap in the sheet, or a pin under it) pans the
   // map to it — drop the sheet back to its peek so the focused pin +
@@ -83,7 +127,7 @@ export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetPr
     if (railProps.selectedSegmentId !== null) setSnap(SNAP_PEEK);
   }
 
-  if (!hasDays || !mounted) return null;
+  if (!mounted) return null;
 
   const summary = anchorSummary(railProps.days, railProps.isActive);
 
@@ -109,9 +153,9 @@ export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetPr
       <Drawer.Portal>
         {/*
           No Drawer.Overlay — a scrim would block the map. The content
-          is a self-contained card anchored to the bottom. lg:hidden so
-          the sheet only exists on phone / small tablet; the laptop
-          layout uses the inline rail instead.
+          is a self-contained card anchored to the bottom. Nothing here
+          hides the sheet by breakpoint: the mount gate above already
+          keeps it off laptop entirely.
         */}
         <Drawer.Content
           // The accessible name comes from Drawer.Title below (Radix
@@ -129,7 +173,6 @@ export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetPr
           // therefore capped by the snap fractions, not by a max-height.
           style={{ height: '100svh' }}
           className={cn(
-            'lg:hidden',
             'border-foreground/12 bg-card/95 fixed inset-x-0 bottom-0 z-30 flex flex-col',
             'rounded-t-2xl border-t shadow-[0_-12px_40px_-24px_rgba(60,40,20,0.4)] backdrop-blur-md',
             'outline-none',
