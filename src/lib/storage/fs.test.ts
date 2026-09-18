@@ -2,9 +2,11 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FilesystemStorage } from './fs';
+import { log } from '@/lib/log';
+
+import { FilesystemStorage, DEFAULT_STORAGE_MAX_BYTES, readStorageMaxBytes } from './fs';
 import { StorageNotFoundError, StorageRejectedError } from './types';
 
 // Minimal valid PDF (header + EOF) — file-type recognises it as
@@ -178,5 +180,55 @@ describe('FilesystemStorage', () => {
       const entries = await readdir(dir);
       expect(entries.some((e) => e.startsWith('.tmp-'))).toBe(false);
     }
+  });
+});
+
+describe('STORAGE_MAX_BYTES', () => {
+  const ORIGINAL_MAX = process.env.STORAGE_MAX_BYTES;
+  const ORIGINAL_DIR = process.env.STORAGE_DIR;
+
+  beforeEach(() => {
+    // The blank-value path logs once; keep it out of the test output.
+    vi.spyOn(log, 'warn').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (ORIGINAL_MAX === undefined) delete process.env.STORAGE_MAX_BYTES;
+    else process.env.STORAGE_MAX_BYTES = ORIGINAL_MAX;
+    if (ORIGINAL_DIR === undefined) delete process.env.STORAGE_DIR;
+    else process.env.STORAGE_DIR = ORIGINAL_DIR;
+  });
+
+  it('reads a positive value', () => {
+    process.env.STORAGE_MAX_BYTES = '52428800';
+    expect(readStorageMaxBytes()).toBe(52428800);
+  });
+
+  it('falls back to the default when unset or blank', () => {
+    delete process.env.STORAGE_MAX_BYTES;
+    expect(readStorageMaxBytes()).toBe(DEFAULT_STORAGE_MAX_BYTES);
+    process.env.STORAGE_MAX_BYTES = '   ';
+    expect(readStorageMaxBytes()).toBe(DEFAULT_STORAGE_MAX_BYTES);
+  });
+
+  it('accepts integer-valued exponent notation', () => {
+    process.env.STORAGE_MAX_BYTES = '2e7';
+    expect(readStorageMaxBytes()).toBe(20_000_000);
+  });
+
+  it('returns null for a value that is not a positive whole number of bytes', () => {
+    // '20.5' is the one that matters: a fractional ceiling would reject
+    // uploads below the number the operator actually configured.
+    for (const bad of ['abc', '0', '-1', 'NaN', '20.5', '1e400']) {
+      process.env.STORAGE_MAX_BYTES = bad;
+      expect(readStorageMaxBytes()).toBeNull();
+    }
+  });
+
+  it('constructing from the env throws on a garbage value', () => {
+    process.env.STORAGE_DIR = '/tmp/atlas-storage-config-probe';
+    process.env.STORAGE_MAX_BYTES = 'twenty megabytes';
+    expect(() => new FilesystemStorage()).toThrow(/STORAGE_MAX_BYTES must be a positive integer/);
   });
 });

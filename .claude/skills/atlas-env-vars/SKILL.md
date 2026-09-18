@@ -14,7 +14,7 @@ See `.env.example` for the full documented list. At minimum:
 - `OIDC_CLIENT_ID` — from PocketID admin UI
 - `OIDC_CLIENT_SECRET` — from PocketID admin UI
 - `STORAGE_DIR` — document storage root. Default `./data/documents` (project-relative — works for `pnpm dev`). docker-compose overrides to the absolute container path `/app/data/documents` and bind-mounts the host directory onto it.
-- `STORAGE_MAX_BYTES` — per-upload size cap, default `20971520` (20MB)
+- `STORAGE_MAX_BYTES` — per-upload size cap, default `20971520` (20MB). The upload request envelope is sized from this at build time, so the published image's ceiling is the 20MB default unless that release was built with the `STORAGE_MAX_BYTES` repository variable set; a larger runtime value is clamped to it and warned about. Raise it by rebuilding with `--build-arg STORAGE_MAX_BYTES=<bytes>` (the prod compose overlay passes it through). Raising it also raises memory use — the body is buffered twice and before the auth decision, so each concurrent upload holds ~2x the value against the container's `mem_limit` — so cap the body at the reverse proxy as well (Caddy `request_body max_size`).
 - `STORAGE_ALLOWED_MIMES` — comma-separated MIME allowlist enforced server-side after magic-byte detection
 - `TILES_DIR` — directory holding Protomaps PMTiles served by `/api/tiles` (default `./data/tiles`)
 - `PROTOMAPS_PMTILES_URL` — URL the client loads the basemap from (default `/api/tiles/world.pmtiles`)

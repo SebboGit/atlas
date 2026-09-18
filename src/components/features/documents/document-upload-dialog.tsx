@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { uploadDocumentAction } from '@/lib/documents/actions';
-import { formatBytes } from '@/lib/format';
+import { formatByteLimit, formatBytes } from '@/lib/format';
 import {
   DEFAULT_FILE_INPUT_ACCEPT,
   DEFAULT_FILE_INPUT_ACCEPT_HUMAN,
@@ -30,6 +30,13 @@ import {
 
 interface DocumentUploadDialogProps {
   tripId: string;
+  /**
+   * Largest upload this deployment accepts, from `getUploadMaxBytes()` on
+   * the server. Passed as a prop rather than read from the environment
+   * here: the ceiling is the lower of the runtime storage limit and the
+   * request envelope baked into the build, and only the server knows both.
+   */
+  maxBytes: number;
   // Required when the dialog manages its own open state; optional when
   // driven by `open` + `onOpenChange` from outside (e.g. from a parent
   // DropdownMenu where the menu item is the affordance).
@@ -63,6 +70,7 @@ function useCoarsePointer(): boolean {
 
 export function DocumentUploadDialog({
   tripId,
+  maxBytes,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -90,6 +98,14 @@ export function DocumentUploadDialog({
   const accept = touchPicker ? DOCUMENTS_ONLY_FILE_INPUT_ACCEPT : ACCEPT;
   const acceptHuman = touchPicker ? DOCUMENTS_ONLY_FILE_INPUT_ACCEPT_HUMAN : ACCEPT_HUMAN;
 
+  // Past this the request body is truncated by the proxy body cap before
+  // the Server Action ever runs, so the storage layer's "File is too
+  // large." can't be reached — the upload just lands in the error
+  // boundary. Catch it here, before megabytes leave the browser. The
+  // server-side check stays authoritative; this is a courtesy.
+  const tooLarge = selected !== null && selected.size > maxBytes;
+  const limitMessage = `Larger than ${formatByteLimit(maxBytes)}.`;
+
   // Reset state when the dialog closes — picking a file in one open
   // session shouldn't leak into the next. Routed through `onOpenChange`
   // (and the explicit close paths below) so cleanup lives in the event
@@ -104,8 +120,9 @@ export function DocumentUploadDialog({
   }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setError(null);
-    setSelected(e.target.files?.[0] ?? null);
+    const next = e.target.files?.[0] ?? null;
+    setSelected(next);
+    setError(next && next.size > maxBytes ? limitMessage : null);
   }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -113,6 +130,10 @@ export function DocumentUploadDialog({
     setError(null);
     if (!selected || selected.size === 0) {
       setError('Pick a file first.');
+      return;
+    }
+    if (selected.size > maxBytes) {
+      setError(limitMessage);
       return;
     }
     const formData = new FormData(e.currentTarget);
@@ -194,7 +215,7 @@ export function DocumentUploadDialog({
               <p className="text-muted-foreground font-mono text-[10px] tracking-wider break-words">
                 {selected
                   ? `${formatBytes(selected.size)} · ${formatMimeLabel(selected.type)}`
-                  : acceptHuman}
+                  : `${acceptHuman} · Max ${formatByteLimit(maxBytes)}`}
               </p>
             </div>
 
@@ -218,7 +239,7 @@ export function DocumentUploadDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending || !selected}>
+            <Button type="submit" disabled={pending || !selected || tooLarge}>
               {pending ? 'Uploading…' : 'Upload'}
             </Button>
           </DialogStickyFooter>

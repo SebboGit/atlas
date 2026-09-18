@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **An oversized document says so instead of breaking the page** — a file past
+  the upload ceiling used to be truncated in transit, which killed the upload
+  before the size check could run and dropped the whole page into
+  "Something went wrong." The picker now states the limit up front and refuses
+  a file that is over it, so nothing leaves the browser. The limit itself is
+  fixed when the image is built: a runtime `STORAGE_MAX_BYTES` above the built
+  ceiling is clamped to it and logged, and raising it for real means rebuilding
+  with `--build-arg STORAGE_MAX_BYTES=<bytes>`.
+
 ## [1.6.1] - 2026-09-18
 
 ### Fixed

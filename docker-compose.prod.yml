@@ -58,6 +58,13 @@ services:
   app:
     build:
       target: prod
+      args:
+        # The upload request envelope is fixed at build time (see the
+        # Dockerfile), so a compose-built prod image has to be told the
+        # ceiling here — setting STORAGE_MAX_BYTES in .env alone only moves
+        # the runtime check, and the app clamps back to the baked value.
+        # Blank when the host variable is unset, which reads as the default.
+        STORAGE_MAX_BYTES: ${STORAGE_MAX_BYTES:-}
     # `!reset` drops the dev source mounts the base file declares — without it
     # Compose CONCATENATES the lists and the dev src/public/node_modules/.next
     # mounts shadow the baked standalone image. Re-add only the data mounts

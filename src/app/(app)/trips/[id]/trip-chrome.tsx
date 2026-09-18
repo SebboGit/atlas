@@ -36,6 +36,12 @@ interface TripChromeProps {
   isOwner: boolean;
   countries: { code: string; name: string }[];
   attachedDocumentCount: number;
+  /**
+   * Upload ceiling resolved on the server (`getUploadMaxBytes()`), threaded
+   * through because this component is client-side and must not read the
+   * environment itself.
+   */
+  uploadMaxBytes: number;
   children: React.ReactNode;
 }
 
@@ -59,6 +65,7 @@ export function TripChrome({
   isOwner,
   countries,
   attachedDocumentCount,
+  uploadMaxBytes,
   children,
 }: TripChromeProps) {
   const isPrivate = trip.visibility === 'private';
@@ -143,6 +150,7 @@ export function TripChrome({
                   trip={trip}
                   isArchived={isArchived}
                   attachedDocumentCount={attachedDocumentCount}
+                  uploadMaxBytes={uploadMaxBytes}
                 />
               )}
             </div>
@@ -171,6 +179,7 @@ export function TripChrome({
               {isOwner && (
                 <DocumentUploadDialog
                   tripId={trip.id}
+                  maxBytes={uploadMaxBytes}
                   trigger={<Button size="sm">+ Upload</Button>}
                 />
               )}
@@ -271,10 +280,12 @@ function TripOverflowMenu({
   trip,
   isArchived,
   attachedDocumentCount,
+  uploadMaxBytes,
 }: {
   trip: Trip;
   isArchived: boolean;
   attachedDocumentCount: number;
+  uploadMaxBytes: number;
 }) {
   const [uploadOpen, setUploadOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
@@ -345,7 +356,12 @@ function TripOverflowMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DocumentUploadDialog tripId={trip.id} open={uploadOpen} onOpenChange={setUploadOpen} />
+      <DocumentUploadDialog
+        tripId={trip.id}
+        maxBytes={uploadMaxBytes}
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+      />
       <TripFormDialog mode="edit" trip={trip} open={editOpen} onOpenChange={setEditOpen} />
       {!isArchived && (
         <DeleteTripDialog
