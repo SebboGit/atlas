@@ -12,7 +12,7 @@ The repo runs on GitHub Actions under the free 2,000-minute private-repo allowan
 `.github/workflows/ci.yml` runs on every push to `main` and every PR targeting it:
 
 1. Set up pnpm + Node (version pinned by `.nvmrc`)
-2. `pnpm install --frozen-lockfile` (cached by pnpm-lock hash)
+2. `pnpm install --frozen-lockfile` (cached by pnpm-lock hash; the same install is reused by an advisory `pnpm audit --prod` step at the end of the job, non-blocking — baseline in `pnpm.auditConfig.ignoreGhsas`)
 3. `pnpm db:migrate` against a Postgres service container
 4. `pnpm typecheck` · `pnpm lint` · `pnpm test --run` · `pnpm build`
 
