@@ -45,6 +45,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hidden. Nothing changes on screen. On a phone the rest of the page is still
   hidden from a screen reader while the sheet is up, and focus that reaches the
   sheet cannot leave it.
+- **A long trip title no longer shoves the phone layout sideways** — the
+  heading held its longest word at full width, so the status pill and the
+  actions menu slid off the right edge of a phone and the whole page scrolled
+  horizontally. On a phone the status pill and the private badge now sit on
+  the "All trips" line instead of beside the title, which is where a laptop
+  has always shown them, and the title has room to wrap on its spaces like an
+  ordinary heading. A word that genuinely cannot break still hyphenates rather
+  than running off the edge. The trip map's own heading got the same
+  treatment.
+- **The hotel name survives the check-out chip** — on the last day of a stay
+  the filled "Check Out" chip took the continuation row to itself and left the
+  hotel name with no width at all, so the row read as a bare time with no
+  place. The name now keeps its share of the row, and on a phone the "Staying"
+  pill stands down on that one day to make the room — the chip already says
+  both that this is a stay and that it ends today.
+- **A transit card reads in two lines instead of five** — on a phone the
+  departure and arrival times sat beside the headline and squeezed it into a
+  65px column, so "Kyoto Station → Shin-Osaka Station" broke over five lines.
+  The times now sit below the headline, as they already did on a flight, and
+  the card is slightly shorter for it.
 
 ## [1.6.1] - 2026-09-18
 

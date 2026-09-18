@@ -41,10 +41,11 @@ interface SegmentCardShellProps {
   // shrugging at it.
   needsReview?: boolean;
   // Opt-in for variants whose `meta` is too dense to share a row with
-  // the title at mobile widths — currently just flights, whose meta
-  // is a two-line stacked time block that crowds the route headline.
-  // Other variants (hotel check-in, activity / food date+time) stay
-  // right-aligned.
+  // the title at mobile widths. Two take it: flights, whose meta is a
+  // two-line stacked time block that crowds the route headline, and
+  // transit, whose `SegmentTimeMeta` departure/arrival pair left a
+  // two-station headline 65px of a 138px column (#151). Other variants
+  // (hotel check-in, activity / food date+time) stay right-aligned.
   stackMetaOnMobile?: boolean;
   className?: string;
 }
@@ -128,8 +129,8 @@ export function SegmentCardShell({
           <div
             className={cn(
               'flex justify-between gap-4',
-              // When the meta is dense (flights), drop to a column on
-              // mobile so the time block doesn't crowd the route
+              // When the meta is dense (flights, transit), drop to a
+              // column on mobile so the time block doesn't crowd the
               // headline. Re-joins the row at sm: where there's room.
               stackMetaOnMobile ? 'flex-col items-start sm:flex-row sm:items-start' : 'items-start',
             )}

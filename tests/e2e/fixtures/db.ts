@@ -184,6 +184,10 @@ export interface SeedHotelValues {
   endsAt: Date;
   countryCode?: string | null;
   locationName?: string | null;
+  // Display-only `data` metadata (never the date-only `endsAt`). Present
+  // it and the stay's final continuation row grows a "Check Out" chip —
+  // see `continuationCheckOutTime`.
+  checkOutTime?: string;
 }
 
 // Hotel segment — the span-capable type behind the collapsed-past
@@ -197,7 +201,10 @@ export async function seedHotelSegment(tripId: string, values: SeedHotelValues):
     .values({
       tripId,
       type: 'hotel',
-      data: { propertyName: values.propertyName },
+      data: {
+        propertyName: values.propertyName,
+        ...(values.checkOutTime !== undefined && { checkOutTime: values.checkOutTime }),
+      },
       startsAt: values.startsAt,
       endsAt: values.endsAt,
       locationName: values.locationName ?? null,

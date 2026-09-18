@@ -113,13 +113,28 @@ function ContinuationRow({
     >
       {renderIcon(segment)}
       {/* Headline — truncates rather than wrapping so the row stays one
-       *  line and reads as a quiet marker, not a card. */}
-      <span aria-hidden className="min-w-0 truncate text-sm">
+       *  line and reads as a quiet marker, not a card. `flex-1` so it
+       *  claims the leftover width instead of shrinking to nothing: its
+       *  siblings are all `shrink-0`, so on the stay's final day the
+       *  filled "Check Out" chip evicted the name entirely and the row
+       *  read as a bare time with no place. */}
+      <span aria-hidden className="min-w-0 flex-1 truncate text-sm">
         {name}
       </span>
+      {/* The pill and the Check Out chip together leave the name nothing
+       *  to grow into at 360px, so on the stay's final day the pill steps
+       *  aside below `sm:` — the filled chip already says both that this
+       *  is a stay and that it ends today, and the aria-label above still
+       *  speaks the word. The "since <check-in>" date stays: on a
+       *  one-night stay whose own card has folded into the collapsed
+       *  past, this row is the only place the check-in date is on
+       *  screen. */}
       <span
         aria-hidden
-        className="border-accent/45 text-accent shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase"
+        className={cn(
+          'border-accent/45 text-accent shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase',
+          checkOutTime && 'hidden sm:inline',
+        )}
       >
         {pill}
       </span>

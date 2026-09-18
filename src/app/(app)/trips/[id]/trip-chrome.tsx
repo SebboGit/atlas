@@ -92,7 +92,10 @@ export function TripChrome({
           <div className="atlas-rise mb-5" style={{ animationDelay: '40ms' }}>
             <Link
               href={`/trips/${trip.id}/itinerary`}
-              className="text-foreground/70 hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+              // Same hit area as the tab header's "All trips" link, so the
+              // two headers don't diverge: 44px on touch at every width,
+              // released on pointer.
+              className="text-foreground/70 hover:text-foreground inline-flex min-h-11 items-center gap-1.5 text-sm transition-colors [@media(hover:hover)]:min-h-0"
             >
               <span aria-hidden>←</span>
               <span>Back to trip</span>
@@ -103,7 +106,7 @@ export function TripChrome({
             className="atlas-rise mb-5 flex flex-wrap items-end justify-between gap-3"
             style={{ animationDelay: '100ms' }}
           >
-            <h1 className="font-display text-foreground text-3xl leading-[1.04] font-medium tracking-tight sm:text-4xl">
+            <h1 className="font-display text-foreground min-w-0 text-3xl leading-[1.04] font-medium tracking-tight break-words hyphens-auto sm:text-4xl">
               {trip.title}
             </h1>
             <p className="text-muted-foreground font-mono text-xs tracking-wider">{dateRange}</p>
@@ -111,20 +114,40 @@ export function TripChrome({
         </>
       ) : (
         <>
-          <div className="atlas-rise mb-5 sm:mb-8" style={{ animationDelay: '40ms' }}>
+          {/* Back link, and on phone the trip's badges beside it. The
+           *  badges sit here rather than in the title row because at
+           *  360px the row is 312px wide and the status pill alone is
+           *  108px of it — the title was left ~136px at `text-4xl`,
+           *  narrow enough that "Copenhagen" could not fit a line and
+           *  broke mid-word. Up here they cost no vertical space (the
+           *  back link already owns the line) and the title keeps
+           *  ~256px. Laptop is unchanged: the cluster is `sm:hidden`
+           *  and the badges show in the eyebrow row below. */}
+          <div
+            className="atlas-rise mb-5 flex items-center justify-between gap-3 sm:mb-8"
+            style={{ animationDelay: '40ms' }}
+          >
             <Link
               href="/trips"
-              className="text-foreground/70 hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+              // Touch keeps the 44px target at every width — a tablet is
+              // `sm:`+ but still finger-driven, and CLAUDE.md's rule 4 is
+              // about the input, not the viewport. Only pointer drops it,
+              // so the laptop line stays the height it always was.
+              className="text-foreground/70 hover:text-foreground inline-flex min-h-11 items-center gap-1.5 text-sm transition-colors [@media(hover:hover)]:min-h-0"
             >
               <span aria-hidden>←</span>
               <span>All trips</span>
             </Link>
+            <div className="flex shrink-0 items-center gap-2 sm:hidden">
+              {isPrivate && <PrivateBadge />}
+              <TripStatusBadge status={trip.status} />
+            </div>
           </div>
 
           <header className="atlas-rise mb-6 sm:mb-8" style={{ animationDelay: '100ms' }}>
-            {/* Eyebrow + status — laptop only. On phone the status pill
-             *  moves into the title row (next to the ⋯ menu) to spend one
-             *  fewer vertical line before the tabs. */}
+            {/* Eyebrow + status — laptop only. On phone the same badges
+             *  ride the back-link line above, so neither layout spends a
+             *  line of its own on them. */}
             <div className="mb-4 hidden items-center gap-3 sm:flex">
               <p className="text-muted-foreground flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
                 <span aria-hidden className="bg-foreground/30 h-px w-8" />
@@ -134,18 +157,26 @@ export function TripChrome({
               {isPrivate && <PrivateBadge />}
             </div>
 
-            {/* Title row — phone tucks the status pill and a ⋯ overflow menu
-             *  to the right of the title (Upload / Edit / Archive / Delete);
-             *  laptop hides both — the badge sits in the eyebrow row above
-             *  and the actions in the inline row below. */}
+            {/* Title row — on phone the ⋯ overflow menu sits beside the
+             *  title (Upload / Edit / Archive / Delete); laptop hides it
+             *  and puts the actions in the inline row below. The badges
+             *  are on the back-link line above in both layouts. */}
             <div className="flex items-start gap-3">
-              <h1 className="font-display text-foreground flex-1 text-4xl leading-[1.04] font-medium tracking-tight sm:text-6xl">
+              {/* `min-w-0` + `break-words`: a flex item's default
+               *  `min-width: auto` is its min-content width, so a single
+               *  long word (a place name, a compound) held the title at
+               *  its unbroken width and pushed everything beside it off
+               *  the right edge of a 360px viewport — the whole page
+               *  scrolled sideways, which CLAUDE.md forbids. Both type
+               *  scales need it: `sm:text-6xl` is wider still.
+               *  `hyphens-auto` rides along so the break lands on a
+               *  syllable with a hyphen (the document is `lang="en"`)
+               *  rather than mid-glyph. It is the backstop for a word
+               *  that cannot break well; the room to avoid needing it
+               *  comes from the badges moving up. */}
+              <h1 className="font-display text-foreground min-w-0 flex-1 text-4xl leading-[1.04] font-medium tracking-tight break-words hyphens-auto sm:text-6xl">
                 {trip.title}
               </h1>
-              <div className="mt-1 flex shrink-0 items-center gap-2 sm:hidden">
-                {isPrivate && <PrivateBadge />}
-                <TripStatusBadge status={trip.status} />
-              </div>
               {isOwner && (
                 <TripOverflowMenu
                   trip={trip}
