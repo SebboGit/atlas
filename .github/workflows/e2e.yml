@@ -10,7 +10,8 @@ name: E2E
 # `next dev` reads `next.config.ts` (where a spec guards the upload body
 # caps), `postcss.config.mjs` and `tsconfig.json` feed route compilation
 # and the `@/` alias, `.nvmrc` picks the Node version, and `db:setup`
-# seeds via `scripts/seed.ts`. Each can break the suite with no source
+# seeds via `scripts/seed.ts`, and `pnpm dev` first stages the MapLibre
+# worker via `scripts/copy-maplibre-worker.ts`. Each can break the suite with no source
 # file touched. Two files are deliberately absent: the Dockerfile,
 # because this job runs `next dev` on the runner and never the image, so
 # it cannot observe a change there (`release.yml` builds that); and
@@ -31,6 +32,8 @@ on:
       - 'src/**'
       - 'tests/e2e/**'
       - 'scripts/seed.ts'
+      - 'scripts/copy-maplibre-worker.ts'
+      - 'scripts/lib/maplibre-worker-files.ts'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.nvmrc'
@@ -45,6 +48,8 @@ on:
       - 'src/**'
       - 'tests/e2e/**'
       - 'scripts/seed.ts'
+      - 'scripts/copy-maplibre-worker.ts'
+      - 'scripts/lib/maplibre-worker-files.ts'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.nvmrc'
