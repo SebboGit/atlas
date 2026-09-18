@@ -111,6 +111,8 @@ const VISITED_COUNTRIES = [
 // `fromPin` the origin, under the same rule. (A pin without a `city`
 // still gets one background city re-resolve once its row ages — see
 // place-coords.)
+type FixturePin = { lat: number; lng: number; city?: string; source?: string };
+
 type HeroSegment = {
   type: 'flight' | 'hotel' | 'activity' | 'transit' | 'food' | 'note';
   data: Record<string, unknown>;
@@ -129,13 +131,16 @@ type HeroSegment = {
   /**
    * Lat/lng the geocode cache should return for this segment's query.
    * `null` seeds a negative row (the geocoder "found nothing").
+   * `source` overrides the seeded row's provider — set it to 'photon'
+   * or 'nominatim' on a station endpoint to model a name the tagged
+   * station rungs missed and the free-text ladder guessed at.
    */
-  pin?: { lat: number; lng: number; city?: string } | null;
+  pin?: FixturePin | null;
   /**
    * The origin's pin for a train / bus / ferry leg, where `pin` is the
    * destination's. Same `null` rule. Ignored for every other segment.
    */
-  fromPin?: { lat: number; lng: number; city?: string } | null;
+  fromPin?: FixturePin | null;
 };
 
 const HERO_SEGMENTS: HeroSegment[] = [
@@ -456,6 +461,31 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     pin: null,
   },
   {
+    // #144 edge case: a name-only origin the tagged station rungs miss.
+    // Its seeded cache row carries a free-text source, so both pins
+    // render but the map withholds the line and the leg joins the
+    // Not-pinned list saying the departure looks wrong.
+    type: 'transit',
+    data: {
+      mode: 'bus',
+      carrier: 'Buses Gómez',
+      fromName: 'Laguna Amarga',
+      toName: 'Pudeto',
+      referenceNumber: 'BUS-214',
+    },
+    startsAt: relDay(2, 8),
+    endsAt: relDay(2, 9, 30),
+    locationName: 'Torres del Paine',
+    countryCode: 'CL',
+    pin: PUDETO_DOCK,
+    // Lima — what a country-free free-text lookup for a park shuttle
+    // stop comes back with. 4,354 km from Pudeto: far enough clear of
+    // the 1,800 km bus fallback threshold that a tune can't silently
+    // stop this leg demonstrating #144, and still inside the 5,000 km
+    // bus cap, so without the guard the line would still be drawn.
+    fromPin: { lat: -12.0464, lng: -77.0428, city: 'Lima', source: 'photon' },
+  },
+  {
     // Future — a preview day, rendered but past the today anchor.
     type: 'transit',
     data: {
@@ -670,7 +700,7 @@ function placeForHeroSegment(seg: HeroSegment) {
 export interface FixtureGeocodeSeed {
   /** Geocoder-ready query, pre-normalisation. */
   query: string;
-  pin: { lat: number; lng: number; city?: string } | null;
+  pin: FixturePin | null;
 }
 
 /**
@@ -897,6 +927,9 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     const station = tryParseStationQuery(query);
     const displayName = pin ? (station?.name ?? query) : null;
     const expiresAt = pin ? positiveExpiresAt : nullExpiresAt;
+    // Which rung of the ladder "produced" the row. The trip map's
+    // fallback distance guard reads it, so a re-seed must rewrite it.
+    const source = pin?.source ?? (pin && station ? 'photon-station' : 'nominatim');
     await db
       .insert(geocodeCache)
       .values({
@@ -905,7 +938,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         lng: pin?.lng ?? null,
         displayName,
         city: pin?.city ?? null,
-        source: pin && station ? 'photon-station' : 'nominatim',
+        source,
         expiresAt,
       })
       .onConflictDoUpdate({
@@ -915,6 +948,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
           lng: pin?.lng ?? null,
           displayName,
           city: pin?.city ?? null,
+          source,
           expiresAt,
         },
       });
