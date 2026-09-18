@@ -120,22 +120,14 @@ jobs:
       # marker would be lost), and do NOT reach for `--audit-level`: pnpm
       # filters only what it prints, the exit code stays 1.
       #
-      # The accepted-risk baseline lives in package.json
+      # The accepted-risk baseline, when there is one, lives in package.json
       # `pnpm.auditConfig.ignoreGhsas`, so this goes yellow only on a NEW
-      # advisory. Every entry is a finding whose fix we have not adopted
-      # yet — the upstream patches exist (next-auth beta.32, @auth/core
-      # 0.41.3); it is our upgrade that is deferred, and issue #148 tracks
-      # it. Prune an entry the moment we upgrade past it:
-      # one left behind silences a real signal. Which entry covers what:
-      #
-      #   next-auth and @auth/core   GHSA-7rqj-j65f-68wh
-      #                              GHSA-xmf8-cvqr-rfgj
-      #                              GHSA-x445-f3h2-j279
-      #   next-auth only             GHSA-8fpg-xm3f-6cx3
-      #   browserslist               GHSA-c83g-rgw3-j3cx
-      #                              GHSA-73wf-gq98-2v4g
-      #   baseline-browser-mapping   GHSA-w5vr-8v7q-w6rv
-      #   @babel/core                GHSA-4x5r-pxfx-6jf8
+      # advisory. The list is empty right now: every finding the 1.6.x
+      # audits carried was fixed by upgrading (next-auth beta.32, maplibre-gl
+      # 6.9.0, refreshed babel/browserslist transitives). When a new advisory
+      # lands that we cannot adopt yet, add its GHSA there with a
+      # package -> GHSA line in this comment, and prune it the moment we
+      # upgrade past it: one left behind silences a real signal.
       - name: Audit (advisory)
         if: ${{ !cancelled() }}
         run: |

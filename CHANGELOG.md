@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Sign-in check cookies are bound to the provider** — the Auth.js update
+  behind this release seals the OAuth state and PKCE cookies with the
+  provider that created them. A sign-in already in flight when the update
+  lands fails its callback once and works on retry; existing sessions are
+  unaffected.
+
 ### Fixed
 
 - **An oversized document says so instead of breaking the page** — a file past

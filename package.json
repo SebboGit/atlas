@@ -17,20 +17,6 @@
     "node": ">=24.0.0"
   },
   "packageManager": "pnpm@9.15.4",
-  "pnpm": {
-    "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-8fpg-xm3f-6cx3",
-        "GHSA-7rqj-j65f-68wh",
-        "GHSA-xmf8-cvqr-rfgj",
-        "GHSA-x445-f3h2-j279",
-        "GHSA-c83g-rgw3-j3cx",
-        "GHSA-73wf-gq98-2v4g",
-        "GHSA-w5vr-8v7q-w6rv",
-        "GHSA-4x5r-pxfx-6jf8"
-      ]
-    }
-  },
   "scripts": {
     "dev": "pnpm maplibre:worker && next dev",
     "dev:up": "docker compose up -d --wait postgres && pnpm db:setup && pnpm dev",
@@ -77,7 +63,7 @@
     "lucide-react": "^1.42.0",
     "maplibre-gl": "^6.9.0",
     "next": "^16.3.4",
-    "next-auth": "5.0.0-beta.31",
+    "next-auth": "5.0.0-beta.32",
     "open-location-code": "^1.0.3",
     "pdfjs-dist": "^6.3.289",
     "pg": "^8.23.0",
