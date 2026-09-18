@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-09-19
+
 ### Changed
 
 - **Sign-in check cookies are bound to the provider** — the Auth.js update
@@ -87,6 +89,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or picked by hand is still stored and still wins. A stay already frozen by
   the old prefill comes back to life the moment its Plus Code field is cleared
   and the form saved. Trains, buses and ferries were fixed in 1.6.0.
+
+### Security
+
+- Clears every finding `pnpm audit --prod` still reported on 1.6.1. The
+  Auth.js update carries the patched `@auth/core`, so the two critical, one
+  high and one moderate advisories on the sign-in library are gone; the
+  MapLibre 6 move takes the map engine past the attribution-control XSS that
+  had no fix on the 5.x line; and three stale build-time packages behind
+  Next.js (`browserslist`, `baseline-browser-mapping`, `@babel/core`) are
+  refreshed. None of these paths was reachable in Atlas, so this is hygiene.
+
+### Upgrading
+
+Take a database backup first. There is no database migration in this release.
+Update the worker and the app together, which the usual `docker compose pull`
+followed by `up -d` already does.
+
+If someone is in the middle of signing in when the new app comes up, that one
+sign-in bounces back to the sign-in page; a second attempt goes through.
+Existing sessions carry over.
+
+The upload ceiling is now a property of the image: the published images accept
+20 MB, and a larger `STORAGE_MAX_BYTES` at runtime is clamped to that and
+logged once. Raising it means building the image yourself with
+`--build-arg STORAGE_MAX_BYTES=<bytes>`, as `.env.example` describes.
+
+Rolling back to 1.6.1 keeps your data; nothing in this release changes how a
+trip, segment or document is stored.
 
 ## [1.6.1] - 2026-09-18
 
@@ -535,7 +565,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/SebboGit/atlas/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/SebboGit/atlas/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/SebboGit/atlas/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/SebboGit/atlas/compare/v1.4.2...v1.5.0
