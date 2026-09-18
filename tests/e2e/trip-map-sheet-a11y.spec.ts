@@ -72,6 +72,9 @@ async function settle(page: Page): Promise<void> {
     await expect(popover).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout: 20_000 });
   await page.keyboard.press('Escape');
+  // The axe scan that follows must not see the popover: an Escape that
+  // lands mid-open leaves it up, and its own markup then fails the scan.
+  await expect(popover).toBeHidden();
 }
 
 // The page's own landmarks and controls, asserted BY ROLE. Playwright's
