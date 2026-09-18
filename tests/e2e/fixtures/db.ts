@@ -188,6 +188,11 @@ export interface SeedHotelValues {
   // it and the stay's final continuation row grows a "Check Out" chip —
   // see `continuationCheckOutTime`.
   checkOutTime?: string;
+  address?: string;
+  // Where the geocoder put the stay. Seeds the matching `geocode_cache`
+  // row so the card and the edit form read it as a hit without a live
+  // lookup — the control case for a stay pinned by name alone (#135).
+  pin?: { lat: number; lng: number; city?: string | null };
 }
 
 // Hotel segment — the span-capable type behind the collapsed-past
@@ -196,15 +201,17 @@ export interface SeedHotelValues {
 // days (see day-temporal.ts `continuesThroughDay`).
 export async function seedHotelSegment(tripId: string, values: SeedHotelValues): Promise<string> {
   assertTestDatabase();
+  const data = {
+    propertyName: values.propertyName,
+    ...(values.address !== undefined && { address: values.address }),
+    ...(values.checkOutTime !== undefined && { checkOutTime: values.checkOutTime }),
+  };
   const inserted = await db
     .insert(segments)
     .values({
       tripId,
       type: 'hotel',
-      data: {
-        propertyName: values.propertyName,
-        ...(values.checkOutTime !== undefined && { checkOutTime: values.checkOutTime }),
-      },
+      data,
       startsAt: values.startsAt,
       endsAt: values.endsAt,
       locationName: values.locationName ?? null,
@@ -213,7 +220,59 @@ export async function seedHotelSegment(tripId: string, values: SeedHotelValues):
     .returning({ id: segments.id });
   const row = inserted[0];
   if (!row) throw new Error('E2E fixture: failed to seed hotel segment.');
+
+  if (values.pin) {
+    await seedGeocodeHit(
+      {
+        type: 'hotel',
+        data,
+        locationName: values.locationName ?? null,
+        countryCode: values.countryCode ?? null,
+      },
+      values.pin,
+    );
+  }
   return row.id;
+}
+
+// Cache a positive geocode for a place, keyed on the production
+// buildGeocodeQuery output so the read path finds it.
+async function seedGeocodeHit(
+  place: Parameters<typeof buildGeocodeQuery>[0],
+  pin: { lat: number; lng: number; city?: string | null },
+): Promise<void> {
+  const query = buildGeocodeQuery(place);
+  if (!query) throw new Error('E2E fixture: buildGeocodeQuery returned null.');
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const fields = {
+    lat: pin.lat,
+    lng: pin.lng,
+    city: pin.city ?? null,
+    displayName: query,
+    source: 'photon',
+    expiresAt,
+  };
+  await db
+    .insert(geocodeCache)
+    .values({ queryNormalized: normalizeQuery(query), ...fields })
+    .onConflictDoUpdate({
+      target: geocodeCache.queryNormalized,
+      set: { ...fields, fetchedAt: new Date() },
+    });
+}
+
+// The stored `data` JSONB of one segment. Lets a spec assert what a save
+// actually wrote — e.g. that an edit did NOT persist a Plus Code derived
+// from cached coordinates (#135).
+export async function readSegmentData(segmentId: string): Promise<Record<string, unknown>> {
+  assertTestDatabase();
+  const rows = await db
+    .select({ data: segments.data })
+    .from(segments)
+    .where(eq(segments.id, segmentId));
+  const row = rows[0];
+  if (!row) throw new Error('E2E fixture: segment not found.');
+  return row.data as Record<string, unknown>;
 }
 
 export interface SeedWishlistValues {

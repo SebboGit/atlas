@@ -142,6 +142,41 @@ describe('geocodeOnSegmentChange — update path', () => {
     expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 
+  it('does NOT re-enqueue when the name changes under a stored Plus Code', () => {
+    // Why the edit dialog never saves a code derived from the cached
+    // coordinates (#135): a stored code outranks the name, so a rename
+    // under one can no longer move the pin. A code the user typed or
+    // picked is a deliberate pin and keeps that precedence.
+    const before = makeSegment({
+      type: 'hotel',
+      data: { propertyName: 'Hotel California', plusCode: '8Q7XMQJ8+FV' },
+    });
+    const after = makeSegment({
+      type: 'hotel',
+      data: { propertyName: 'Hotel Sakura', plusCode: '8Q7XMQJ8+FV' },
+    });
+    geocodeOnSegmentChange({ segment: after, prior: before });
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('enqueues the name query when a renamed stay carries no Plus Code', () => {
+    // The fixed edit path: the form shows the derived code but stores
+    // nothing, so the rename re-geocodes by name (ADR-0018).
+    const before = makeSegment({
+      type: 'hotel',
+      data: { propertyName: 'Hotel California' },
+      countryCode: 'JP',
+    });
+    const after = makeSegment({
+      type: 'hotel',
+      data: { propertyName: 'Hotel Sakura' },
+      countryCode: 'JP',
+    });
+    geocodeOnSegmentChange({ segment: after, prior: before });
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.send.mock.calls[0]?.[1]).toMatchObject({ query: 'Hotel Sakura, Japan' });
+  });
+
   it('does NOT re-enqueue when only the address changes under a stable name', () => {
     // Consequence of name-first: the address is informational once a
     // name is on file. Wrong-pin fixes go through the Plus Code field

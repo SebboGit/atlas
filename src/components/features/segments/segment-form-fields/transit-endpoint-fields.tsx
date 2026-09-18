@@ -1,8 +1,8 @@
 'use client';
 
-import { ChevronDown, MapPin, X } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import * as React from 'react';
-import { useFormState, useWatch } from 'react-hook-form';
+import { useFormState } from 'react-hook-form';
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,13 +11,12 @@ import { cn } from '@/lib/utils';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
 import { PlaceFinder } from './place-finder';
+import { PinLine, usePlaceQueryValues } from './place-pin-line';
+import { placePinLine, placeStillLocated, placeValuesAt, valueAt } from './place-pin-logic';
 import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 import {
-  endpointEdited,
-  endpointPinLine,
   endpointSectionStartsOpen,
   TRANSIT_ENDPOINT_PATHS,
-  valueAt,
   type EndpointSide,
 } from './transit-endpoint-logic';
 
@@ -54,19 +53,7 @@ export function TransitEndpointFields({ form, side, locate, located }: TransitEn
   const idBase = `seg-transit-${side}`;
   const regionId = React.useId();
 
-  const [name, address, plusCode] = useWatch({
-    control: form.control,
-    name: [paths.name, paths.address, paths.plusCode] as never,
-  }) as unknown as [unknown, unknown, unknown];
-  // Compared against the saved values directly rather than RHF's dirty
-  // state, which marks keys the saved data never had ('' vs undefined).
-  const saved = form.formState.defaultValues;
-  const savedEnd = {
-    name: valueAt(saved, paths.name),
-    address: valueAt(saved, paths.address),
-    plusCode: valueAt(saved, paths.plusCode),
-  };
-  const edited = endpointEdited({ name, address, plusCode }, savedEnd);
+  const savedEnd = placeValuesAt(form.formState.defaultValues, paths);
 
   const formState = useFormState({ control: form.control });
   const errors = getDataErrors(formState.errors);
@@ -80,8 +67,6 @@ export function TransitEndpointFields({ form, side, locate, located }: TransitEn
   const showLocation = locate || hasLocationError;
   const [sectionOpen, setSectionOpen] = React.useState(() => endpointSectionStartsOpen(savedEnd));
   const expanded = showLocation && (sectionOpen || hasLocationError);
-  const pin = locate ? endpointPinLine({ name, plusCode, address, located, edited }) : null;
-  const sideWord = side === 'from' ? 'origin' : 'destination';
 
   function clearPin() {
     for (const path of [paths.plusCode, paths.address]) {
@@ -117,30 +102,7 @@ export function TransitEndpointFields({ form, side, locate, located }: TransitEn
         )}
       </div>
 
-      {pin && (
-        <p className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs leading-snug">
-          <MapPin
-            aria-hidden
-            className={cn(
-              'size-3.5 shrink-0',
-              pin.state === 'pinned' ? 'text-primary' : 'text-foreground/40',
-            )}
-            strokeWidth={1.75}
-          />
-          <span className="text-foreground/80 shrink-0 font-mono tracking-wide">{pin.code}</span>
-          {pin.detail && <span className="min-w-0 truncate">{pin.detail}</span>}
-          {pin.state === 'pinned' && (
-            <button
-              type="button"
-              aria-label={`Clear ${sideWord} pin`}
-              onClick={clearPin}
-              className="text-foreground/50 hover:text-foreground ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-full [@media(hover:none)]:size-11"
-            >
-              <X aria-hidden className="size-3.5" />
-            </button>
-          )}
-        </p>
-      )}
+      {locate && <TransitPinLine form={form} side={side} located={located} onClear={clearPin} />}
 
       {showLocation && (
         <>
@@ -185,4 +147,34 @@ export function TransitEndpointFields({ form, side, locate, located }: TransitEn
       )}
     </div>
   );
+}
+
+// The pin line for one end, as its own leaf: it watches the whole `data`
+// subtree (a station key reads more than the three fields beside it), and
+// keeping that subscription down here means a keystroke in either end
+// re-renders this line rather than both endpoint blocks.
+function TransitPinLine({
+  form,
+  side,
+  located,
+  onClear,
+}: {
+  form: Form;
+  side: EndpointSide;
+  located?: PlaceCoordsEntry | null;
+  onClear: () => void;
+}) {
+  const paths = TRANSIT_ENDPOINT_PATHS[side];
+  const { current, saved } = usePlaceQueryValues(form);
+  // Query equality, per end: a route-label (locationName) edit leaves a
+  // station key alone, a renamed station doesn't (ADR-0019).
+  const pin = placePinLine({
+    address: valueAt(current, paths.address),
+    plusCode: valueAt(current, paths.plusCode),
+    located,
+    stillLocated: placeStillLocated(current, saved, side === 'from' ? 'origin' : 'destination'),
+  });
+  if (!pin) return null;
+  const sideWord = side === 'from' ? 'origin' : 'destination';
+  return <PinLine pin={pin} onClear={onClear} clearLabel={`Clear ${sideWord} pin`} />;
 }

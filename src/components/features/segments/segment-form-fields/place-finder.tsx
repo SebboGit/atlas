@@ -21,6 +21,9 @@ import { encodePlusCode } from '@/lib/geocoding/plus-code';
 import type { GeocodeCandidate } from '@/lib/geocoding/types';
 import { cn } from '@/lib/utils';
 
+import { PLACE_PATHS, type PlacePaths } from './place-pin-logic';
+import { TRANSIT_ENDPOINT_PATHS } from './transit-endpoint-logic';
+
 // react-hook-form's UseFormReturn is invariant over the discriminated-
 // union FormInput, and nested-union field paths collapse under strict
 // mode. We accept the form opaquely and route the four known paths
@@ -38,19 +41,10 @@ const PICK_CODE_LENGTH = 11;
 // Which fields a picker reads and fills. `name` holds the venue / POI
 // NAME — never the typed address — and is what we search on (the locked
 // design: hand-typed addresses fail across much of Asia / informal
-// areas).
+// areas). The paths live with the pin line that reports where each
+// place landed; a transit picker is always handed its end's paths
+// explicitly, and defaults to the destination's.
 type PickerType = 'hotel' | 'activity' | 'transit' | 'food';
-export interface PlacePaths {
-  name: string;
-  address: string;
-  plusCode: string;
-}
-const DEFAULT_PATHS: Record<PickerType, PlacePaths> = {
-  hotel: { name: 'data.propertyName', address: 'data.address', plusCode: 'data.plusCode' },
-  activity: { name: 'data.title', address: 'data.address', plusCode: 'data.plusCode' },
-  transit: { name: 'data.toName', address: 'data.address', plusCode: 'data.plusCode' },
-  food: { name: 'data.venue', address: 'data.address', plusCode: 'data.plusCode' },
-};
 
 interface PlaceFinderProps {
   form: AnyForm;
@@ -99,7 +93,7 @@ type Phase =
 export function PlaceFinder({
   form,
   type,
-  paths = DEFAULT_PATHS[type],
+  paths = type === 'transit' ? TRANSIT_ENDPOINT_PATHS.to : PLACE_PATHS[type],
   side,
   fillCountry = true,
   compact = false,

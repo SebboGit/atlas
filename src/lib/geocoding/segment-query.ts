@@ -157,7 +157,7 @@ export function buildGeocodeQuery(segment: PlaceLike): string | null {
 
     case 'transit': {
       // Train / bus / ferry: the single-point consumers (card badge,
-      // stats, edit prefill) get the destination, else the origin.
+      // stats) get the destination, else the origin.
       const endpoints = buildTransitEndpointQueries(segment);
       if (endpoints) return endpoints.destination ?? endpoints.origin;
       // car / other: the pre-ADR-0019 chain, byte-for-byte, so their

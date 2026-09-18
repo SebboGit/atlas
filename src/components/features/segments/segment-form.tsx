@@ -67,7 +67,7 @@ interface SegmentFormProps {
   onSuccess?: (id: string) => void;
   onCancel?: () => void;
   submitLabel?: string;
-  /** Saved coordinates on edit — the transit From / To pin lines read them. */
+  /** Saved coordinates on edit — every type's pin line reads them. */
   coords?: PlaceCoordsEntry | null;
 }
 
@@ -246,10 +246,10 @@ export function SegmentForm({
         )}
 
         {currentType === 'flight' && <FlightFields form={form} />}
-        {currentType === 'hotel' && <HotelFields form={form} />}
-        {currentType === 'activity' && <ActivityFields form={form} />}
+        {currentType === 'hotel' && <HotelFields form={form} located={coords} />}
+        {currentType === 'activity' && <ActivityFields form={form} located={coords} />}
         {currentType === 'transit' && <TransitFields form={form} coords={coords} />}
-        {currentType === 'food' && <FoodFields form={form} />}
+        {currentType === 'food' && <FoodFields form={form} located={coords} />}
         {currentType === 'note' && <NoteFields form={form} />}
 
         {currentType !== 'note' && <SharedDateFields form={form} type={currentType} />}
