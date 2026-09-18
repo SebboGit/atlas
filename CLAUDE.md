@@ -319,7 +319,7 @@ This is a personal app but contains travel documents (passports, boarding passes
 - **Path safety:** The storage adapter resolves all paths relative to `STORAGE_DIR` and rejects any key containing `..`, absolute paths, or null bytes. Test this.
 - **Logging:** Structured JSON logs. **Never** log document contents, full PNRs, passport numbers, or auth tokens. Redact at the logger boundary.
 - **Backups:** see the `atlas-backups` skill. Test restore from a real snapshot at least once per quarter.
-- **Dependencies:** Dependabot handles updates. CI runs an advisory `pnpm audit --prod` step; the known baseline is allow-listed in package.json `pnpm.auditConfig.ignoreGhsas`, so the step warns only on a new advisory and never fails the build.
+- **Dependencies:** Dependabot handles updates. CI runs an advisory `pnpm audit --prod` step that warns on any finding and never fails the build. There is no accepted-risk baseline today; if one is ever needed it goes in package.json `pnpm.auditConfig.ignoreGhsas` with the package named in the `ci.yml` comment, and is pruned the moment the upgrade lands.
 - **Secret scanning:** gitleaks blocks credentials at three layers — a pre-commit hook, a CI job, and GitHub's server-side push protection. Rules and the allowlist live in `.gitleaks.toml`.
 - **Threat model:** A one-pager lives in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md). Update when adding features that touch auth, file uploads, or external services.
 

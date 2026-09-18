@@ -11,6 +11,8 @@ const config = [
       'test-results/**',
       'src/db/migrations/**',
       'next-env.d.ts',
+      // Staged by `pnpm maplibre:worker` (gitignored minified bundles).
+      'public/maplibre/**',
     ],
   },
 

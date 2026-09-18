@@ -96,7 +96,7 @@ const securityHeaders = [
       "font-src 'self' data:",
       // MapLibre GL's tile-decoder worker is served same-origin from
       // /maplibre/ (staged out of node_modules by
-      // scripts/copy-maplibre-worker.mjs), so `'self'` is what starts it.
+      // scripts/copy-maplibre-worker.ts), so `'self'` is what starts it.
       // The browser checks `worker-src` (or `default-src` as fallback)
       // when spawning workers; block it and the map renders only its
       // background layer — a white/blank canvas with nothing in the

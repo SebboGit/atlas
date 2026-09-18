@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   provider that created them. A sign-in already in flight when the update
   lands fails its callback once and works on retry; existing sessions are
   unaffected.
+- **Map engine moved to MapLibre 6** — both maps render as before. The engine
+  now loads its tile decoder from a separate file that the app stages at build
+  time and the offline cache keeps, so a map you opened online still draws its
+  pins and routes offline. Building from source runs that staging step as part
+  of `pnpm build`.
 
 ### Fixed
 

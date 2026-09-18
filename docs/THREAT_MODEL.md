@@ -60,9 +60,9 @@ guarantees below weaken accordingly.
   `X-Frame-Options: DENY`, and a conservative referrer policy, with no
   third-party origins permitted in production (dev loosens the CSP for HMR).
 - **Vulnerable dependencies** — Dependabot opens grouped weekly updates, and
-  CI runs an advisory `pnpm audit --prod` step. The known baseline is
-  allow-listed in package.json `pnpm.auditConfig.ignoreGhsas`, so the step
-  surfaces new advisories for manual review; it does not gate merges.
+  CI runs an advisory `pnpm audit --prod` step that surfaces findings for
+  manual review; it does not gate merges. There is no accepted-risk baseline
+  today; one would live in package.json `pnpm.auditConfig.ignoreGhsas`.
 
 ## Out of scope
 
