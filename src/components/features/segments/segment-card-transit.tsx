@@ -78,6 +78,15 @@ export function SegmentCardTransit({
       title={title}
       subtitle={subtitle}
       meta={meta}
+      // A transit headline is two station names and an arrow, and the
+      // card only ever renders in the single-column itinerary. Below
+      // `sm:` the departure/arrival block beside it left the title 65px
+      // of the 138px text column, so "Kyoto Station → Shin-Osaka
+      // Station" wrapped over five lines. Stacking the meta underneath
+      // (the same thing flights already do) hands the title the full
+      // column and makes the card 14px SHORTER, not taller. The action
+      // cluster and its lane are untouched (#123).
+      stackMetaOnMobile
       footer={
         linkedDocuments.length > 0 ? <LinkedDocumentChips documents={linkedDocuments} /> : undefined
       }
