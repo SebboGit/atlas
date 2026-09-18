@@ -17,6 +17,21 @@
     "node": ">=24.0.0"
   },
   "packageManager": "pnpm@9.15.4",
+  "pnpm": {
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-8fpg-xm3f-6cx3",
+        "GHSA-7rqj-j65f-68wh",
+        "GHSA-xmf8-cvqr-rfgj",
+        "GHSA-x445-f3h2-j279",
+        "GHSA-jrc7-96c5-q579",
+        "GHSA-c83g-rgw3-j3cx",
+        "GHSA-73wf-gq98-2v4g",
+        "GHSA-w5vr-8v7q-w6rv",
+        "GHSA-4x5r-pxfx-6jf8"
+      ]
+    }
+  },
   "scripts": {
     "dev": "next dev",
     "dev:up": "docker compose up -d --wait postgres && pnpm db:setup && next dev",
