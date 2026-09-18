@@ -36,6 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pinned saying which end looks wrong and that an address or Plus Code will fix
   it. Both pins still show — the guess may be right, and a pin claims far less
   than a line. Stops given an address or a Plus Code are trusted as before.
+- **The trip map was invisible to a screen reader on a laptop** — the phone
+  bottom sheet was only hidden by a style rule, so it still existed on wider
+  screens. It is built on a dialog, and a dialog hides everything behind it
+  from assistive technology, which on a laptop meant the map, the timeline and
+  the page chrome all went quiet. The sheet is now built only on phone and
+  small-tablet widths and removed again above them, so nothing on the page is
+  hidden. Nothing changes on screen. On a phone the rest of the page is still
+  hidden from a screen reader while the sheet is up, and focus that reaches the
+  sheet cannot leave it.
 
 ## [1.6.1] - 2026-09-18
 
