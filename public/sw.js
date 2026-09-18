@@ -9,7 +9,9 @@
  * What this gives you: anything you opened while online (your itinerary
  * before takeoff) is viewable offline. What it can't: pages you never
  * opened, live mutations (server actions need the network), and the map
- * basemap (tiles stream through /api and are too large to cache).
+ * basemap (tiles stream through /api and are too large to cache). MapLibre's
+ * tile-decoder worker IS cached — it is a small same-origin file under
+ * /maplibre/<version>/, and without it an offline map renders nothing at all.
  */
 
 const VERSION = 'atlas-v1';
@@ -28,8 +30,11 @@ const PRECACHE_URLS = [OFFLINE_URL, '/atlas_logo.svg', '/favicon.svg'];
 
 // Same-origin static assets worth caching lazily (the offline page leans on
 // these too). Map tiles live under /api and are intentionally excluded.
+// `/maplibre/` holds MapLibre's worker and the chunk it imports, staged per
+// library version by scripts/copy-maplibre-worker.ts — a version bump changes
+// the path, so a cached copy is never served to a bundle that wants another.
 const STATIC_ASSET =
-  /^\/(?:icons|basemaps-assets|geo)\/|\.(?:svg|png|jpe?g|webp|gif|ico|woff2?|ttf|otf)$/;
+  /^\/(?:icons|basemaps-assets|geo|maplibre)\/|\.(?:svg|png|jpe?g|webp|gif|ico|woff2?|ttf|otf)$/;
 
 // Only cache clean, same-origin 200s. Skips opaque/cross-origin responses
 // and — importantly — auth redirects (a logged-out → /signin bounce must not
@@ -193,7 +198,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Other same-origin static assets (icons, fonts, sprites, GeoJSON).
+  // Other same-origin static assets (icons, fonts, sprites, GeoJSON, the
+  // MapLibre worker).
   if (STATIC_ASSET.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;

@@ -3,6 +3,7 @@
 // so the layer contract (ids, filters, the dim feature-state) is tested
 // without a live MapLibre instance.
 
+import type { FeatureCollection } from 'geojson';
 import type {
   CircleLayerSpecification,
   ExpressionSpecification,
@@ -30,7 +31,7 @@ function dimmable(dimmed: number, normal: number): ExpressionSpecification {
   return ['case', ['boolean', ['feature-state', 'dimmed'], false], dimmed, normal];
 }
 
-export function arcsToFeatureCollection(arcs: readonly TripMapArc[]): GeoJSON.FeatureCollection {
+export function arcsToFeatureCollection(arcs: readonly TripMapArc[]): FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: arcs.map((arc, idx) => ({
@@ -56,9 +57,7 @@ export function arcsToFeatureCollection(arcs: readonly TripMapArc[]): GeoJSON.Fe
 // One point feature per route end. Ids idx*2 / idx*2+1 so a dot dims in
 // lockstep with its line via the same arc idx. Deduping isn't worth it —
 // a shared airport or station just stacks two coincident dots.
-export function arcEndpointsToFeatureCollection(
-  arcs: readonly TripMapArc[],
-): GeoJSON.FeatureCollection {
+export function arcEndpointsToFeatureCollection(arcs: readonly TripMapArc[]): FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: arcs.flatMap((arc, idx) => [

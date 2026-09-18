@@ -9,6 +9,9 @@ build
 # --- Runtime data (bind-mounted by docker-compose, never baked) -------------
 data
 
+# --- Generated assets (re-staged by `pnpm build` inside the image) -----------
+public/maplibre
+
 # --- Version control --------------------------------------------------------
 .git
 .gitignore

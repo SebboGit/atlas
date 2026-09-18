@@ -94,13 +94,16 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
-      // MapLibre GL builds its tile-decoder worker as an inline
-      // `Blob`, then spawns it via `new Worker(URL.createObjectURL(...))`.
+      // MapLibre GL's tile-decoder worker is served same-origin from
+      // /maplibre/ (staged out of node_modules by
+      // scripts/copy-maplibre-worker.mjs), so `'self'` is what starts it.
       // The browser checks `worker-src` (or `default-src` as fallback)
-      // when starting workers; without `blob:` allow-listed here the
-      // worker silently fails and the map renders only its background
-      // layer — looks like a white/blank canvas. `'self'` keeps any
-      // future same-origin worker scripts working.
+      // when spawning workers; block it and the map renders only its
+      // background layer — a white/blank canvas with nothing in the
+      // console. `blob:` is held over from MapLibre v5, which built the
+      // worker as an inline Blob; v6 only falls back to a Blob URL for a
+      // cross-origin worker, which Atlas never loads. Dropping it is a
+      // safe tightening, deliberately left out of the v6 upgrade.
       "worker-src 'self' blob:",
       connectSrc,
       "frame-ancestors 'none'",

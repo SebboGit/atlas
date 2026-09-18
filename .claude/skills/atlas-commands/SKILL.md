@@ -15,7 +15,8 @@ pnpm dev:up                # docker compose up -d --wait postgres → migrate �
 pnpm dev:up:wt             # dev:up + seed:dev — for sibling worktrees only (refuses on main)
 
 # Individual pieces (when dev:up is overkill)
-pnpm dev                   # just next dev (requires postgres running + DB migrated)
+pnpm dev                   # stage MapLibre's worker + next dev (postgres running + DB migrated)
+pnpm maplibre:worker       # stage MapLibre's worker in public/maplibre/<version>/ (chained into dev + build)
 pnpm db:setup              # migrate + seed
 pnpm db:reset              # nuke postgres volume, bring up fresh, migrate + seed
 pnpm db:generate           # generate a migration from schema changes
@@ -32,8 +33,8 @@ docker compose --profile backup up -d     # also activate scheduled DB backups
 pnpm typecheck
 pnpm lint
 pnpm test                  # Vitest
-pnpm test:e2e              # Playwright (local only — not in CI yet)
-pnpm build                 # Production build
+pnpm test:e2e              # Playwright (also runs as its own PR check)
+pnpm build                 # Production build (stages MapLibre's worker first)
 
 # Backups
 ./scripts/backup-documents.sh                  # docs snapshot (DB handled by the container)

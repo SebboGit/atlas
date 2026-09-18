@@ -1,6 +1,7 @@
 'use client';
 
-import maplibregl, { type LngLatBoundsLike, type Map as MapLibreMap } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import type { LngLatBoundsLike, Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 import * as React from 'react';
@@ -14,6 +15,7 @@ import type {
   UngeocodedSegment,
   WishlistMapPin,
 } from '@/lib/trip-map/repo';
+import '@/lib/maplibre/worker-url';
 import { cn } from '@/lib/utils';
 
 import {
