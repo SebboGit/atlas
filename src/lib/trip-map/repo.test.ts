@@ -75,11 +75,15 @@ vi.mock('@/lib/geocoding', async () => {
   const plusCode = await vi.importActual<typeof import('@/lib/geocoding/plus-code')>(
     '@/lib/geocoding/plus-code',
   );
+  const stationQuery = await vi.importActual<typeof import('@/lib/geocoding/station-query')>(
+    '@/lib/geocoding/station-query',
+  );
   return {
     ...geocodingMocks,
     buildTransitEndpointQueries: segmentQuery.buildTransitEndpointQueries,
     decodePlusCode: plusCode.decodePlusCode,
     tryParsePlusCode: plusCode.tryParsePlusCode,
+    tryParseStationQuery: stationQuery.tryParseStationQuery,
   };
 });
 
@@ -661,5 +665,69 @@ describe('getTripMapDataForUser — train, bus and ferry routes (ADR-0019)', () 
     const ids = result.ungeocoded.map((u) => u.segmentId);
     expect(ids).toEqual([...new Set(ids)]);
     expect(ids.sort()).toEqual(['seg-back', 'seg-hotel', 'seg-out']);
+  });
+
+  // #144: a station name the tagged rungs missed goes to the free-text
+  // ladder without the leg's country, so it can land in the wrong
+  // region — and the line asserted the journey anyway.
+  describe('far-off free-text station guesses', () => {
+    const PAINE_GRANDE = { lat: -51.09, lng: -73.08 };
+    const PUERTO_MONTT = { lat: -41.4693, lng: -72.9424 };
+    const PUDETO_KEY = 'station:ferry:cl:pudeto';
+    const PAINE_KEY = 'station:ferry:cl:refugio paine grande';
+    const sourcedHit = (p: { lat: number; lng: number }, source: string) => ({
+      kind: 'hit',
+      result: { ...p, displayName: 'x', source },
+      cityPending: false,
+    });
+
+    function makeFerry() {
+      return makeTransit(
+        'seg-ferry',
+        { mode: 'ferry', fromName: 'Pudeto', toName: 'Refugio Paine Grande' },
+        { countryCode: 'CL', locationName: 'Lago Pehoé' },
+      );
+    }
+
+    it('keeps both pins, withholds the line, and flags the departure', async () => {
+      dbState.rows = [makeFerry()];
+      geocodingMocks.getCachedMany.mockResolvedValue(
+        new Map<string, object>([
+          [PUDETO_KEY, sourcedHit(PUERTO_MONTT, 'photon')],
+          [PAINE_KEY, sourcedHit(PAINE_GRANDE, 'photon-station')],
+        ]),
+      );
+
+      const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+      // The guess may be right, so its pin stays — only the line, which
+      // asserts the journey, is withheld.
+      expect(result.pins.map((p) => p.endpoint)).toEqual(['origin', 'destination']);
+      expect(result.arcs).toEqual([]);
+      expect(result.ungeocoded).toEqual([
+        {
+          segmentId: 'seg-ferry',
+          type: 'transit',
+          label: 'Pudeto → Refugio Paine Grande',
+          reason: 'The departure point looks wrong — add its address or Plus Code.',
+        },
+      ]);
+    });
+
+    it('keeps the line when the same far end came from a tagged station lookup', async () => {
+      dbState.rows = [makeFerry()];
+      geocodingMocks.getCachedMany.mockResolvedValue(
+        new Map<string, object>([
+          [PUDETO_KEY, sourcedHit(PUERTO_MONTT, 'photon-station')],
+          [PAINE_KEY, sourcedHit(PAINE_GRANDE, 'photon-station')],
+        ]),
+      );
+
+      const result = await getTripMapDataForUser('user-1', 'trip-1');
+
+      expect(result.pins).toHaveLength(2);
+      expect(result.arcs).toHaveLength(1);
+      expect(result.ungeocoded).toEqual([]);
+    });
   });
 });

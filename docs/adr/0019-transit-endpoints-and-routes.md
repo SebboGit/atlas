@@ -1,6 +1,6 @@
 # ADR-0019: Station-aware transit endpoints, route lines, and a Directions link
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-18, see below)
 - **Date:** 2026-09-13
 - **Deciders:** @SebboGit
 - **Amends:** ADR-0018 (transit queries: train, bus and ferry station
@@ -116,6 +116,33 @@ The tag lists, strip rules, generic tokens, distance caps, curve ratio
 and focus zoom levels are initial values. Tuning them doesn't need a new
 ADR.
 
+> **Amended 2026-09-18 — Decision 6.** The route line gains a
+> source-aware distance guard. Where both ends resolve and one of them is
+> a bare station name that only the free-text fallback could place —
+> `geocode_cache.source` reads `photon` or `nominatim` rather than
+> `photon-station` — and it sits further from the other end than the
+> mode's fallback threshold (train 2,500 km, bus 1,800 km, ferry 900 km),
+> the line is withheld and the leg carries a Not-pinned entry naming the
+> end that looks wrong, or both when neither is better than a guess. Both
+> pins stay: a guess is often right, and a pin claims far less than a line
+> does. The guard runs before the mode cap, so a leg that is both over its
+> cap and built on a guess now gets an entry where Decision 6 gave it
+> none. An end given an address or a Plus Code is trusted at any distance,
+> as is a row whose source predates the column, and setting one is the fix
+> the entry names. Decision 3 is untouched: the fallback still asks
+> without a country, because forcing the destination's country onto the
+> origin breaks a cross-border leg. The thresholds sit well above an
+> ordinary long leg because the population they govern is wide — a name
+> with no comparable Latin words never reaches the tagged rungs at all,
+> and the probes above show "Berlin Hbf"-class names fall back and land
+> correctly — so a false positive must cost only a line, never a pin. They
+> are initial values and tuning them doesn't need a new ADR (#144). One
+> consequence of keeping the pins: the Not-pinned bucket now also holds
+> legs that ARE pinned, just not trusted enough to draw a line between, so
+> the chip's "not on the map" wording over-claims for that class. The
+> wording is left alone here — it is the established term and other work
+> selects the chip by it — and a rename belongs to a later copy pass.
+
 ## Consequences
 
 ### Positive
@@ -153,6 +180,10 @@ ADR.
   image.
 - The /stats north and south extremes can lose transit points until the
   affected trips' itinerary or map pages have been opened once.
+- The guard is map-local. It governs the route line and the Not-pinned
+  entry only; the segment info dialog's Plus Code badges, the edit form's
+  located line and the stats extremes still read the raw cache row, so a
+  guessed coordinate still shows there. Tracked in #164.
 
 ### Neutral
 
@@ -200,6 +231,9 @@ ADR.
   misses; rethink the category filter.
 - `geocode_cache.source` shows the fallback carrying most station keys →
   tune the strip rules or name guard before adding anything.
+- Legs keep losing their line to the fallback thresholds → raise that
+  mode's number, or pin the end with an address or Plus Code, which
+  outranks the station lookup.
 - Transitous changes its eligibility rules, or a router becomes cheap to
   self-host → real track shapes become an option.
 - Transit needs cross-border country attribution → revisit the single

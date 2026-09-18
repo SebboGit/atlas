@@ -356,6 +356,8 @@ export async function seedUngeocodedActivitySegment(
   return row.id;
 }
 
+type SeedTransitEnd = { lat: number; lng: number; source?: string } | 'null' | undefined;
+
 export interface SeedTransitValues {
   mode: 'train' | 'bus' | 'ferry';
   fromName?: string;
@@ -365,8 +367,11 @@ export interface SeedTransitValues {
   endsAt?: Date;
   // Per endpoint: coordinates seed a hit row, 'null' a negative row
   // (the geocoder found nothing), undefined no row at all (pending).
-  origin: { lat: number; lng: number } | 'null' | undefined;
-  destination: { lat: number; lng: number } | 'null' | undefined;
+  // `source` overrides the row's provider — 'photon' or 'nominatim'
+  // models a name the tagged station rungs missed and the free-text
+  // ladder guessed at, which the trip map's distance guard reads.
+  origin: SeedTransitEnd;
+  destination: SeedTransitEnd;
 }
 
 // Train / bus / ferry segment with a geocode_cache row per endpoint
@@ -421,7 +426,7 @@ export async function seedTransitSegment(
       lat: hit?.lat ?? null,
       lng: hit?.lng ?? null,
       displayName: hit ? (name ?? null) : null,
-      source: hit ? 'photon-station' : 'none',
+      source: hit ? (hit.source ?? 'photon-station') : 'none',
       expiresAt,
     };
     await db

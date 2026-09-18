@@ -233,11 +233,22 @@ function rowToResult(row: {
   lng: number | null;
   displayName: string | null;
   city: string | null;
+  source?: string | null;
 }): GeocodeResult | null {
   if (row.lat === null || row.lng === null || row.displayName === null) return null;
   // CITY_NONE ('') renders the same as unknown — no city line.
   const city = row.city ? row.city : null;
-  return { lat: row.lat, lng: row.lng, displayName: row.displayName, city };
+  // Provenance survives the read: the trip map's fallback distance
+  // guard needs to tell a tagged station hit from a free-text guess
+  // (see trip-map/transit-route.ts). Absent on rows that carry none.
+  const source = row.source ? row.source : undefined;
+  return {
+    lat: row.lat,
+    lng: row.lng,
+    displayName: row.displayName,
+    city,
+    ...(source && { source }),
+  };
 }
 
 // Exposed for tests + internal callers that already hold a normalized key.

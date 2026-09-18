@@ -26,6 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   than the one they are stored in. West of Greenwich a trip starting 4 Oct read
   as 3 Oct, and because the server and the browser disagreed, every trip page
   logged a hydration mismatch. Viewers on UTC saw neither.
+- **No more confident line to a stop we only guessed at** — a train, bus or
+  ferry stop given only a name is looked up as a station, and when that lookup
+  comes up empty the name goes to a plain search that doesn't know which
+  country the leg is in. "Pudeto", the dock in Torres del Paine, came back as a
+  harbour about 1,065 km north, and the map drew a line straight to it. A stop
+  placed that way is now measured against the other end of the leg: too far
+  apart for the mode and the line is withheld, and the leg appears under Not
+  pinned saying which end looks wrong and that an address or Plus Code will fix
+  it. Both pins still show — the guess may be right, and a pin claims far less
+  than a line. Stops given an address or a Plus Code are trusted as before.
 
 ## [1.6.1] - 2026-09-18
 

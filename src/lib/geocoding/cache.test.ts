@@ -200,7 +200,13 @@ describe('getCachedOrFetch', () => {
     const r = await getCachedOrFetch('Paris', g, clock);
 
     expect(r).toEqual({
-      result: { lat: 48.85, lng: 2.29, displayName: 'Paris, France', city: 'Paris' },
+      result: {
+        lat: 48.85,
+        lng: 2.29,
+        displayName: 'Paris, France',
+        city: 'Paris',
+        source: 'nominatim',
+      },
       cached: true,
     });
     expect(g.calls).toEqual([]);
@@ -270,7 +276,7 @@ describe('getCachedMany', () => {
     const out = await getCachedMany(['Paris', 'Berlin'], clock);
     expect(out.get('paris')).toEqual({
       kind: 'hit',
-      result: { lat: 48.85, lng: 2.29, displayName: 'Paris', city: 'Paris' },
+      result: { lat: 48.85, lng: 2.29, displayName: 'Paris', city: 'Paris', source: 'nominatim' },
       cityPending: false,
     });
     expect(out.get('berlin')).toEqual({ kind: 'miss' });
@@ -310,6 +316,44 @@ describe('getCachedMany', () => {
     const out = await getCachedMany(['  Paris  ', 'PARIS', 'paris', ''], clock);
     // 'paris' is the single resulting key; empty query is dropped.
     expect(Array.from(out.keys())).toEqual(['paris']);
+  });
+
+  it('carries the row’s provider through to the result', async () => {
+    // The trip map's fallback distance guard reads this to tell a
+    // tagged station hit from a free-text guess.
+    dbState.rows.push({
+      queryNormalized: 'station:train:jp:kyoto station',
+      lat: 34.9858,
+      lng: 135.7588,
+      displayName: 'Kyoto Station',
+      city: 'Kyoto',
+      source: 'photon-station',
+      fetchedAt: NOW,
+      expiresAt: new Date(NOW.getTime() + 90 * 24 * 60 * 60 * 1000),
+    });
+
+    const out = await getCachedMany(['station:train:jp:Kyoto Station'], clock);
+    const hit = out.get('station:train:jp:kyoto station');
+    expect(hit?.kind).toBe('hit');
+    if (hit?.kind === 'hit') expect(hit.result.source).toBe('photon-station');
+  });
+
+  it('omits an empty provider rather than passing a blank string on', async () => {
+    dbState.rows.push({
+      queryNormalized: 'paris',
+      lat: 48.85,
+      lng: 2.29,
+      displayName: 'Paris',
+      city: null,
+      source: '',
+      fetchedAt: NOW,
+      expiresAt: new Date(NOW.getTime() + 90 * 24 * 60 * 60 * 1000),
+    });
+
+    const out = await getCachedMany(['Paris'], clock);
+    const hit = out.get('paris');
+    expect(hit?.kind).toBe('hit');
+    if (hit?.kind === 'hit') expect(hit.result.source).toBeUndefined();
   });
 });
 
@@ -443,6 +487,7 @@ describe('city backfill (CITY_BACKFILL_CUTOFF)', () => {
       lng: 106.7,
       displayName: 'Harbor View Inn',
       city: null,
+      source: 'photon',
     });
     expect(dbState.rows[0]!.lat).toBe(10.7);
     expect(dbState.rows[0]!.city).toBeNull();

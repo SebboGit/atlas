@@ -12,6 +12,7 @@ import {
   getGeocodeWorkerStatus,
   normalizeQuery,
   tryParsePlusCode,
+  tryParseStationQuery,
   type GeocodeWorkerStatus,
 } from '@/lib/geocoding';
 import * as segmentsRepo from '@/lib/segments/repo';
@@ -430,7 +431,17 @@ export async function getTripMapDataForUser(userId: string, tripId: string): Pro
       const key = normalizeQuery(query);
       const cached = cache.get(key);
       if (cached?.kind === 'hit') {
-        return { state: 'hit', lat: cached.result.lat, lng: cached.result.lng };
+        return {
+          state: 'hit',
+          lat: cached.result.lat,
+          lng: cached.result.lng,
+          // A station key is a bare name (no address, no Plus Code), so
+          // its row's provider says whether a tagged station lookup
+          // placed it or the country-free free-text fallback guessed.
+          // resolveTransitRoute owns the rule; the repo only reports.
+          source: cached.result.source ?? null,
+          station: tryParseStationQuery(query) !== null,
+        };
       }
       if (cached?.kind === 'null') return { state: 'null' };
       // Same defensive enqueue as the single-pin branch: a legacy row's
