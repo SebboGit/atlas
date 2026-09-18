@@ -8,6 +8,8 @@ import { pipeline } from 'node:stream/promises';
 
 import { fileTypeFromBuffer } from 'file-type';
 
+import { log } from '@/lib/log';
+
 import { DEFAULT_ALLOWED_MIMES, UNSNIFFABLE_MIMES as UNSNIFFABLE_LIST } from './mimes';
 import { resolveSafe } from './path';
 import {
@@ -15,6 +17,7 @@ import {
   type PutResult,
   type StatResult,
   type Storage,
+  StorageError,
   StorageNotFoundError,
   StorageRejectedError,
   type UrlOptions,
@@ -63,14 +66,64 @@ interface Config {
   allowedMimes: Set<string>;
 }
 
+/** Per-upload size cap when STORAGE_MAX_BYTES is unset. */
+export const DEFAULT_STORAGE_MAX_BYTES = 20 * 1024 * 1024;
+
+let warnedEmptyMaxBytes = false;
+
+/**
+ * Parse STORAGE_MAX_BYTES. Returns the default when the variable is
+ * unset or blank, and `null` when it holds something that isn't a
+ * positive number.
+ *
+ * Blank counts as unset because Compose interpolates `${STORAGE_MAX_BYTES}`
+ * to an empty string when the host variable is missing, which would
+ * otherwise parse as 0 and reject every upload. It is still a
+ * misconfiguration — the operator meant to set a number — so it is logged
+ * once rather than passed over in silence.
+ *
+ * Exported so callers that only need the number — the upload dialog's
+ * ceiling, for one — don't re-parse the env themselves and can't drift
+ * from what storage enforces.
+ */
+export function readStorageMaxBytes(): number | null {
+  const raw = process.env.STORAGE_MAX_BYTES;
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    if (raw !== undefined && !warnedEmptyMaxBytes) {
+      warnedEmptyMaxBytes = true;
+      log.warn(
+        { defaultMaxBytes: DEFAULT_STORAGE_MAX_BYTES },
+        'STORAGE_MAX_BYTES is set but blank; falling back to the default upload limit.',
+      );
+    }
+    return DEFAULT_STORAGE_MAX_BYTES;
+  }
+  const parsed = Number(trimmed);
+  // A byte ceiling has to be a whole number of bytes: a fractional value
+  // would reject uploads below the number the operator configured. Exponent
+  // notation (`2e7`) still parses — it is integer-valued.
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+/**
+ * `readStorageMaxBytes()` or the error storage itself raises. One reader,
+ * one failure mode: a value nobody can parse must break loudly wherever it
+ * is read, not quietly resolve to a default the UI would then advertise.
+ */
+export function requireStorageMaxBytes(): number {
+  const maxBytes = readStorageMaxBytes();
+  if (maxBytes === null) {
+    throw new StorageError('STORAGE_MAX_BYTES must be a positive integer');
+  }
+  return maxBytes;
+}
+
 function configFromEnv(): Config {
   const rootDir = process.env.STORAGE_DIR;
   if (!rootDir) throw new Error('STORAGE_DIR is not set');
 
-  const maxBytes = Number(process.env.STORAGE_MAX_BYTES ?? 20 * 1024 * 1024);
-  if (!Number.isFinite(maxBytes) || maxBytes <= 0) {
-    throw new Error('STORAGE_MAX_BYTES must be a positive integer');
-  }
+  const maxBytes = requireStorageMaxBytes();
 
   const allowedRaw = process.env.STORAGE_ALLOWED_MIMES;
   const allowedMimes = new Set(

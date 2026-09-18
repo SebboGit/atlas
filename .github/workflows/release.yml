@@ -101,6 +101,22 @@ jobs:
           file: ./Dockerfile
           target: ${{ matrix.target }}
           platforms: linux/amd64,linux/arm64
+          # The upload request envelope is baked at build time (see the
+          # Dockerfile's build stage), so raising STORAGE_MAX_BYTES on a
+          # running container does nothing on its own. Set the repository
+          # variable STORAGE_MAX_BYTES to publish an image with a wider
+          # ceiling; unset it and the arg arrives empty, which next.config.ts
+          # reads as the 20 MB default. Raising it also raises the memory the
+          # app buffers per concurrent upload (~2x the value, before auth), so
+          # pair it with a reverse-proxy body cap. Only the app leg declares
+          # the ARG — passing it to the worker leg would just log an
+          # unconsumed-arg warning.
+          #
+          # NEVER pass a secret through build-args here: the build stage is
+          # exported to the shared gha cache, and build args are readable in
+          # the image history.
+          build-args: |
+            ${{ matrix.target == 'prod' && format('STORAGE_MAX_BYTES={0}', vars.STORAGE_MAX_BYTES) || '' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

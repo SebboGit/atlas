@@ -90,3 +90,65 @@ test('a 12 MB document uploads instead of failing on the proxy body cap', async 
   await expect(authedPage.getByText(name).first()).toBeVisible();
   await expect(authedPage.getByText(/PDF · 12\.0 MB/).first()).toBeVisible();
 });
+
+test('a file past the ceiling is refused in the dialog, not by a broken request', async ({
+  authedPage,
+  authedUser,
+}) => {
+  // Building and attaching ~21 MB over CDP is the slow part; nothing is
+  // uploaded, so the rest is instant.
+  test.slow();
+
+  const tripId = await seedTrip(authedUser.id, {
+    title: `Upload ceiling probe ${Date.now()}`,
+    startDate: new Date('2025-11-02T00:00:00Z'),
+    endDate: new Date('2025-11-09T00:00:00Z'),
+    status: 'completed',
+  });
+
+  await authedPage.goto(`/trips/${tripId}/documents`);
+  await authedPage
+    .getByRole('button', { name: '+ Upload' })
+    .filter({ visible: true })
+    .first()
+    .click();
+
+  // Read the ceiling off the hint rather than hardcoding 20 MB — it is the
+  // lower of STORAGE_MAX_BYTES and the envelope baked into the build, so
+  // the running app is the only authority on it. `formatByteLimit` renders
+  // B, KB or MB depending on the value, so all three are parsed; a sub-MB
+  // STORAGE_MAX_BYTES must size the file, not fail the match. The captured
+  // string is what the error message is asserted against; the number and
+  // unit are used only to size the file.
+  const hint = await authedPage
+    .getByText(/· Max \d+(\.\d+)? (MB|KB|B)$/)
+    .first()
+    .textContent();
+  const match = /Max ((\d+(?:\.\d+)?) (MB|KB|B))$/.exec(hint ?? '');
+  const rendered = match?.[1];
+  expect(rendered).toBeTruthy();
+  const limit = Number.parseFloat(match?.[2] ?? '');
+  expect(Number.isFinite(limit)).toBe(true);
+  const unitBytes = match?.[3] === 'MB' ? 1024 * 1024 : match?.[3] === 'KB' ? 1024 : 1;
+  const overLimit = Math.ceil(limit * unitBytes) + 512 * 1024;
+
+  const name = `oversized-reservation-${Date.now()}.pdf`;
+  await authedPage.locator('#doc-file').setInputFiles({
+    name,
+    mimeType: 'application/pdf',
+    buffer: paddedPdf(overLimit),
+  });
+
+  // The message lands on pick, before any submit: past the envelope the
+  // request body is truncated rather than rejected, so a submit would reach
+  // the error boundary instead of "File is too large."
+  const dialog = authedPage.getByRole('dialog', { name: 'A new document.' });
+  await expect(dialog.getByRole('alert')).toHaveText(`Larger than ${rendered}.`);
+  await expect(authedPage.getByRole('button', { name: 'Upload', exact: true })).toBeDisabled();
+
+  // Nothing was stored — the tab is still empty behind the dialog.
+  await authedPage.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(authedPage.getByText(name)).toHaveCount(0);
+  await expect(authedPage.getByText('No documents yet.')).toBeVisible();
+});

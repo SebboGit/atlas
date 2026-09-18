@@ -44,6 +44,8 @@ const mocks = vi.hoisted(() => {
     getDefaultDirectExtractors: vi.fn(),
     getDefaultExtractors: vi.fn(),
     getStorage: vi.fn(),
+    storagePut: vi.fn(),
+    getUploadMaxBytes: vi.fn(),
     revalidatePath: vi.fn(),
     enqueued,
     getJobs: vi.fn(() => ({
@@ -121,6 +123,14 @@ vi.mock('@/lib/storage', () => ({
   },
 }));
 
+// The effective ceiling is env- and build-dependent (STORAGE_MAX_BYTES
+// clamped to the baked request envelope). Stub it so the upload test states
+// its own limit instead of inheriting whatever the test process was started
+// with.
+vi.mock('./upload-limit', () => ({
+  getUploadMaxBytes: mocks.getUploadMaxBytes,
+}));
+
 vi.mock('next/cache', () => ({
   revalidatePath: mocks.revalidatePath,
 }));
@@ -130,7 +140,12 @@ vi.mock('@/db/client', () => ({
 }));
 
 // Import AFTER the vi.mock hoists.
-import { deleteDocumentAction, extractDocumentAction, updateParsedAction } from './actions';
+import {
+  deleteDocumentAction,
+  extractDocumentAction,
+  updateParsedAction,
+  uploadDocumentAction,
+} from './actions';
 import { EXTRACTION_JOB, runExtractionJob, type ExtractionJobData } from './extraction-job';
 
 // ---------------------------------------------------------------------------
@@ -139,6 +154,9 @@ import { EXTRACTION_JOB, runExtractionJob, type ExtractionJobData } from './extr
 
 const USER = { id: 'user-1' } as const;
 const TRIP_ID = 'trip-aaa';
+// uploadDocumentAction parses its tripId as a UUID, so it can't reuse the
+// opaque TRIP_ID the other actions are exercised with.
+const TRIP_UUID = '0198c2f1-4a3b-7c2d-9e10-2b6f5a1c3d4e';
 const DOC_ID = 'doc-bbb';
 // Claim timestamp — what `markExtractionStarted` returns for tests that
 // run past the synchronous gate. The action reads this as the
@@ -727,6 +745,35 @@ describe('deleteDocumentAction', () => {
       ok: false,
       error: { formMessage: 'Document does not belong to this trip.' },
     });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// uploadDocumentAction — the size gate
+// ---------------------------------------------------------------------------
+
+describe('uploadDocumentAction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.requireUser.mockResolvedValue(USER);
+    mocks.getUploadMaxBytes.mockReturnValue(4);
+    mocks.getStorage.mockReturnValue({ put: mocks.storagePut });
+  });
+
+  it('refuses a file past the effective ceiling before any storage I/O', async () => {
+    // Past the ceiling the request envelope truncates rather than rejects,
+    // so storage never gets to raise its own "File is too large." — this
+    // action has to own the message. `storage.put` staying uncalled is the
+    // assertion that the check runs before the write, not after it.
+    const file = new File(['oversized'], 'reservation.pdf', { type: 'application/pdf' });
+    const formData = new FormData();
+    formData.set('file', file);
+
+    const result = await uploadDocumentAction(TRIP_UUID, formData);
+
+    expect(result).toEqual({ ok: false, error: { formMessage: 'File is too large.' } });
+    expect(mocks.storagePut).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

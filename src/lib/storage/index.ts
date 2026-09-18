@@ -1,6 +1,7 @@
 import { FilesystemStorage } from './fs';
 import type { Storage } from './types';
 
+export { DEFAULT_STORAGE_MAX_BYTES, readStorageMaxBytes, requireStorageMaxBytes } from './fs';
 export type { PutOptions, PutResult, StatResult, Storage, UrlOptions } from './types';
 export {
   StorageError,

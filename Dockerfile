@@ -35,6 +35,19 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# The upload request envelope (Server Action body limit + proxy body cap) is
+# sized from STORAGE_MAX_BYTES in next.config.ts, and `output: 'standalone'`
+# bakes the result into the bundle. Setting STORAGE_MAX_BYTES only at runtime
+# therefore lets storage accept files the envelope still truncates, so the
+# build has to learn the ceiling too:
+#   docker build --build-arg STORAGE_MAX_BYTES=52428800 .
+# Unset is the normal case and yields an empty string here; next.config.ts
+# reads that as "not set" and falls back to the 20 MB default (a value that is
+# set but unparseable fails the build). This ENV is scoped to the build stage:
+# the prod stage never inherits it, and instead re-declares the same build arg
+# to export the derived ATLAS_UPLOAD_ENVELOPE_BYTES.
+ARG STORAGE_MAX_BYTES
+ENV STORAGE_MAX_BYTES=${STORAGE_MAX_BYTES}
 RUN pnpm build
 
 # --- Prod runtime ------------------------------------------------------------
@@ -49,6 +62,15 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+
+# Belt and braces for the baked upload ceiling. next.config.ts inlines this
+# value into the bundle at build time, so the app normally never reads it at
+# runtime; exporting it here keeps the clamp working if a future bundler stops
+# inlining. Same build arg as the build stage, so the two can't disagree.
+# STORAGE_MAX_BYTES itself is deliberately NOT exported into this stage — the
+# runtime value belongs to the operator's env, not to the image.
+ARG STORAGE_MAX_BYTES
+ENV ATLAS_UPLOAD_ENVELOPE_BYTES=${STORAGE_MAX_BYTES:-20971520}
 
 # Standalone output from Next.js — minimal runtime
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./

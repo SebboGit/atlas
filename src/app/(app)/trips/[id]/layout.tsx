@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth/session';
 import { countryName } from '@/lib/countries';
 import * as documentsRepo from '@/lib/documents/repo';
+import { getUploadMaxBytesOrFallback } from '@/lib/documents/upload-limit';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
 
@@ -44,12 +45,20 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
   // client bundle) so the filter chips read "United Kingdom", not "GB".
   const countries = countryCodes.map((code) => ({ code, name: countryName(code) ?? code }));
 
+  // Every trip tab renders through this layout, so a misconfigured
+  // STORAGE_MAX_BYTES must not take trip browsing down with it — a household
+  // member reading `/trips/<id>/map` would get a 500 from an operator typo.
+  // The loudness lands where a file is actually uploaded instead: the
+  // Documents tab and uploadDocumentAction both still throw on it.
+  const uploadMaxBytes = getUploadMaxBytesOrFallback();
+
   return (
     <TripChrome
       trip={trip}
       isOwner={isOwner}
       countries={countries}
       attachedDocumentCount={attachedDocumentCount}
+      uploadMaxBytes={uploadMaxBytes}
     >
       {children}
     </TripChrome>

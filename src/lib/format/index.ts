@@ -144,6 +144,17 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * A size *limit*, not a measurement. Whole megabytes lose the decimal
+ * ("20 MB", not "20.0 MB") because a ceiling reads as a round number in
+ * a hint or an error; anything else falls through to `formatBytes`.
+ */
+export function formatByteLimit(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1 && Number.isInteger(mb)) return `${mb} MB`;
+  return formatBytes(bytes);
+}
+
 // ---------------------------------------------------------------------------
 // Calendar-date formatting (raw ISO YYYY-MM-DD strings)
 // ---------------------------------------------------------------------------

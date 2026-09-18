@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { requireUser } from '@/lib/auth/session';
 import * as documentsRepo from '@/lib/documents/repo';
 import { isExtractionFresh } from '@/lib/documents/state';
+import { getUploadMaxBytes } from '@/lib/documents/upload-limit';
 import * as tripsRepo from '@/lib/trips/repo';
 
 interface DocumentsTabPageProps {
@@ -37,7 +38,11 @@ export default async function DocumentsTabPage({ params }: DocumentsTabPageProps
   const anyExtracting = docs.some((d) => isExtractionFresh(d));
 
   const uploadButton = isOwner ? (
-    <DocumentUploadDialog tripId={id} trigger={<Button size="sm">+ Upload</Button>} />
+    <DocumentUploadDialog
+      tripId={id}
+      maxBytes={getUploadMaxBytes()}
+      trigger={<Button size="sm">+ Upload</Button>}
+    />
   ) : null;
 
   return (

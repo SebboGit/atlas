@@ -19,6 +19,7 @@ import { err, ok, type Result } from '@/types/result';
 import { EXTRACTION_JOB, type ExtractionJobData } from './extraction-job-contract';
 import * as repo from './repo';
 import { EXTRACTION_STALE_MS } from './state';
+import { getUploadMaxBytes } from './upload-limit';
 
 export type FormError = {
   formMessage?: string;
@@ -29,15 +30,44 @@ function revalidateTrip(tripId: string) {
   revalidatePath(`/trips/${tripId}`, 'layout');
 }
 
+// Trust boundary for the upload. `tripId` arrives as a plain argument and
+// `file` out of a multipart body, so both are parsed before anything else
+// touches them — a non-File `file` part or a tripId that isn't a UUID is
+// refused here rather than several statements later. Size stays a separate
+// check below: it depends on the runtime limit, not on the shape.
+const uploadArgsSchema = z.object({
+  tripId: z.string().uuid(),
+  file: z.instanceof(File).refine((f) => f.name.trim().length > 0, 'Required.'),
+});
+
 export async function uploadDocumentAction(
-  tripId: string,
+  rawTripId: string,
   formData: FormData,
 ): Promise<Result<{ id: string; isNew: boolean }, FormError>> {
   const user = await requireUser();
 
-  const file = formData.get('file');
-  if (!(file instanceof File) || file.size === 0) {
+  const parsedArgs = uploadArgsSchema.safeParse({
+    tripId: rawTripId,
+    file: formData.get('file'),
+  });
+  if (!parsedArgs.success) {
+    const fileIssue = parsedArgs.error.issues.some((issue) => issue.path[0] === 'file');
+    return fileIssue
+      ? err({ formMessage: 'Pick a file first.', fields: { file: 'Required.' } })
+      : err({ formMessage: 'Invalid request.' });
+  }
+  const { tripId, file } = parsedArgs.data;
+
+  if (file.size === 0) {
     return err({ formMessage: 'Pick a file first.', fields: { file: 'Required.' } });
+  }
+
+  // Enforce the same ceiling the dialog advertises. Storage checks
+  // STORAGE_MAX_BYTES on its own, but the effective limit is the lower of
+  // that and the request envelope baked into the build — so a body between
+  // the two would otherwise pass this action and be truncated in transit.
+  if (file.size > getUploadMaxBytes()) {
+    return err({ formMessage: 'File is too large.' });
   }
 
   // Verify the user owns the trip before doing any storage I/O. Saves

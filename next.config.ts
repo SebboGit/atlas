@@ -27,17 +27,38 @@ const isDev = process.env.NODE_ENV !== 'production';
 // limit so storage (not Next) owns the real cap and its message — the few
 // hundred bytes of multipart framing fit comfortably in the 1 MB headroom.
 //
-// NB: `output: 'standalone'` bakes this value into the build, and the
-// Dockerfile's build stage passes no STORAGE_MAX_BYTES, so a published
-// image always carries the envelope for the 20 MB default. Raising
-// STORAGE_MAX_BYTES at runtime does NOT widen it — storage would accept
-// files the envelope then rejects. Changing the ceiling means teaching the
-// build stage the value, not just setting it in the runtime env.
-const storageMaxBytes = Number(process.env.STORAGE_MAX_BYTES ?? 20 * 1024 * 1024);
-const serverActionBodyLimit =
-  Number.isFinite(storageMaxBytes) && storageMaxBytes > 0
-    ? storageMaxBytes + 1024 * 1024
-    : 21 * 1024 * 1024;
+// NB: `output: 'standalone'` bakes this value into the build, so the
+// envelope is a property of the IMAGE, not of the runtime env. A published
+// image carries the envelope the build was given — the 20 MB default unless
+// the build stage was passed `--build-arg STORAGE_MAX_BYTES=…` (see the
+// Dockerfile's build stage). Raising STORAGE_MAX_BYTES at runtime alone does
+// NOT widen it, so the app clamps the runtime limit to the baked ceiling and
+// warns; `ATLAS_UPLOAD_ENVELOPE_BYTES` below is how it learns the baked
+// value. An empty string (an unset build arg still sets the variable) falls
+// back to the default rather than parsing as 0, but a value that is set and
+// unparseable throws here with the same message `requireStorageMaxBytes()`
+// raises at runtime — one policy for the variable, whichever side reads it.
+//
+// Raising the ceiling is not free: Next buffers the body twice, before the
+// proxy's auth decision, so each concurrent upload can hold ~2× the value in
+// memory against the container's mem_limit. Cap the body at the reverse proxy
+// (Caddy `request_body max_size`) if the app is reachable by anyone else.
+function resolveStorageMaxBytes(): number {
+  const raw = process.env.STORAGE_MAX_BYTES?.trim();
+  if (!raw) return 20 * 1024 * 1024;
+  const parsed = Number(raw);
+  // Plain Error, not the storage layer's StorageError: this file is loaded by
+  // the Next CLI outside the app's module graph and must not import from
+  // `@/lib/*`. Same predicate as `readStorageMaxBytes()` — a whole number of
+  // bytes, exponent notation included.
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error('STORAGE_MAX_BYTES must be a positive integer');
+  }
+  return parsed;
+}
+
+const storageMaxBytes = resolveStorageMaxBytes();
+const serverActionBodyLimit = storageMaxBytes + 1024 * 1024;
 
 // `next dev` ships eval-based source maps and an HMR websocket. Both
 // are blocked by the production CSP. Loosen *only* in development so
@@ -117,6 +138,18 @@ const nextConfig: NextConfig = {
   // the worker at its real node_modules path — the legacy build's
   // documented entry contract.
   serverExternalPackages: ['pdfjs-dist'],
+  // The request envelope is sized at build time (see `storageMaxBytes`),
+  // so the ceiling it was sized from has to travel with the bundle. Next
+  // inlines this wherever `process.env.ATLAS_UPLOAD_ENVELOPE_BYTES` is
+  // read; `getUploadMaxBytes()` clamps the runtime STORAGE_MAX_BYTES to it
+  // and the upload dialog rejects oversized files before they leave the
+  // browser. Deliberately NOT `NEXT_PUBLIC_`-prefixed: no client code reads
+  // it, and the prefix would suggest a runtime knob when the value is fixed
+  // at build. The prod image also exports it as a real env var so the clamp
+  // survives a future bundler that stops inlining.
+  env: {
+    ATLAS_UPLOAD_ENVELOPE_BYTES: String(storageMaxBytes),
+  },
   experimental: {
     // See `serverActionBodyLimit` above — lifts the Server Action body cap
     // from its 1 MB default to just over STORAGE_MAX_BYTES so document

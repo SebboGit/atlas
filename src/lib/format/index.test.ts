@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   dateFromLocalInZone,
+  formatByteLimit,
   formatDate,
   formatLocalDateTimeInZone,
   formatTime,
@@ -169,5 +170,18 @@ describe('getDateFormatMode', () => {
     expect(getDateFormatMode()).toBe('iso');
     process.env.NEXT_PUBLIC_ATLAS_DATE_FORMAT = ' EU ';
     expect(getDateFormatMode()).toBe('eu');
+  });
+});
+
+describe('formatByteLimit', () => {
+  it('drops the decimal on whole megabytes', () => {
+    expect(formatByteLimit(20 * 1024 * 1024)).toBe('20 MB');
+    expect(formatByteLimit(50 * 1024 * 1024)).toBe('50 MB');
+  });
+
+  it('falls back to formatBytes for everything else', () => {
+    expect(formatByteLimit(1_500_000)).toBe('1.4 MB');
+    expect(formatByteLimit(512 * 1024)).toBe('512 KB');
+    expect(formatByteLimit(900)).toBe('900 B');
   });
 });
