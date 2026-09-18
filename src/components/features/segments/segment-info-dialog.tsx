@@ -56,8 +56,9 @@ interface SegmentInfoDialogProps {
   tripId: string;
   linkedDocuments?: LinkedDocument[];
   /**
-   * Cached coordinates, threaded from the row — forwarded to the edit
-   * flow so the Plus Code field prefills to match the card badge.
+   * Cached coordinates, threaded from the row — for the card badge, and
+   * forwarded to the edit flow, which shows where the geocoder put the
+   * segment as a display-only line. Never prefilled into a field (#135).
    */
   coords?: PlaceCoordsEntry | null;
   children: React.ReactNode;

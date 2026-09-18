@@ -2,12 +2,22 @@
 
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
 import { PlaceFinder } from './place-finder';
+import { PlaceLocatedLine } from './place-pin-line';
+import { PLACE_PATHS } from './place-pin-logic';
 import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 
-export function ActivityFields({ form }: { form: Form }) {
+export function ActivityFields({
+  form,
+  located,
+}: {
+  form: Form;
+  /** Where the saved segment's geocode placed it, for the pin line. */
+  located?: PlaceCoordsEntry | null;
+}) {
   const e = getDataErrors(form.formState.errors);
   return (
     <div className="flex flex-col gap-5">
@@ -44,7 +54,10 @@ export function ActivityFields({ form }: { form: Form }) {
         <PlaceFinder form={form} type="activity" />
         <PlusCodeNudge form={form} />
       </div>
-      <PlusCodeFields form={form} idPrefix="seg-activity" />
+      <div className="flex flex-col gap-2">
+        <PlusCodeFields form={form} idPrefix="seg-activity" />
+        <PlaceLocatedLine form={form} paths={PLACE_PATHS.activity} located={located} />
+      </div>
     </div>
   );
 }

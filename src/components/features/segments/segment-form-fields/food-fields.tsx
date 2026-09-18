@@ -2,9 +2,12 @@
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 
 import { FieldError, Optional, getDataErrors, type Form } from './_helpers';
 import { PlaceFinder } from './place-finder';
+import { PlaceLocatedLine } from './place-pin-line';
+import { PLACE_PATHS } from './place-pin-logic';
 import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 
 // Food-segment fields. Deliberately light per the food-segment-type
@@ -14,7 +17,14 @@ import { PlusCodeFields, PlusCodeNudge } from './plus-code-fields';
 // doesn't resolve by name alone. The reservation time is the shared
 // `startsAt` date field (rendered by SharedDateFields), so it isn't
 // repeated here.
-export function FoodFields({ form }: { form: Form }) {
+export function FoodFields({
+  form,
+  located,
+}: {
+  form: Form;
+  /** Where the saved segment's geocode placed it, for the pin line. */
+  located?: PlaceCoordsEntry | null;
+}) {
   const e = getDataErrors(form.formState.errors);
   return (
     <div className="flex flex-col gap-5">
@@ -40,7 +50,10 @@ export function FoodFields({ form }: { form: Form }) {
         <PlaceFinder form={form} type="food" />
         <PlusCodeNudge form={form} />
       </div>
-      <PlusCodeFields form={form} idPrefix="seg-food" />
+      <div className="flex flex-col gap-2">
+        <PlusCodeFields form={form} idPrefix="seg-food" />
+        <PlaceLocatedLine form={form} paths={PLACE_PATHS.food} located={located} />
+      </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="seg-food-ref">
           Booking reference <Optional />

@@ -9,10 +9,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-// Leaf import (not the barrel) so the dialog — used inside client
-// rows — doesn't pull the geocoding cache / pg driver into the browser
-// bundle.
-import { encodePlusCode } from '@/lib/geocoding/plus-code';
 import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment, SegmentType } from '@/lib/segments';
 import {
@@ -39,20 +35,13 @@ interface SegmentFormDialogProps {
   // type from the segment row).
   editingSegment?: Segment;
   /**
-   * Cached coordinates for the segment, threaded from the row. Used
-   * exclusively to prefill `data.plusCode` with the encoded Plus Code
-   * when the segment has no stored Plus Code — so the form field
-   * agrees with the badge on the card. Ignored on Add.
+   * Cached coordinates for the segment, threaded from the row. Shown as
+   * the form's display-only "located" line — never written into a field,
+   * so a derived code can't outrank the venue name on the next save
+   * (#135). Ignored on Add.
    */
   coords?: PlaceCoordsEntry | null;
 }
-
-// Types whose edit form prefills `data.plusCode` from the cached
-// coordinates. Transit is left out on purpose (ADR-0019): a saved code
-// outranks the station name, so prefilling it would freeze the pin on
-// whatever the geocoder picked and never let station-aware lookups
-// correct it.
-const PLUS_CODE_TYPES: ReadonlySet<SegmentType> = new Set(['hotel', 'food', 'activity']);
 
 const CREATE_TITLES: Record<SegmentType, string> = {
   flight: 'New flight',
@@ -85,43 +74,23 @@ const LOADING_GRACE_MS = 140;
 // `dateInput` union in validators.ts); strings on the row come
 // through unchanged.
 //
-// When `coords` is supplied, the segment's type is in PLUS_CODE_TYPES
-// AND it has no stored Plus Code, the field is prefilled with the
-// encoded form of the cached coordinates. Same value the card badge
-// shows — makes the form field agree with the badge instead of looking
-// empty. For those types, saving without touching the prefill is
-// intentional: the lifecycle hook re-keys the cache row off the Plus
-// Code, decode↔encode is stable, and the badge stays identical across
-// save. Transit is excluded (see PLUS_CODE_TYPES, ADR-0019).
-function segmentToFormInput(segment: Segment, coords?: PlaceCoordsEntry | null): FormInput {
-  let data = segment.data;
-  if (
-    coords &&
-    Number.isFinite(coords.lat) &&
-    Number.isFinite(coords.lng) &&
-    PLUS_CODE_TYPES.has(segment.type) &&
-    !hasStoredPlusCode(data)
-  ) {
-    const encoded = encodePlusCode(coords.lat, coords.lng);
-    if (encoded !== null) {
-      data = { ...(data as Record<string, unknown>), plusCode: encoded };
-    }
-  }
+// `data` comes across verbatim: a Plus Code the user saved is prefilled
+// because the row holds it, and a code merely derived from the cached
+// coordinates is NOT — it would outrank the venue name in
+// buildGeocodeQuery, freezing the pin against every later rename or
+// address fix (#135, ADR-0019's rule generalised). Where the geocoder
+// put the segment is shown instead, as a display-only line under the
+// Plus Code field.
+function segmentToFormInput(segment: Segment): FormInput {
   return {
     type: segment.type,
-    data,
+    data: segment.data,
     startsAt: segment.startsAt,
     endsAt: segment.endsAt,
     locationName: segment.locationName ?? '',
     countryCode: segment.countryCode ?? '',
     originCountryCode: segment.originCountryCode ?? '',
   } as FormInput;
-}
-
-function hasStoredPlusCode(data: unknown): boolean {
-  if (data === null || typeof data !== 'object') return false;
-  const candidate = (data as { plusCode?: unknown }).plusCode;
-  return typeof candidate === 'string' && candidate.trim() !== '';
 }
 
 export function SegmentFormDialog({
@@ -265,7 +234,7 @@ export function SegmentFormDialog({
       ? CREATE_TITLES[defaultType]
       : GENERIC_TITLE;
 
-  const initialValues = editingSegment ? segmentToFormInput(editingSegment, coords) : undefined;
+  const initialValues = editingSegment ? segmentToFormInput(editingSegment) : undefined;
   const submitLabel = editingSegment ? 'Save changes' : undefined;
 
   return (

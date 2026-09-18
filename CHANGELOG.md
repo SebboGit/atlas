@@ -65,6 +65,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   65px column, so "Kyoto Station → Shin-Osaka Station" broke over five lines.
   The times now sit below the headline, as they already did on a flight, and
   the card is slightly shorter for it.
+- **Editing a stay, meal or activity no longer freezes its pin** — the edit
+  form used to prefill the Plus Code field from wherever the geocoder had
+  placed the segment, and saving stored that code. A stored Plus Code outranks
+  the venue name, so from then on renaming the place or correcting its address
+  moved nothing. The form now shows that code as a line under the Plus Code
+  field and saves nothing, so a rename goes back to the geocoder. A code typed
+  or picked by hand is still stored and still wins. A stay already frozen by
+  the old prefill comes back to life the moment its Plus Code field is cleared
+  and the form saved. Trains, buses and ferries were fixed in 1.6.0.
 
 ## [1.6.1] - 2026-09-18
 

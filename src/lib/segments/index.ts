@@ -7,4 +7,7 @@
 // time — no runtime import of repo.ts happens here.
 export * from './validators';
 export * from './transit-endpoints';
+// Load-bearing for the client bundle: `export type` is erased, so the
+// segment form's query builder can import this barrel. A value export
+// from './repo' here would pull Drizzle and `pg` into the browser.
 export type { Segment } from './repo';

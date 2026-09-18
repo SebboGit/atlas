@@ -7,6 +7,14 @@
   names no longer go through the free-text ladder as plain names; the
   ladder, cache contract and hotel, food and activity queries stand)
 
+> **Amended 2026-09-18.** Decision 5's display-only rule now covers every
+> pinned type. The edit dialog no longer derives a Plus Code from the cached
+> coordinates for hotel, food and activity rows either. Those forms show where
+> the geocoder put the segment as a read-only line under the Plus Code field,
+> and save nothing. A code the user types or picks is stored and still wins,
+> and codes already saved from the old prefill stay until the field is cleared
+> (#135).
+
 ## Context
 
 A transit segment has one pin today: the first of `plusCode`, `address`,
