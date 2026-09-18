@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { unarchiveTripAction } from '@/lib/trips/actions';
+import { formatTripDateSpan } from '@/lib/trips/format';
 import type { Trip } from '@/lib/trips/repo';
 import { cn } from '@/lib/utils';
 
@@ -73,7 +74,7 @@ export function TripChrome({
   const isMapView = pathname === `/trips/${trip.id}/map`;
   const isArchived = trip.status === 'archived';
   const hasFilterBar = countries.length >= 2;
-  const dateRange = formatDateRange(trip.startDate, trip.endDate);
+  const dateRange = formatTripDateSpan(trip.startDate, trip.endDate);
 
   // Cmd+K palette deep-links into segment rows via `#seg-<id>`. The hook
   // lives once at the chrome level so it survives sibling-tab navigation.
@@ -395,20 +396,4 @@ function PrivateBadge() {
       Private
     </span>
   );
-}
-
-function formatFullDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatDateRange(start: Date | null, end: Date | null): string {
-  if (start && end) return `${formatFullDate(start)} → ${formatFullDate(end)}`;
-  if (start) return `From ${formatFullDate(start)}`;
-  if (end) return `Until ${formatFullDate(end)}`;
-  return 'Dates to come';
 }

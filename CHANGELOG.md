@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hand a malformed id straight to the database and fail with a server error.
   It now checks the id first and returns the same not-found response an
   unknown id gets.
+- **Trip dates read correctly outside UTC** — the trip header and the phone
+  trip-list row formatted a trip's dates in the viewer's own timezone rather
+  than the one they are stored in. West of Greenwich a trip starting 4 Oct read
+  as 3 Oct, and because the server and the browser disagreed, every trip page
+  logged a hydration mismatch. Viewers on UTC saw neither.
 
 ## [1.6.1] - 2026-09-18
 

@@ -2,30 +2,9 @@ import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
 import type { Trip, TripStatus } from '@/lib/trips';
-import { formatTripDateRange } from '@/lib/trips/format';
+import { formatTripCompactRange, formatTripDateRange } from '@/lib/trips/format';
 
 import { TripStatusBadge } from './trip-status-badge';
-
-// Compact phone-only form. Tight single-line row reads at-a-glance — the
-// laptop card's chrome (corner stamp, summary, hover gradient) is
-// information density laptop has room for; phone trades it for scannable
-// height. Date range is the load-bearing field and never gets dropped.
-function formatCompactRange(start: Date | null, end: Date | null): string {
-  if (!start && !end) return 'Dates TBC';
-
-  const fmtDay = (d: Date) =>
-    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).toUpperCase();
-  const fmtYear = (d: Date) => d.getUTCFullYear().toString();
-
-  if (start && end) {
-    const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
-    return sameYear
-      ? `${fmtDay(start)} – ${fmtDay(end)} ${fmtYear(end)}`
-      : `${fmtDay(start)} ${fmtYear(start)} – ${fmtDay(end)} ${fmtYear(end)}`;
-  }
-  if (start) return `From ${fmtDay(start)} ${fmtYear(start)}`;
-  return `Until ${fmtDay(end!)} ${fmtYear(end!)}`;
-}
 
 // Status-dot colour mirrors the badge variant so the row's at-a-glance
 // signal stays consistent with the laptop card. Reads `bg-current` of an
@@ -40,7 +19,10 @@ const STATUS_DOT_COLOR: Record<TripStatus, string> = {
 export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
   const indexLabel = String(index + 1).padStart(2, '0');
   const range = formatTripDateRange(trip.startDate, trip.endDate);
-  const compactRange = formatCompactRange(trip.startDate, trip.endDate);
+  // Phone trades the laptop card's chrome (corner stamp, summary, hover
+  // gradient) for a scannable single-line row, so the range gets the
+  // compact form. The date is the load-bearing field and never drops.
+  const compactRange = formatTripCompactRange(trip.startDate, trip.endDate);
   const isArchived = trip.status === 'archived';
 
   return (
