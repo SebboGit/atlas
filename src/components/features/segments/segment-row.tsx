@@ -1,5 +1,6 @@
 import type { LinkedDocument } from '@/lib/documents';
 import type { Segment } from '@/lib/segments';
+import { cn } from '@/lib/utils';
 
 import { SegmentCard } from './segment-card';
 import { SegmentRowSurface } from './segment-row-surface';
@@ -41,12 +42,29 @@ export function SegmentRow({
   showScheduleAction = false,
   showDate = false,
 }: SegmentRowProps) {
+  // Same condition SegmentRowSurface renders the reschedule button on.
+  const scheduleAction =
+    showScheduleAction && (segment.type === 'activity' || segment.type === 'food');
+
   return (
     // `id="seg-<id>"` is the deep-link target for the Cmd+K palette;
     // `scroll-mt-24` keeps the row clear of the sticky topbar when the
     // browser scrolls to the anchor. The flash animation hooks via the
     // data-seg-flash attribute set by use-segment-scroll-flash.
-    <div id={`seg-${segment.id}`} className="relative scroll-mt-24">
+    //
+    // `--segment-action-lane` tells SegmentCardShell how wide the touch
+    // action cluster is, so the card reserves only what this row needs:
+    // 44px buttons with a 2px gap plus the 12px `right-3` inset come to
+    // 102px for edit + delete and 148px with reschedule. A flat 152px
+    // lane left every two-button card 50px of blank space beside its
+    // title, which a two-station transit headline couldn't spare.
+    <div
+      id={`seg-${segment.id}`}
+      className={cn(
+        'relative scroll-mt-24',
+        scheduleAction ? '[--segment-action-lane:9.5rem]' : '[--segment-action-lane:6.75rem]',
+      )}
+    >
       <SegmentRowSurface
         segment={segment}
         tripId={tripId}

@@ -79,7 +79,7 @@ export function SegmentCardShell({
           // they read as sitting inside this strip rather than spilling
           // past its lower edge. The right pad reserves their horizontal
           // lane; see the note on CardContent below for the two widths.
-          className="border-foreground/12 bg-foreground/[0.04] flex items-center gap-3 border-b py-4 pr-[9.5rem] pl-5 sm:pl-6 [@media(hover:hover)]:pr-28"
+          className="border-foreground/12 bg-foreground/[0.04] flex items-center gap-3 border-b py-4 pr-[var(--segment-action-lane,9.5rem)] pl-5 sm:pl-6 [@media(hover:hover)]:pr-28"
         >
           <span className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
             Review
@@ -102,10 +102,13 @@ export function SegmentCardShell({
         // rule → 136px, plus the 12px `right-3` offset. A flat `pr-28`
         // (112px) covered the pointer case and left the touch cluster
         // sitting 35px INSIDE the text column, so a long title truncated
-        // underneath the buttons (#123). 9.5rem = 152px clears the touch
-        // cluster with 4px to spare; pointer keeps the tighter 112px.
-        // Notes use their own layout, not this shell.
-        className="flex gap-4 py-5 pr-[9.5rem] pl-5 sm:gap-5 sm:py-6 sm:pl-6 [@media(hover:hover)]:pr-28"
+        // underneath the buttons (#123). 9.5rem = 152px clears the
+        // three-button touch cluster with 4px to spare; pointer keeps the
+        // tighter 112px. SegmentRow narrows the touch lane through
+        // `--segment-action-lane` when the cluster is only edit + delete
+        // (6.75rem), which is every itinerary card. Notes use their own
+        // layout, not this shell.
+        className="flex gap-4 py-5 pr-[var(--segment-action-lane,9.5rem)] pl-5 sm:gap-5 sm:py-6 sm:pl-6 [@media(hover:hover)]:pr-28"
       >
         {/* Decorative only — the eyebrow directly beside it already names
          *  the type in words. Dropped on touch, where it and its gap cost
@@ -135,11 +138,27 @@ export function SegmentCardShell({
               stackMetaOnMobile ? 'flex-col items-start sm:flex-row sm:items-start' : 'items-start',
             )}
           >
-            <div className="min-w-0 flex-1">
+            <div
+              className={cn(
+                'min-w-0 flex-1',
+                // Stacked, the column's `items-start` sizes this block to
+                // its longest word rather than the column, so a station
+                // name wider than the column pushed it out and the
+                // title's `break-words` never got a width to break at.
+                // `self-stretch` pins it to the column; the row layout
+                // already gets that from `flex-1`.
+                stackMetaOnMobile && 'self-stretch',
+              )}
+            >
               <p className="text-foreground/75 font-mono text-[10px] tracking-[0.18em] uppercase sm:tracking-[0.28em]">
                 {typeLabel}
               </p>
-              <h3 className="font-display text-foreground mt-1 text-lg leading-tight font-medium tracking-tight sm:text-[20px]">
+              {/* `break-words` is the backstop for a single word wider
+               *  than the column — "Shijiazhuangdongzhan" at 360px ran
+               *  into the action lane. It only breaks a word that can't
+               *  fit a line on its own; ordinary titles still wrap on
+               *  their spaces. */}
+              <h3 className="font-display text-foreground mt-1 text-lg leading-tight font-medium tracking-tight break-words sm:text-[20px]">
                 {title}
               </h3>
               {subtitle && (
