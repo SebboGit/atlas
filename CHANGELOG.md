@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-10-21
+
+### Fixed
+
+- **Long transit headlines get the card's full width on a phone** — every
+  segment card kept room for three action buttons beside its title, though
+  only activities and food on their own tabs show three. The itinerary's
+  two-button cards now reserve just what they need, so a two-station
+  headline like "Guangzhoudong → West Kowloon" wraps over two lines instead
+  of one word per line. A station name too long to fit a line on its own
+  now breaks inside the card instead of running into the edit button.
+
 ## [1.7.0] - 2026-09-19
 
 ### Changed
@@ -565,7 +577,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/SebboGit/atlas/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/SebboGit/atlas/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/SebboGit/atlas/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/SebboGit/atlas/compare/v1.5.0...v1.6.0
