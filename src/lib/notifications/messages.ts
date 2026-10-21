@@ -9,6 +9,13 @@ import type { EnsureSegmentOutcome } from '@/lib/documents/segment-link';
 export interface DraftMessage {
   title: string;
   body: string;
+  /**
+   * The body to use when the message goes to the deployment's shared
+   * default topic and names a private trip: everyone subscribed to that
+   * topic would see it, so the trip name is left out (ADR-0015). Absent
+   * when `body` is already safe to share.
+   */
+  sharedTopicBody?: string;
   tags: string[];
   /** App path the notification opens, resolved against AUTH_URL at send time. */
   path: string;
@@ -18,8 +25,13 @@ function documentsPath(tripId: string): string {
   return `/trips/${tripId}/documents`;
 }
 
-function withTrip(tripTitle: string | null, detail: string): string {
-  return tripTitle ? `${tripTitle} · ${detail}` : detail;
+export interface TripRef {
+  title: string;
+  isPrivate: boolean;
+}
+
+function withTrip(trip: TripRef | null, detail: string): string {
+  return trip ? `${trip.title} · ${detail}` : detail;
 }
 
 function plural(n: number, noun: string): string {
@@ -32,7 +44,7 @@ const LANDED = new Set(['linked-new', 'updated-prior', 'linked-existing', 'user-
 
 export function extractionSucceededMessage(input: {
   tripId: string;
-  tripTitle: string | null;
+  trip: TripRef | null;
   outcome: EnsureSegmentOutcome | null;
 }): DraftMessage {
   const { outcome } = input;
@@ -47,7 +59,8 @@ export function extractionSucceededMessage(input: {
   }
   return {
     title: 'Document read',
-    body: withTrip(input.tripTitle, detail),
+    body: withTrip(input.trip, detail),
+    ...(input.trip?.isPrivate ? { sharedTopicBody: detail } : {}),
     tags: ['page_facing_up'],
     path: documentsPath(input.tripId),
   };
@@ -55,11 +68,13 @@ export function extractionSucceededMessage(input: {
 
 export function extractionFailedMessage(input: {
   tripId: string;
-  tripTitle: string | null;
+  trip: TripRef | null;
 }): DraftMessage {
+  const generic = 'Trip documents';
   return {
     title: 'Document not read',
-    body: input.tripTitle ?? 'Trip documents',
+    body: input.trip?.title ?? generic,
+    ...(input.trip?.isPrivate ? { sharedTopicBody: generic } : {}),
     tags: ['warning'],
     path: documentsPath(input.tripId),
   };

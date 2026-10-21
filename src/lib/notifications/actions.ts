@@ -12,6 +12,8 @@ import * as repo from './repo';
 import { resolveTopic } from './topic';
 import { notificationSettingsInput } from './validators';
 
+const TEST_THROTTLE_SECONDS = 30;
+
 export type SettingsFormError = {
   formMessage?: string;
   fields?: Record<string, string>;
@@ -51,6 +53,12 @@ export async function sendTestNotificationAction(): Promise<Result<null, Setting
     return err({ formMessage: 'No topic set.' });
   }
 
-  const queued = await enqueueNotification({ ...testMessage(), userId: user.id, category: 'test' });
+  // One test per user per 30 seconds. A replayed action can't flood the
+  // topic or drain the ntfy rate limit that real notifications share;
+  // a throttled send is dropped by pg-boss and still reads as sent here.
+  const queued = await enqueueNotification(
+    { ...testMessage(), userId: user.id, category: 'test' },
+    { singletonKey: `notify-test:${user.id}`, singletonSeconds: TEST_THROTTLE_SECONDS },
+  );
   return queued ? ok(null) : err({ formMessage: 'Could not queue the test.' });
 }

@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { trips, users } from '@/db/schema';
 
-import { getNotificationSettings, tripTitleForUser, updateNotificationSettings } from './repo';
+import { getNotificationSettings, tripForNotification, updateNotificationSettings } from './repo';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const describeIfDb = DATABASE_URL ? describe : describe.skip;
@@ -77,9 +77,15 @@ describeIfDb('notifications.repo', () => {
       .values({ userId: owner, title: 'Mine only', status: 'planned', visibility: 'private' })
       .returning({ id: trips.id });
 
-    expect(await tripTitleForUser(other, household!.id)).toBe('Shared');
-    expect(await tripTitleForUser(other, priv!.id)).toBeNull();
-    expect(await tripTitleForUser(owner, priv!.id)).toBe('Mine only');
+    expect(await tripForNotification(other, household!.id)).toEqual({
+      title: 'Shared',
+      isPrivate: false,
+    });
+    expect(await tripForNotification(other, priv!.id)).toBeNull();
+    expect(await tripForNotification(owner, priv!.id)).toEqual({
+      title: 'Mine only',
+      isPrivate: true,
+    });
 
     await db.delete(trips).where(eq(trips.userId, owner));
   });

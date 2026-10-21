@@ -47,15 +47,19 @@ export async function updateNotificationSettings(
 }
 
 /**
- * A trip's title as `userId` may see it, or null when the trip is gone
- * or private to someone else. Used to name the trip in a notification
- * without widening what that user could already read in the app.
+ * A trip's title as `userId` may see it, plus whether it is private, or
+ * null when the trip is gone or private to someone else. Used to name the
+ * trip in a notification without widening what that user could already
+ * read in the app.
  */
-export async function tripTitleForUser(userId: string, tripId: string): Promise<string | null> {
+export async function tripForNotification(
+  userId: string,
+  tripId: string,
+): Promise<{ title: string; isPrivate: boolean } | null> {
   const [row] = await db
-    .select({ title: trips.title })
+    .select({ title: trips.title, visibility: trips.visibility })
     .from(trips)
     .where(and(eq(trips.id, tripId), tripVisibleToViewer(userId)))
     .limit(1);
-  return row?.title ?? null;
+  return row ? { title: row.title, isPrivate: row.visibility === 'private' } : null;
 }

@@ -70,6 +70,9 @@ services:
     env_file:
       - .env
     environment:
+      # The app never talks to ntfy (ADR-0020) — blank the token that
+      # env_file would otherwise hand it, so only the worker holds it.
+      NTFY_TOKEN: ''
       DATABASE_URL: postgres://atlas:${POSTGRES_PASSWORD:-atlas}@postgres:5432/atlas
       STORAGE_DIR: /app/data/documents
       TILES_DIR: /app/data/tiles
@@ -203,7 +206,7 @@ services:
   # NTFY_TOPIC=dev-trips, then subscribe at http://localhost:8090/dev-trips.
   # ---------------------------------------------------------------------------
   ntfy:
-    image: binwiederhier/ntfy:latest
+    image: binwiederhier/ntfy:v2.32.0
     container_name: atlas-ntfy
     restart: unless-stopped
     profiles: ['notifications']

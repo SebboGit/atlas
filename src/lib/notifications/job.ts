@@ -7,7 +7,7 @@
 // queued, so switching notifications off takes effect for anything
 // still waiting in the queue.
 
-import { getJobs } from '@/lib/jobs';
+import { getJobs, type SendOptions } from '@/lib/jobs';
 import { log } from '@/lib/log';
 
 import { deploymentTopic, getNotifier } from './index';
@@ -43,9 +43,12 @@ function errMessage(err: unknown): string {
  * so a queueing failure is logged and the caller carries on. Resolves to
  * whether the job was queued.
  */
-export async function enqueueNotification(data: NotifyJobData): Promise<boolean> {
+export async function enqueueNotification(
+  data: NotifyJobData,
+  opts?: SendOptions,
+): Promise<boolean> {
   try {
-    await getJobs().send(NOTIFY_JOB, data);
+    await getJobs().send(NOTIFY_JOB, data, opts);
     return true;
   } catch (err) {
     log.warn({ category: data.category, err: errMessage(err) }, 'notifications.enqueue_failed');
@@ -80,10 +83,15 @@ export async function runNotifyJob(data: NotifyJobData): Promise<void> {
     return;
   }
 
+  // Everyone on the shared default topic sees what lands there, so a
+  // message naming a private trip swaps to its trip-free body.
+  const onSharedTopic = topic === deploymentTopic();
+  const body = onSharedTopic && data.sharedTopicBody ? data.sharedTopicBody : data.body;
+
   const result = await getNotifier().notify({
     topic,
     title: data.title,
-    body: data.body,
+    body,
     tags: data.tags,
     priority: data.priority,
     click: clickUrl(data.path),
