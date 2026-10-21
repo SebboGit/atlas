@@ -54,6 +54,15 @@ export interface RegisterOptions {
    * raise for long-running handlers like document extraction.
    */
   expireInSeconds?: number;
+  /**
+   * Retry shape for a handler that throws. pg-boss defaults to two
+   * immediate retries; a handler calling a server that may be briefly
+   * down (ntfy) wants them spaced out. `retryDelay` is in seconds and
+   * doubles per attempt when `retryBackoff` is set.
+   */
+  retryLimit?: number;
+  retryDelay?: number;
+  retryBackoff?: boolean;
 }
 
 export type JobHandler<T> = (data: T) => Promise<void>;

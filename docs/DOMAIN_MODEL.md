@@ -11,6 +11,7 @@
 - Created **just-in-time** on first successful OIDC sign-in via PocketID. No registration form.
 - Fields: `id`, `sub` (OIDC subject — immutable, unique), `email`, `name`, `groups[]`, `createdAt`, `lastSeenAt`.
 - `email`, `name`, `groups` refreshed from claims on every sign-in.
+- Notification settings live on the row: `notificationsEnabled` (opt-in, default off), `ntfyTopic` (own topic, null means the deployment default) and `notificationPrefs` (per-category switches, JSONB, a missing key reads as on). See ADR-0020.
 - See ADR-0002 and `src/lib/auth/`.
 
 ### Trip

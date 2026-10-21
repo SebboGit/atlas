@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { customType, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, customType, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { uuidv7Pk } from './_helpers';
 
@@ -37,6 +37,19 @@ export const users = pgTable('users', {
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true, mode: 'date' })
     .notNull()
     .defaultNow(),
+
+  // Push notifications (ADR-0020). Opt-in per user: nothing is sent
+  // for someone who never switched them on, even on a shared trip.
+  notificationsEnabled: boolean('notifications_enabled').notNull().default(false),
+  // Optional per-user ntfy topic. Null means the deployment default
+  // (`NTFY_TOPIC`). Atlas never invents a topic: on a server that
+  // denies by default, the operator grants the publisher write access
+  // to each topic, so the name has to come from them.
+  ntfyTopic: text('ntfy_topic'),
+  // Per-category switches, validated by `notificationPrefsSchema` in
+  // `src/lib/notifications/prefs.ts`. A missing key reads as its
+  // default, so adding a category later needs no data migration.
+  notificationPrefs: jsonb('notification_prefs').notNull().default({}),
 });
 
 export type User = typeof users.$inferSelect;

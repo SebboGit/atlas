@@ -5,6 +5,7 @@ import {
   Luggage,
   Map as MapIcon,
   Menu,
+  Settings,
   Sparkles,
   type LucideIcon,
 } from 'lucide-react';
@@ -120,7 +121,21 @@ export function Topbar() {
                 );
               })}
             </nav>
-            <div className="border-foreground/10 mt-auto border-t pt-4">
+            <div className="border-foreground/10 mt-auto flex flex-col gap-1 border-t pt-4">
+              <SheetClose asChild>
+                <Link
+                  href="/settings"
+                  aria-current={isActiveRoute(pathname, '/settings') ? 'page' : undefined}
+                  className="text-foreground/80 [@media(hover:hover)]:hover:bg-foreground/5 [@media(hover:hover)]:hover:text-foreground flex min-h-11 items-center gap-3 rounded-xl px-3 text-base transition-colors"
+                >
+                  <Settings
+                    aria-hidden
+                    className="text-foreground/45 size-[18px] shrink-0"
+                    strokeWidth={1.75}
+                  />
+                  <span>Settings</span>
+                </Link>
+              </SheetClose>
               <form action={signOutAction}>
                 <Button type="submit" variant="ghost" size="sm" className="w-full justify-start">
                   Sign out
@@ -183,6 +198,18 @@ export function Topbar() {
 
         <div className="ml-auto flex items-center gap-3 sm:gap-5">
           <SearchTrigger />
+          {/* Laptop settings — an icon beside sign-out; secondary to the
+           *  section nav, so it stays out of ROUTES. Phone users reach it
+           *  from the hamburger sheet. */}
+          <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex">
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              aria-current={isActiveRoute(pathname, '/settings') ? 'page' : undefined}
+            >
+              <Settings className="size-[18px]" strokeWidth={1.75} />
+            </Link>
+          </Button>
           {/* Laptop sign-out — inline in the topbar. Phone users reach
            *  sign-out via the hamburger sheet above. */}
           <form action={signOutAction} className="hidden sm:block">

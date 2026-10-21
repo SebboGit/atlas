@@ -23,6 +23,7 @@ import {
   getDefaultDirectExtractors,
 } from '@/lib/extraction';
 import { log } from '@/lib/log';
+import { notifyExtractionFinished } from '@/lib/notifications/extraction';
 import { getDefaultExtractors } from '@/lib/ocr';
 import { getStorage } from '@/lib/storage';
 
@@ -39,8 +40,6 @@ export { EXTRACTION_JOB, type ExtractionJobData };
 export async function runExtractionJob(data: ExtractionJobData): Promise<void> {
   const { userId, tripId, documentId, priorLinkedSegmentIds } = data;
   const claim = new Date(data.claim);
-
-  void tripId; // retained in payload for log enrichment / future routing
 
   const document = await repo.getByIdForUser(userId, documentId);
   if (!document) {
@@ -126,6 +125,7 @@ export async function runExtractionJob(data: ExtractionJobData): Promise<void> {
         'documents.extract.job.segment_link',
       );
     }
+    await notifyExtractionFinished({ userId, tripId, result: { ok: true, outcome } });
     return;
   }
 
@@ -143,5 +143,7 @@ export async function runExtractionJob(data: ExtractionJobData): Promise<void> {
   );
   if (!persisted) {
     log.warn({ documentId }, 'documents.extract.job.superseded_or_removed');
+    return;
   }
+  await notifyExtractionFinished({ userId, tripId, result: { ok: false } });
 }

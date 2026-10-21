@@ -111,7 +111,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── ocr/             # PDF text extraction + OCR fallback
 │   │   ├── extraction/      # Ollama-backed structuring
 │   │   ├── jobs/            # Jobs interface (send/register/schedule), pg-boss-backed — see ADR-0012
-│   │   ├── notifications/   # ntfy client (planned — directory not yet present)
+│   │   ├── notifications/   # ntfy Notifier, notify job, settings repo + actions (ADR-0020)
 │   │   ├── maintenance/     # Reusable housekeeping (prune, status sweep) — shared by CLI + worker
 │   │   ├── scheduler/       # Worker-side handler + schedule registration for pg-boss
 │   │   ├── search/          # Cmd+K palette over Postgres FTS + pg_trgm (ADR-0013)
@@ -246,16 +246,18 @@ Non-flight segments (hotels, activities, transit endpoints) get pinned on the pe
 - **Labels vs. coordinates:** `Segment.locationName` stays the pin's display label — but it now doubles as the disambiguation tail on name queries ("Ippudo, Ginza"). Addresses are informational once a name is on file.
 - **Swap door:** `PHOTON_URL` / `NOMINATIM_URL` point either half at a self-hosted instance with no code change. Google Places was evaluated and rejected outright — its ToS forbid non-Google-map display and long-lived coordinate caching (ADR-0018).
 
-### Push notifications — ntfy (planned)
+### Push notifications — ntfy (self-hosted)
 
-Atlas pushes short, user-facing notifications to a self-hosted **ntfy** server: upcoming flight reminders, hotel check-in nudges, extraction completion / failure, and document upload errors. No third-party push providers.
+Atlas pushes short notifications to a self-hosted **ntfy** server. No third-party push providers. See **ADR-0020**.
 
-- **Interface:** `Notifier` in `src/lib/notifications/` — `notify({ topic, title, body, priority, tags })`. Feature code only depends on the interface.
-- **Implementation:** `src/lib/notifications/ntfy.ts` — `POST` to `${NTFY_URL}/${topic}` with appropriate headers. Token auth via `NTFY_TOKEN` when the server requires it.
-- **Topic strategy:** one topic per user (`atlas-<userId-short>`), so a second household user gets their own stream. Topic name is stored on the `User` row, generated at first sign-in.
-- **Triggering:** fired from server actions and the extraction orchestrator. Never block the caller — wrap dispatch in the `Jobs` interface so a slow or down ntfy server doesn't break the UI flow.
-- **Graceful degradation:** ntfy unreachable → log and continue. Notifications are not the source of truth; the UI is.
-- **Privacy:** notification bodies must not contain PNRs, passport numbers, or full document contents. Keep titles/bodies short and generic ("Flight VN54 in 4 hours · HAN → CDG").
+- **Interface:** `Notifier` in `src/lib/notifications/`, implemented by `ntfy.ts`, which publishes ntfy's JSON form (topic in the body, so UTF-8 titles survive). Feature code imports from `@/lib/notifications`, never from `ntfy.ts`.
+- **Worker-only delivery:** callers queue the `notify` job with `enqueueNotification()`; the worker sends it. Only the worker needs network reach to ntfy and only the worker holds `NTFY_TOKEN`. Unreachable / 5xx / 429 is retried (3×, spaced); any other 4xx is a setup error, logged once, not retried. The worker checks `/v1/health` after boot and warns if it fails.
+- **Topics come from the operator:** `NTFY_TOPIC` is the deployment default; a user may set their own in `/settings`. Atlas never invents a topic — a deny-by-default server only accepts topics the operator granted.
+- **Opt-in per user**, off by default, with per-category switches in `users.notification_prefs` (a missing key reads as on). The handler re-reads settings when it runs.
+- **What is sent today:** document reading finished / failed (uploader only) and the settings page's test send. Trip reminders (a 5-minute `reminder-sweep`, deduped per topic, household recipients with a per-trip mute) are specified in ADR-0020 and land next.
+- **Time zones:** reminders resolve a zone to turn floating wall-clock into a real instant — airport zone for flights, coordinates for pinned places, a single-zone country as fallback, otherwise no reminder. Scheduling only; display stays floating (ADR-0014/0016).
+- **Graceful degradation:** `NTFY_URL` empty → no-op, and `/settings` says it isn't configured. A failed send never fails the caller. Notifications are not the source of truth; the UI is.
+- **Privacy:** no PNRs, passport numbers, document contents or file names. No attachments — links go in the click action, built from `AUTH_URL`. Keep titles short ("Train in 2h · Guangzhoudong → West Kowloon").
 
 ### Operating rules for any external service
 
@@ -447,7 +449,7 @@ The following are deliberately stubbed but not yet built. Keep them in mind so t
 
 - **Household sharing visibility.** Atlas is built for ~2 users via separate PocketID identities, not SaaS-scale tenancy. The model is **full household sharing by default** with an opt-out: `userId` columns mean `createdBy` provenance for reads, and a `trips.visibility` enum (`household` | `private`, ADR-0015) lets the creator keep a trip off the shared view. One predicate — `tripVisibleToViewer` in `src/lib/trips/repo.ts` — is the **shared-trip visibility boundary** folded into content reads and writes (trips, segments, the per-trip map, the visited-country roll-up, stats, search). It is NOT the sole authorization check: trip-row mutations (rename/dates/status/archive/delete/visibility) stay owner-only, documents stay uploader-scoped, and manual visited-country marks stay per-user — those are separate gates, not things the predicate covers. A further tier (per-member ACLs) would need a real join table and a new ADR — not contemplated.
 - **Mobile companion.** Backend is API-first via server actions + a small `/api` surface. A future Expo/React Native app can consume it.
-- **ntfy notifications.** Push reminders for upcoming flights / hotel check-ins, plus extraction success/failure. Self-hosted ntfy server, per-user topic. See "External Integrations → Push notifications".
+- **Morning digest.** A once-a-day "today on this trip" push on top of the ntfy reminders. Deliberately left out of the first notifications release.
 - **Calendar sync.** ICS export of confirmed segments; CalDAV later.
 - **Storage backend swap.** If usage ever justifies it, replace `src/lib/storage/fs.ts` with `s3.ts`. The `Storage` interface stays the same.
 - **Job queue (graduation past pg-boss).** The `Jobs` interface at `src/lib/jobs/` is backed by **pg-boss** (ADR-0012, accepted). Three methods — `send` (app code), `register` + `schedule` (worker only). One Postgres schema (`pgboss.*`), one container (`worker` compose service), one operational model for ad-hoc + scheduled work. If pg-boss ever stops being enough — multi-tenant scale, sub-second latency — BullMQ + Redis is the next graduation step behind the same interface.
@@ -477,6 +479,7 @@ Architectural decisions live in `docs/adr/` as numbered ADRs.
 - **ADR-0017** — Installable PWA with a hand-rolled, cache-what-you-visit service worker (no PWA build plugin, so the build stays on Turbopack). Revisit migrating to a Turbopack-native precaching plugin (e.g. a stable `@serwist/turbopack`) once one ships. Accepted.
 - **ADR-0018** — Photon-first free-text geocoding with Nominatim fallback; hotels/food flip to venue-name-first queries with a locationName-else-country context tail. Google Places rejected on ToS grounds (non-Google-map display, coordinate-caching limits). Accepted (transit station clause amended by ADR-0019).
 - **ADR-0019** — Station-aware transit endpoints: train/bus/ferry legs get `fromAddress`/`fromPlusCode` for the origin, `station:` cache keys resolved by tag-filtered Photon behind a name guard with a raw-name fallback, a station-to-station map line, and a plain Google Maps Directions link (no API). Car/other keep one pin and transit keeps one country; Transitous and Google routing APIs rejected. Accepted (source-aware fallback distance guard on the route line added, 2026-09-18; display-only derived-code clause generalised to every pinned type, 2026-09-18).
+- **ADR-0020** — Push notifications through self-hosted ntfy: a `Notifier` interface, every send in the worker via the `notify` job, operator-supplied topics (`NTFY_TOPIC` plus an optional per-user override, never generated), per-user opt-in, reminders from a 5-minute scan deduped per topic, and a scheduling-only zone resolution that leaves floating display untouched. Accepted.
 
 When making a non-obvious choice (a library, a pattern, a tradeoff), write a short ADR. Template in `docs/adr/0000-template.md`.
 

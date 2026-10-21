@@ -32,7 +32,13 @@
 //                                missing; the map silently breaks
 //                                otherwise and the cause is opaque
 //   7. registerWorkerJobs        wire pg-boss handlers + schedules
-//   8. Hold the process alive    until SIGTERM / SIGINT, then graceful
+//   8. ntfy reachability check   non-fatal warn, AFTER the ready marker
+//                                so a slow or absent server never delays
+//                                boot. Only runs when NTFY_URL is set;
+//                                catches a missing host pin or a wrong URL
+//                                at deploy time instead of at the first
+//                                reminder (ADR-0020)
+//   9. Hold the process alive    until SIGTERM / SIGINT, then graceful
 //                                stop so in-flight handlers finish
 //
 // If step 2, 3, or 4 fails the process exits non-zero and the orchestrator
@@ -48,6 +54,7 @@ import { db } from '../src/db/client';
 import { seedCountries } from '../src/lib/countries/seed';
 import { getJobs } from '../src/lib/jobs';
 import { log } from '../src/lib/log';
+import { getNotifier, notificationsConfigured } from '../src/lib/notifications';
 import { runStatusSweep, registerWorkerJobs } from '../src/lib/scheduler';
 
 // Docker compose's `depends_on: condition: service_healthy` blocks the
@@ -94,6 +101,18 @@ async function runBootStatusSweep(): Promise<void> {
   }
 }
 
+async function checkNotificationServer(): Promise<void> {
+  if (!notificationsConfigured()) {
+    log.info({}, 'worker.boot.notifications_disabled');
+    return;
+  }
+  if (await getNotifier().healthy()) {
+    log.info({}, 'worker.boot.notifications_reachable');
+  } else {
+    log.warn({}, 'worker.boot.notifications_unreachable');
+  }
+}
+
 async function main(): Promise<void> {
   log.info({ pid: process.pid }, 'worker.boot.start');
 
@@ -137,6 +156,8 @@ async function main(): Promise<void> {
   }
 
   log.info({}, 'worker.boot.ready');
+
+  void checkNotificationServer();
 
   let shuttingDown = false;
   async function shutdown(signal: NodeJS.Signals): Promise<void> {

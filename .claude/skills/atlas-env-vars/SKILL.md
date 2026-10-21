@@ -24,8 +24,9 @@ See `.env.example` for the full documented list. At minimum:
 - `OLLAMA_MODEL` — model tag to use (e.g. `qwen2.5:7b`)
 - `NOMINATIM_CONTACT_EMAIL` — contact email sent in the geocoder `User-Agent`, both providers (required per Nominatim usage policy)
 - `PHOTON_URL` — optional override for the Photon endpoint (defaults to the public https://photon.komoot.io; ADR-0018)
-- `NTFY_URL` — base URL of the self-hosted ntfy server (e.g. `https://ntfy.example.com`)
-- `NTFY_TOKEN` — optional access token when the ntfy server requires auth
+- `NTFY_URL` — base URL of the self-hosted ntfy server (e.g. `https://ntfy.example.com`). Empty switches notifications off. Worker and app (the app only reads it to show setup state).
+- `NTFY_TOPIC` — default topic for every user; a user can override it in `/settings`. Atlas never generates topic names, so on a deny-by-default server grant the token's user write access to each topic. Worker and app.
+- `NTFY_TOKEN` — access token for a publish-only ntfy user, sent as `Authorization: Bearer`. Worker only — the app never talks to ntfy (ADR-0020).
 - `CRON_PRUNE_SCHEDULE` — six-field cron expression for the nightly prune (default `0 40 3 * * *`)
 - `CRON_STATUS_SCHEDULE` — cron expression for the daily trip status sweep (default `5 0 * * *`, i.e. 00:05 UTC)
 - `CRON_TZ` — IANA timezone for the **prune** run window (default `UTC`). The status sweep ignores it and always runs in UTC: its day math is UTC (ADR-0016), so a non-UTC trigger would fire it in the prior UTC day and lag trip transitions by a day. An unknown zone falls back to UTC with a `worker.schedules.invalid_tz` warning.

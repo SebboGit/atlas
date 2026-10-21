@@ -93,6 +93,14 @@ services:
       OLLAMA_URL: ${OLLAMA_URL:-}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-atlas-extract:latest}
       CRON_TZ: ${CRON_TZ:-UTC}
+      # Optional push notifications (ADR-0020). Every ntfy request runs here,
+      # so this is the only service that needs the token — and, if the ntfy
+      # host only resolves on a private network, an `extra_hosts` entry.
+      NTFY_URL: ${NTFY_URL:-}
+      NTFY_TOPIC: ${NTFY_TOPIC:-}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      # Click links in notifications open AUTH_URL; leave unset for none.
+      AUTH_URL: ${AUTH_URL:-}
     volumes:
       - /mnt/user/appdata/atlas/documents:/app/data/documents
     healthcheck:
@@ -138,6 +146,10 @@ services:
       # synchronous config gate before enqueueing the job. Leave empty and
       # extraction reports "not configured" even though the worker can do it.
       OLLAMA_URL: ${OLLAMA_URL:-}
+      # Settings page only: shows whether notifications are configured and
+      # the default topic. No token — the app never talks to ntfy.
+      NTFY_URL: ${NTFY_URL:-}
+      NTFY_TOPIC: ${NTFY_TOPIC:-}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-atlas-extract:latest}
       # If your OIDC provider sits behind a private / local CA, the app must
       # trust it for server-side discovery + token calls. Mount the root cert
