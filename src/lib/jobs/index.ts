@@ -15,6 +15,7 @@ export type {
   RegisterOptions,
   ScheduleOptions,
   SendOptions,
+  SendResult,
 } from './types';
 
 let instance: Jobs | null = null;

@@ -14,7 +14,7 @@ import { notifyExtractionFinished } from './extraction';
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.enqueueNotification.mockResolvedValue(true);
+  mocks.enqueueNotification.mockResolvedValue('queued');
   mocks.tripForNotification.mockResolvedValue({ title: 'Tokyo & Kyoto', isPrivate: false });
   mocks.configured.mockReturnValue(true);
 });

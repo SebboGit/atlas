@@ -135,9 +135,11 @@ describeIfDb('PgBossJobs.send throttling (DB integration)', () => {
 
   it('accepts one job per key per window on a standard-policy queue', async () => {
     const opts = { singletonKey: 'user-1', singletonSeconds: 60 };
-    await jobs.send(THROTTLE_QUEUE, { n: 1 }, opts);
-    await jobs.send(THROTTLE_QUEUE, { n: 2 }, opts);
-    await jobs.send(THROTTLE_QUEUE, { n: 3 }, { ...opts, singletonKey: 'user-2' });
+    expect(await jobs.send(THROTTLE_QUEUE, { n: 1 }, opts)).toBe('queued');
+    expect(await jobs.send(THROTTLE_QUEUE, { n: 2 }, opts)).toBe('dropped');
+    expect(await jobs.send(THROTTLE_QUEUE, { n: 3 }, { ...opts, singletonKey: 'user-2' })).toBe(
+      'queued',
+    );
 
     const { rows } = await pool.query<{ key: string }>(
       `SELECT singleton_key AS key FROM pgboss.job WHERE name = $1 ORDER BY singleton_key`,
