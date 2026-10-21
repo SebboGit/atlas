@@ -197,6 +197,24 @@ services:
     networks:
       - atlas
 
+  # OPTIONAL: local ntfy server for testing push notifications (ADR-0020).
+  # Opt-in via `--profile notifications`. Open server, no auth — dev only.
+  # Point the host-run worker at it with NTFY_URL=http://localhost:8090 and
+  # NTFY_TOPIC=dev-trips, then subscribe at http://localhost:8090/dev-trips.
+  # ---------------------------------------------------------------------------
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: atlas-ntfy
+    restart: unless-stopped
+    profiles: ['notifications']
+    command: ['serve']
+    environment:
+      NTFY_BASE_URL: http://localhost:8090
+    ports:
+      - '127.0.0.1:8090:80'
+    networks:
+      - atlas
+
   # OPTIONAL: Local Ollama for self-hosted extraction.
   # Uncomment if you want to run extraction entirely on-prem.
   # ollama:

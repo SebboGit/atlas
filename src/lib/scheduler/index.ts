@@ -28,6 +28,7 @@ import type { Jobs } from '@/lib/jobs';
 import { log } from '@/lib/log';
 import { ALL_TARGETS, pruneLabel, runPrune } from '@/lib/maintenance/prune';
 import { runStatusSweep } from '@/lib/maintenance/status';
+import { NOTIFY_JOB, runNotifyJob, type NotifyJobData } from '@/lib/notifications/job';
 
 import { resolveScheduleConfig } from './schedule-config';
 
@@ -60,6 +61,17 @@ export async function registerWorkerJobs(
   // replaces the per-process in-flight Set the InlineJobs path used.
   await jobs.register<GeocodeFetchJobData>(GEOCODE_FETCH_JOB, runGeocodeFetchJob, {
     policy: 'short',
+  });
+
+  // Notify: every ntfy request goes through here (ADR-0020). A throw
+  // means the server was unreachable or answered 5xx/429; three spaced
+  // retries (30s, 60s, 120s) ride out a restart without hammering it.
+  // Setup errors (bad token, no topic access) return without throwing,
+  // so they are logged once rather than retried.
+  await jobs.register<NotifyJobData>(NOTIFY_JOB, runNotifyJob, {
+    retryLimit: 3,
+    retryDelay: 30,
+    retryBackoff: true,
   });
 
   // ---- Scheduled handlers ----

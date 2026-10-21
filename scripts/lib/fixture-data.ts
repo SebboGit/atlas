@@ -793,6 +793,15 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     userId = row.id;
   }
 
+  // Notifications on, default topic, every category on — so a dev stack
+  // with the `notifications` compose profile (and NTFY_URL / NTFY_TOPIC
+  // pointing at it) pushes for the fixture user straight away. Reset on
+  // every run so a settings change made while testing doesn't stick.
+  await db
+    .update(users)
+    .set({ notificationsEnabled: true, ntfyTopic: null, notificationPrefs: {} })
+    .where(eq(users.id, userId));
+
   // 2) Wipe any previous fixture data for a clean rebuild.
   //    Order: documents → trips → wishlist items → visited countries
   //    → sessions. Documents cascade their link rows, trips cascade

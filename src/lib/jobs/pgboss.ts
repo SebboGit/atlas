@@ -168,7 +168,12 @@ export class PgBossJobs implements Jobs {
       }
     });
     log.info(
-      { name, policy: opts?.policy ?? 'standard', expireInSeconds: opts?.expireInSeconds },
+      {
+        name,
+        policy: opts?.policy ?? 'standard',
+        expireInSeconds: opts?.expireInSeconds,
+        retryLimit: opts?.retryLimit,
+      },
       'jobs.pgboss.handler_registered',
     );
   }
@@ -205,6 +210,9 @@ export class PgBossJobs implements Jobs {
     const createSpec: Partial<PgBossQueue> = {};
     if (opts?.policy) createSpec.policy = opts.policy;
     if (opts?.expireInSeconds !== undefined) createSpec.expireInSeconds = opts.expireInSeconds;
+    if (opts?.retryLimit !== undefined) createSpec.retryLimit = opts.retryLimit;
+    if (opts?.retryDelay !== undefined) createSpec.retryDelay = opts.retryDelay;
+    if (opts?.retryBackoff !== undefined) createSpec.retryBackoff = opts.retryBackoff;
     try {
       await this.#boss.createQueue(name, createSpec);
     } catch (err: unknown) {
@@ -224,7 +232,15 @@ export class PgBossJobs implements Jobs {
   }
 
   async #applyQueueOptions(name: string, opts: RegisterOptions): Promise<void> {
-    if (!opts.policy && opts.expireInSeconds === undefined) return;
+    if (
+      !opts.policy &&
+      opts.expireInSeconds === undefined &&
+      opts.retryLimit === undefined &&
+      opts.retryDelay === undefined &&
+      opts.retryBackoff === undefined
+    ) {
+      return;
+    }
     // No catch: a failed updateQueue means the queue keeps its
     // existing policy/timeout, which silently breaks singleton dedup
     // (geocode-fetch) or extraction timeout. Better to fail boot —
@@ -233,6 +249,9 @@ export class PgBossJobs implements Jobs {
     await this.#boss.updateQueue(name, {
       ...(opts.policy ? { policy: opts.policy } : {}),
       ...(opts.expireInSeconds !== undefined ? { expireInSeconds: opts.expireInSeconds } : {}),
+      ...(opts.retryLimit !== undefined ? { retryLimit: opts.retryLimit } : {}),
+      ...(opts.retryDelay !== undefined ? { retryDelay: opts.retryDelay } : {}),
+      ...(opts.retryBackoff !== undefined ? { retryBackoff: opts.retryBackoff } : {}),
     });
   }
 }

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Push notifications through your own ntfy server** — a new Settings page
+  turns them on per person, picks the topic and sends a test. The first
+  notification is document reading: when a confirmation or boarding pass you
+  uploaded finishes reading, or fails, you get a short push that opens the
+  trip's documents. Nothing is sent until you switch it on, and messages never
+  carry booking references, passport numbers, file names or document text.
+  Set `NTFY_URL`, `NTFY_TOPIC` and `NTFY_TOKEN` on the worker (the app needs
+  only the first two); see `.env.example`.
+
 ## [1.7.1] - 2026-10-21
 
 ### Fixed

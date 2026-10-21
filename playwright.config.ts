@@ -42,6 +42,10 @@ export default defineConfig({
       OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET ?? 'playwright',
       DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://atlas:atlas@localhost:5432/atlas',
       STORAGE_DIR: process.env.STORAGE_DIR ?? '/tmp/atlas-documents',
+      // Unreachable on purpose: it switches the Settings form on, and with
+      // no worker running in e2e a queued test notification is never sent.
+      NTFY_URL: 'http://localhost:0',
+      NTFY_TOPIC: 'e2e-default',
     },
   },
 });

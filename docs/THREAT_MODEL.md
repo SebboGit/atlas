@@ -49,7 +49,7 @@ guarantees below weaken accordingly.
   Stored files are write-once.
 - **Path traversal and SSRF** — storage keys resolve only under `STORAGE_DIR`,
   the tile route is constrained to `TILES_DIR`, and outbound calls go only to
-  the configured Photon, Nominatim, Ollama, and tile endpoints.
+  the configured Photon, Nominatim, Ollama, ntfy, and tile endpoints.
 - **Session theft and revocation** — sessions are database-backed (not JWTs)
   so they can be revoked; mutations run through Next.js server actions, which
   are CSRF-protected by default.
@@ -59,6 +59,13 @@ guarantees below weaken accordingly.
   headers set a strict Content-Security-Policy, HSTS, `nosniff`,
   `X-Frame-Options: DENY`, and a conservative referrer policy, with no
   third-party origins permitted in production (dev loosens the CSP for HMR).
+- **Notifications reaching the wrong person** — push notifications are
+  opt-in per user and go only to topics the operator configured: the
+  deployment default `NTFY_TOPIC` or a topic the user entered, which the ntfy
+  server must also grant the publisher. Atlas never creates a topic. A trip
+  reminder only goes to users who can see the trip, so a private trip reaches
+  its owner alone. The ntfy token lives only in the worker, the one process
+  that sends (ADR-0020).
 - **Vulnerable dependencies** — Dependabot opens grouped weekly updates, and
   CI runs an advisory `pnpm audit --prod` step that surfaces findings for
   manual review; it does not gate merges. There is no accepted-risk baseline
@@ -95,6 +102,11 @@ guarantees below weaken accordingly.
   the host only when the user opens the link in their own browser, sent with
   `noreferrer`, and the server never calls Google. The Plus Code badge link
   is the same class of disclosure.
-- Push notifications (planned) must keep PNRs, passport numbers, and document
-  contents out of their bodies — this is a design constraint, not yet enforced
-  by code.
+- Push notifications carry short titles and bodies to the operator's own ntfy
+  server: a trip name, a segment count, a route or venue, a time. They never
+  include booking references, passport numbers, file names, or document
+  contents; that is enforced by the fixed message builders in
+  `src/lib/notifications/`, not by a filter. Anyone subscribed to a topic sees
+  everything sent to it, so a topic shared between two users shares their
+  notifications too, and on an open ntfy server the topic name is the only
+  thing standing between a stranger and those messages.
