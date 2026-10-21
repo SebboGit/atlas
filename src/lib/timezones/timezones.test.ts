@@ -51,5 +51,8 @@ describe('zone resolution', () => {
 
   it('uses the official zone where tzdata lists an informal one', () => {
     expect(zoneForCountry('CN')).toBe('Asia/Shanghai');
+    // Urumqi and Kashgar fall in tzdata's informal Xinjiang zone.
+    expect(zoneAt(43.8, 87.6)).toBe('Asia/Shanghai');
+    expect(zoneAt(39.47, 75.99)).toBe('Asia/Shanghai');
   });
 });

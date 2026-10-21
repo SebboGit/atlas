@@ -1,5 +1,5 @@
 {
-  "id": "f8d5fb6d-e44d-4da5-8cb6-867392bc9706",
+  "id": "e18180d9-8e1a-4471-a489-c0d2540627c9",
   "prevId": "bc6dd347-a2d6-47fc-a592-4cf2545d403c",
   "version": "7",
   "dialect": "postgresql",
@@ -1614,6 +1614,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "event_at": {
+          "name": "event_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
         "fire_at": {
           "name": "fire_at",
           "type": "timestamp with time zone",
@@ -1647,7 +1653,7 @@
           "name": "notification_deliveries_dedupe_idx",
           "columns": [
             {
-              "expression": "topic",
+              "expression": "segment_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1659,34 +1665,19 @@
               "nulls": "last"
             },
             {
-              "expression": "segment_id",
+              "expression": "topic",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "fire_at",
+              "expression": "event_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notification_deliveries_segment_idx": {
-          "name": "notification_deliveries_segment_idx",
-          "columns": [
-            {
-              "expression": "segment_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}

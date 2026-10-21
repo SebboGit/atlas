@@ -333,10 +333,10 @@ function planHotel(seg: ReminderSegment, zone: string): Draft[] {
   const end = seg.endsAt;
   if (end) {
     const checkout = fixedTiming(end, CHECKOUT_EVE_HOUR, -1, zone, end);
-    // A day-use stay checks out the day it checks in: the evening
-    // before would land ahead of check-in, so it gets no check-out note.
-    const checkinAt = wallClockToEpoch(start, zone);
-    if (checkout && checkinAt !== null && checkout.fireAt > checkinAt) {
+    // A day-use stay checks out the day it checks in, so "the evening
+    // before" would come before the stay starts: no check-out note. Any
+    // stay over a night keeps it, even one checking in after 20:00.
+    if (checkout && dayIndex(end) > dayIndex(start)) {
       const title = hasTime(end) ? `Check out tomorrow by ${hhmm(end)}` : 'Check out tomorrow';
       drafts.push({
         kind: 'checkout',

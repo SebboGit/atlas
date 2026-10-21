@@ -82,12 +82,23 @@ async function resolveZones(rows: readonly ReminderCandidateRow[]): Promise<Map<
     }
   }
   if (places.length > 0) {
-    const { coordsById } = await getPlaceCoordsView(places);
+    // `fetchAllMisses`: a place saved months ahead has an expired cache
+    // row by now. Asking for a refresh here means the coordinates are
+    // back long before the reminder is due (the window opens days ahead).
+    const { coordsById } = await getPlaceCoordsView(places, { fetchAllMisses: true });
     for (const place of places) {
       const coords = coordsById.get(place.id);
-      // A transit leg starts at its origin; its primary point is the
-      // destination, which can be in another zone.
-      const point = coords?.endpoints?.origin ?? coords ?? null;
+      let point: { lat: number; lng: number } | null;
+      if (place.type === 'transit') {
+        // A leg leaves from its origin, so only the origin's pin will do.
+        // The primary point is the destination, which can be in another
+        // zone — a wrong zone fires hours off, which is worse than
+        // falling back to the country or to no reminder (ADR-0020). Car
+        // and other legs have no separate origin, so they use the country.
+        point = coords?.endpoints?.origin ?? null;
+      } else {
+        point = coords ?? null;
+      }
       const tz = (point ? zoneAt(point.lat, point.lng) : null) ?? zoneForCountry(place.countryCode);
       if (tz) zones.set(place.id, tz);
     }
@@ -110,8 +121,10 @@ async function findConnections(
     const arriveZone = zoneForAirport(str(data, 'destinationAirport'));
     return {
       id: f.id,
+      // PNRs are reused across airlines and years, so a PNR only links
+      // legs within one trip — the same scope the leg editor uses.
       bookingKeys: [
-        ...(pnr ? [`pnr:${pnr.toUpperCase()}`] : []),
+        ...(pnr ? [`pnr:${f.tripId}:${pnr.toUpperCase()}`] : []),
         ...(docs.get(f.id) ?? []).map((id) => `doc:${id}`),
       ],
       departAt: f.startsAt && departZone ? wallClockToEpoch(f.startsAt, departZone) : null,
@@ -158,10 +171,10 @@ export async function runReminderSweep(now: Date = new Date()): Promise<SweepCou
   const sharedTopic = deploymentTopic();
 
   const planned: PlannedReminder[] = [];
-  let noZone = 0;
+  const noZoneIds: string[] = [];
   for (const row of rows) {
     const zone = zones.get(row.id) ?? null;
-    if (!zone) noZone += 1;
+    if (!zone) noZoneIds.push(row.id);
     const segment: ReminderSegment = {
       id: row.id,
       tripId: row.tripId,
@@ -192,6 +205,7 @@ export async function runReminderSweep(now: Date = new Date()): Promise<SweepCou
         topic,
         kind: reminder.kind,
         segmentId: reminder.segmentId,
+        eventAt: new Date(reminder.eventAt),
         fireAt: new Date(reminder.fireAt),
         status: status === 'send' ? 'queued' : 'skipped',
       });
@@ -219,7 +233,18 @@ export async function runReminderSweep(now: Date = new Date()): Promise<SweepCou
     }
   }
 
-  const counts = { candidates: rows.length, due: due.length, queued, skipped, noZone };
+  const counts = {
+    candidates: rows.length,
+    due: due.length,
+    queued,
+    skipped,
+    noZone: noZoneIds.length,
+  };
   if (queued > 0 || skipped > 0) log.info(counts, 'notifications.reminders.swept');
+  // Debug, not info: the same segments come up every five minutes until
+  // they are pinned or pass. Pinning the place is the fix.
+  if (noZoneIds.length > 0) {
+    log.debug({ segmentIds: noZoneIds }, 'notifications.reminders.no_zone');
+  }
   return counts;
 }

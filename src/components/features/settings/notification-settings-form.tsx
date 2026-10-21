@@ -133,7 +133,7 @@ export function NotificationSettingsForm({ initial, defaultTopic }: Notification
         />
         <ToggleRow
           id="notifications-transit"
-          label="Trains, buses and ferries"
+          label="Trains, buses and other transit"
           hint="3 hours before departure."
           registration={register('prefs.transit')}
         />

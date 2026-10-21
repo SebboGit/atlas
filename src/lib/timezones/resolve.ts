@@ -28,10 +28,18 @@ export function zoneForAirport(iata: string | null | undefined): string | null {
   return tz && isKnownZone(tz) ? tz : null;
 }
 
+// Boundary lookups that land in an informal zone, mapped to the official
+// one. Xinjiang's informal UTC+6 is common in daily life, but bookings,
+// timetables and flights there are printed in Beijing time.
+const OFFICIAL_ALIAS: Record<string, string> = {
+  'Asia/Urumqi': 'Asia/Shanghai',
+};
+
 export function zoneAt(lat: number, lng: number): string | null {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   try {
-    const tz = tzLookup(lat, lng);
+    const found = tzLookup(lat, lng);
+    const tz = OFFICIAL_ALIAS[found] ?? found;
     return isKnownZone(tz) ? tz : null;
   } catch {
     return null;

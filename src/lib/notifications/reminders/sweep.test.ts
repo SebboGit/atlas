@@ -183,6 +183,46 @@ describe('runReminderSweep', () => {
     expect(mocks.enqueue.mock.calls[0]![0]).toMatchObject({ title: 'Train departs 12:38' });
   });
 
+  it("never times a transit leg by its destination's pin", async () => {
+    // Origin unresolved, destination pinned in another zone, and a
+    // multi-zone country: no reminder beats one an hour off.
+    mocks.candidates.mockResolvedValue([
+      {
+        ...flight,
+        id: 'seg-train',
+        type: 'transit',
+        data: { mode: 'train', fromName: 'London St Pancras', toName: 'Paris Nord' },
+        startsAt: wall('2026-10-16T14:00:00'),
+        countryCode: 'US',
+      },
+    ]);
+    mocks.coords.mockResolvedValue({
+      coordsById: new Map([
+        [
+          'seg-train',
+          {
+            lat: 48.88,
+            lng: 2.355,
+            city: null,
+            endpoints: { origin: null, destination: { lat: 48.88, lng: 2.355, city: null } },
+          },
+        ],
+      ]),
+      pendingCount: 0,
+    });
+    const counts = await runReminderSweep(new Date('2026-10-16T10:01:00Z'));
+    expect(counts.noZone).toBe(1);
+    expect(mocks.record).not.toHaveBeenCalled();
+  });
+
+  it('asks for fresh coordinates when a pin has expired', async () => {
+    mocks.candidates.mockResolvedValue([
+      { ...flight, id: 'seg-hotel', type: 'hotel', data: { propertyName: 'X' } },
+    ]);
+    await runReminderSweep(NOW);
+    expect(mocks.coords).toHaveBeenCalledWith(expect.any(Array), { fetchAllMisses: true });
+  });
+
   it('plans nothing for a segment whose zone cannot be told', async () => {
     mocks.candidates.mockResolvedValue([
       { ...flight, id: 'seg-hotel', type: 'hotel', data: { propertyName: 'X' }, countryCode: 'US' },

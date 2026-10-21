@@ -51,7 +51,10 @@ describeIfDb('notifications.repo reminders', () => {
 
   async function makeTrip(
     userId: string,
-    opts: { visibility?: 'household' | 'private'; status?: 'planned' | 'archived' } = {},
+    opts: {
+      visibility?: 'household' | 'private';
+      status?: 'planned' | 'completed' | 'archived';
+    } = {},
   ): Promise<string> {
     const [t] = await db
       .insert(trips)
@@ -81,10 +84,11 @@ describeIfDb('notifications.repo reminders', () => {
   const from = new Date('2091-03-01T00:00:00Z');
   const to = new Date('2091-03-04T00:00:00Z');
 
-  it('lists dated segments and hotel check-outs in the window, skipping archived trips', async () => {
+  it('lists dated segments and hotel check-outs in the window, for planned and active trips', async () => {
     const owner = await makeUser();
     const trip = await makeTrip(owner);
     const archived = await makeTrip(owner, { status: 'archived' });
+    const completed = await makeTrip(owner, { status: 'completed' });
     const inWindow = await makeSegment(trip, {
       type: 'flight',
       startsAt: new Date('2091-03-02T10:00:00Z'),
@@ -107,12 +111,17 @@ describeIfDb('notifications.repo reminders', () => {
       type: 'flight',
       startsAt: new Date('2091-03-02T10:00:00Z'),
     });
+    const onCompleted = await makeSegment(completed, {
+      type: 'flight',
+      startsAt: new Date('2091-03-02T10:00:00Z'),
+    });
 
     const ids = (await listReminderCandidates(from, to)).map((r) => r.id);
     expect(ids).toEqual(expect.arrayContaining([inWindow, checkout]));
     expect(ids).not.toContain(outside);
     expect(ids).not.toContain(note);
     expect(ids).not.toContain(onArchived);
+    expect(ids).not.toContain(onCompleted);
   });
 
   it('records a reminder once per topic', async () => {
@@ -125,16 +134,43 @@ describeIfDb('notifications.repo reminders', () => {
     const base = {
       kind: 'flight-4h',
       segmentId,
-      fireAt: new Date('2091-03-02T06:00:00Z'),
+      eventAt: new Date('2091-03-02T06:00:00Z'),
+      fireAt: new Date('2091-03-01T13:00:00Z'),
       status: 'queued' as const,
     };
     expect(await recordDelivery({ ...base, topic: 'a' })).toEqual(expect.any(String));
     expect(await recordDelivery({ ...base, topic: 'a' })).toBeNull();
     expect(await recordDelivery({ ...base, topic: 'b' })).toEqual(expect.any(String));
-    // A rescheduled segment fires at a new time, which earns a new reminder.
+    // Moved from 06:00 to 07:30 after its 22:00 reminder went out: same
+    // fire time (the night rule), new event time, so a corrected reminder.
     expect(
-      await recordDelivery({ ...base, topic: 'a', fireAt: new Date('2091-03-02T07:00:00Z') }),
+      await recordDelivery({ ...base, topic: 'a', eventAt: new Date('2091-03-02T07:30:00Z') }),
     ).toEqual(expect.any(String));
+  });
+
+  it('hands back a reminder stuck as queued, once', async () => {
+    const owner = await makeUser();
+    const trip = await makeTrip(owner);
+    const segmentId = await makeSegment(trip, {
+      type: 'flight',
+      startsAt: new Date('2091-03-02T10:00:00Z'),
+    });
+    const key = {
+      topic: 'a',
+      kind: 'flight-4h',
+      segmentId,
+      eventAt: new Date('2091-03-02T06:00:00Z'),
+      fireAt: new Date('2091-03-01T13:00:00Z'),
+    };
+    // The worker died after writing the row and before queueing the send.
+    const [row] = await db
+      .insert(notificationDeliveries)
+      .values({ ...key, createdAt: new Date(Date.now() - 15 * 60_000) })
+      .returning({ id: notificationDeliveries.id });
+
+    expect(await recordDelivery({ ...key, status: 'queued' })).toBe(row!.id);
+    // Re-stamped on the hand-back, so the next sweep leaves it alone.
+    expect(await recordDelivery({ ...key, status: 'queued' })).toBeNull();
   });
 
   it('mutes a trip per user, and only a trip the user can see', async () => {
@@ -159,7 +195,11 @@ describeIfDb('notifications.repo reminders', () => {
     const userId = await makeUser();
     const trip = await makeTrip(userId);
     expect(await getTripReminderState(userId, trip)).toBeNull();
+    // On, but no topic of their own and (in tests) no server default:
+    // nothing would be sent, so nothing to mute.
     await updateNotificationSettings(userId, { enabled: true, topic: null, prefs: ALL_ON });
+    expect(await getTripReminderState(userId, trip)).toBeNull();
+    await updateNotificationSettings(userId, { enabled: true, topic: 'mine', prefs: ALL_ON });
     expect(await getTripReminderState(userId, trip)).toEqual({ muted: false });
   });
 
@@ -177,13 +217,14 @@ describeIfDb('notifications.repo reminders', () => {
         topic: 'old',
         kind: 'flight-4h',
         segmentId,
+        eventAt: now,
         fireAt: now,
         createdAt: new Date(now.getTime() - DELIVERY_RETENTION_MS - 60_000),
       })
       .returning({ id: notificationDeliveries.id });
     const [fresh] = await db
       .insert(notificationDeliveries)
-      .values({ topic: 'fresh', kind: 'flight-4h', segmentId, fireAt: now })
+      .values({ topic: 'fresh', kind: 'flight-4h', segmentId, eventAt: now, fireAt: now })
       .returning({ id: notificationDeliveries.id });
 
     await runPrune(

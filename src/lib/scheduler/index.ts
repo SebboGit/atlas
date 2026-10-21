@@ -131,9 +131,10 @@ export async function registerWorkerJobs(
     }
   });
 
-  // Reminder sweep (ADR-0020). `'singleton'` keeps two sweeps from
-  // running at once if one overruns its slot; the delivery table's unique
-  // index would catch a double send anyway, this just saves the work.
+  // Reminder sweep (ADR-0020). `'stately'` allows one running and one
+  // waiting sweep, so an overrunning one doesn't pile up cron ticks behind
+  // it; the delivery table's unique index would catch a double send
+  // anyway, this just saves the work.
   // A failed sweep isn't retried — the next one is five minutes away.
   await jobs.register<null>(
     REMINDER_SWEEP_JOB,
@@ -150,7 +151,7 @@ export async function registerWorkerJobs(
         );
       }
     },
-    { policy: 'singleton' },
+    { policy: 'stately' },
   );
 
   // ---- Schedules ----
