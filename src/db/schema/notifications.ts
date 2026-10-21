@@ -21,7 +21,8 @@ export const notificationDeliveryStatus = pgEnum('notification_delivery_status',
   // The notify job gave up (setup error, or retries exhausted).
   'failed',
   // Found more than the grace period late — the worker was down — and
-  // recorded instead of sent, so it isn't evaluated again (ADR-0020).
+  // recorded instead of sent, so it isn't evaluated again; or its send job
+  // only ran after the event had started (ADR-0020).
   'skipped',
 ]);
 

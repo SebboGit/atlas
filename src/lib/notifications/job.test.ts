@@ -157,6 +157,7 @@ describe('runNotifyJob', () => {
 describe('runNotifyJob (reminders)', () => {
   const reminder = {
     deliveryId: 'd1',
+    eventAt: '2999-01-01T00:00:00.000Z',
     topic: 'trips',
     category: 'flights' as const,
     title: 'NH210 departs 14:00',
@@ -174,6 +175,12 @@ describe('runNotifyJob (reminders)', () => {
       click: 'https://atlas.example.test/trips/t1/itinerary#seg-s1',
     });
     expect(mocks.markDelivery).toHaveBeenCalledWith('d1', 'sent');
+  });
+
+  it('drops a send that waited past its event', async () => {
+    await runNotifyJob({ ...reminder, eventAt: '2000-01-01T00:00:00.000Z' });
+    expect(mocks.notify).not.toHaveBeenCalled();
+    expect(mocks.markDelivery).toHaveBeenCalledWith('d1', 'skipped');
   });
 
   it('marks a refused send failed without retrying', async () => {
@@ -203,6 +210,7 @@ describe('enqueueNotification', () => {
   it('keys a reminder send by its delivery on the reminder queue', async () => {
     const reminder = {
       deliveryId: 'd1',
+      eventAt: '2999-01-01T00:00:00.000Z',
       topic: 'trips',
       category: 'flights' as const,
       title: 'x',

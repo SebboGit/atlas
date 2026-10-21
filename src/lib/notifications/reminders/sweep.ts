@@ -219,6 +219,7 @@ export async function runReminderSweep(now: Date = new Date()): Promise<SweepCou
       const redact = row.tripVisibility === 'private' && topic === sharedTopic;
       const result = await enqueueReminder({
         deliveryId,
+        eventAt: new Date(reminder.eventAt).toISOString(),
         topic,
         category: reminder.category,
         title: redact ? reminder.privateTitle : reminder.title,

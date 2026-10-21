@@ -45,6 +45,11 @@ export interface UserNotifyJobData extends DraftMessage {
 export interface ReminderNotifyJobData {
   /** The `notification_deliveries` row this send settles. */
   deliveryId: string;
+  /**
+   * ISO instant the event happens. A job that waited past it (the worker
+   * was down, or a rollback left it unhandled) is dropped, not sent late.
+   */
+  eventAt: string;
   topic: string;
   /** For logs only; the sweep already applied the user's switches. */
   category: NotificationCategory;
@@ -151,6 +156,11 @@ export async function runNotifyJob(data: NotifyJobData): Promise<void> {
 }
 
 async function runReminder(data: ReminderNotifyJobData): Promise<void> {
+  if (Date.parse(data.eventAt) <= Date.now()) {
+    log.info({ category: data.category }, 'notifications.skipped.event_passed');
+    await markDelivery(data.deliveryId, 'skipped');
+    return;
+  }
   // Marked failed before a retryable throw: if every retry fails the row
   // says so, and a later success overwrites it with `sent`.
   const outcome = await send(
