@@ -22,30 +22,42 @@ export function TripReminderToggle({
   className?: string;
 }) {
   const [muted, setMuted] = React.useState(initialMuted);
+  const [failed, setFailed] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
 
   function toggle() {
     const next = !muted;
     setMuted(next);
+    setFailed(false);
     startTransition(async () => {
       const result = await setTripReminderMuteAction({ tripId, muted: next });
-      if (!result.ok) setMuted(!next);
+      if (!result.ok) {
+        setMuted(!next);
+        setFailed(true);
+      }
     });
   }
 
   const Icon = muted ? BellOff : Bell;
+  // The label states the current state and changes with it, so there is
+  // no `aria-pressed` on top — a screen reader would announce the state
+  // twice ("Reminders muted, pressed").
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={toggle}
-      disabled={pending}
-      aria-pressed={muted}
-      className={className}
-    >
-      <Icon className="size-3.5" strokeWidth={1.75} />
-      <span>{muted ? 'Reminders muted' : 'Mute reminders'}</span>
-    </Button>
+    <span className="inline-flex items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={toggle}
+        disabled={pending}
+        className={className}
+      >
+        <Icon className="size-3.5" strokeWidth={1.75} />
+        <span>{muted ? 'Reminders muted' : 'Mute reminders'}</span>
+      </Button>
+      <span role="status" className="text-destructive text-xs">
+        {failed ? 'Not saved.' : null}
+      </span>
+    </span>
   );
 }

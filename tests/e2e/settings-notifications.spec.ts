@@ -93,7 +93,7 @@ test.describe('notification settings', () => {
     const visible = mute.filter({ visible: true });
     await expect(visible).toHaveText(/mute reminders/i);
     await visible.click();
-    await expect(visible).toHaveAttribute('aria-pressed', 'true');
+    await expect(visible).toHaveText(/reminders muted/i);
     await authedPage.reload();
     await expect(mute.filter({ visible: true })).toHaveText(/reminders muted/i);
   });

@@ -65,6 +65,15 @@ type Role = 'primary' | 'origin' | 'destination';
  */
 export async function getPlaceCoordsView(
   places: ReadonlyArray<PlaceLike & { id: string }>,
+  opts: {
+    /**
+     * Enqueue a fetch for every miss, not just transit ends. The reminder
+     * sweep sets it: a hotel saved months before the trip has an expired
+     * row by the time its reminder is due, and nothing else would refresh
+     * it unless someone opened the trip map.
+     */
+    fetchAllMisses?: boolean;
+  } = {},
 ): Promise<PlaceCoordsView> {
   // One lookup per place — or per end for train / bus / ferry (ADR-0019).
   // `fetchOnMiss`: those transit lookups enqueue their own misses. Their
@@ -100,7 +109,7 @@ export async function getPlaceCoordsView(
       addLookup(place.id, 'origin', endpoints.origin, true);
       addLookup(place.id, 'destination', endpoints.destination, true);
     } else {
-      addLookup(place.id, 'primary', buildGeocodeQuery(place), false);
+      addLookup(place.id, 'primary', buildGeocodeQuery(place), opts.fetchAllMisses ?? false);
     }
   }
   if (lookups.length === 0) return { coordsById: new Map(), pendingCount: 0 };

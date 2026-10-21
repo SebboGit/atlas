@@ -1,7 +1,7 @@
 // DB access for notification settings. The only module under
 // `src/lib/notifications/` that touches `@/db/*`.
 
-import { and, between, eq, inArray, ne, or } from 'drizzle-orm';
+import { and, between, eq, inArray, lt, or, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import {
@@ -16,6 +16,7 @@ import {
 import { tripVisibleToViewer } from '@/lib/trips/repo';
 
 import { parseNotificationPrefs, type NotificationPrefs } from './prefs';
+import { resolveTopic } from './topic';
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -106,7 +107,7 @@ export interface ReminderCandidateRow {
 const REMINDER_TYPES = ['flight', 'hotel', 'activity', 'transit', 'food'] as const;
 
 /**
- * Dated segments of non-archived trips that start inside [from, to], plus
+ * Dated segments of planned and active trips that start inside [from, to], plus
  * hotels that check out inside it. The bounds compare floating wall-clock
  * values against real instants, so callers pad them by more than any
  * zone offset.
@@ -132,7 +133,9 @@ export async function listReminderCandidates(
     .innerJoin(trips, eq(trips.id, segments.tripId))
     .where(
       and(
-        ne(trips.status, 'archived'),
+        // Planned and active only: a completed trip is over, and the trip
+        // page stops offering the mute switch once it is.
+        inArray(trips.status, ['planned', 'active']),
         inArray(segments.type, [...REMINDER_TYPES]),
         or(
           between(segments.startsAt, from, to),
@@ -171,15 +174,23 @@ export async function documentIdsBySegment(
   return out;
 }
 
+// A `queued` row older than this never reached its notify job: the
+// worker died between writing the row and queueing the send.
+const STALE_QUEUED_MS = 10 * 60_000;
+
 /**
- * Record a reminder for a topic. Returns the new row's id, or null when
- * the same reminder was already recorded for that topic — the unique
- * index is what keeps a topic from getting it twice.
+ * Record a reminder for a topic and return the row id to send it under,
+ * or null when it was already handled. The unique index on (segment,
+ * kind, topic, event time) is what keeps a topic from getting it twice.
+ * A row left `queued` for more than ten minutes is handed back once more
+ * (and re-stamped, so only one sweep claims it): otherwise a crash
+ * between the insert and the queueing would lose the reminder for good.
  */
 export async function recordDelivery(input: {
   topic: string;
   kind: string;
   segmentId: string;
+  eventAt: Date;
   fireAt: Date;
   status: 'queued' | 'skipped';
 }): Promise<string | null> {
@@ -188,7 +199,24 @@ export async function recordDelivery(input: {
     .values(input)
     .onConflictDoNothing()
     .returning({ id: notificationDeliveries.id });
-  return row?.id ?? null;
+  if (row) return row.id;
+  if (input.status !== 'queued') return null;
+
+  const [stale] = await db
+    .update(notificationDeliveries)
+    .set({ createdAt: sql`now()` })
+    .where(
+      and(
+        eq(notificationDeliveries.segmentId, input.segmentId),
+        eq(notificationDeliveries.kind, input.kind),
+        eq(notificationDeliveries.topic, input.topic),
+        eq(notificationDeliveries.eventAt, input.eventAt),
+        eq(notificationDeliveries.status, 'queued'),
+        lt(notificationDeliveries.createdAt, new Date(Date.now() - STALE_QUEUED_MS)),
+      ),
+    )
+    .returning({ id: notificationDeliveries.id });
+  return stale?.id ?? null;
 }
 
 export async function markDelivery(
@@ -248,5 +276,7 @@ export async function getTripReminderState(
 ): Promise<{ muted: boolean } | null> {
   const settings = await getNotificationSettings(userId);
   if (!settings?.enabled) return null;
+  // No topic anywhere means nothing is sent, so there is nothing to mute.
+  if (!resolveTopic(settings.topic, process.env.NTFY_TOPIC)) return null;
   return { muted: await isTripMuted(userId, tripId) };
 }

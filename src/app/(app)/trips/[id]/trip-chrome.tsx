@@ -201,15 +201,26 @@ export function TripChrome({
 
             {/* Phone action row — Map is the only inline primary; the
              *  other maintenance actions live in the ⋯ menu above. */}
+            {/* Two buttons side by side here, so both take the 44px touch
+             *  target (CLAUDE.md rule 4); pointer keeps the compact pill. */}
             <div className="mt-5 flex flex-wrap items-center gap-3 sm:hidden">
               <Link
                 href={`/trips/${trip.id}/map`}
-                className={cn(buttonVariants({ variant: 'ink', size: 'sm' }), 'inline-flex')}
+                className={cn(
+                  buttonVariants({ variant: 'ink', size: 'sm' }),
+                  'inline-flex [@media(hover:none)]:h-11',
+                )}
               >
                 <MapIcon className="size-3.5" strokeWidth={1.75} />
                 <span>View map</span>
               </Link>
-              {reminders && <TripReminderToggle tripId={trip.id} initialMuted={reminders.muted} />}
+              {reminders && (
+                <TripReminderToggle
+                  tripId={trip.id}
+                  initialMuted={reminders.muted}
+                  className="[@media(hover:none)]:h-11"
+                />
+              )}
             </div>
 
             {/* Laptop action row — kept as the previous inline strip.

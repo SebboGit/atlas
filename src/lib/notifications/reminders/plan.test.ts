@@ -141,6 +141,17 @@ describe('hotels', () => {
     expect(r.checkout!.title).toBe('Check out tomorrow');
   });
 
+  it('keeps the check-out note for a late check-in', () => {
+    const r = byKind(
+      planReminders({
+        ...hotel,
+        startsAt: wall('2026-10-01T21:30:00'),
+        endsAt: wall('2026-10-02T11:00:00'),
+      }),
+    );
+    expect(r.checkout!.title).toBe('Check out tomorrow by 11:00');
+  });
+
   it('skips the check-out note on a day-use stay', () => {
     const r = planReminders({
       ...hotel,
