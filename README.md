@@ -43,7 +43,7 @@ run Nextcloud, Immich, or Plex on.
 - **Wishlist mode** — undated activities pinned to a trip, promoted to the itinerary when scheduled.
 - **Multi-leg flights** — one document, one PNR, many segments. Edits propagate in a single transaction.
 - **Backups** — daily Postgres + document snapshots, ready for offsite rsync.
-- **Notifications** — push reminders via self-hosted [ntfy](https://ntfy.sh) _(planned)_.
+- **Notifications** — opt-in pushes through your own [ntfy](https://ntfy.sh) server when a document finishes reading, or fails. Trip reminders are next.
 - **Installable (PWA)** — add to your home screen for a full-screen, app-like launch; pages you've opened stay viewable offline.
 
 ## Typical workflow
@@ -115,7 +115,7 @@ Click a pin to zoom in on a city and see its details.
 | Auth          | Auth.js + PocketID (OIDC, passkeys)    |
 | Extraction    | pdf-parse → Tesseract/Paddle → Ollama  |
 | Geocoding     | Nominatim with a DB-backed cache       |
-| Notifications | ntfy _(planned)_                       |
+| Notifications | ntfy (self-hosted)                     |
 | Testing       | Vitest + Playwright                    |
 | Containers    | Docker + Docker Compose                |
 
@@ -134,7 +134,7 @@ Each release publishes **two** images from one version: the app at
 
 Create a `.env` (start from [`.env.example`](./.env.example)) with at least a
 `POSTGRES_PASSWORD`, your PocketID OIDC settings, and `ATLAS_IMAGE_TAG` (pin a
-release, e.g. `1.7.1`).
+release, e.g. `1.8.0`).
 
 The repo ships a
 [`docker-compose.yml`](./docker-compose.yml) plus a hardened
@@ -203,7 +203,8 @@ data/
 Atlas is stable. Trips, segments, documents and extraction, both map surfaces,
 search, stats, and the wishlist are all implemented, and releases follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Push notifications
-(ntfy) are the next planned addition.
+through ntfy have started with document reading; trip reminders are the next
+planned addition.
 
 ## License
 

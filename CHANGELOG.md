@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-21
+
 ### Added
 
 - **Push notifications through your own ntfy server** — a new Settings page
@@ -17,6 +19,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carry booking references, passport numbers, file names or document text.
   Set `NTFY_URL`, `NTFY_TOPIC` and `NTFY_TOKEN` on the worker (the app needs
   only the first two); see `.env.example`.
+
+### Upgrading
+
+Take a database backup first. The worker's first start adds three columns to
+the users table and leaves existing data alone. Update the worker and the app
+together, which the usual `docker compose pull` followed by `up -d` already
+does. If you run the committed `docker-compose.unraid.yml` (or another compose
+file that lists each container's variables), replace your copy with this
+release's: it passes the new variables to the worker and the app, and pulling
+images alone won't add them. The same goes for `docker-compose.yml`, whose new
+copy also keeps the ntfy token away from the app.
+
+Notifications stay off until you set them up. Give the worker `NTFY_URL`,
+`NTFY_TOPIC`, `NTFY_TOKEN` and `AUTH_URL`, the last of which makes a tapped
+notification open the right page. The app needs only `NTFY_URL` and
+`NTFY_TOPIC`, never the token. Use a token for an ntfy user dedicated to Atlas
+with write access to Atlas's topics only, because any signed-in user can point
+Atlas at any topic that token can write to.
+
+Every notification is sent by the worker, so if the ntfy host only resolves on
+a private network, add an `extra_hosts` entry for it to the worker. At boot the
+worker logs `worker.boot.notifications_reachable`, or warns
+`worker.boot.notifications_unreachable` when it can't reach the server. Then
+open Settings, switch notifications on and send a test.
+
+Rolling back to 1.7.1 keeps your data; the older release ignores the new
+columns.
 
 ## [1.7.1] - 2026-10-21
 
@@ -588,7 +617,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.7.1...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/SebboGit/atlas/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/SebboGit/atlas/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/SebboGit/atlas/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/SebboGit/atlas/compare/v1.6.0...v1.6.1
