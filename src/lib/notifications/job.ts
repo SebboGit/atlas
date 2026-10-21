@@ -7,7 +7,7 @@
 // queued, so switching notifications off takes effect for anything
 // still waiting in the queue.
 
-import { getJobs, type SendOptions } from '@/lib/jobs';
+import { getJobs, type SendOptions, type SendResult } from '@/lib/jobs';
 import { log } from '@/lib/log';
 
 import { deploymentTopic, getNotifier } from './index';
@@ -40,19 +40,18 @@ function errMessage(err: unknown): string {
 
 /**
  * Queue a notification. Never throws: a notification is a convenience,
- * so a queueing failure is logged and the caller carries on. Resolves to
- * whether the job was queued.
+ * so a queueing failure is logged and the caller carries on. `dropped`
+ * means a throttle (`singletonSeconds`) already holds the slot.
  */
 export async function enqueueNotification(
   data: NotifyJobData,
   opts?: SendOptions,
-): Promise<boolean> {
+): Promise<SendResult | 'failed'> {
   try {
-    await getJobs().send(NOTIFY_JOB, data, opts);
-    return true;
+    return await getJobs().send(NOTIFY_JOB, data, opts);
   } catch (err) {
     log.warn({ category: data.category, err: errMessage(err) }, 'notifications.enqueue_failed');
-    return false;
+    return 'failed';
   }
 }
 

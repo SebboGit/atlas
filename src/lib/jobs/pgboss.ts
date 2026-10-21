@@ -34,6 +34,7 @@ import type {
   RegisterOptions,
   ScheduleOptions,
   SendOptions,
+  SendResult,
 } from '@/lib/jobs/types';
 
 type JobsRole = 'app' | 'worker';
@@ -140,7 +141,7 @@ export class PgBossJobs implements Jobs {
     return { pendingCount, oldestPendingAgeMs };
   }
 
-  async send<T>(name: string, data: T, opts?: SendOptions): Promise<void> {
+  async send<T>(name: string, data: T, opts?: SendOptions): Promise<SendResult> {
     await this.start();
     await this.#ensureQueue(name);
     const sendOpts: PgBossSendOptions = {};
@@ -150,7 +151,14 @@ export class PgBossJobs implements Jobs {
     // round-trip means any plain-data payload works at runtime, but
     // the cast keeps the public Jobs interface free of that quirk.
     const id = await this.#boss.send(name, (data ?? null) as object | null, sendOpts);
+    // pg-boss returns null instead of an id when a singleton rule
+    // swallowed the send — report it so callers can tell the difference.
+    if (id === null) {
+      log.debug({ name, role: this.#role }, 'jobs.pgboss.send_dropped');
+      return 'dropped';
+    }
     log.debug({ name, id, role: this.#role }, 'jobs.pgboss.sent');
+    return 'queued';
   }
 
   async register<T>(name: string, handler: JobHandler<T>, opts?: RegisterOptions): Promise<void> {

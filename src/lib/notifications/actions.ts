@@ -53,12 +53,13 @@ export async function sendTestNotificationAction(): Promise<Result<null, Setting
     return err({ formMessage: 'No topic set.' });
   }
 
-  // One test per user per 30 seconds. A replayed action can't flood the
-  // topic or drain the ntfy rate limit that real notifications share;
-  // a throttled send is dropped by pg-boss and still reads as sent here.
-  const queued = await enqueueNotification(
+  // One test per user per 30 seconds, so a replayed action can't flood
+  // the topic or drain the ntfy rate limit real notifications share.
+  const result = await enqueueNotification(
     { ...testMessage(), userId: user.id, category: 'test' },
     { singletonKey: `notify-test:${user.id}`, singletonSeconds: TEST_THROTTLE_SECONDS },
   );
-  return queued ? ok(null) : err({ formMessage: 'Could not queue the test.' });
+  if (result === 'queued') return ok(null);
+  if (result === 'dropped') return err({ formMessage: 'Test already sent. Wait 30 seconds.' });
+  return err({ formMessage: 'Could not queue the test.' });
 }

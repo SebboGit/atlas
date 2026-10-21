@@ -202,8 +202,10 @@ services:
 
   # OPTIONAL: local ntfy server for testing push notifications (ADR-0020).
   # Opt-in via `--profile notifications`. Open server, no auth — dev only.
-  # Point the host-run worker at it with NTFY_URL=http://localhost:8090 and
-  # NTFY_TOPIC=dev-trips, then subscribe at http://localhost:8090/dev-trips.
+  # Set NTFY_TOPIC=dev-trips and point the worker at it: NTFY_URL=http://ntfy
+  # for the `worker` service in this file (same Compose network), or
+  # NTFY_URL=http://localhost:8090 for a worker run on the host with
+  # `pnpm worker`. Subscribe at http://localhost:8090/dev-trips.
   # ---------------------------------------------------------------------------
   ntfy:
     image: binwiederhier/ntfy:v2.32.0

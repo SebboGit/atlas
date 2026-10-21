@@ -35,6 +35,13 @@ export interface SendOptions {
   singletonSeconds?: number;
 }
 
+/**
+ * `queued`: a job row was written. `dropped`: pg-boss discarded the send
+ * because a `singletonKey` job already holds the slot (an active duplicate
+ * under a deduping policy, or a `singletonSeconds` window).
+ */
+export type SendResult = 'queued' | 'dropped';
+
 export interface ScheduleOptions {
   /** Timezone for cron expression. Defaults to UTC. */
   tz?: string;
@@ -117,7 +124,7 @@ export interface Jobs {
    * Throws if persistence fails; the caller decides whether that
    * surfaces to the user or is logged and swallowed.
    */
-  send<T>(name: string, data: T, opts?: SendOptions): Promise<void>;
+  send<T>(name: string, data: T, opts?: SendOptions): Promise<SendResult>;
 
   /**
    * Register a handler for a named job. Called once per job name at

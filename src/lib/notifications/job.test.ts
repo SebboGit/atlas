@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  send: vi.fn<(name: string, data: unknown, opts?: unknown) => Promise<void>>(),
+  send: vi.fn<(name: string, data: unknown, opts?: unknown) => Promise<'queued' | 'dropped'>>(),
   getNotificationSettings: vi.fn(),
   notify: vi.fn(),
   deploymentTopic: vi.fn<() => string | null>(),
@@ -45,7 +45,7 @@ beforeEach(() => {
   mocks.deploymentTopic.mockReturnValue('shared');
   mocks.getNotificationSettings.mockResolvedValue(enabledSettings);
   mocks.notify.mockResolvedValue({ ok: true });
-  mocks.send.mockResolvedValue();
+  mocks.send.mockResolvedValue('queued');
 });
 
 afterEach(() => {
@@ -152,12 +152,17 @@ describe('runNotifyJob', () => {
 
 describe('enqueueNotification', () => {
   it('queues the notify job', async () => {
-    await expect(enqueueNotification(job)).resolves.toBe(true);
+    await expect(enqueueNotification(job)).resolves.toBe('queued');
     expect(mocks.send).toHaveBeenCalledWith(NOTIFY_JOB, job, undefined);
+  });
+
+  it('reports a send a throttle swallowed', async () => {
+    mocks.send.mockResolvedValue('dropped');
+    await expect(enqueueNotification(job)).resolves.toBe('dropped');
   });
 
   it('swallows a queueing failure', async () => {
     mocks.send.mockRejectedValue(new Error('connection refused'));
-    await expect(enqueueNotification(job)).resolves.toBe(false);
+    await expect(enqueueNotification(job)).resolves.toBe('failed');
   });
 });

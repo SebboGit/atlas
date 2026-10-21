@@ -52,9 +52,14 @@ test.describe('notification settings', () => {
     await expect(topic).toHaveAccessibleDescription(/letters, digits/i);
   });
 
-  test('queues a test notification', async ({ authedPage }) => {
+  test('queues a test notification and throttles a repeat', async ({ authedPage }) => {
     await authedPage.goto('/settings');
-    await authedPage.getByRole('button', { name: 'Send test' }).click();
+    const sendTest = authedPage.getByRole('button', { name: 'Send test' });
+    await sendTest.click();
     await expect(authedPage.getByRole('status')).toHaveText('Test sent.');
+
+    // A second test inside the 30s window is throttled, and says so.
+    await sendTest.click();
+    await expect(authedPage.getByRole('status')).toHaveText(/already sent/i);
   });
 });
