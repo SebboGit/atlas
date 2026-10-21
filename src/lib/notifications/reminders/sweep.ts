@@ -14,13 +14,12 @@ import { wallClockToEpoch } from '@/lib/timezones/convert';
 import { zoneAt, zoneForAirport, zoneForCountry } from '@/lib/timezones/resolve';
 
 import { deploymentTopic, notificationsConfigured } from '../index';
-import { enqueueNotification } from '../job';
+import { enqueueReminder } from '../job';
 import {
   documentIdsBySegment,
   listReminderCandidates,
   listReminderRecipients,
   listTripMutes,
-  markDelivery,
   recordDelivery,
   type ReminderCandidateRow,
   type ReminderRecipient,
@@ -158,6 +157,7 @@ export async function runReminderSweep(now: Date = new Date()): Promise<SweepCou
   if (recipients.length === 0) return EMPTY;
 
   const nowMs = now.getTime();
+  const startedAt = Date.now();
   const rows = await listReminderCandidates(
     new Date(nowMs - LOOKBACK_MS),
     new Date(nowMs + LOOKAHEAD_MS),
@@ -217,7 +217,7 @@ export async function runReminderSweep(now: Date = new Date()): Promise<SweepCou
       // Everyone on the shared default topic sees what lands there, so a
       // private trip's reminder goes out without its names.
       const redact = row.tripVisibility === 'private' && topic === sharedTopic;
-      const result = await enqueueNotification({
+      const result = await enqueueReminder({
         deliveryId,
         topic,
         category: reminder.category,
@@ -226,10 +226,10 @@ export async function runReminderSweep(now: Date = new Date()): Promise<SweepCou
         tags: reminder.tags,
         path: `/trips/${reminder.tripId}/itinerary#seg-${reminder.segmentId}`,
       });
+      // Anything else leaves the row `queued`: `dropped` means a job for
+      // it is already waiting, and a failed enqueue is picked up again by
+      // the ten-minute reclaim in recordDelivery.
       if (result === 'queued') queued += 1;
-      // The row is written but nothing will send it; say so rather than
-      // leave it reading `queued` forever.
-      else await markDelivery(deliveryId, 'failed');
     }
   }
 
@@ -240,7 +240,11 @@ export async function runReminderSweep(now: Date = new Date()): Promise<SweepCou
     skipped,
     noZone: noZoneIds.length,
   };
-  if (queued > 0 || skipped > 0) log.info(counts, 'notifications.reminders.swept');
+  // Inserts and enqueues run one at a time. Duration shows whether that
+  // ever creeps toward the five-minute schedule.
+  if (queued > 0 || skipped > 0) {
+    log.info({ ...counts, durationMs: Date.now() - startedAt }, 'notifications.reminders.swept');
+  }
   // Debug, not info: the same segments come up every five minutes until
   // they are pinned or pass. Pinning the place is the fix.
   if (noZoneIds.length > 0) {

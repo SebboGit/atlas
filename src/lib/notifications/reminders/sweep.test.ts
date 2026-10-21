@@ -19,7 +19,7 @@ vi.mock('../index', () => ({
   notificationsConfigured: mocks.configured,
   deploymentTopic: mocks.deploymentTopic,
 }));
-vi.mock('../job', () => ({ enqueueNotification: mocks.enqueue }));
+vi.mock('../job', () => ({ enqueueReminder: mocks.enqueue }));
 vi.mock('../repo', () => ({
   listReminderRecipients: mocks.recipients,
   listReminderCandidates: mocks.candidates,
@@ -138,10 +138,14 @@ describe('runReminderSweep', () => {
     expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
-  it('marks the delivery failed when the send cannot be queued', async () => {
+  it('leaves the delivery queued when the send cannot be queued', async () => {
+    // A failed enqueue is retried by the ten-minute reclaim, and a dropped
+    // one already has a job waiting; marking either failed would lose it.
     mocks.enqueue.mockResolvedValue('failed');
     await runReminderSweep(NOW);
-    expect(mocks.mark).toHaveBeenCalledWith(expect.stringMatching(/^delivery-/), 'failed');
+    mocks.enqueue.mockResolvedValue('dropped');
+    await runReminderSweep(NOW);
+    expect(mocks.mark).not.toHaveBeenCalled();
   });
 
   it('does nothing without a server or anyone opted in', async () => {
