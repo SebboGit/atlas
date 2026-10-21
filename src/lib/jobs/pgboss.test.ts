@@ -148,3 +148,38 @@ describeIfDb('PgBossJobs.send throttling (DB integration)', () => {
     expect(rows.map((r) => r.key)).toEqual(['user-1', 'user-2']);
   });
 });
+
+const SHORT_QUEUE = 'short-dedupe-test';
+
+describeIfDb('PgBossJobs short-policy dedupe (DB integration)', () => {
+  let pool: Pool;
+
+  beforeAll(async () => {
+    pool = new Pool({ connectionString: DATABASE_URL, max: 1 });
+    await pool.query(`DELETE FROM pgboss.job WHERE name = $1`, [SHORT_QUEUE]).catch(() => {});
+    await pool.query(`DELETE FROM pgboss.queue WHERE name = $1`, [SHORT_QUEUE]).catch(() => {});
+  });
+
+  afterAll(async () => {
+    await pool.query(`DELETE FROM pgboss.job WHERE name = $1`, [SHORT_QUEUE]).catch(() => {});
+    await pool.query(`DELETE FROM pgboss.queue WHERE name = $1`, [SHORT_QUEUE]).catch(() => {});
+    await pool.end();
+  });
+
+  it('drops a second waiting job with the same key', async () => {
+    // The worker creates the queue with its policy, then stops so the job
+    // stays waiting — the situation the reminder reclaim guards against.
+    const worker = new PgBossJobs(DATABASE_URL as string, 'worker');
+    await worker.register(SHORT_QUEUE, async () => {}, { policy: 'short' });
+    await worker.stop();
+
+    const app = new PgBossJobs(DATABASE_URL as string, 'app');
+    try {
+      expect(await app.send(SHORT_QUEUE, { n: 1 }, { singletonKey: 'delivery-1' })).toBe('queued');
+      expect(await app.send(SHORT_QUEUE, { n: 2 }, { singletonKey: 'delivery-1' })).toBe('dropped');
+      expect(await app.send(SHORT_QUEUE, { n: 3 }, { singletonKey: 'delivery-2' })).toBe('queued');
+    } finally {
+      await app.stop();
+    }
+  });
+});

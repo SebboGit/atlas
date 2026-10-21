@@ -24,7 +24,9 @@ vi.mock('./index', () => ({
 
 import {
   enqueueNotification,
+  enqueueReminder,
   NOTIFY_JOB,
+  REMINDER_NOTIFY_JOB,
   NotifyRetryableError,
   runNotifyJob,
   type NotifyJobData,
@@ -196,6 +198,20 @@ describe('enqueueNotification', () => {
   it('reports a send a throttle swallowed', async () => {
     mocks.send.mockResolvedValue('dropped');
     await expect(enqueueNotification(job)).resolves.toBe('dropped');
+  });
+
+  it('keys a reminder send by its delivery on the reminder queue', async () => {
+    const reminder = {
+      deliveryId: 'd1',
+      topic: 'trips',
+      category: 'flights' as const,
+      title: 'x',
+      body: 'y',
+      tags: [],
+      path: '/',
+    };
+    await expect(enqueueReminder(reminder)).resolves.toBe('queued');
+    expect(mocks.send).toHaveBeenCalledWith(REMINDER_NOTIFY_JOB, reminder, { singletonKey: 'd1' });
   });
 
   it('swallows a queueing failure', async () => {

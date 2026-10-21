@@ -21,6 +21,16 @@ import { resolveTopic } from './topic';
 import type { NotificationMessage, NotificationPriority } from './types';
 
 export const NOTIFY_JOB = 'notify';
+/**
+ * Reminders get their own queue so it can deduplicate: it is created with
+ * pg-boss's `'short'` policy (at most one waiting job per key) and each
+ * send is keyed by its delivery row. The sweep re-queues a row that has
+ * sat `queued` for ten minutes; if the first job is in fact still waiting
+ * (the worker was down), the second send is dropped instead of doubling
+ * the push. `notify` itself can't take that policy — pg-boss fixes a
+ * queue's policy at creation, and 1.8.0 installs already have it.
+ */
+export const REMINDER_NOTIFY_JOB = 'notify-reminder';
 
 export interface UserNotifyJobData extends DraftMessage {
   userId: string;
@@ -66,6 +76,21 @@ export async function enqueueNotification(
 ): Promise<SendResult | 'failed'> {
   try {
     return await getJobs().send(NOTIFY_JOB, data, opts);
+  } catch (err) {
+    log.warn({ category: data.category, err: errMessage(err) }, 'notifications.enqueue_failed');
+    return 'failed';
+  }
+}
+
+/**
+ * Queue a reminder send on the deduplicating reminder queue, keyed by
+ * its delivery row. Never throws. `dropped` means a job for this delivery
+ * is already waiting; `failed` leaves the row `queued`, so the sweep's
+ * ten-minute reclaim tries it again.
+ */
+export async function enqueueReminder(data: ReminderNotifyJobData): Promise<SendResult | 'failed'> {
+  try {
+    return await getJobs().send(REMINDER_NOTIFY_JOB, data, { singletonKey: data.deliveryId });
   } catch (err) {
     log.warn({ category: data.category, err: errMessage(err) }, 'notifications.enqueue_failed');
     return 'failed';

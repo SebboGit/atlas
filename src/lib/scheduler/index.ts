@@ -28,7 +28,13 @@ import type { Jobs } from '@/lib/jobs';
 import { log } from '@/lib/log';
 import { ALL_TARGETS, pruneLabel, runPrune } from '@/lib/maintenance/prune';
 import { runStatusSweep } from '@/lib/maintenance/status';
-import { NOTIFY_JOB, runNotifyJob, type NotifyJobData } from '@/lib/notifications/job';
+import {
+  NOTIFY_JOB,
+  REMINDER_NOTIFY_JOB,
+  runNotifyJob,
+  type NotifyJobData,
+  type ReminderNotifyJobData,
+} from '@/lib/notifications/job';
 import { REMINDER_SWEEP_JOB, runReminderSweep } from '@/lib/notifications/reminders/sweep';
 
 import { resolveScheduleConfig } from './schedule-config';
@@ -129,6 +135,16 @@ export async function registerWorkerJobs(
       );
       throw err;
     }
+  });
+
+  // Reminder sends: same handler and retry shape as `notify`, on a queue
+  // created with `'short'` so a reminder re-queued by the sweep's stale
+  // reclaim can't run twice (see REMINDER_NOTIFY_JOB).
+  await jobs.register<ReminderNotifyJobData>(REMINDER_NOTIFY_JOB, runNotifyJob, {
+    policy: 'short',
+    retryLimit: 3,
+    retryDelay: 30,
+    retryBackoff: true,
   });
 
   // Reminder sweep (ADR-0020). `'stately'` allows one running and one
