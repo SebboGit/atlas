@@ -1,6 +1,6 @@
 ---
 name: atlas-backups
-description: Use when backing up Atlas, restoring from backup, or working with the nightly DB prune. Covers DB dumps via the nfrastack/container-db-backup service, the rsync-based document snapshot script, retention/offsite rules, the interactive restore wizard, and the in-stack worker service (pg-boss) that sweeps expired Auth.js sessions, verification tokens, and geocode-cache rows.
+description: Use when backing up Atlas, restoring from backup, or working with the nightly DB prune. Covers DB dumps via the nfrastack/container-db-backup service, the rsync-based document snapshot script, retention/offsite rules, the interactive restore wizard, and the in-stack worker service (pg-boss) that sweeps expired Auth.js sessions, verification tokens, geocode-cache rows, and reminder delivery history older than 90 days.
 ---
 
 # Atlas — Backups
@@ -54,6 +54,6 @@ docker compose exec db-backup backup-now       # trigger an ad-hoc DB dump
 docker compose exec -it db-backup restore      # interactive restore wizard
 
 pnpm db:prune                                  # list expired rows (dry-run)
-pnpm db:prune --apply                          # delete expired rows from all three tables
-pnpm db:prune --sessions --apply               # scope to a single table (also --tokens, --geocode)
+pnpm db:prune --apply                          # delete expired rows from every table
+pnpm db:prune --sessions --apply               # scope to a single table (also --tokens, --geocode, --deliveries)
 ```

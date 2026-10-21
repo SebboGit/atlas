@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
 import { requireUser } from '@/lib/auth/session';
 import { err, ok, type Result } from '@/types/result';
@@ -62,4 +63,20 @@ export async function sendTestNotificationAction(): Promise<Result<null, Setting
   if (result === 'queued') return ok(null);
   if (result === 'dropped') return err({ formMessage: 'Test already sent. Wait 30 seconds.' });
   return err({ formMessage: 'Could not queue the test.' });
+}
+
+const tripMuteInput = z.object({ tripId: z.string().uuid(), muted: z.boolean() });
+
+/** Mute or unmute this trip's reminders for the signed-in user only. */
+export async function setTripReminderMuteAction(
+  raw: unknown,
+): Promise<Result<{ muted: boolean }, SettingsFormError>> {
+  const user = await requireUser();
+  const parsed = tripMuteInput.safeParse(raw);
+  if (!parsed.success) return err({ formMessage: 'Invalid request.' });
+
+  const found = await repo.setTripMuted(user.id, parsed.data.tripId, parsed.data.muted);
+  if (!found) return err({ formMessage: 'Trip not found.' });
+  revalidatePath(`/trips/${parsed.data.tripId}`, 'layout');
+  return ok({ muted: parsed.data.muted });
 }

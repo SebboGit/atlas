@@ -111,7 +111,8 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── ocr/             # PDF text extraction + OCR fallback
 │   │   ├── extraction/      # Ollama-backed structuring
 │   │   ├── jobs/            # Jobs interface (send/register/schedule), pg-boss-backed — see ADR-0012
-│   │   ├── notifications/   # ntfy Notifier, notify job, settings repo + actions (ADR-0020)
+│   │   ├── notifications/   # ntfy Notifier, notify job, reminder sweep, settings repo + actions (ADR-0020)
+│   │   ├── timezones/       # Scheduling-only zone lookup: airport, coords (tz-lookup), country snapshot
 │   │   ├── maintenance/     # Reusable housekeeping (prune, status sweep) — shared by CLI + worker
 │   │   ├── scheduler/       # Worker-side handler + schedule registration for pg-boss
 │   │   ├── search/          # Cmd+K palette over Postgres FTS + pg_trgm (ADR-0013)
@@ -254,8 +255,8 @@ Atlas pushes short notifications to a self-hosted **ntfy** server. No third-part
 - **Worker-only delivery:** callers queue the `notify` job with `enqueueNotification()`; the worker sends it. Only the worker needs network reach to ntfy and only the worker holds `NTFY_TOKEN`. Unreachable / 5xx / 429 is retried (3×, spaced); any other 4xx is a setup error, logged once, not retried. The worker checks `/v1/health` after boot and warns if it fails.
 - **Topics come from the operator:** `NTFY_TOPIC` is the deployment default; a user may set their own in `/settings`. Atlas never invents a topic — a deny-by-default server only accepts topics the operator granted.
 - **Opt-in per user**, off by default, with per-category switches in `users.notification_prefs` (a missing key reads as on). The handler re-reads settings when it runs.
-- **What is sent today:** document reading finished / failed (uploader only) and the settings page's test send. Trip reminders (a 5-minute `reminder-sweep`, deduped per topic, household recipients with a per-trip mute) are specified in ADR-0020 and land next.
-- **Time zones:** reminders resolve a zone to turn floating wall-clock into a real instant — airport zone for flights, coordinates for pinned places, a single-zone country as fallback, otherwise no reminder. Scheduling only; display stays floating (ADR-0014/0016).
+- **What is sent:** document reading finished / failed (uploader only), the settings page's test send, and trip reminders. Reminders come from a 5-minute `reminder-sweep` (`src/lib/notifications/reminders/`): pure rules in `plan.ts`, recipients = members who can see the trip, opted in, kind switched on, trip not muted. Each reminder is recorded once per topic in `notification_deliveries` before it is queued. Lead times, the night move to 22:00, date-only 09:00 reminders and connection suppression are in ADR-0020.
+- **Time zones:** reminders resolve a zone with `src/lib/timezones/` to turn floating wall-clock into a real instant — airport zone for flights, coordinates for pinned places (a transit leg's origin), a single-zone country as fallback, otherwise no reminder. Scheduling only; display stays floating (ADR-0014/0016). Never render a time through it.
 - **Graceful degradation:** `NTFY_URL` empty → no-op, and `/settings` says it isn't configured. A failed send never fails the caller. Notifications are not the source of truth; the UI is.
 - **Privacy:** no PNRs, passport numbers, document contents or file names. No attachments — links go in the click action, built from `AUTH_URL`. Keep titles short ("Train in 2h · Guangzhoudong → West Kowloon").
 

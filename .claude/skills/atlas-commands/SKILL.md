@@ -45,8 +45,8 @@ docker compose exec -it db-backup restore      # interactive restore wizard
 pnpm docs:cleanup-orphans                      # list documents with no trip/segment links (dry-run)
 pnpm docs:cleanup-orphans --apply              # delete the orphan rows + files
 pnpm db:prune                                  # list expired sessions/tokens/geocode rows (dry-run)
-pnpm db:prune --apply                          # delete expired rows from all three tables
-pnpm db:prune --sessions --apply               # scope to a single table (also --tokens, --geocode)
+pnpm db:prune --apply                          # delete expired rows from every table
+pnpm db:prune --sessions --apply               # scope to a single table (also --tokens, --geocode, --deliveries)
 
 # Worker — pg-boss host (extraction, geocoding, prune, status sweep)
 pnpm worker                                    # boot the worker locally (foreground, SIGINT to stop)

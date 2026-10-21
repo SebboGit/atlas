@@ -8,6 +8,12 @@ import { z } from 'zod';
 export const notificationPrefsSchema = z.object({
   // Document reading finished or failed. Sent to the uploader only.
   extraction: z.boolean().default(true),
+  // Trip reminders (ADR-0020), one switch per family of segments.
+  flights: z.boolean().default(true),
+  transit: z.boolean().default(true),
+  hotels: z.boolean().default(true),
+  // Timed (or date-only) activities and food.
+  plans: z.boolean().default(true),
 });
 
 export type NotificationPrefs = z.infer<typeof notificationPrefsSchema>;

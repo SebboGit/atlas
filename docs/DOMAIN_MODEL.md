@@ -12,6 +12,7 @@
 - Fields: `id`, `sub` (OIDC subject — immutable, unique), `email`, `name`, `groups[]`, `createdAt`, `lastSeenAt`.
 - `email`, `name`, `groups` refreshed from claims on every sign-in.
 - Notification settings live on the row: `notificationsEnabled` (opt-in, default off), `ntfyTopic` (own topic, null means the deployment default) and `notificationPrefs` (per-category switches, JSONB, a missing key reads as on). See ADR-0020.
+- A user can mute one trip's reminders (`trip_notification_mutes`, one row per user and trip). Sent and skipped reminders are kept per topic in `notification_deliveries` for 90 days; that table is also what stops a topic getting the same reminder twice.
 - See ADR-0002 and `src/lib/auth/`.
 
 ### Trip

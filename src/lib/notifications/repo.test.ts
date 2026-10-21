@@ -12,6 +12,8 @@ import { trips, users } from '@/db/schema';
 
 import { getNotificationSettings, tripForNotification, updateNotificationSettings } from './repo';
 
+const ALL_ON = { extraction: true, flights: true, transit: true, hotels: true, plans: true };
+
 const DATABASE_URL = process.env.DATABASE_URL;
 const describeIfDb = DATABASE_URL ? describe : describe.skip;
 
@@ -43,7 +45,7 @@ describeIfDb('notifications.repo', () => {
     expect(await getNotificationSettings(userId)).toEqual({
       enabled: false,
       topic: null,
-      prefs: { extraction: true },
+      prefs: ALL_ON,
     });
   });
 
@@ -52,12 +54,12 @@ describeIfDb('notifications.repo', () => {
     await updateNotificationSettings(userId, {
       enabled: true,
       topic: 'mine',
-      prefs: { extraction: false },
+      prefs: { ...ALL_ON, extraction: false, hotels: false },
     });
     expect(await getNotificationSettings(userId)).toEqual({
       enabled: true,
       topic: 'mine',
-      prefs: { extraction: false },
+      prefs: { ...ALL_ON, extraction: false, hotels: false },
     });
   });
 
