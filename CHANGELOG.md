@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-22
+
 ### Added
 
 - **Trip reminders** — once notifications are on, Atlas pushes a reminder 24
-  hours and 4 hours before a flight, 3 hours before a train, bus or ferry, 3
-  hours before hotel check-in, at 20:00 the evening before check-out, and an
-  hour before a timed activity or meal. Times are read in the local time of
+  hours and 4 hours before a flight, 3 hours before a train, bus, ferry or
+  other transit leg, 3 hours before hotel check-in, at 20:00 the evening before
+  check-out, and an hour before a timed activity or meal. Times are read in the local time of
   where each segment happens: the departure airport for a flight, the pin for
   everything else, or the country when it has only one time zone. A reminder
   that would land between 23:00 and 07:00 comes at 22:00 the evening before
@@ -21,7 +23,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reminders has its own switch in Settings, and the trip page can mute one
   trip just for you. A reminder goes once to each ntfy topic, so two people
   sharing a topic see it once, and a private trip's reminders on the shared
-  default topic leave its names out.
+  default topic leave its names out. Reminders cover planned and active trips.
+
+### Upgrading
+
+Take a database backup first. The worker's first start adds two tables, plus
+two indexes on the segments table, and leaves existing data alone. There are no
+new environment variables and no compose changes: set `ATLAS_IMAGE_TAG=1.9.0`,
+then pull and bring the stack up as usual. Reminders use the notification setup from 1.8.0,
+so a deployment where Send test already works needs nothing else.
+
+Everyone who has notifications switched on gets reminders straight away, with
+every reminder family on. Switch families off in Settings, or mute a single
+trip from its page.
+
+Rolling back to 1.8.0 keeps your data; the older release ignores the new
+tables. Saving Settings while on 1.8.0 resets the reminder switches to on.
 
 ## [1.8.0] - 2026-10-21
 
@@ -633,7 +650,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/SebboGit/atlas/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/SebboGit/atlas/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/SebboGit/atlas/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/SebboGit/atlas/compare/v1.6.1...v1.7.0
