@@ -18,7 +18,12 @@ describe('notificationSettingsInput', () => {
       topic: ' my-trips ',
       prefs: { extraction: false },
     });
-    expect(parsed).toEqual({ enabled: false, topic: 'my-trips', prefs: { extraction: false } });
+    // Switches not sent default to on.
+    expect(parsed).toEqual({
+      enabled: false,
+      topic: 'my-trips',
+      prefs: { extraction: false, flights: true, transit: true, hotels: true, plans: true },
+    });
   });
 
   it('accepts its own output, which is what the server action receives', () => {

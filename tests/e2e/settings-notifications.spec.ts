@@ -1,4 +1,5 @@
 import { expect, test } from './fixtures/auth';
+import { seedTrip } from './fixtures/db';
 
 // /settings notification form (ADR-0020). The e2e server runs with a
 // placeholder NTFY_URL (playwright.config.ts) so the form renders; no
@@ -61,5 +62,39 @@ test.describe('notification settings', () => {
     // A second test inside the 30s window is throttled, and says so.
     await sendTest.click();
     await expect(authedPage.getByRole('status')).toHaveText(/already sent/i);
+  });
+
+  test('saves a reminder switch', async ({ authedPage }) => {
+    await authedPage.goto('/settings');
+    const hotels = authedPage.getByRole('checkbox', { name: /^hotels/i });
+    await expect(hotels).toBeChecked();
+    await hotels.uncheck();
+    await authedPage.getByRole('button', { name: 'Save' }).click();
+    await expect(authedPage.getByRole('status')).toHaveText('Saved.');
+    await authedPage.reload();
+    await expect(hotels).not.toBeChecked();
+  });
+
+  test('mutes a trip once notifications are on', async ({ authedPage, authedUser }) => {
+    const tripId = await seedTrip(authedUser.id, { title: 'Reminder spec', status: 'planned' });
+    const mute = authedPage.getByRole('button', { name: /mute reminders|reminders muted/i });
+
+    // Opted out: the trip page offers nothing to mute.
+    await authedPage.goto(`/trips/${tripId}/itinerary`);
+    await expect(authedPage.getByRole('heading', { name: 'Reminder spec' })).toBeVisible();
+    await expect(mute).toHaveCount(0);
+
+    await authedPage.goto('/settings');
+    await authedPage.getByRole('checkbox', { name: /push notifications/i }).check();
+    await authedPage.getByRole('button', { name: 'Save' }).click();
+    await expect(authedPage.getByRole('status')).toHaveText('Saved.');
+
+    await authedPage.goto(`/trips/${tripId}/itinerary`);
+    const visible = mute.filter({ visible: true });
+    await expect(visible).toHaveText(/mute reminders/i);
+    await visible.click();
+    await expect(visible).toHaveAttribute('aria-pressed', 'true');
+    await authedPage.reload();
+    await expect(mute.filter({ visible: true })).toHaveText(/reminders muted/i);
   });
 });

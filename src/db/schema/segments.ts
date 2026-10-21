@@ -100,6 +100,13 @@ export const segments = pgTable(
     index('segments_wishlist_item_id_idx')
       .on(s.wishlistItemId)
       .where(sql`${s.wishlistItemId} IS NOT NULL`),
+    // The reminder sweep (ADR-0020) reads every dated segment starting in
+    // the next few days across all trips, and hotels by check-out date;
+    // the trip-first indexes above can't serve a cross-trip time range.
+    index('segments_starts_at_idx').on(s.startsAt),
+    index('segments_hotel_ends_at_idx')
+      .on(s.endsAt)
+      .where(sql`${s.type} = 'hotel'`),
     index('segments_search_tsv_idx').using('gin', s.searchTsv),
     index('segments_search_text_trgm_idx').using('gin', sql`${s.searchText} gin_trgm_ops`),
   ],

@@ -29,11 +29,13 @@ import { log } from '@/lib/log';
 import { ALL_TARGETS, pruneLabel, runPrune } from '@/lib/maintenance/prune';
 import { runStatusSweep } from '@/lib/maintenance/status';
 import { NOTIFY_JOB, runNotifyJob, type NotifyJobData } from '@/lib/notifications/job';
+import { REMINDER_SWEEP_JOB, runReminderSweep } from '@/lib/notifications/reminders/sweep';
 
 import { resolveScheduleConfig } from './schedule-config';
 
 const PRUNE_JOB = 'prune';
 const STATUS_SWEEP_JOB = 'status-sweep';
+const REMINDER_SWEEP_CRON = '*/5 * * * *';
 
 // `db` is passed in by the entrypoint rather than imported, so this
 // module respects the "feature code doesn't reach into @/db/*"
@@ -129,6 +131,28 @@ export async function registerWorkerJobs(
     }
   });
 
+  // Reminder sweep (ADR-0020). `'singleton'` keeps two sweeps from
+  // running at once if one overruns its slot; the delivery table's unique
+  // index would catch a double send anyway, this just saves the work.
+  // A failed sweep isn't retried — the next one is five minutes away.
+  await jobs.register<null>(
+    REMINDER_SWEEP_JOB,
+    async () => {
+      try {
+        await runReminderSweep(new Date());
+      } catch (err) {
+        log.error(
+          {
+            job: REMINDER_SWEEP_JOB,
+            err: err instanceof Error ? `${err.name}: ${err.message}` : 'unknown',
+          },
+          'worker.job.failed',
+        );
+      }
+    },
+    { policy: 'singleton' },
+  );
+
   // ---- Schedules ----
   // Prune honors CRON_TZ; status-sweep is pinned to UTC because its
   // transition rules are UTC-defined and a non-UTC trigger would fire it
@@ -141,12 +165,16 @@ export async function registerWorkerJobs(
 
   await jobs.schedule(PRUNE_JOB, schedule.prune.cron, null, { tz: schedule.prune.tz });
   await jobs.schedule(STATUS_SWEEP_JOB, schedule.status.cron, null, { tz: schedule.status.tz });
+  // Every five minutes, so a reminder lands at most five minutes late.
+  // UTC is fine: the sweep works in real instants, not local days.
+  await jobs.schedule(REMINDER_SWEEP_JOB, REMINDER_SWEEP_CRON, null, { tz: 'UTC' });
 
   log.info(
     {
       schedules: [
         { job: PRUNE_JOB, cron: schedule.prune.cron, tz: schedule.prune.tz },
         { job: STATUS_SWEEP_JOB, cron: schedule.status.cron, tz: schedule.status.tz },
+        { job: REMINDER_SWEEP_JOB, cron: REMINDER_SWEEP_CRON, tz: 'UTC' },
       ],
     },
     'worker.schedules.registered',

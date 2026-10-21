@@ -126,6 +126,30 @@ export function NotificationSettingsForm({ initial, defaultTopic }: Notification
           Send me
         </legend>
         <ToggleRow
+          id="notifications-flights"
+          label="Flights"
+          hint="24 hours and 4 hours before departure."
+          registration={register('prefs.flights')}
+        />
+        <ToggleRow
+          id="notifications-transit"
+          label="Trains, buses and ferries"
+          hint="3 hours before departure."
+          registration={register('prefs.transit')}
+        />
+        <ToggleRow
+          id="notifications-hotels"
+          label="Hotels"
+          hint="Before check-in, and the evening before check-out."
+          registration={register('prefs.hotels')}
+        />
+        <ToggleRow
+          id="notifications-plans"
+          label="Activities and food"
+          hint="1 hour before."
+          registration={register('prefs.plans')}
+        />
+        <ToggleRow
           id="notifications-extraction"
           label="Document reading"
           hint="Finished or failed."

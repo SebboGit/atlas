@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth/session';
 import { countryName } from '@/lib/countries';
 import * as documentsRepo from '@/lib/documents/repo';
+import { notificationsConfigured } from '@/lib/notifications';
+import { getTripReminderState } from '@/lib/notifications/repo';
 import { getUploadMaxBytesOrFallback } from '@/lib/documents/upload-limit';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
@@ -51,6 +53,11 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
   // The loudness lands where a file is actually uploaded instead: the
   // Documents tab and uploadDocumentAction both still throw on it.
   const uploadMaxBytes = getUploadMaxBytesOrFallback();
+  // Null hides the mute switch: no server, this viewer gets no pushes,
+  // or the trip is over (completed) or shelved (archived — never swept).
+  const remindable = trip.status === 'planned' || trip.status === 'active';
+  const reminders =
+    remindable && notificationsConfigured() ? await getTripReminderState(user.id, id) : null;
 
   return (
     <TripChrome
@@ -59,6 +66,7 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
       countries={countries}
       attachedDocumentCount={attachedDocumentCount}
       uploadMaxBytes={uploadMaxBytes}
+      reminders={reminders}
     >
       {children}
     </TripChrome>

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Trip reminders** — once notifications are on, Atlas pushes a reminder 24
+  hours and 4 hours before a flight, 3 hours before a train, bus or ferry, 3
+  hours before hotel check-in, at 20:00 the evening before check-out, and an
+  hour before a timed activity or meal. Times are read in the local time of
+  where each segment happens: the departure airport for a flight, the pin for
+  everything else, or the country when it has only one time zone. A reminder
+  that would land between 23:00 and 07:00 comes at 22:00 the evening before
+  instead, a segment with a date but no time gets one at 09:00 on the day, and
+  a connecting flight leg relies on the first leg's reminders. Each family of
+  reminders has its own switch in Settings, and the trip page can mute one
+  trip just for you. A reminder goes once to each ntfy topic, so two people
+  sharing a topic see it once, and a private trip's reminders on the shared
+  default topic leave its names out.
+
 ## [1.8.0] - 2026-10-21
 
 ### Added

@@ -3,9 +3,12 @@
 // or unreachable server never holds up a request, and only the worker
 // container needs network reach to the ntfy host.
 //
-// The recipient's settings are read when the job RUNS, not when it is
-// queued, so switching notifications off takes effect for anything
-// still waiting in the queue.
+// Two shapes. A user message (document reading, the test send) names a
+// user, whose settings are read when the job RUNS, so switching
+// notifications off takes effect for anything still waiting in the
+// queue. A reminder names a topic and a delivery row: the reminder sweep
+// already chose the recipients and the wording, and the job records how
+// the send went on that row.
 
 import { getJobs, type SendOptions, type SendResult } from '@/lib/jobs';
 import { log } from '@/lib/log';
@@ -13,13 +16,13 @@ import { log } from '@/lib/log';
 import { deploymentTopic, getNotifier } from './index';
 import type { DraftMessage } from './messages';
 import type { NotificationCategory } from './prefs';
-import { getNotificationSettings } from './repo';
+import { getNotificationSettings, markDelivery } from './repo';
 import { resolveTopic } from './topic';
-import type { NotificationPriority } from './types';
+import type { NotificationMessage, NotificationPriority } from './types';
 
 export const NOTIFY_JOB = 'notify';
 
-export interface NotifyJobData extends DraftMessage {
+export interface UserNotifyJobData extends DraftMessage {
   userId: string;
   /**
    * Which switch gates this message. `test` skips the switches — the
@@ -28,6 +31,20 @@ export interface NotifyJobData extends DraftMessage {
   category: NotificationCategory | 'test';
   priority?: NotificationPriority;
 }
+
+export interface ReminderNotifyJobData {
+  /** The `notification_deliveries` row this send settles. */
+  deliveryId: string;
+  topic: string;
+  /** For logs only; the sweep already applied the user's switches. */
+  category: NotificationCategory;
+  title: string;
+  body: string;
+  tags: string[];
+  path: string;
+}
+
+export type NotifyJobData = UserNotifyJobData | ReminderNotifyJobData;
 
 /** Thrown to hand a transient failure back to pg-boss for a retry. */
 export class NotifyRetryableError extends Error {
@@ -65,7 +82,61 @@ function clickUrl(path: string): string | undefined {
   }
 }
 
+type SendOutcome = 'sent' | 'unconfigured' | 'rejected';
+
+/**
+ * Send one message and classify the answer. Throws
+ * {@link NotifyRetryableError} for an unreachable server or a 5xx / 429,
+ * which pg-boss retries. A 4xx other than 429 is a setup problem — a
+ * wrong token, no write access to the topic, a message the server
+ * refuses — and retrying would get the same answer, so it is returned
+ * as `rejected` and logged once.
+ */
+async function send(
+  message: Omit<NotificationMessage, 'click'> & { path: string },
+  category: string,
+  onRetryable?: () => Promise<void>,
+): Promise<SendOutcome> {
+  const { path, ...rest } = message;
+  const result = await getNotifier().notify({ ...rest, click: clickUrl(path) });
+  if (result.ok) {
+    log.info({ category }, 'notifications.sent');
+    return 'sent';
+  }
+  if (result.reason === 'unconfigured') {
+    log.debug({ category }, 'notifications.skipped.unconfigured');
+    return 'unconfigured';
+  }
+  const status = result.status;
+  if (result.reason === 'rejected' && status !== undefined && status < 500 && status !== 429) {
+    log.warn({ category, status }, 'notifications.rejected');
+    return 'rejected';
+  }
+  log.warn({ category, reason: result.reason, status }, 'notifications.send_failed');
+  await onRetryable?.();
+  throw new NotifyRetryableError(`ntfy ${result.reason}${status ? ` (${status})` : ''}`);
+}
+
 export async function runNotifyJob(data: NotifyJobData): Promise<void> {
+  if ('deliveryId' in data) {
+    await runReminder(data);
+    return;
+  }
+  await runUserMessage(data);
+}
+
+async function runReminder(data: ReminderNotifyJobData): Promise<void> {
+  // Marked failed before a retryable throw: if every retry fails the row
+  // says so, and a later success overwrites it with `sent`.
+  const outcome = await send(
+    { topic: data.topic, title: data.title, body: data.body, tags: data.tags, path: data.path },
+    data.category,
+    () => markDelivery(data.deliveryId, 'failed'),
+  );
+  await markDelivery(data.deliveryId, outcome === 'sent' ? 'sent' : 'failed');
+}
+
+async function runUserMessage(data: UserNotifyJobData): Promise<void> {
   const { userId, category } = data;
   const settings = await getNotificationSettings(userId);
   if (!settings) {
@@ -87,31 +158,8 @@ export async function runNotifyJob(data: NotifyJobData): Promise<void> {
   const onSharedTopic = topic === deploymentTopic();
   const body = onSharedTopic && data.sharedTopicBody ? data.sharedTopicBody : data.body;
 
-  const result = await getNotifier().notify({
-    topic,
-    title: data.title,
-    body,
-    tags: data.tags,
-    priority: data.priority,
-    click: clickUrl(data.path),
-  });
-
-  if (result.ok) {
-    log.info({ category }, 'notifications.sent');
-    return;
-  }
-  if (result.reason === 'unconfigured') {
-    log.debug({ category }, 'notifications.skipped.unconfigured');
-    return;
-  }
-  // A 4xx other than 429 is a setup problem — a wrong token, no write
-  // access to the topic, a message the server refuses. Retrying sends
-  // the same request to the same answer, so log it once and stop.
-  const status = result.status;
-  if (result.reason === 'rejected' && status !== undefined && status < 500 && status !== 429) {
-    log.warn({ category, status }, 'notifications.rejected');
-    return;
-  }
-  log.warn({ category, reason: result.reason, status }, 'notifications.send_failed');
-  throw new NotifyRetryableError(`ntfy ${result.reason}${status ? ` (${status})` : ''}`);
+  await send(
+    { topic, title: data.title, body, tags: data.tags, priority: data.priority, path: data.path },
+    category,
+  );
 }

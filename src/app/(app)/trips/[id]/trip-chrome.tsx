@@ -10,6 +10,7 @@ import { useSegmentScrollFlash } from '@/components/features/segments/use-segmen
 import { DeleteTripDialog } from '@/components/features/trips/delete-trip-dialog';
 import { TripFilterBar } from '@/components/features/trips/trip-filter-bar';
 import { TripFormDialog } from '@/components/features/trips/trip-form-dialog';
+import { TripReminderToggle } from '@/components/features/trips/trip-reminder-toggle';
 import { TripStatusBadge } from '@/components/features/trips/trip-status-badge';
 import { TripTabs } from '@/components/features/trips/trip-tabs';
 import { UnarchiveButton } from '@/components/features/trips/unarchive-button';
@@ -43,6 +44,12 @@ interface TripChromeProps {
    * environment itself.
    */
   uploadMaxBytes: number;
+  /**
+   * The viewer's reminder mute for this trip, or null when they get no
+   * reminders at all (no ntfy server, or notifications off) — the switch
+   * is hidden then. Shown to every member, not just the owner.
+   */
+  reminders: { muted: boolean } | null;
   children: React.ReactNode;
 }
 
@@ -67,6 +74,7 @@ export function TripChrome({
   countries,
   attachedDocumentCount,
   uploadMaxBytes,
+  reminders,
   children,
 }: TripChromeProps) {
   const isPrivate = trip.visibility === 'private';
@@ -193,7 +201,7 @@ export function TripChrome({
 
             {/* Phone action row — Map is the only inline primary; the
              *  other maintenance actions live in the ⋯ menu above. */}
-            <div className="mt-5 sm:hidden">
+            <div className="mt-5 flex flex-wrap items-center gap-3 sm:hidden">
               <Link
                 href={`/trips/${trip.id}/map`}
                 className={cn(buttonVariants({ variant: 'ink', size: 'sm' }), 'inline-flex')}
@@ -201,6 +209,7 @@ export function TripChrome({
                 <MapIcon className="size-3.5" strokeWidth={1.75} />
                 <span>View map</span>
               </Link>
+              {reminders && <TripReminderToggle tripId={trip.id} initialMuted={reminders.muted} />}
             </div>
 
             {/* Laptop action row — kept as the previous inline strip.
@@ -235,6 +244,7 @@ export function TripChrome({
                 <MapIcon className="size-3.5" strokeWidth={1.75} />
                 <span>View map</span>
               </Link>
+              {reminders && <TripReminderToggle tripId={trip.id} initialMuted={reminders.muted} />}
               {/* Trip-row maintenance is owner-only (ADR-0015). A household
                   member viewing a shared trip gets the read surfaces plus
                   "View map" — Edit/Archive/Delete don't render for them. */}

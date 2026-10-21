@@ -107,7 +107,8 @@ guarantees below weaken accordingly.
   `noreferrer`, and the server never calls Google. The Plus Code badge link
   is the same class of disclosure.
 - Push notifications carry short titles and bodies to the operator's own ntfy
-  server: a trip name, a segment count, a route or venue, a time. They never
+  server: a trip name, a segment count, a flight number, a route, a hotel or
+  venue name, a time. They never
   include booking references, passport numbers, file names, or document
   contents; that is enforced by the fixed message builders in
   `src/lib/notifications/`, not by a filter. Anyone subscribed to a topic sees

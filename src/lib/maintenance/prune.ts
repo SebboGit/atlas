@@ -1,10 +1,10 @@
-// Reusable prune logic for the three tables Atlas owns that don't
-// self-reap:
+// Reusable prune logic for the tables Atlas owns that don't self-reap:
 //
-//   - sessions             — Auth.js doesn't delete expired rows
-//   - verificationTokens   — Auth.js doesn't delete expired rows
-//   - geocode_cache        — read path treats past-expiry as a miss
-//                            but never deletes (see src/db/schema/geocode-cache.ts)
+//   - sessions                 — Auth.js doesn't delete expired rows
+//   - verificationTokens       — Auth.js doesn't delete expired rows
+//   - geocode_cache            — read path treats past-expiry as a miss
+//                                but never deletes (see src/db/schema/geocode-cache.ts)
+//   - notification_deliveries  — reminder history, kept 90 days (ADR-0020)
 //
 // Two consumers share this module so they always agree on what
 // "expired" means and what gets reclaimed:
@@ -17,8 +17,14 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import { sessions, verificationTokens } from '@/db/schema/auth';
 import { geocodeCache } from '@/db/schema/geocode-cache';
+import { notificationDeliveries } from '@/db/schema/notifications';
 
-export const PRUNE_TARGETS = ['sessions', 'tokens', 'geocode'] as const;
+export const PRUNE_TARGETS = ['sessions', 'tokens', 'geocode', 'deliveries'] as const;
+
+// Reminder history is only useful for answering "did that go out?" about
+// a recent trip; the dedupe it provides only matters inside the sweep's
+// few-day window.
+export const DELIVERY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 export type PruneTarget = (typeof PRUNE_TARGETS)[number];
 export type PruneScope = Record<PruneTarget, boolean>;
 export type PruneCount = { target: PruneTarget; expired: number };
@@ -36,12 +42,14 @@ export const ALL_TARGETS: PruneScope = {
   sessions: true,
   tokens: true,
   geocode: true,
+  deliveries: true,
 };
 
 const TABLE_LABEL: Record<PruneTarget, string> = {
   sessions: 'sessions',
   tokens: 'verificationTokens',
   geocode: 'geocode_cache',
+  deliveries: 'notification_deliveries',
 };
 
 export function pruneLabel(target: PruneTarget): string {
@@ -56,6 +64,8 @@ function tableFor(target: PruneTarget) {
       return verificationTokens;
     case 'geocode':
       return geocodeCache;
+    case 'deliveries':
+      return notificationDeliveries;
   }
 }
 
@@ -67,6 +77,11 @@ function whereFor(target: PruneTarget, cutoff: Date): SQL {
       return lt(verificationTokens.expires, cutoff);
     case 'geocode':
       return lt(geocodeCache.expiresAt, cutoff);
+    case 'deliveries':
+      return lt(
+        notificationDeliveries.createdAt,
+        new Date(cutoff.getTime() - DELIVERY_RETENTION_MS),
+      );
   }
 }
 

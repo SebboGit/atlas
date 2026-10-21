@@ -2,11 +2,11 @@
 //
 // Dry-run by default — prints what *would* be deleted and exits 0.
 // Pass `--apply` to actually delete. Selector flags scope the sweep;
-// with no selectors, all three tables are pruned.
+// with no selectors, every table is pruned.
 //
 // Usage:
-//   pnpm db:prune                        # dry-run, all three tables
-//   pnpm db:prune --apply                # delete from all three
+//   pnpm db:prune                        # dry-run, every table
+//   pnpm db:prune --apply                # delete from every table
 //   pnpm db:prune --sessions --apply     # only sessions
 //   pnpm db:prune --geocode --tokens     # dry-run, only those two
 //
@@ -30,12 +30,13 @@ import {
 const args = new Set(process.argv.slice(2));
 const APPLY = args.delete('--apply');
 
-const SELECTORS = ['--sessions', '--tokens', '--geocode'] as const;
+const SELECTORS = ['--sessions', '--tokens', '--geocode', '--deliveries'] as const;
 type SelectorFlag = (typeof SELECTORS)[number];
 const FLAG_TO_TARGET: Record<SelectorFlag, PruneTarget> = {
   '--sessions': 'sessions',
   '--tokens': 'tokens',
   '--geocode': 'geocode',
+  '--deliveries': 'deliveries',
 };
 
 const selected: PruneTarget[] = [];
@@ -47,7 +48,7 @@ for (const flag of SELECTORS) {
 // explicit scopes means "do everything" — easy to misread).
 if (args.size > 0) {
   console.error(`unknown flag(s): ${[...args].join(' ')}`);
-  console.error('valid: --apply --sessions --tokens --geocode');
+  console.error('valid: --apply --sessions --tokens --geocode --deliveries');
   process.exit(2);
 }
 
@@ -58,6 +59,7 @@ const scope: PruneScope =
         sessions: false,
         tokens: false,
         geocode: false,
+        deliveries: false,
       });
 
 async function main() {

@@ -43,7 +43,7 @@ run Nextcloud, Immich, or Plex on.
 - **Wishlist mode** — undated activities pinned to a trip, promoted to the itinerary when scheduled.
 - **Multi-leg flights** — one document, one PNR, many segments. Edits propagate in a single transaction.
 - **Backups** — daily Postgres + document snapshots, ready for offsite rsync.
-- **Notifications** — opt-in pushes through your own [ntfy](https://ntfy.sh) server when a document finishes reading, or fails. Trip reminders are next.
+- **Notifications** — opt-in pushes through your own [ntfy](https://ntfy.sh) server: reminders before flights, trains, hotel check-in and check-out, and plans, and a note when a document finishes reading.
 - **Installable (PWA)** — add to your home screen for a full-screen, app-like launch; pages you've opened stay viewable offline.
 
 ## Typical workflow
@@ -202,9 +202,7 @@ data/
 
 Atlas is stable. Trips, segments, documents and extraction, both map surfaces,
 search, stats, and the wishlist are all implemented, and releases follow
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html). Push notifications
-through ntfy have started with document reading; trip reminders are the next
-planned addition.
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## License
 

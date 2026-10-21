@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   send: vi.fn<(name: string, data: unknown, opts?: unknown) => Promise<'queued' | 'dropped'>>(),
   getNotificationSettings: vi.fn(),
+  markDelivery: vi.fn(),
   notify: vi.fn(),
   deploymentTopic: vi.fn<() => string | null>(),
 }));
@@ -13,6 +14,7 @@ vi.mock('@/lib/jobs', () => ({
 
 vi.mock('./repo', () => ({
   getNotificationSettings: mocks.getNotificationSettings,
+  markDelivery: mocks.markDelivery,
 }));
 
 vi.mock('./index', () => ({
@@ -147,6 +149,41 @@ describe('runNotifyJob', () => {
   it('does nothing when no server is configured', async () => {
     mocks.notify.mockResolvedValue({ ok: false, reason: 'unconfigured' });
     await expect(runNotifyJob(job)).resolves.toBeUndefined();
+  });
+});
+
+describe('runNotifyJob (reminders)', () => {
+  const reminder = {
+    deliveryId: 'd1',
+    topic: 'trips',
+    category: 'flights' as const,
+    title: 'NH210 departs 14:00',
+    body: 'HND → CDG',
+    tags: ['airplane'],
+    path: '/trips/t1/itinerary#seg-s1',
+  };
+
+  it('sends to the topic the sweep chose and marks the delivery sent', async () => {
+    await runNotifyJob(reminder);
+    expect(mocks.getNotificationSettings).not.toHaveBeenCalled();
+    expect(mocks.notify.mock.calls[0]![0]).toMatchObject({
+      topic: 'trips',
+      title: 'NH210 departs 14:00',
+      click: 'https://atlas.example.test/trips/t1/itinerary#seg-s1',
+    });
+    expect(mocks.markDelivery).toHaveBeenCalledWith('d1', 'sent');
+  });
+
+  it('marks a refused send failed without retrying', async () => {
+    mocks.notify.mockResolvedValue({ ok: false, reason: 'rejected', status: 403 });
+    await runNotifyJob(reminder);
+    expect(mocks.markDelivery).toHaveBeenCalledWith('d1', 'failed');
+  });
+
+  it('marks it failed before handing an unreachable server back for a retry', async () => {
+    mocks.notify.mockResolvedValue({ ok: false, reason: 'unreachable' });
+    await expect(runNotifyJob(reminder)).rejects.toBeInstanceOf(NotifyRetryableError);
+    expect(mocks.markDelivery).toHaveBeenCalledWith('d1', 'failed');
   });
 });
 
