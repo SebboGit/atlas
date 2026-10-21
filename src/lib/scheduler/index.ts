@@ -64,8 +64,9 @@ export async function registerWorkerJobs(
   });
 
   // Notify: every ntfy request goes through here (ADR-0020). A throw
-  // means the server was unreachable or answered 5xx/429; three spaced
-  // retries (30s, 60s, 120s) ride out a restart without hammering it.
+  // means the server was unreachable or answered 5xx/429; three retries
+  // with backoff (pg-boss jitters them, at most ~30s, 60s, 120s apart)
+  // ride out a restart without hammering it.
   // Setup errors (bad token, no topic access) return without throwing,
   // so they are logged once rather than retried.
   await jobs.register<NotifyJobData>(NOTIFY_JOB, runNotifyJob, {

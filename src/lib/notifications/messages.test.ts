@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { extractionFailedMessage, extractionSucceededMessage } from './messages';
 
-const base = { tripId: 't1', tripTitle: 'Tokyo & Kyoto' };
+const base = { tripId: 't1', trip: { title: 'Tokyo & Kyoto', isPrivate: false } };
 
 describe('extractionSucceededMessage', () => {
   it('counts the legs that landed on the itinerary', () => {
@@ -50,9 +50,27 @@ describe('extractionSucceededMessage', () => {
   });
 
   it('leaves the trip out when the recipient cannot see it', () => {
-    expect(extractionSucceededMessage({ ...base, tripTitle: null, outcome: null }).body).toBe(
+    expect(extractionSucceededMessage({ ...base, trip: null, outcome: null }).body).toBe(
       'nothing to add',
     );
+  });
+});
+
+describe('private trips', () => {
+  const priv = { tripId: 't1', trip: { title: 'Surprise', isPrivate: true } };
+
+  it('carries a trip-free body for the shared default topic', () => {
+    const draft = extractionSucceededMessage({
+      ...priv,
+      outcome: { kind: 'already-linked', segmentIds: ['s1'] },
+    });
+    expect(draft.body).toBe('Surprise · already on the itinerary');
+    expect(draft.sharedTopicBody).toBe('already on the itinerary');
+    expect(extractionFailedMessage(priv).sharedTopicBody).toBe('Trip documents');
+  });
+
+  it('needs no alternative for a household trip', () => {
+    expect(extractionFailedMessage(base).sharedTopicBody).toBeUndefined();
   });
 });
 

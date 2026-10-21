@@ -26,6 +26,13 @@ export interface SendOptions {
    * geocode while the first is in flight).
    */
   singletonKey?: string;
+  /**
+   * Throttle: with a `singletonKey`, at most one job per key is accepted
+   * in each window of this many seconds; later sends in the same window
+   * are dropped. Works under every queue policy, because pg-boss keys it
+   * on its own time-slot column rather than on job state.
+   */
+  singletonSeconds?: number;
 }
 
 export interface ScheduleOptions {

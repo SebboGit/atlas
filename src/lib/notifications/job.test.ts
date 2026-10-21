@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  send: vi.fn<(name: string, data: unknown) => Promise<void>>(),
+  send: vi.fn<(name: string, data: unknown, opts?: unknown) => Promise<void>>(),
   getNotificationSettings: vi.fn(),
   notify: vi.fn(),
   deploymentTopic: vi.fn<() => string | null>(),
@@ -71,6 +71,25 @@ describe('runNotifyJob', () => {
     expect(mocks.notify.mock.calls[0]![0].topic).toBe('mine');
   });
 
+  it('withholds a private trip name on the shared default topic', async () => {
+    await runNotifyJob({
+      ...job,
+      body: 'Surprise · 1 segment added',
+      sharedTopicBody: '1 segment added',
+    });
+    expect(mocks.notify.mock.calls[0]![0].body).toBe('1 segment added');
+  });
+
+  it("keeps the trip name on the user's own topic", async () => {
+    mocks.getNotificationSettings.mockResolvedValue({ ...enabledSettings, topic: 'mine' });
+    await runNotifyJob({
+      ...job,
+      body: 'Surprise · 1 segment added',
+      sharedTopicBody: '1 segment added',
+    });
+    expect(mocks.notify.mock.calls[0]![0].body).toBe('Surprise · 1 segment added');
+  });
+
   it('omits the click link when AUTH_URL is unset', async () => {
     vi.stubEnv('AUTH_URL', '');
     await runNotifyJob(job);
@@ -134,7 +153,7 @@ describe('runNotifyJob', () => {
 describe('enqueueNotification', () => {
   it('queues the notify job', async () => {
     await expect(enqueueNotification(job)).resolves.toBe(true);
-    expect(mocks.send).toHaveBeenCalledWith(NOTIFY_JOB, job);
+    expect(mocks.send).toHaveBeenCalledWith(NOTIFY_JOB, job, undefined);
   });
 
   it('swallows a queueing failure', async () => {

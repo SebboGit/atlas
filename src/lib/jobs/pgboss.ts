@@ -145,6 +145,7 @@ export class PgBossJobs implements Jobs {
     await this.#ensureQueue(name);
     const sendOpts: PgBossSendOptions = {};
     if (opts?.singletonKey !== undefined) sendOpts.singletonKey = opts.singletonKey;
+    if (opts?.singletonSeconds !== undefined) sendOpts.singletonSeconds = opts.singletonSeconds;
     // pg-boss's `data` parameter is typed as `object | null` — JSON
     // round-trip means any plain-data payload works at runtime, but
     // the cast keeps the public Jobs interface free of that quirk.
@@ -193,67 +194,63 @@ export class PgBossJobs implements Jobs {
   }
 
   // pg-boss v12+ requires explicit queue creation before send/work.
-  // `createQueue` is idempotent — calling for an existing queue is a
-  // cheap no-op — but we cache locally so repeated sends from a hot
-  // path don't issue a network round-trip every time.
+  // `createQueue` is idempotent — its SQL is `INSERT … ON CONFLICT DO
+  // NOTHING`, so calling it for an existing queue is a cheap no-op that
+  // does NOT apply the spec — and we cache locally so repeated sends from
+  // a hot path don't issue a round-trip every time.
   //
-  // When `opts` is supplied (only from `register()` on the worker side)
-  // and the queue already exists, we `updateQueue` to apply the policy
-  // / timeout to the existing row. This way the worker can change a
-  // queue's shape between deploys without operators having to run a
-  // manual `unschedule` + `createQueue`.
+  // When `opts` is supplied (only from `register()` on the worker side),
+  // the tunable options are then written with `updateQueue` whether the
+  // queue was just created or already existed. Without that, a queue the
+  // app process created first (its `send()` passes no spec) would keep
+  // pg-boss defaults for good, and a deploy that changes a timeout or
+  // retry shape would never reach an existing install.
+  //
+  // `policy` is the exception: pg-boss fixes it at creation and throws if
+  // an update names it. It only takes effect when the worker creates the
+  // queue.
   async #ensureQueue(name: string, opts?: RegisterOptions): Promise<void> {
-    if (this.#ensuredQueues.has(name)) {
-      if (opts) await this.#applyQueueOptions(name, opts);
-      return;
+    if (!this.#ensuredQueues.has(name)) {
+      const createSpec: Partial<PgBossQueue> = {};
+      if (opts?.policy) createSpec.policy = opts.policy;
+      Object.assign(createSpec, tunableQueueOptions(opts));
+      try {
+        await this.#boss.createQueue(name, createSpec);
+      } catch (err: unknown) {
+        // Older pg-boss surfaced an existing queue as Postgres' unique
+        // violation (SQLSTATE 23505 on `queue_pkey`) instead of a no-op.
+        // Benign either way — both processes were creating it. Anything
+        // else (permissions, schema missing, connection error) is real.
+        if (!isAlreadyExistsError(err)) throw err;
+        log.debug({ name }, 'jobs.pgboss.queue_create_noop');
+      }
+      this.#ensuredQueues.add(name);
     }
-    const createSpec: Partial<PgBossQueue> = {};
-    if (opts?.policy) createSpec.policy = opts.policy;
-    if (opts?.expireInSeconds !== undefined) createSpec.expireInSeconds = opts.expireInSeconds;
-    if (opts?.retryLimit !== undefined) createSpec.retryLimit = opts.retryLimit;
-    if (opts?.retryDelay !== undefined) createSpec.retryDelay = opts.retryDelay;
-    if (opts?.retryBackoff !== undefined) createSpec.retryBackoff = opts.retryBackoff;
-    try {
-      await this.#boss.createQueue(name, createSpec);
-    } catch (err: unknown) {
-      // pg-boss v12 throws Postgres' unique-constraint error (SQLSTATE
-      // 23505 on `queue_pkey`) when the queue already exists — benign,
-      // both processes were trying to create it. Anything else is a
-      // real failure (permissions, schema missing, connection error)
-      // and should surface, not be silently treated as "queue ready".
-      if (!isAlreadyExistsError(err)) throw err;
-      log.debug({ name }, 'jobs.pgboss.queue_create_noop');
-      // Queue exists with whoever-got-there-first's spec. Update to
-      // match the current code's intent so a deploy that changes
-      // policy/timeout actually takes effect.
-      if (opts) await this.#applyQueueOptions(name, opts);
-    }
-    this.#ensuredQueues.add(name);
+    if (opts) await this.#applyQueueOptions(name, opts);
   }
 
   async #applyQueueOptions(name: string, opts: RegisterOptions): Promise<void> {
-    if (
-      !opts.policy &&
-      opts.expireInSeconds === undefined &&
-      opts.retryLimit === undefined &&
-      opts.retryDelay === undefined &&
-      opts.retryBackoff === undefined
-    ) {
-      return;
-    }
-    // No catch: a failed updateQueue means the queue keeps its
-    // existing policy/timeout, which silently breaks singleton dedup
-    // (geocode-fetch) or extraction timeout. Better to fail boot —
-    // the worker container restarts and surfaces the error, the
-    // operator sees something is wrong.
-    await this.#boss.updateQueue(name, {
-      ...(opts.policy ? { policy: opts.policy } : {}),
-      ...(opts.expireInSeconds !== undefined ? { expireInSeconds: opts.expireInSeconds } : {}),
-      ...(opts.retryLimit !== undefined ? { retryLimit: opts.retryLimit } : {}),
-      ...(opts.retryDelay !== undefined ? { retryDelay: opts.retryDelay } : {}),
-      ...(opts.retryBackoff !== undefined ? { retryBackoff: opts.retryBackoff } : {}),
-    });
+    const update = tunableQueueOptions(opts);
+    if (Object.keys(update).length === 0) return;
+    // No catch: a failed updateQueue means the queue keeps its existing
+    // timeout / retry shape, which silently breaks the extraction timeout
+    // or the notify backoff. Better to fail boot — the worker container
+    // restarts and surfaces the error, the operator sees something is
+    // wrong.
+    await this.#boss.updateQueue(name, update);
   }
+}
+
+// The queue options pg-boss lets us change after creation — everything
+// in RegisterOptions except `policy`.
+function tunableQueueOptions(opts: RegisterOptions | undefined): Partial<PgBossQueue> {
+  const out: Partial<PgBossQueue> = {};
+  if (!opts) return out;
+  if (opts.expireInSeconds !== undefined) out.expireInSeconds = opts.expireInSeconds;
+  if (opts.retryLimit !== undefined) out.retryLimit = opts.retryLimit;
+  if (opts.retryDelay !== undefined) out.retryDelay = opts.retryDelay;
+  if (opts.retryBackoff !== undefined) out.retryBackoff = opts.retryBackoff;
+  return out;
 }
 
 // Recognise pg-boss's "queue already exists" error. v12 surfaces it as

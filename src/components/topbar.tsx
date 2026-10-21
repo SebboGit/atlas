@@ -126,11 +126,19 @@ export function Topbar() {
                 <Link
                   href="/settings"
                   aria-current={isActiveRoute(pathname, '/settings') ? 'page' : undefined}
-                  className="text-foreground/80 [@media(hover:hover)]:hover:bg-foreground/5 [@media(hover:hover)]:hover:text-foreground flex min-h-11 items-center gap-3 rounded-xl px-3 text-base transition-colors"
+                  className={cn(
+                    'flex min-h-11 items-center gap-3 rounded-xl px-3 text-base transition-colors',
+                    isActiveRoute(pathname, '/settings')
+                      ? 'bg-foreground/8 text-foreground'
+                      : 'text-foreground/80 [@media(hover:hover)]:hover:bg-foreground/5 [@media(hover:hover)]:hover:text-foreground',
+                  )}
                 >
                   <Settings
                     aria-hidden
-                    className="text-foreground/45 size-[18px] shrink-0"
+                    className={cn(
+                      'size-[18px] shrink-0',
+                      isActiveRoute(pathname, '/settings') ? 'text-primary' : 'text-foreground/45',
+                    )}
                     strokeWidth={1.75}
                   />
                   <span>Settings</span>
@@ -201,13 +209,21 @@ export function Topbar() {
           {/* Laptop settings — an icon beside sign-out; secondary to the
            *  section nav, so it stays out of ROUTES. Phone users reach it
            *  from the hamburger sheet. */}
-          <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex">
+          {/* `size-11`: shown from `sm:` up, which includes touch tablets,
+           *  so it keeps the 44px target; `[&_svg]` beats the button's own
+           *  16px icon rule. */}
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="hidden size-11 sm:inline-flex [&_svg]:size-[18px]"
+          >
             <Link
               href="/settings"
               aria-label="Settings"
               aria-current={isActiveRoute(pathname, '/settings') ? 'page' : undefined}
             >
-              <Settings className="size-[18px]" strokeWidth={1.75} />
+              <Settings strokeWidth={1.75} />
             </Link>
           </Button>
           {/* Laptop sign-out — inline in the topbar. Phone users reach

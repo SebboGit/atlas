@@ -27,6 +27,20 @@ test.describe('notification settings', () => {
     await expect(enabled).toBeChecked();
     await expect(extraction).not.toBeChecked();
     await expect(topic).toHaveValue('my-trips');
+
+    // Clearing the field goes back to the server default.
+    await topic.fill('');
+    await authedPage.getByRole('button', { name: 'Save' }).click();
+    await expect(authedPage.getByRole('status')).toHaveText('Saved.');
+    await authedPage.reload();
+    await expect(topic).toHaveValue('');
+  });
+
+  test('saves with the topic left empty', async ({ authedPage }) => {
+    await authedPage.goto('/settings');
+    await authedPage.getByRole('checkbox', { name: /push notifications/i }).check();
+    await authedPage.getByRole('button', { name: 'Save' }).click();
+    await expect(authedPage.getByRole('status')).toHaveText('Saved.');
   });
 
   test('rejects a topic ntfy would refuse', async ({ authedPage }) => {

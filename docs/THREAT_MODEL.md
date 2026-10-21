@@ -63,9 +63,13 @@ guarantees below weaken accordingly.
   opt-in per user and go only to topics the operator configured: the
   deployment default `NTFY_TOPIC` or a topic the user entered, which the ntfy
   server must also grant the publisher. Atlas never creates a topic. A trip
-  reminder only goes to users who can see the trip, so a private trip reaches
-  its owner alone. The ntfy token lives only in the worker, the one process
-  that sends (ADR-0020).
+  reminder only goes to users who can see the trip, and a message about a
+  private trip leaves the trip's name out when it goes to the shared default
+  topic. The ntfy token lives only in the worker, the one process that sends
+  (ADR-0020). Any signed-in user can aim the publisher at any topic its token
+  can write to, so the token must belong to an ntfy user dedicated to Atlas
+  and limited to Atlas's topics. The test button is throttled to one send per
+  user every 30 seconds.
 - **Vulnerable dependencies** — Dependabot opens grouped weekly updates, and
   CI runs an advisory `pnpm audit --prod` step that surfaces findings for
   manual review; it does not gate merges. There is no accepted-risk baseline

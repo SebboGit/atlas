@@ -21,6 +21,17 @@ describe('notificationSettingsInput', () => {
     expect(parsed).toEqual({ enabled: false, topic: 'my-trips', prefs: { extraction: false } });
   });
 
+  it('accepts its own output, which is what the server action receives', () => {
+    // The form validates client-side and passes the parsed values on,
+    // so the action parses an already-transformed `topic: null`.
+    const once = notificationSettingsInput.parse({
+      enabled: true,
+      topic: '',
+      prefs: { extraction: true },
+    });
+    expect(notificationSettingsInput.parse(once)).toEqual(once);
+  });
+
   it('rejects a topic ntfy would refuse', () => {
     const parsed = notificationSettingsInput.safeParse({
       enabled: true,
