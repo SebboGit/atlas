@@ -18,7 +18,7 @@ export const ARCS_SOURCE_ID = 'trip-arcs';
 export const FLIGHT_ARC_LAYER_ID = 'trip-arcs-lines';
 export const TRANSIT_CASING_LAYER_ID = 'trip-transit-casing';
 export const TRANSIT_LINE_LAYER_ID = 'trip-transit-line';
-// Endpoint dots sit on their own source, one small terracotta mark per
+// Endpoint dots sit on their own source, one small coral mark per
 // route end so a leg reads as a plotted course (origin → line →
 // destination), not an anonymous hairline.
 export const ARC_ENDPOINTS_SOURCE_ID = 'trip-arc-endpoints';
@@ -102,9 +102,9 @@ export function flightArcLayer(primary: string): LineLayerSpecification {
 }
 
 /**
- * The transit line: an ivory casing under a solid terracotta core. Solid
+ * The transit line: an ivory casing under a solid coral core. Solid
  * so it can't be read as a flight's dashed course or the basemap's
- * dashed railway; terracotta rather than ink so it doesn't read as a
+ * dashed railway; coral rather than ink so it doesn't read as a
  * country border. Returned casing-first — add them in this order.
  */
 export function transitRouteLayers(

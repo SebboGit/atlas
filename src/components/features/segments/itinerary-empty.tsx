@@ -4,7 +4,7 @@ interface ItineraryEmptyProps {
   hasCountryFilter: boolean;
 }
 
-// Itinerary empty state. Matches the warm-sand decorative pattern used
+// Itinerary empty state. Matches the decorative pattern used
 // on the trips list empty state (topographic contour ellipses, ø
 // glyph) so the two surfaces feel like one app.
 export function ItineraryEmpty({ hasCountryFilter }: ItineraryEmptyProps) {

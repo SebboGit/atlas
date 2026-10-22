@@ -26,7 +26,7 @@ const MAX_POLL_MS = 1500;
 const FLASH_DURATION_MS = 1600;
 const HASH_PREFIX = '#seg-';
 
-// One terracotta-tinted box-shadow ring blooms quickly, then fades.
+// One coral-tinted box-shadow ring blooms quickly, then fades.
 // HSL values match the `--color-primary` token in globals.css.
 const FLASH_KEYFRAMES: Keyframe[] = [
   { boxShadow: '0 0 0 0 hsl(18 52% 36% / 0)' },

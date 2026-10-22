@@ -267,7 +267,7 @@ export function WorldMap({ visited }: WorldMapProps) {
       >
         Plate 03 · World
       </span>
-      {/* Bottom-left visited legend: terracotta swatch + count + a
+      {/* Bottom-left visited legend: coral swatch + count + a
           client-side continent breakdown. Hidden until there's at least
           one country so an empty map stays clean. */}
       {visitedCodes.length > 0 && <VisitedPanel codes={visitedCodes} />}

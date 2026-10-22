@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * A lifetime headline tile: a hairline-ruled monospace label, one large
- * Fraunces figure, and a quiet sentence underneath. The voice is
+ * display-weight figure, and a quiet sentence underneath. The voice is
  * memory-tool, not KPI — the caption is a full clause ("Last new one:
  * Vietnam, March 2025"), never a delta chip.
  */
@@ -44,7 +44,7 @@ export function StatTile({
             </span>
           ) : null}
         </p>
-        {/* A short terracotta baseline under the figure — the ruled line of a
+        {/* A short coral baseline under the figure — the ruled line of a
          *  ledger entry, not a KPI box. One focal stroke per tile. */}
         <span aria-hidden className="bg-primary h-px w-8" />
         {/* Caption is supporting context — dropped entirely on phone, where

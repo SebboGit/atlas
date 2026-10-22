@@ -1,6 +1,6 @@
 'use client';
 
-import { Fraunces, Hanken_Grotesk, IBM_Plex_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, DM_Mono } from 'next/font/google';
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -10,25 +10,17 @@ import './globals.css';
 // global-error replaces the root layout, so it owns its own <html>/<body>
 // AND must re-wire the font CSS variables — they live on the root layout's
 // <html>, which is gone in this code path. Without this, font-display and
-// font-mono would fall back to system serifs/monos.
-const hanken = Hanken_Grotesk({
+// font-mono would fall back to system sans/monos.
+const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
-  variable: '--font-hanken',
+  variable: '--font-bricolage',
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  axes: ['opsz'],
 });
 
-const fraunces = Fraunces({
+const dmMono = DM_Mono({
   subsets: ['latin'],
-  variable: '--font-fraunces',
-  display: 'swap',
-  axes: ['SOFT', 'opsz'],
-  style: ['normal', 'italic'],
-});
-
-const ibmMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono-ibm',
+  variable: '--font-dm-mono',
   display: 'swap',
   weight: ['400', '500'],
 });
@@ -48,10 +40,10 @@ export default function GlobalError({ error }: GlobalErrorProps) {
   }, [error]);
 
   return (
-    <html lang="en" className={`${hanken.variable} ${fraunces.variable} ${ibmMono.variable}`}>
+    <html lang="en" className={`${bricolage.variable} ${dmMono.variable}`}>
       <body className="min-h-screen">
         <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center px-6 py-16 text-center">
-          <span className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]">
+          <span className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.06em]">
             ø
           </span>
           <h1 className="font-display text-foreground text-3xl tracking-tight">
@@ -61,7 +53,7 @@ export default function GlobalError({ error }: GlobalErrorProps) {
             Atlas hit an unexpected error. Try reloading.
           </p>
           {error.digest ? (
-            <p className="text-muted-foreground/60 mt-4 font-mono text-[10px] tracking-[0.2em] uppercase">
+            <p className="text-muted-foreground/60 mt-4 font-mono text-[10px] tracking-[0.06em] uppercase">
               Ref {error.digest}
             </p>
           ) : null}
