@@ -41,7 +41,9 @@ export default async function SettingsPage() {
         </div>
         <Card variant="paper">
           <CardContent className="p-5 sm:p-6">
-            <ThemePreferencePicker initial={themePreference} />
+            {/* Keyed on the stored value so a topbar toggle (which refreshes
+             *  this page with a new cookie) resets the picker to match. */}
+            <ThemePreferencePicker key={themePreference} initial={themePreference} />
           </CardContent>
         </Card>
       </section>

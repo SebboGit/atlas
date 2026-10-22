@@ -2,6 +2,7 @@
 
 import {
   ChartColumn,
+  LogOut,
   Luggage,
   Map as MapIcon,
   Menu,
@@ -57,7 +58,7 @@ export function Topbar() {
 
   return (
     <header className="border-border bg-background/90 supports-[backdrop-filter]:bg-background/75 sticky top-0 z-40 border-b backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-5 sm:gap-5 sm:px-8">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-5 sm:px-6 lg:gap-5 lg:px-8">
         {/* Hamburger — phone only. Sits left of the logo so the
          *  thumb-zone affordance for nav lives on the side opposite the
          *  search icon. */}
@@ -112,7 +113,7 @@ export function Topbar() {
                         aria-hidden
                         className={cn(
                           'size-[18px] shrink-0',
-                          active ? 'text-primary' : 'text-foreground/50',
+                          active ? 'text-inverse-accent' : 'text-foreground/50',
                         )}
                         strokeWidth={1.75}
                       />
@@ -173,7 +174,7 @@ export function Topbar() {
 
         {/* Laptop inline nav — a pill group; the active section is the ink
          *  pill. Hidden below sm:, where the hamburger carries the routes. */}
-        <nav aria-label="Main" className="ml-2 hidden flex-1 items-center sm:flex lg:ml-4">
+        <nav aria-label="Main" className="hidden flex-1 items-center sm:flex lg:ml-4">
           <div className="bg-card border-border flex items-center gap-0.5 rounded-full border p-1">
             {ROUTES.map((route) => {
               const active = isActiveRoute(pathname, route.href);
@@ -183,7 +184,7 @@ export function Topbar() {
                   href={route.href}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'rounded-full px-3.5 py-1.5 text-[15px] font-semibold transition-colors lg:px-4',
+                    'rounded-full px-3 py-1.5 text-sm font-semibold transition-colors lg:px-4 lg:text-[15px]',
                     active
                       ? 'bg-foreground text-background'
                       : 'text-muted-foreground [@media(hover:hover)]:hover:text-foreground',
@@ -196,7 +197,7 @@ export function Topbar() {
           </div>
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex items-center gap-1 lg:gap-2">
           <SearchTrigger />
           <ThemeToggle />
           {/* Laptop settings — an icon beside sign-out; secondary to the
@@ -222,8 +223,16 @@ export function Topbar() {
           {/* Laptop sign-out — inline in the topbar. Phone users reach
            *  sign-out via the hamburger sheet above. */}
           <form action={signOutAction} className="hidden sm:block">
-            <Button type="submit" variant="ghost" size="sm">
-              Sign out
+            {/* Icon-only until `lg:`, for the same width reason as search. */}
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              aria-label="Sign out"
+              className="min-h-11 min-w-11 px-2.5 lg:px-4 [&_svg]:size-[18px]"
+            >
+              <LogOut aria-hidden className="lg:hidden" strokeWidth={1.75} />
+              <span className="hidden lg:inline">Sign out</span>
             </Button>
           </form>
         </div>

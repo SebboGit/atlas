@@ -212,6 +212,7 @@ export function TripChrome({
                     tripId={trip.id}
                     initialMuted={reminders.muted}
                     className={cn(INVERSE_OUTLINE, '[@media(hover:none)]:h-11')}
+                    statusClassName="text-inverse-accent"
                   />
                 )}
               </div>
@@ -248,6 +249,7 @@ export function TripChrome({
                     tripId={trip.id}
                     initialMuted={reminders.muted}
                     className={INVERSE_OUTLINE}
+                    statusClassName="text-inverse-accent"
                   />
                 )}
                 {/* Trip-row maintenance is owner-only (ADR-0015). A household

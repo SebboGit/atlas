@@ -31,11 +31,13 @@ export function SearchTrigger() {
       variant="ghost"
       size="sm"
       onClick={() => setOpen(true)}
-      className="text-muted-foreground hover:text-foreground sm:bg-card sm:border-border min-h-11 min-w-11 gap-2 sm:min-h-10 sm:border sm:font-medium lg:w-56 lg:justify-start"
+      // Icon-only until `lg:` — the topbar can't spare a labelled field at
+      // tablet widths without scrolling sideways.
+      className="text-muted-foreground hover:text-foreground lg:bg-card lg:border-border min-h-11 min-w-11 gap-2 lg:min-h-10 lg:w-56 lg:justify-start lg:border lg:font-medium"
       aria-label="Search Atlas"
     >
       <Search className="size-4" aria-hidden />
-      <span className="hidden sm:inline">Search</span>
+      <span className="hidden lg:inline">Search</span>
       {/* aria-hidden on the kbd hint: the parent button's aria-label
           already names the action, and screen readers vary on how they
           announce the ⌘ glyph ("clover", "command", silence). Visual
@@ -43,7 +45,7 @@ export function SearchTrigger() {
       {modKey ? (
         <kbd
           aria-hidden="true"
-          className="border-border text-muted-foreground hidden items-center gap-0.5 rounded-md border px-1.5 py-0.5 font-mono text-[10px] sm:inline-flex lg:ml-auto"
+          className="border-border text-muted-foreground hidden items-center gap-0.5 rounded-md border px-1.5 py-0.5 font-mono text-[10px] lg:ml-auto lg:inline-flex"
         >
           {modKey}
           <span>K</span>
