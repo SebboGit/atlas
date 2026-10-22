@@ -109,14 +109,14 @@ export function SegmentCardFlight({
   // varied only by opacity.
   const meta =
     depart || arrive ? (
-      // One line in the phone strip, stacked in the laptop stub column.
-      // whitespace-nowrap keeps "12:30 BST" together — a zone label on its
-      // own line reads as unrelated to the time.
+      // One line in the phone strip. In the narrow laptop stub column the
+      // zone label drops under its time ("GMT+9" beside a time overruns
+      // the column).
       <div className="flex flex-wrap items-baseline gap-x-2 leading-tight sm:block">
         <div className="font-display text-lg whitespace-nowrap sm:text-xl">
           {depart ? depart.time : '—'}
           {depart?.zone && (
-            <span className="ml-1 font-mono text-[10px] font-normal tracking-normal opacity-75">
+            <span className="ml-1 font-mono text-[10px] font-normal tracking-normal opacity-75 sm:ml-0 sm:block">
               {depart.zone}
             </span>
           )}
@@ -124,7 +124,7 @@ export function SegmentCardFlight({
         <div className="font-mono text-xs whitespace-nowrap opacity-80 sm:mt-1">
           → {arrive ? arrive.time : '—'}
           {arrive && overnight && <sup className="ml-0.5 text-[9px]">+1</sup>}
-          {arrive?.zone && <span className="ml-1 text-[10px]">{arrive.zone}</span>}
+          {arrive?.zone && <span className="ml-1 text-[10px] sm:ml-0 sm:block">{arrive.zone}</span>}
         </div>
       </div>
     ) : null;
