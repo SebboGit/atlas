@@ -58,17 +58,18 @@ export function TripCountdown({ status, startYmd }: { status: string; startYmd: 
   const large = !ready || /^\d+$/.test(big);
 
   return (
-    <div className="border-foreground/10 flex shrink-0 flex-row items-center gap-4 border-t pt-5 sm:flex-col sm:items-end sm:justify-center sm:border-t-0 sm:border-l sm:pt-0 sm:pl-10 sm:text-right">
+    // Sits on the inverse hero surface (see NextTripHero).
+    <div className="flex flex-row items-center gap-4 sm:flex-col sm:items-start sm:gap-2">
       <span
         className={
           'font-display leading-none font-medium ' +
-          (ready ? 'text-coral-ink ' : 'text-coral-ink/20 ') +
+          (ready ? 'text-inverse-accent ' : 'text-inverse-accent/20 ') +
           (large ? 'text-5xl sm:text-6xl' : 'text-3xl sm:text-4xl')
         }
       >
         {big}
       </span>
-      <span className="text-foreground/60 max-w-[8rem] font-mono text-xs leading-snug font-medium tracking-[0.06em] uppercase">
+      <span className="text-inverse-muted max-w-[8rem] font-mono text-xs leading-snug font-medium tracking-[0.06em] uppercase">
         {cap}
       </span>
     </div>

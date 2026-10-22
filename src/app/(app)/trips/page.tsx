@@ -64,10 +64,10 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
         // Archived view stays a flat grid — no chronological framing.
         // Archived trips are out of the workflow; this tab is for
         // retrieval / restore, not timeline browsing.
-        <ul className="grid gap-2 sm:grid-cols-2 sm:gap-5">
+        <ul className="grid gap-3 sm:grid-cols-2 sm:gap-5">
           {trips.map((trip, i) => (
             <li key={trip.id} style={{ animationDelay: `${160 + i * 60}ms` }}>
-              <TripListCard trip={trip} index={i} />
+              <TripListCard trip={trip} />
             </li>
           ))}
         </ul>
@@ -88,11 +88,10 @@ function DashboardLayout({ trips }: { trips: Trip[] }) {
   const { upcoming, past } = partitionForDashboard(trips);
   const { groups, undated } = groupPastByYear(past);
 
-  // Pre-compute the running card index per section so the corner
-  // stamps number 01, 02, … continuously across upcoming, each year,
-  // and the undated bucket. The accumulator runs once at render-prep
-  // time (not inside a `.map` closure) to keep render side-effect-free.
-  const upcomingStart = 0;
+  // Pre-compute the running card index per section so the entrance
+  // stagger continues across upcoming, each year, and the undated bucket.
+  // The accumulator runs once at render-prep time (not inside a `.map`
+  // closure) to keep render side-effect-free.
   const yearStarts: number[] = [];
   let cursor = upcoming.length;
   for (const group of groups) {
@@ -104,11 +103,14 @@ function DashboardLayout({ trips }: { trips: Trip[] }) {
   return (
     <div className="flex flex-col gap-7 sm:gap-10">
       {upcoming.length > 0 && (
-        <section aria-label="Active and upcoming trips">
-          <ul className="grid gap-2 sm:grid-cols-2 sm:gap-5">
+        <section aria-labelledby="trips-upcoming">
+          <h2 id="trips-upcoming" className="heading-section mb-4 sm:mb-5">
+            Coming up
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2 sm:gap-5">
             {upcoming.map((trip, i) => (
               <li key={trip.id} style={{ animationDelay: `${160 + i * 60}ms` }}>
-                <TripListCard trip={trip} index={upcomingStart + i} />
+                <TripListCard trip={trip} />
               </li>
             ))}
           </ul>

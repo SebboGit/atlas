@@ -5,11 +5,7 @@ interface TripYearGroupProps {
   /** Either a numeric year (e.g. 2024) or the literal "Undated" label. */
   label: number | 'Undated';
   trips: Trip[];
-  /**
-   * Running index across the whole past section (so the card corner
-   * stamp keeps ascending across year boundaries instead of resetting
-   * to 01 every group).
-   */
+  /** Running index across the whole past section, for the entrance stagger. */
   startIndex: number;
 }
 
@@ -27,19 +23,15 @@ export function TripYearGroup({ label, trips, startIndex }: TripYearGroupProps) 
     <section aria-labelledby={headingId} className="mb-6 sm:mb-8">
       <header className="bg-background/85 supports-[backdrop-filter]:bg-background/55 sticky top-16 z-30 -mx-6 mb-4 px-6 py-3 backdrop-blur-md sm:-mx-8 sm:mb-5 sm:px-8 sm:py-4">
         <div className="flex items-baseline gap-4">
-          <h2
-            id={headingId}
-            className="font-display text-foreground text-xl leading-none font-medium tracking-tight sm:text-3xl"
-          >
+          <h2 id={headingId} className="heading-section leading-none">
             {label}
           </h2>
-          <span aria-hidden className="bg-foreground/20 h-px flex-1" />
-          <span className="text-foreground/70 shrink-0 font-mono text-[10px] tracking-[0.06em] uppercase">
+          <span className="text-muted-foreground shrink-0 font-mono text-[11px] tracking-[0.06em] uppercase">
             {trips.length} {trips.length === 1 ? 'trip' : 'trips'}
           </span>
         </div>
       </header>
-      <ul className="grid gap-2 sm:grid-cols-2 sm:gap-5">
+      <ul className="grid gap-3 sm:grid-cols-2 sm:gap-5">
         {trips.map((trip, i) => (
           <li
             key={trip.id}
@@ -47,7 +39,7 @@ export function TripYearGroup({ label, trips, startIndex }: TripYearGroupProps) 
             // rhythm stays consistent across sections.
             style={{ animationDelay: `${160 + (startIndex + i) * 60}ms` }}
           >
-            <TripListCard trip={trip} index={startIndex + i} />
+            <TripListCard trip={trip} />
           </li>
         ))}
       </ul>

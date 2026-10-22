@@ -1,7 +1,5 @@
 import Link from 'next/link';
 
-import { TripStatusBadge } from '@/components/features/trips/trip-status-badge';
-import { Card, CardContent } from '@/components/ui/card';
 import type { Trip } from '@/lib/trips';
 import { formatTripDateRange, toYmd } from '@/lib/trips/format';
 
@@ -17,55 +15,38 @@ export function NextTripHero({ trip }: { trip: Trip }) {
   return (
     <Link
       href={{ pathname: `/trips/${trip.id}` }}
-      className="atlas-rise group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="atlas-rise group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-[1.75rem] transition-opacity focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none [@media(hover:hover)]:hover:opacity-95"
       style={{ animationDelay: '220ms' }}
     >
-      <Card
-        variant="glass"
-        className="relative overflow-hidden transition-transform duration-500 hover:-translate-y-0.5"
-      >
-        <span
-          aria-hidden
-          className="border-primary/40 text-coral-ink/80 absolute top-5 right-5 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
-        >
-          01
-        </span>
-
-        <CardContent className="flex flex-col gap-6 px-6 py-7 sm:flex-row sm:items-stretch sm:gap-10 sm:px-8 sm:py-8">
-          {/* Trip identity */}
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <p className="text-coral-ink font-mono text-[10px] tracking-[0.06em] uppercase">
-              {trip.status === 'active' ? 'On the trip' : 'Next departure'}
+      {/* The inverse surface marks "now / next" in both themes — ink in
+       *  light mode, near-white in dark. Split like a ticket: identity on
+       *  the left, the countdown on a perforated stub to the right. */}
+      <div className="bg-inverse text-inverse-foreground flex flex-col overflow-hidden rounded-[1.75rem] sm:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 px-6 py-7 sm:px-8 sm:py-8">
+          <span className="bg-primary text-primary-foreground self-start rounded-full px-3 py-1 text-xs font-bold">
+            {trip.status === 'active' ? 'Travelling now' : 'Next departure'}
+          </span>
+          <h2 className="font-display text-4xl leading-[0.95] tracking-tight break-words sm:text-6xl">
+            {trip.title}
+          </h2>
+          <p className="text-inverse-muted font-mono text-xs tracking-[0.06em] uppercase">
+            {range}
+          </p>
+          {trip.summary && (
+            <p className="text-inverse-muted line-clamp-2 max-w-prose text-sm leading-relaxed">
+              {trip.summary}
             </p>
-            <h2 className="font-display text-foreground text-3xl leading-tight font-medium tracking-tight sm:text-4xl">
-              {trip.title}
-            </h2>
-            <p className="text-foreground/70 font-mono text-[11px] tracking-[0.06em] uppercase">
-              {range}
-            </p>
-            {trip.summary && (
-              <p className="text-muted-foreground line-clamp-2 max-w-prose text-sm leading-relaxed">
-                {trip.summary}
-              </p>
-            )}
-            <div className="mt-auto pt-2">
-              <TripStatusBadge status={trip.status} />
-            </div>
-          </div>
+          )}
+        </div>
 
-          {/* Countdown — the focal terracotta moment, computed in the
-           *  viewer's timezone (resolves on mount). */}
+        {/* Countdown — computed in the viewer's timezone (resolves on mount). */}
+        <div className="border-inverse-line flex shrink-0 items-center border-t-2 border-dashed px-6 py-5 sm:w-64 sm:border-t-0 sm:border-l-2 sm:px-8 sm:py-8">
           <TripCountdown
             status={trip.status}
             startYmd={trip.startDate ? toYmd(trip.startDate) : null}
           />
-        </CardContent>
-
-        <span
-          aria-hidden
-          className="from-primary/0 via-primary/60 to-primary/0 absolute right-8 bottom-6 hidden h-px w-12 bg-gradient-to-r transition-all duration-500 group-hover:w-28 sm:block"
-        />
-      </Card>
+        </div>
+      </div>
     </Link>
   );
 }
