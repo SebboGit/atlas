@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A new look** — the warm paper palette gives way to a cool grey ground,
+  white cards, near-black ink and a single coral accent, set in Bricolage
+  Grotesque with DM Mono for times and codes. Every segment type now has its
+  own colour, used the same way on its ticket, its map pin and its filter.
+- **Segments are tickets** — each one has a coloured stub with an icon, the
+  type and the time, joined to its details by a perforation. On a phone the
+  stub runs across the top, so the title gets the full width.
+- **Days are cards** — the itinerary shows one card per day, headed by the date,
+  the day number, a Today badge and a count of what is booked, with past days
+  folded into a single row.
+- **Trip banner with a route** — the trip header is a dark banner with the
+  dates, title and actions. On a laptop it also shows the route as a line
+  diagram: flights, trains and ferries between the stops, with "You're here"
+  on a trip in progress. The trip list and the home page's next trip use the
+  same ticket and banner styles, and the logo is redrawn to match.
+
+### Added
+
+- **Dark mode** — follows the system by default. The sun/moon button in the
+  top bar switches it, and Settings → Appearance can pin Light, Dark or
+  System for each device.
+
 ## [1.9.0] - 2026-10-22
 
 ### Added

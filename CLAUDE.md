@@ -117,6 +117,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── scheduler/       # Worker-side handler + schedule registration for pg-boss
 │   │   ├── search/          # Cmd+K palette over Postgres FTS + pg_trgm (ADR-0013)
 │   │   ├── stats/           # Read-only aggregation for the /stats dashboard
+│   │   ├── theme/           # Light/dark preference: `atlas-theme` cookie, root-layout read, client toggle
 │   │   ├── validators/      # Shared Zod schemas
 │   │   ├── format/          # Shared formatters (dates, money, durations)
 │   │   └── log.ts           # Structured logger entrypoint
