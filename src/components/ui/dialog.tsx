@@ -65,7 +65,7 @@ const DialogContent = React.forwardRef<
         className={cn(
           'absolute top-4 right-4 inline-flex h-9 w-9 items-center justify-center rounded-full',
           'border-foreground/15 text-foreground/70 hover:bg-foreground/8 border transition-colors',
-          'focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:ring-offset-2',
+          'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background focus-visible:outline-none',
         )}
       >

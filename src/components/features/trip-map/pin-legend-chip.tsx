@@ -75,7 +75,7 @@ export function PinLegendChip({ kinds, routeKinds = NO_ROUTES }: PinLegendChipPr
           <ChevronUp
             aria-hidden
             className={cn(
-              'text-primary h-3.5 w-3.5 transition-transform duration-150',
+              'text-coral-ink h-3.5 w-3.5 transition-transform duration-150',
               open && 'rotate-180',
             )}
             strokeWidth={2.25}
@@ -131,7 +131,7 @@ function LegendSwatch({ kind, size }: { kind: TripMapPinKind; size: 'xs' | 'md' 
 // ivory casing under a solid core. Decorative — the row label names it.
 function RouteSwatch({ style }: { style: RouteStyle }) {
   return (
-    <svg aria-hidden viewBox="0 0 24 8" className="text-primary ml-auto h-2 w-6 shrink-0">
+    <svg aria-hidden viewBox="0 0 24 8" className="text-coral-ink ml-auto h-2 w-6 shrink-0">
       {style === 'dashed' ? (
         <line
           x1="1"

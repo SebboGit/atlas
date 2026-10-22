@@ -17,7 +17,7 @@ export function NextTripHero({ trip }: { trip: Trip }) {
   return (
     <Link
       href={{ pathname: `/trips/${trip.id}` }}
-      className="atlas-rise group focus-visible:ring-primary/40 focus-visible:ring-offset-background block rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="atlas-rise group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       style={{ animationDelay: '220ms' }}
     >
       <Card
@@ -26,7 +26,7 @@ export function NextTripHero({ trip }: { trip: Trip }) {
       >
         <span
           aria-hidden
-          className="border-primary/40 text-primary/80 absolute top-5 right-5 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+          className="border-primary/40 text-coral-ink/80 absolute top-5 right-5 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
         >
           01
         </span>
@@ -34,7 +34,7 @@ export function NextTripHero({ trip }: { trip: Trip }) {
         <CardContent className="flex flex-col gap-6 px-6 py-7 sm:flex-row sm:items-stretch sm:gap-10 sm:px-8 sm:py-8">
           {/* Trip identity */}
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <p className="text-primary font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-coral-ink font-mono text-[10px] tracking-[0.28em] uppercase">
               {trip.status === 'active' ? 'On the trip' : 'Next departure'}
             </p>
             <h2 className="font-display text-foreground text-3xl leading-tight font-medium tracking-tight sm:text-4xl">

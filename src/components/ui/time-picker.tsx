@@ -191,7 +191,7 @@ const Column = React.forwardRef<HTMLDivElement, ColumnProps>(
                 'mx-auto my-px inline-flex h-8 w-12 items-center justify-center rounded-full',
                 'text-foreground text-[13px] leading-none tabular-nums transition-colors',
                 'hover:bg-foreground/8',
-                'focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:outline-none',
+                'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none',
                 isSelected && 'bg-primary text-primary-foreground hover:bg-primary/92',
               )}
             >

@@ -22,11 +22,9 @@ interface ItineraryUndatedProps {
 // note with no date is a general trip reminder, not a timed event, so it
 // reads as a footer to the timeline rather than a day in it.
 //
-// Deliberately simpler than DayGroup: no day header, no timeline rail or
-// dot markers (those imply temporal sequence, which undated items have
-// none of). Cards keep the same `md:pl-10` inset so their left edge lines
-// up with the dated days above. Renders nothing when empty, so the page
-// can always mount it unconditionally.
+// Same card as a DayGroup, with a plain "Undated" header and no day number
+// or type counts (no temporal sequence to imply). Renders nothing when
+// empty, so the page can always mount it unconditionally.
 export function ItineraryUndated({
   segments,
   tripId,
@@ -36,28 +34,30 @@ export function ItineraryUndated({
   if (segments.length === 0) return null;
 
   return (
-    <section className="mb-8 sm:mb-10">
-      <header className="mb-4 flex items-baseline gap-3 sm:mb-5">
-        <p className="text-foreground/85 font-mono text-xs tracking-[0.18em] uppercase sm:tracking-[0.28em]">
+    <section
+      aria-labelledby="itinerary-undated"
+      className="bg-card border-border mb-4 overflow-hidden rounded-[1.25rem] border sm:mb-5"
+    >
+      <header className="border-border flex items-baseline gap-3 border-b px-4 py-3 sm:px-5 sm:py-3.5">
+        <h2 id="itinerary-undated" className="font-display text-foreground text-xl sm:text-2xl">
           Undated
-        </p>
-        <span aria-hidden className="bg-foreground/20 h-px flex-1" />
+        </h2>
+        <span className="text-muted-foreground font-mono text-[11px] tracking-[0.06em] uppercase">
+          Not scheduled
+        </span>
       </header>
-
-      <div className="md:pl-10">
-        <ol className="space-y-3 sm:space-y-4">
-          {segments.map((s) => (
-            <li key={s.id}>
-              <SegmentRow
-                segment={s}
-                tripId={tripId}
-                linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
-                coords={coordsBySegmentId?.get(s.id) ?? null}
-              />
-            </li>
-          ))}
-        </ol>
-      </div>
+      <ol className="divide-border divide-y [--ticket-notch:transparent] [&_.ticket]:rounded-none [&_.ticket]:border-0 [&_.ticket]:bg-transparent [&_.ticket]:shadow-none">
+        {segments.map((s) => (
+          <li key={s.id} className="relative">
+            <SegmentRow
+              segment={s}
+              tripId={tripId}
+              linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
+              coords={coordsBySegmentId?.get(s.id) ?? null}
+            />
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

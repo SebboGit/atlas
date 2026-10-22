@@ -3,27 +3,26 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-// The canonical Atlas micro-label: a mono, uppercase, wide-tracked pill.
-// Before this primitive existed the recipe was hand-rolled 10+ times with
-// drifting tracking (0.18/0.2/0.24/0.28em) and sizes — one source of truth now.
+// The canonical Atlas micro-label: a mono, uppercase pill. One source of
+// truth for status chips, so tracking and sizes don't drift screen to screen.
 const badgeVariants = tv({
   base: 'inline-flex items-center gap-1.5 rounded-full border font-mono uppercase whitespace-nowrap',
   variants: {
     variant: {
-      // Quiet ink outline — the default metadata chip.
-      default: 'border-foreground/20 text-foreground/70',
-      // Terracotta — brand state (active, primary status).
-      primary: 'border-primary/40 text-primary',
-      // Sage — the quiet secondary register.
-      accent: 'border-accent/40 text-accent',
-      // Solid terracotta — a filled status badge.
+      // Quiet filled chip — the default metadata label.
+      default: 'border-transparent bg-muted text-foreground/80',
+      // Coral — brand state (active, today). Ink on the coral fill.
+      primary: 'border-transparent bg-primary text-primary-foreground',
+      // Ink outline — a neutral state that should still read (planned).
+      accent: 'border-foreground text-foreground',
+      // Solid coral — kept as an alias of `primary` for existing callers.
       solid: 'border-transparent bg-primary text-primary-foreground',
       // Muted — de-emphasised / disabled-ish.
-      muted: 'border-foreground/10 text-muted-foreground',
+      muted: 'border-border text-muted-foreground',
     },
     size: {
-      default: 'h-6 px-2.5 text-[10px] tracking-[0.2em]',
-      sm: 'h-5 px-2 text-[9px] tracking-[0.18em]',
+      default: 'h-6 px-2.5 text-[11px] tracking-[0.06em]',
+      sm: 'h-5 px-2 text-[10px] tracking-[0.06em]',
     },
   },
   defaultVariants: {

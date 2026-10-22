@@ -78,7 +78,7 @@ export function WishlistSuggestionsPanel({
             'bg-foreground/[0.04] [@media(hover:hover)]:hover:bg-foreground/[0.07]',
             // Inset ring: the container clips overflow, so an outward
             // offset ring would be cut off on three sides.
-            'focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
+            'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
             open && 'border-foreground/12 border-b',
           )}
         >
@@ -86,7 +86,7 @@ export function WishlistSuggestionsPanel({
             aria-hidden
             strokeWidth={2.25}
             className={cn(
-              'text-primary size-4 shrink-0 -rotate-90 transition-transform duration-150',
+              'text-coral-ink size-4 shrink-0 -rotate-90 transition-transform duration-150',
               open && 'rotate-0',
             )}
           />
@@ -186,7 +186,7 @@ function SuggestionCard({
           aria-hidden
           className={cn(
             'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border [&_svg]:size-4',
-            isFood ? 'border-accent/40 text-accent' : 'border-primary/40 text-primary',
+            isFood ? 'border-accent/40 text-accent' : 'border-primary/40 text-coral-ink',
           )}
         >
           {isFood ? <UtensilsCrossed strokeWidth={1.5} /> : <Sparkles strokeWidth={1.5} />}

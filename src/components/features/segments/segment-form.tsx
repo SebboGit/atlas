@@ -226,16 +226,16 @@ export function SegmentForm({
                       // ≥44px touch target via min-height; each chip
                       // stretches to fill its grid cell.
                       'inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium tracking-tight transition-[background-color,border-color,color] duration-150',
-                      'focus-visible:ring-primary/40 focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+                      'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
                       '[&_svg]:size-4 [&_svg]:shrink-0',
                       selected
-                        ? 'border-primary/55 bg-primary/8 text-primary'
+                        ? 'border-primary/55 bg-primary/8 text-coral-ink'
                         : 'border-foreground/15 bg-card/60 text-foreground/70 hover:border-foreground/30 hover:text-foreground',
                     )}
                   >
                     <Glyph
                       strokeWidth={1.5}
-                      className={selected ? 'text-primary' : 'text-foreground/55'}
+                      className={selected ? 'text-coral-ink' : 'text-foreground/55'}
                     />
                     {TYPE_LABELS[t]}
                   </button>

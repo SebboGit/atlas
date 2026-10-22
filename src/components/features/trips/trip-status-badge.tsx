@@ -3,7 +3,7 @@ import type { TripStatus } from '@/lib/trips';
 
 const STYLES: Record<TripStatus, string> = {
   planned: 'border-foreground/30 text-foreground/75 bg-card/60',
-  active: 'border-primary/60 text-primary bg-primary/12',
+  active: 'border-primary/60 text-coral-ink bg-primary/12',
   completed: 'border-accent/55 text-accent bg-accent/12',
   archived:
     'border-foreground/20 text-foreground/70 bg-transparent line-through decoration-foreground/30',

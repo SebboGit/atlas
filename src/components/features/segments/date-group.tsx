@@ -21,17 +21,13 @@ interface DateGroupProps {
 }
 
 function formatDayLabel(d: Date): string {
-  return d
-    .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-    .toUpperCase();
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 // Quiet date-grouping header for the type-specific tabs (Flights,
-// Hotels, Activities). Same eyebrow/hairline rhythm as the
-// itinerary's DayGroup, but drops the "Day NN" sequence number
-// (filtered views aren't a sequential walk of the trip) and the
-// timeline rail with dot markers (no implied progression — just a
-// date grouping so the user can tell which day each card is on).
+// Hotels, Activities). Unlike the itinerary's DayGroup there is no day
+// card and no "Day N" — filtered views aren't a sequential walk of the
+// trip — so each segment stays a free-standing ticket under its date.
 export function DateGroup({
   date,
   segments,
@@ -40,12 +36,11 @@ export function DateGroup({
   coordsBySegmentId,
   showScheduleAction = false,
 }: DateGroupProps) {
-  const label = date ? formatDayLabel(date) : 'UNDATED';
+  const label = date ? formatDayLabel(date) : 'Undated';
   return (
     <section className="mb-8 sm:mb-10">
-      <header className="mb-4 flex items-baseline gap-3 sm:mb-5">
-        <p className="text-foreground font-mono text-xs tracking-[0.2em] uppercase">{label}</p>
-        <span aria-hidden className="bg-foreground/20 h-px flex-1" />
+      <header className="mb-3 sm:mb-4">
+        <h2 className="font-display text-foreground text-xl sm:text-2xl">{label}</h2>
       </header>
       <ul className="space-y-3 sm:space-y-4">
         {segments.map((s) => (

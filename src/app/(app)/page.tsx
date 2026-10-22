@@ -104,12 +104,12 @@ function NoUpcoming({ hasTrips }: { hasTrips: boolean }) {
     >
       <span
         aria-hidden
-        className="border-primary/40 text-primary/80 absolute top-5 right-5 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
+        className="border-primary/40 text-coral-ink/80 absolute top-5 right-5 inline-flex h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px]"
       >
         01
       </span>
       <CardContent className="flex flex-col items-start gap-4 px-6 py-9 sm:px-8 sm:py-11">
-        <p className="text-primary font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-coral-ink font-mono text-[10px] tracking-[0.28em] uppercase">
           Next departure
         </p>
         <h2 className="font-display text-foreground text-3xl leading-tight font-medium tracking-tight sm:text-4xl">

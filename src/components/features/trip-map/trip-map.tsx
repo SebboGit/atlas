@@ -1123,7 +1123,7 @@ export function TripMap({
             onClick={() => setShowWishlist((v) => !v)}
             className={`absolute top-3 right-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5 ${
               showWishlist
-                ? 'border-primary/55 bg-primary/12 text-primary'
+                ? 'border-primary/55 bg-primary/12 text-coral-ink'
                 : 'border-foreground/20 bg-card/85 text-foreground/70 hover:text-foreground'
             }`}
           >

@@ -111,9 +111,7 @@ interface ItineraryDayListProps {
 }
 
 function formatRangeLabel(d: Date): string {
-  return d
-    .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-    .toUpperCase();
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 // Compact label for a span of past days. A single past day shows just
@@ -152,22 +150,24 @@ function CollapsedPastRow({
       aria-expanded={false}
       aria-label={`Show ${dayCount} past ${dayCount === 1 ? 'day' : 'days'}`}
       className={cn(
-        'group flex min-h-[44px] w-full items-center gap-3 py-2 text-left',
-        'transition-colors',
+        'group bg-card border-border flex min-h-[52px] w-full items-center gap-3 rounded-[1.25rem] border px-4 py-3 text-left sm:px-5',
+        '[@media(hover:hover)]:hover:bg-muted transition-colors',
       )}
     >
       <ChevronDown
         aria-hidden
         strokeWidth={2.25}
-        className="text-primary size-4 shrink-0 -rotate-90 transition-transform duration-150"
+        className="text-muted-foreground size-4 shrink-0 -rotate-90 transition-transform duration-150"
       />
       {/* `min-w-0` + `truncate` let the range ellipsise rather than
        *  force a horizontal scroll if the viewport is narrower than the
        *  full label — the count below stays pinned and readable. */}
-      <span className="text-foreground/85 min-w-0 truncate font-mono text-xs tracking-[0.2em] whitespace-nowrap uppercase">
+      <span className="font-display text-muted-foreground min-w-0 truncate text-lg whitespace-nowrap">
         {rangeLabel}
       </span>
-      <span aria-hidden className="bg-foreground/15 h-px flex-1" />
+      <span className="text-muted-foreground ml-auto shrink-0 font-mono text-[11px] tracking-[0.06em] uppercase">
+        {dayCount} {dayCount === 1 ? 'day' : 'days'} · Show
+      </span>
     </button>
   );
 }
@@ -204,16 +204,10 @@ function ExpandedPastGroup({
           onClick={onCollapse}
           aria-expanded={true}
           aria-label="Collapse past days"
-          className="group flex min-h-[44px] w-full items-center gap-3 py-2 text-left transition-colors"
+          className="group text-muted-foreground [@media(hover:hover)]:hover:text-foreground flex min-h-[44px] w-full items-center gap-3 px-1 py-2 text-left transition-colors"
         >
-          <ChevronDown aria-hidden strokeWidth={2.25} className="text-primary size-4 shrink-0" />
-          <span className="text-foreground/85 font-mono text-xs tracking-[0.28em] uppercase">
-            Earlier
-          </span>
-          <span
-            aria-hidden
-            className="bg-foreground/15 group-hover:bg-foreground/25 h-px flex-1 transition-colors"
-          />
+          <ChevronDown aria-hidden strokeWidth={2.25} className="size-4 shrink-0" />
+          <span className="font-mono text-[11px] tracking-[0.06em] uppercase">Earlier · Hide</span>
         </button>
       </header>
       {days.map((day) => (

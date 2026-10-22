@@ -1,35 +1,20 @@
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import type { SegmentType } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
-// Per-type accent for the glyph circle ONLY — its border + icon colour.
-// One map, one source of truth, so a day's shape stays legible at a
-// glance without tinting the whole card. Flights carry the single
-// terracotta brand accent (the signature segment); every other dated
-// type takes the quiet sage register; notes stay muted ink.
-//
-// Keep this scoped to the circle: title, meta, spacing, and rhythm are
-// byte-identical across types by design (see SegmentCardShell's body).
-export const GLYPH_ACCENT: Record<SegmentType, string> = {
-  flight: 'border-primary/40 text-primary',
-  hotel: 'border-accent/40 text-accent',
-  activity: 'border-accent/40 text-accent',
-  food: 'border-accent/40 text-accent',
-  transit: 'border-accent/40 text-accent',
-  note: 'border-foreground/15 text-foreground/45',
-};
+import { SEGMENT_TONE } from './segment-tone';
 
 interface SegmentCardShellProps {
-  // Drives the glyph circle's accent (border + icon colour) via the
-  // GLYPH_ACCENT map. The only per-type visual difference on the card —
-  // everything else stays identical across types.
+  // Picks the stub's tone (SEGMENT_TONE) — the only per-type visual
+  // difference on the card; the body is identical across types.
   type: SegmentType;
   glyph: React.ReactNode;
   typeLabel: string;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
-  // Top-right slot — a stacked time pair (flight depart / arrive) or the
-  // segment's date+time (SegmentTimeMeta on activity / food / transit).
+  // The stub's time block — a depart / arrive pair on flights, check-in on
+  // hotels, SegmentTimeMeta elsewhere. Rendered on the tone fill, so it
+  // inherits the tone's ink (currentColor) instead of setting a colour.
   meta?: React.ReactNode;
   // Bottom slot — typically a row of document chips. Renders only when
   // provided; the divider is part of the slot, not a peer.
@@ -40,20 +25,42 @@ interface SegmentCardShellProps {
   // enforcement — the user confirms by editing, moving, or just
   // shrugging at it.
   needsReview?: boolean;
-  // Opt-in for variants whose `meta` is too dense to share a row with
-  // the title at mobile widths. Two take it: flights, whose meta is a
-  // two-line stacked time block that crowds the route headline, and
-  // transit, whose `SegmentTimeMeta` departure/arrival pair left a
-  // two-station headline 65px of a 138px column (#151). Other variants
-  // (hotel check-in, activity / food date+time) stay right-aligned.
-  stackMetaOnMobile?: boolean;
   className?: string;
 }
 
-// Shared body for every segment card variant. Variants pass in only
-// what's specific to their type (glyph, label, parsed data). Keeps the
-// visual rhythm identical across types so the itinerary reads as one
-// coherent column rather than five.
+// Room for the action cluster SegmentRow pins at `top-3 right-3` (edit +
+// delete, plus reschedule on activities and food), from `sm:` up where the
+// stub is a left column. A float rather than a right padding, so only the
+// lines beside the buttons give way. Below `sm:` the cluster sits in the
+// stub strip instead (see STUB_LAYOUT) and the body needs no reservation.
+// The cluster's width depends on the input type: `size-11` buttons on
+// touch for the 44px tap-target rule (#123), `size-7` on pointer;
+// SegmentRow sets both widths for the buttons that row actually has.
+export function ActionLaneSpacer() {
+  return (
+    <span
+      aria-hidden
+      className="float-right ml-2 hidden h-11 w-[calc(var(--segment-action-lane,9.5rem)-0.75rem)] sm:block [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-[var(--segment-action-row,5.5rem)]"
+    />
+  );
+}
+
+// Stub geometry shared by every ticket: a strip across the top on phone
+// (right padding clears the action cluster) and a fixed-width column from
+// `sm:` up. Pairs with the adaptive `.ticket-stub` perforation in
+// globals.css.
+export const STUB_LAYOUT =
+  'ticket-stub flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 py-3 pr-[var(--segment-action-lane,9.5rem)] pl-4 min-h-[3.75rem] [@media(hover:hover)]:pr-[calc(var(--segment-action-row,5.5rem)+1.5rem)] sm:min-h-0 sm:w-28 sm:flex-col sm:flex-nowrap sm:items-start sm:gap-2 sm:px-3.5 sm:py-5 sm:[@media(hover:hover)]:pr-3.5';
+
+// Label row inside the stub: icon + type word.
+export const STUB_LABEL =
+  'flex items-center gap-1.5 font-mono text-[10px] leading-none font-medium tracking-[0.08em] uppercase';
+
+// Shared ticket for every segment card variant: a tone-filled stub (icon,
+// type, time) joined by a perforation to a body (title, subtitle, footer).
+// Variants pass in only what's specific to their type. Inside a day card the
+// ticket drops its own chrome (see DayGroup), so a day reads as one ticket
+// book rather than a stack of separate cards.
 export function SegmentCardShell({
   type,
   glyph,
@@ -63,125 +70,49 @@ export function SegmentCardShell({
   meta,
   footer,
   needsReview = false,
-  stackMetaOnMobile = false,
   className,
 }: SegmentCardShellProps) {
   return (
-    <Card variant="paper" className={cn('overflow-hidden', className)}>
+    <Card variant="paper" className={cn('ticket overflow-hidden', className)}>
       {needsReview && (
         <div
           role="status"
           aria-label="Date outside trip window — review"
-          // `py-4` (not the band's intrinsic text height) so the strip is
-          // tall enough to fully contain the action cluster SegmentRow
-          // pins at `top-3` — the edit/delete buttons reach ~40px down on
-          // pointer devices, which a tighter band only half-covered, so
-          // they read as sitting inside this strip rather than spilling
-          // past its lower edge. The right pad reserves their horizontal
-          // lane; see the note on CardContent below for the two widths.
-          className="border-foreground/12 bg-foreground/[0.04] flex items-center gap-3 border-b py-4 pr-[var(--segment-action-lane,9.5rem)] pl-5 sm:pl-6 [@media(hover:hover)]:pr-28"
+          // `py-4` so the strip fully contains the action cluster SegmentRow
+          // pins at `top-3`; the right pad reserves that cluster's lane (see
+          // the body below for the two widths).
+          className="bg-seg-note text-seg-note-ink flex items-center gap-3 py-4 pr-[var(--segment-action-lane,9.5rem)] pl-4 sm:pl-5 [@media(hover:hover)]:pr-28"
         >
-          <span className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
+          <span className="font-mono text-[10px] font-medium tracking-[0.12em] uppercase">
             Review
           </span>
-          <span aria-hidden className="bg-foreground/20 h-px w-4" />
-          <span className="text-foreground/75 text-xs leading-snug">
-            Date is outside the trip window.
-          </span>
+          <span className="text-xs leading-snug">Date is outside the trip window.</span>
         </div>
       )}
-      <CardContent
-        // Right padding is wider than left to reserve room for the
-        // absolutely-positioned action cluster SegmentRow pins at
-        // `top-3 right-3` (edit + delete, plus reschedule on activities
-        // and food).
-        //
-        // The lane has to be measured per input type, because the
-        // buttons are not one size: `size-7` on pointer → 88px of
-        // cluster, but `size-11` on touch to meet the 44px tap-target
-        // rule → 136px, plus the 12px `right-3` offset. A flat `pr-28`
-        // (112px) covered the pointer case and left the touch cluster
-        // sitting 35px INSIDE the text column, so a long title truncated
-        // underneath the buttons (#123). 9.5rem = 152px clears the
-        // three-button touch cluster with 4px to spare; pointer keeps the
-        // tighter 112px. SegmentRow narrows the touch lane through
-        // `--segment-action-lane` when the cluster is only edit + delete
-        // (6.75rem), which is every itinerary card. Notes use their own
-        // layout, not this shell.
-        className="flex gap-4 py-5 pr-[var(--segment-action-lane,9.5rem)] pl-5 sm:gap-5 sm:py-6 sm:pl-6 [@media(hover:hover)]:pr-28"
-      >
-        {/* Decorative only — the eyebrow directly beside it already names
-         *  the type in words. Dropped on touch, where it and its gap cost
-         *  56px that the wider action lane needs back; the net is still
-         *  ~20px MORE text than before (#123). Gated on `hover: none`
-         *  rather than a width breakpoint on purpose: a tablet is `sm:`+
-         *  but still touch, and its two-column cards (344px at 768) are
-         *  the narrowest of any device — a width-based rule would hand
-         *  the worst case the widest lane AND keep the glyph. */}
-        <div
-          aria-hidden
-          className={cn(
-            'mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border [&_svg]:size-5',
-            '[@media(hover:none)]:hidden',
-            GLYPH_ACCENT[type],
+      <div className="flex flex-col sm:flex-row">
+        <div className={cn(STUB_LAYOUT, SEGMENT_TONE[type])}>
+          <p className={STUB_LABEL}>
+            {/* Decorative — the label beside it names the type in words. */}
+            <span aria-hidden className="shrink-0 [&_svg]:size-3.5">
+              {glyph}
+            </span>
+            <span className="min-w-0 truncate">{typeLabel}</span>
+          </p>
+          {meta}
+        </div>
+        <div className="min-w-0 flex-1 px-4 py-3.5 sm:py-5 sm:pr-4 sm:pl-5">
+          <ActionLaneSpacer />
+          {/* `break-words` is the backstop for a single word wider than the
+           *  column — "Shijiazhuangdongzhan" at 360px. */}
+          <h3 className="font-display text-foreground text-lg leading-tight tracking-tight break-words sm:text-xl">
+            {title}
+          </h3>
+          {subtitle && (
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{subtitle}</p>
           )}
-        >
-          {glyph}
+          {footer && <div className="border-border clear-both mt-3 border-t pt-3">{footer}</div>}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div
-            className={cn(
-              'flex justify-between gap-4',
-              // When the meta is dense (flights, transit), drop to a
-              // column on mobile so the time block doesn't crowd the
-              // headline. Re-joins the row at sm: where there's room.
-              stackMetaOnMobile ? 'flex-col items-start sm:flex-row sm:items-start' : 'items-start',
-            )}
-          >
-            <div
-              className={cn(
-                'min-w-0 flex-1',
-                // Stacked, the column's `items-start` sizes this block to
-                // its longest word rather than the column, so a station
-                // name wider than the column pushed it out and the
-                // title's `break-words` never got a width to break at.
-                // `self-stretch` pins it to the column; the row layout
-                // already gets that from `flex-1`.
-                stackMetaOnMobile && 'self-stretch',
-              )}
-            >
-              <p className="text-foreground/75 font-mono text-[10px] tracking-[0.18em] uppercase sm:tracking-[0.28em]">
-                {typeLabel}
-              </p>
-              {/* `break-words` is the backstop for a single word wider
-               *  than the column — "Shijiazhuangdongzhan" at 360px ran
-               *  into the action lane. It only breaks a word that can't
-               *  fit a line on its own; ordinary titles still wrap on
-               *  their spaces. */}
-              <h3 className="font-display text-foreground mt-1 text-lg leading-tight font-medium tracking-tight break-words sm:text-[20px]">
-                {title}
-              </h3>
-              {subtitle && (
-                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{subtitle}</p>
-              )}
-            </div>
-            {meta && (
-              <div
-                className={cn(
-                  'shrink-0',
-                  // Stacked: meta sits flush-left below the subtitle
-                  // with a small gap; row mode keeps its right-aligned
-                  // home in the title row.
-                  stackMetaOnMobile ? 'mt-2 sm:mt-0 sm:text-right' : 'text-right',
-                )}
-              >
-                {meta}
-              </div>
-            )}
-          </div>
-          {footer && <div className="border-foreground/10 mt-4 border-t pt-3">{footer}</div>}
-        </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }

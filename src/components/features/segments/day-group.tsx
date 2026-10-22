@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { DayContinuations } from './continuation-row';
 import type { DayPosition } from './day-temporal';
 import { SegmentRow } from './segment-row';
+import { DayTypeCounts } from './day-type-counts';
 
 interface DayGroupProps {
   dayNumber: number;
@@ -44,19 +45,14 @@ interface DayGroupProps {
 }
 
 function formatDayLabel(d: Date): string {
-  return d
-    .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-    .toUpperCase();
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-// One day of the itinerary. Eyebrow ruled header — Day NN and the
-// date grouped on the left, with a hairline running to the right
-// edge for visual rhythm. On laptop, the children are inset and a
-// thin vertical timeline rail with dot markers runs alongside; on
-// mobile the rail is dropped and cards go full width.
-//
-// The header optionally carries a "Today" marker (when `position` is
-// 'today').
+// One day of the itinerary as a single card: a header (date, day number,
+// Today badge, a tally of the day's segment types) over the day's tickets,
+// separated by hairlines. Tickets drop their own card chrome in here — the
+// day is the card — and the stub notches are hidden, because rows meet edge
+// to edge. Today's card carries the coral ring.
 export function DayGroup({
   dayNumber,
   date,
@@ -69,97 +65,75 @@ export function DayGroup({
   dayKey,
   onContinuationActivate,
 }: DayGroupProps) {
-  const dayLabel = String(dayNumber).padStart(2, '0');
   const isToday = position === 'today';
+  const isPast = position === 'past';
 
   return (
-    <section className="mb-8 sm:mb-10">
-      <header className="mb-4 flex items-baseline gap-3 sm:mb-5">
-        <p
+    <section
+      aria-label={`Day ${dayNumber}, ${formatDayLabel(date)}`}
+      className={cn(
+        'bg-card mb-4 overflow-hidden rounded-[1.25rem] border sm:mb-5',
+        isToday ? 'border-primary ring-primary ring-2' : 'border-border',
+      )}
+    >
+      <header className="border-border flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-4 py-3 sm:px-5 sm:py-3.5">
+        <h2
           className={cn(
-            'font-mono text-xs tracking-[0.18em] uppercase sm:tracking-[0.28em]',
-            isToday ? 'text-primary' : 'text-foreground',
+            'font-display text-xl leading-none sm:text-2xl',
+            isPast ? 'text-muted-foreground' : 'text-foreground',
           )}
         >
-          Day {dayLabel}
-          <span aria-hidden className="text-foreground/30 mx-2">
-            ·
-          </span>
-          <span className="tracking-[0.14em] sm:tracking-[0.2em]">{formatDayLabel(date)}</span>
-        </p>
+          {formatDayLabel(date)}
+        </h2>
+        <span className="text-muted-foreground font-mono text-[11px] tracking-[0.08em] uppercase">
+          Day {dayNumber}
+        </span>
         {isToday && (
-          <Badge variant="primary" size="sm" className="bg-primary/10">
+          <Badge variant="primary" size="sm">
             Today
           </Badge>
         )}
-        <span aria-hidden className="bg-foreground/20 h-px flex-1" />
+        <DayTypeCounts segments={segments} className="ml-auto" />
       </header>
 
-      {/* Persistent backdrop to the day — ongoing stays that continue
-       *  through it — sits above the day's own segments. Inset to align
-       *  with the cards' left edge on laptop (matching the ol's pl-10). */}
+      {/* Ongoing stays that checked in earlier and run through this day. */}
       {continuations.length > 0 && (
-        <div className="md:pl-10">
-          <DayContinuations
-            continuations={continuations}
-            dayKey={dayKey ?? ''}
-            onActivate={onContinuationActivate}
-          />
-        </div>
+        <DayContinuations
+          continuations={continuations}
+          dayKey={dayKey ?? ''}
+          onActivate={onContinuationActivate}
+        />
       )}
 
       {/* A day with nothing scheduled and no stay spanning it — possible
-       *  since the itinerary fills the trip's full calendar — reads as an
-       *  intentionally blank notebook line, not a broken one. */}
+       *  since the itinerary fills the trip's full calendar. */}
       {segments.length === 0 && continuations.length === 0 && (
-        <p className="text-foreground/45 font-mono text-[10px] tracking-[0.18em] uppercase md:pl-10">
+        <p className="text-muted-foreground px-4 py-3 font-mono text-[11px] tracking-[0.08em] uppercase sm:px-5">
           No plans
         </p>
       )}
 
-      {/* Positioned wrapper holds the decorative timeline rail as a sibling
-       *  of the list — the rail is not a valid direct child of <ol>, so it
-       *  lives here instead. pl-10 reserves the laptop gutter the rail and
-       *  dots sit in. Skipped entirely for an empty day (filled calendar
-       *  day with no segments) — no list, no rail. */}
       {segments.length > 0 && (
-        <div className="relative md:pl-10">
-          {/* Vertical timeline rail — laptop only, sits within the pl-10
-           *  gutter. Today's rail picks up a faint terracotta wash so the
-           *  focal day reads as a connected through-line behind its dots;
-           *  other days stay a neutral hairline. */}
-          <span
-            aria-hidden
-            className={cn(
-              'absolute inset-y-8 left-4 hidden w-px md:block',
-              isToday ? 'bg-primary/30' : 'bg-foreground/15',
-            )}
-          />
-          <ol className="space-y-3 sm:space-y-4">
-            {segments.map((s) => (
-              <li key={s.id} className="relative">
-                {/* Dot marker — also laptop only. Sits at left:-28px on each
-                 *  row, which matches the rail's centre in the gutter. Today's
-                 *  rail reads as the single terracotta focal point (filled
-                 *  dot); every other day stays a quiet hollow ink marker. */}
-                <span
-                  aria-hidden
-                  className={cn(
-                    'absolute top-7 hidden h-2 w-2 rounded-full border md:block',
-                    isToday ? 'border-primary bg-primary' : 'border-foreground/35 bg-card',
-                  )}
-                  style={{ left: '-28px' }}
-                />
-                <SegmentRow
-                  segment={s}
-                  tripId={tripId}
-                  linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
-                  coords={coordsBySegmentId?.get(s.id) ?? null}
-                />
-              </li>
-            ))}
-          </ol>
-        </div>
+        <ol
+          className={cn(
+            'divide-border divide-y',
+            continuations.length > 0 && 'border-border border-t',
+            // The day is the card: tickets inside lose their own chrome and
+            // notches (rows meet edge to edge).
+            '[--ticket-notch:transparent] [&_.ticket]:rounded-none [&_.ticket]:border-0 [&_.ticket]:bg-transparent [&_.ticket]:shadow-none',
+          )}
+        >
+          {segments.map((s) => (
+            <li key={s.id} className="relative">
+              <SegmentRow
+                segment={s}
+                tripId={tripId}
+                linkedDocuments={linkedDocumentsBySegment?.get(s.id)}
+                coords={coordsBySegmentId?.get(s.id) ?? null}
+              />
+            </li>
+          ))}
+        </ol>
       )}
     </section>
   );

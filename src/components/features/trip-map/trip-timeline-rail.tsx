@@ -101,7 +101,7 @@ function SegmentRailRow({
           'mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full border',
           item.icon === 'food'
             ? 'border-accent/30 bg-accent/10 text-accent'
-            : 'border-primary/25 bg-primary/8 text-primary',
+            : 'border-primary/25 bg-primary/8 text-coral-ink',
           // A continuation is a quiet backdrop, not a fresh event — mute
           // its glyph regardless of type.
           continuation && 'border-foreground/15 bg-foreground/5 text-foreground/45',
@@ -227,7 +227,7 @@ function DayBlock({
         <span
           className={cn(
             'font-mono text-[11px] tracking-[0.16em] uppercase transition-colors',
-            isToday ? 'text-primary' : isPast ? 'text-foreground/70' : 'text-foreground/80',
+            isToday ? 'text-coral-ink' : isPast ? 'text-foreground/70' : 'text-foreground/80',
           )}
         >
           Day {String(day.dayNumber).padStart(2, '0')}
@@ -236,7 +236,7 @@ function DayBlock({
           {formatDayLabel(date)}
         </span>
         {isToday && (
-          <span className="bg-primary/12 text-primary border-primary/25 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase">
+          <span className="bg-primary/12 text-coral-ink border-primary/25 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase">
             Today
           </span>
         )}

@@ -1,42 +1,44 @@
 import { StickyNote } from 'lucide-react';
 
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import type { Segment } from '@/lib/segments';
 import { noteDataSchema } from '@/lib/segments';
 import { cn } from '@/lib/utils';
 
-import { GLYPH_ACCENT } from './segment-card-shell';
+import { ActionLaneSpacer, STUB_LABEL, STUB_LAYOUT } from './segment-card-shell';
+import { SegmentTimeMeta } from './segment-time-meta';
+import { SEGMENT_TONE } from './segment-tone';
 
-// Notes get a slightly different shell: no oversized Fraunces title,
-// because the body IS the content. Body is line-clamped at four lines
-// so it doesn't tower over neighbouring cards in the timeline.
-export function SegmentCardNote({ segment }: { segment: Segment }) {
+// Notes share the ticket stub but not the shell's title: the body IS the
+// content. Line-clamped at four lines so it doesn't tower over neighbouring
+// tickets.
+export function SegmentCardNote({
+  segment,
+  showDate = false,
+}: {
+  segment: Segment;
+  showDate?: boolean;
+}) {
   const parse = noteDataSchema.safeParse(segment.data);
   const body = parse.success ? parse.data.body : '';
 
   return (
-    <Card variant="paper" className="overflow-hidden">
-      <CardContent className="flex gap-4 px-5 py-5 sm:gap-5 sm:px-6 sm:py-6">
-        <div
-          aria-hidden
-          className={cn(
-            'mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border',
-            // Notes take the muted ink accent from the shared glyph map —
-            // same source of truth as the shell-based cards.
-            GLYPH_ACCENT.note,
-          )}
-        >
-          <StickyNote className="size-5" strokeWidth={1.5} />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <p className="text-foreground/75 font-mono text-[10px] tracking-[0.28em] uppercase">
+    <Card variant="paper" className="ticket overflow-hidden">
+      <div className="flex flex-col sm:flex-row">
+        <div className={cn(STUB_LAYOUT, SEGMENT_TONE.note)}>
+          <p className={STUB_LABEL}>
+            <StickyNote aria-hidden className="size-3.5 shrink-0" strokeWidth={2} />
             Note
           </p>
-          <p className="text-foreground/85 line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap">
+          <SegmentTimeMeta startsAt={segment.startsAt} endsAt={null} showDate={showDate} />
+        </div>
+        <div className="min-w-0 flex-1 px-4 py-3.5 sm:py-5 sm:pr-4 sm:pl-5">
+          <ActionLaneSpacer />
+          <p className="text-foreground/90 line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap">
             {body}
           </p>
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }
