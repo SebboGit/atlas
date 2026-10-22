@@ -16,7 +16,6 @@ import {
 import { ItineraryEmpty } from '@/components/features/segments/itinerary-empty';
 import { ItineraryUndated } from '@/components/features/segments/itinerary-undated';
 import { SegmentFormDialog } from '@/components/features/segments/segment-form-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
@@ -133,10 +132,10 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
           style={{ animationDelay: '240ms' }}
         >
           <CardContent className="px-6 py-6 sm:px-7 sm:py-7">
-            <p className="text-foreground/70 mb-3 font-mono text-[10px] tracking-[0.06em] uppercase">
+            <p className="text-muted-foreground mb-2 font-mono text-[11px] tracking-[0.06em] uppercase">
               Summary
             </p>
-            <p className="text-foreground/85 text-base leading-relaxed sm:text-[17px]">
+            <p className="text-foreground text-base leading-relaxed sm:text-[17px]">
               {trip.summary}
             </p>
           </CardContent>
@@ -147,21 +146,18 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
        *  Renders even when the itinerary is empty so the user always
        *  has a way to start. */}
       <header
-        className="atlas-rise mb-6 flex flex-wrap items-center gap-3"
+        className="atlas-rise mb-5 flex flex-wrap items-center gap-3"
         style={{ animationDelay: '260ms' }}
       >
-        <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
-          Itinerary
-        </p>
-        <Badge variant="primary" className="border-primary/60 text-xs tracking-[0.06em]">
+        <h2 className="heading-section">Itinerary</h2>
+        <span className="text-muted-foreground font-mono text-xs tracking-[0.06em] uppercase">
           {dayCount} {dayCount === 1 ? 'day' : 'days'}
-        </Badge>
-        <span aria-hidden className="bg-foreground/15 hidden h-px flex-1 sm:block" />
+        </span>
         <SegmentFormDialog
           tripId={id}
           trigger={
-            <Button size="sm" variant="outline" className="ml-auto sm:ml-0">
-              + Add segment
+            <Button size="sm" className="ml-auto">
+              + Add
             </Button>
           }
         />

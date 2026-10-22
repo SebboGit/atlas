@@ -27,18 +27,18 @@ export function FilterChipLink({
         // items-center (not baseline): with a 44px min-height touch target,
         // baseline alignment parked the label + count at the top of the
         // pill; centring keeps them vertically middled.
-        'inline-flex shrink-0 snap-start items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors',
+        'inline-flex shrink-0 snap-start items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors',
         // Tap target on touch per CLAUDE.md.
         'min-h-11',
         // Hover gated to pointer devices (rule 4) so it doesn't stick on tap.
         active
-          ? 'border-foreground/45 bg-foreground/8 text-foreground'
-          : 'border-foreground/15 text-foreground/70 [@media(hover:hover)]:hover:border-foreground/30 [@media(hover:hover)]:hover:text-foreground',
+          ? 'border-foreground bg-foreground text-background'
+          : 'border-border bg-card text-muted-foreground [@media(hover:hover)]:hover:text-foreground',
       )}
     >
       <span>{children}</span>
       {typeof count === 'number' && (
-        <span className="text-foreground/60 font-mono text-[10px] tracking-wider">
+        <span className="font-mono text-[11px] font-normal opacity-70">
           {String(count).padStart(2, '0')}
         </span>
       )}

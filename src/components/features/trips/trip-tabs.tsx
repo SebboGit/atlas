@@ -13,12 +13,12 @@ import { cn } from '@/lib/utils';
 // to share the standard tab chrome (filter bar, header actions,
 // padded layout) which fights for the vertical space the map wants.
 const TABS = [
-  { slug: 'itinerary', label: 'Itinerary', numeral: 'i' },
-  { slug: 'flights', label: 'Flights', numeral: 'ii' },
-  { slug: 'hotels', label: 'Hotels', numeral: 'iii' },
-  { slug: 'activities', label: 'Activities', numeral: 'iv' },
-  { slug: 'food', label: 'Food', numeral: 'v' },
-  { slug: 'documents', label: 'Documents', numeral: 'vi' },
+  { slug: 'itinerary', label: 'Itinerary' },
+  { slug: 'flights', label: 'Flights' },
+  { slug: 'hotels', label: 'Hotels' },
+  { slug: 'activities', label: 'Activities' },
+  { slug: 'food', label: 'Food' },
+  { slug: 'documents', label: 'Documents' },
 ] as const;
 
 export function TripTabs({ tripId }: { tripId: string }) {
@@ -33,12 +33,8 @@ export function TripTabs({ tripId }: { tripId: string }) {
     // rather than scrolling horizontally — every tab stays visible at a
     // glance. (The shared ScrollTabStrip is kept for the country/wishlist
     // chip rows, where the item count is open-ended and scroll earns its
-    // keep.) Tighter letter-spacing on phone lets the labels share a row
-    // before they wrap; the laptop spacing matches the rest of the chrome.
-    <nav
-      aria-label="Trip sections"
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-1"
-    >
+    // keep.) The active chapter is the ink pill, as in the topbar.
+    <nav aria-label="Trip sections" className="flex flex-wrap items-center gap-1.5">
       {TABS.map((tab) => {
         const href = `/trips/${tripId}/${tab.slug}${country ? `?country=${encodeURIComponent(country)}` : ''}`;
         const isActive = activeSlug === tab.slug;
@@ -48,24 +44,13 @@ export function TripTabs({ tripId }: { tripId: string }) {
             href={href}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'relative shrink-0 px-1 py-2 font-mono text-xs tracking-[0.06em] uppercase transition-colors sm:px-3',
-              // Tap target on touch per CLAUDE.md responsive rules.
-              'inline-flex min-h-11 items-center',
-              // Hover lift gated to pointer devices (CLAUDE.md responsive
-              // rule 4) so it doesn't stick after a tap on touch.
+              'inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-[15px] font-semibold transition-colors [@media(hover:hover)]:min-h-10',
               isActive
-                ? 'text-foreground'
-                : 'text-foreground/70 [@media(hover:hover)]:hover:text-foreground/85',
+                ? 'bg-foreground text-background'
+                : 'bg-card text-muted-foreground border-border [@media(hover:hover)]:hover:text-foreground border',
             )}
           >
-            <span className="text-foreground/40 mr-1.5 normal-case">{tab.numeral}.</span>
             {tab.label}
-            {isActive && (
-              <span
-                aria-hidden
-                className="bg-primary absolute right-1 -bottom-px left-1 h-px sm:right-3 sm:left-3"
-              />
-            )}
           </Link>
         );
       })}

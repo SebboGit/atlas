@@ -121,9 +121,9 @@ export function TimePicker({
               'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(60,40,20,0.04)] backdrop-blur-sm',
               'transition-[border-color,box-shadow] duration-200',
               'hover:border-foreground/30',
-              'focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_hsl(18_52%_36%/0.16),0_1px_0_rgba(255,255,255,0.7)_inset] focus-visible:outline-none',
+              'focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_rgb(255_107_74/0.25)] focus-visible:outline-none',
               'data-[invalid=true]:border-destructive/60',
-              'data-[state=open]:border-primary/55 data-[state=open]:shadow-[0_0_0_3px_hsl(18_52%_36%/0.16),0_1px_0_rgba(255,255,255,0.7)_inset]',
+              'data-[state=open]:border-primary/55 data-[state=open]:shadow-[0_0_0_3px_rgb(255_107_74/0.25)]',
               'disabled:cursor-not-allowed disabled:opacity-60',
             )}
           >

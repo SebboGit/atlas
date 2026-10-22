@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     className={cn(
       // Warm tinted backdrop, slight blur so the dialog feels lifted off the page.
-      'atlas-overlay fixed inset-0 z-50 bg-[hsl(28_22%_12%/0.42)] backdrop-blur-[3px]',
+      'atlas-overlay fixed inset-0 z-50 bg-[rgb(10_11_14/0.5)] backdrop-blur-[3px]',
       className,
     )}
     {...props}

@@ -146,8 +146,8 @@ export function CountrySelect({
             'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(60,40,20,0.04)] backdrop-blur-sm',
             'transition-[border-color,box-shadow] duration-200',
             'focus-visible:outline-none',
-            'focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_hsl(18_52%_36%/0.16),0_1px_0_rgba(255,255,255,0.7)_inset]',
-            invalid && 'border-destructive/60 focus-visible:shadow-[0_0_0_3px_hsl(0_65%_45%/0.18)]',
+            'focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_rgb(255_107_74/0.25)]',
+            invalid && 'border-destructive/60 focus-visible:shadow-[0_0_0_3px_rgb(196_40_28/0.2)]',
           )}
         >
           <span className={cn('truncate', !selectedName && 'text-muted-foreground/70')}>

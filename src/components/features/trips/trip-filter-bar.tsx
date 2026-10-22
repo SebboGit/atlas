@@ -31,7 +31,7 @@ export function TripFilterBar({ countries }: TripFilterBarProps) {
 
   return (
     <ScrollTabStrip ariaLabel="Filter by country" activeKey={active ?? '__all__'} className="gap-2">
-      <span className="text-foreground/55 mr-1 shrink-0 self-center font-mono text-[10px] tracking-[0.2em] uppercase">
+      <span className="text-muted-foreground mr-1 shrink-0 self-center font-mono text-[11px] tracking-[0.06em] uppercase">
         Country
       </span>
       <FilterChip href={buildHref(null)} active={!active}>
@@ -64,10 +64,10 @@ function FilterChip({
       className={cn(
         // 44px floor on every viewport — tablet-sized touch devices hit
         // `sm:` but are still touch-input.
-        'inline-flex min-h-11 shrink-0 snap-start items-center rounded-full border px-3.5 py-1.5 font-mono text-[10px] tracking-[0.06em] uppercase transition-colors',
+        'inline-flex min-h-11 shrink-0 snap-start items-center rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors [@media(hover:hover)]:min-h-9',
         active
-          ? 'border-primary bg-primary text-primary-foreground shadow-[0_6px_16px_-10px_hsl(18_52%_36%/0.7)]'
-          : 'border-foreground/20 bg-card/50 text-foreground/70 hover:border-foreground/40 hover:text-foreground',
+          ? 'border-foreground bg-foreground text-background'
+          : 'border-border bg-card text-muted-foreground hover:text-foreground',
       )}
     >
       {children}

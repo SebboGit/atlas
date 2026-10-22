@@ -88,7 +88,7 @@ export function WishlistCountryFilter({ activeCountry, countries }: WishlistCoun
             'border-foreground/15 bg-card/70 text-foreground placeholder:text-muted-foreground/70',
             'h-11 w-full rounded-full border pr-9 pl-8 text-xs',
             'transition-[border-color,box-shadow] duration-200 focus-visible:outline-none',
-            'focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_hsl(18_52%_36%/0.16)]',
+            'focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_rgb(255_107_74/0.25)]',
           )}
         />
         {trimmed !== '' && (
