@@ -45,10 +45,10 @@ export default async function HomePage() {
     <main className="mx-auto w-full max-w-5xl px-6 pt-8 pb-24 sm:px-8 sm:pt-20">
       <section className="atlas-rise" style={{ animationDelay: '60ms' }}>
         <SectionEyebrow>Section 00 · Logbook</SectionEyebrow>
-        <h1 className="font-display text-foreground text-4xl leading-[1.02] font-medium tracking-tight sm:text-5xl md:text-7xl">
+        <h1 className="font-display text-foreground text-4xl leading-[1.02] tracking-tight sm:text-5xl md:text-6xl">
           Welcome back,
           <br />
-          <span className="italic">{firstName}</span>.
+          <span className="text-coral-ink">{firstName}</span>.
         </h1>
         <p className="text-muted-foreground mt-5 font-mono text-[10px] tracking-[0.06em] uppercase">
           {buildStateOfPlay(trips.length, nextTrip, stampDate)}

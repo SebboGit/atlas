@@ -51,6 +51,8 @@
   --color-inverse-foreground: #ffffff;
   --color-inverse-muted: #c9cdd6;
   --color-inverse-line: #3e424b;
+  /* Coral that reads on the inverse surface (bright on ink, deep on white). */
+  --color-inverse-accent: #ff6b4a;
 
   /* Segment tones — identical in both themes. */
   --color-seg-flight: #a9cbff;
@@ -105,6 +107,7 @@
   --color-inverse-foreground: #15161a;
   --color-inverse-muted: #4a4f59;
   --color-inverse-line: #c9cdd6;
+  --color-inverse-accent: #c2391b;
   --shadow-paper: 0 1px 2px rgb(0 0 0 / 0.3);
   --shadow-lifted: 0 18px 40px -20px rgb(0 0 0 / 0.6), 0 4px 12px -6px rgb(0 0 0 / 0.4);
   --shadow-overlay: 0 40px 80px -30px rgb(0 0 0 / 0.7), 0 12px 28px -12px rgb(0 0 0 / 0.5);
@@ -132,6 +135,7 @@
     --color-inverse-foreground: #15161a;
     --color-inverse-muted: #4a4f59;
     --color-inverse-line: #c9cdd6;
+    --color-inverse-accent: #c2391b;
     --shadow-paper: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-lifted: 0 18px 40px -20px rgb(0 0 0 / 0.6), 0 4px 12px -6px rgb(0 0 0 / 0.4);
     --shadow-overlay: 0 40px 80px -30px rgb(0 0 0 / 0.7), 0 12px 28px -12px rgb(0 0 0 / 0.5);
@@ -225,7 +229,8 @@ body {
  * `.ticket-stub` adapts: below 640px it is a strip across the top of the
  * ticket (the body below gets the full phone width, and the edit/delete
  * cluster sits in the strip); from 640px it is the column on the left.
- * `.ticket-stub-top` is the always-on-top variant (wishlist cards).
+ * `.ticket-stub-top` is the always-on-top variant (wishlist cards) and
+ * `.ticket-stub-left` the always-on-the-left one (trip tickets).
  */
 .ticket-stub,
 .ticket-stub-top {
@@ -251,6 +256,26 @@ body {
 .ticket-stub::after,
 .ticket-stub-top::after {
   right: -8px;
+}
+.ticket-stub-left {
+  position: relative;
+  border-right: 2px dashed var(--color-perforation);
+}
+.ticket-stub-left::before,
+.ticket-stub-left::after {
+  content: '';
+  position: absolute;
+  right: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--ticket-notch, var(--color-background));
+}
+.ticket-stub-left::before {
+  top: -8px;
+}
+.ticket-stub-left::after {
+  bottom: -8px;
 }
 @media (min-width: 640px) {
   .ticket-stub {
