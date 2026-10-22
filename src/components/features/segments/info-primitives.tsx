@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 export function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+      <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
         {title}
       </h4>
       <dl className="border-foreground/10 divide-foreground/8 divide-y rounded-xl border">

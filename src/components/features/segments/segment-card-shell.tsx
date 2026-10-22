@@ -83,7 +83,7 @@ export function SegmentCardShell({
           // the body below for the two widths).
           className="bg-seg-note text-seg-note-ink flex items-center gap-3 py-4 pr-[var(--segment-action-lane,9.5rem)] pl-4 sm:pl-5 [@media(hover:hover)]:pr-28"
         >
-          <span className="font-mono text-[10px] font-medium tracking-[0.12em] uppercase">
+          <span className="font-mono text-[10px] font-medium tracking-[0.06em] uppercase">
             Review
           </span>
           <span className="text-xs leading-snug">Date is outside the trip window.</span>

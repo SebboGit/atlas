@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next';
 // Bump when the icon PNGs change. Home-screen icon caches are keyed by URL and
 // extremely sticky — changing the file contents under the same path isn't
 // enough, so this query string forces the OS/browser to re-fetch on reinstall.
-const ICON_REV = '2';
+const ICON_REV = '3';
 
 // Web app manifest — makes Atlas installable to the home screen and lets it
 // launch standalone (no browser chrome). Next serves this at

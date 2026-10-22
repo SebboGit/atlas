@@ -6,7 +6,7 @@
 //
 //   pnpm tsx scripts/generate-pwa-icons.ts
 //
-// We render the (transparent) logo onto a solid cream square so the icon
+// We render the (transparent) logo onto a solid ground-grey square so the icon
 // reads as a badge rather than a floating circle. "maskable" variants leave
 // extra padding so a launcher's circular/squircle crop can't clip the logo
 // (the maskable safe zone is the inner ~80%).
@@ -19,11 +19,11 @@ import sharp from 'sharp';
 const ROOT = process.cwd();
 const SOURCE = path.join(ROOT, 'public', 'atlas_logo.svg');
 
-// Matches --color-background / the layout themeColor (#e8dec7).
-const CREAM = { r: 0xe8, g: 0xde, b: 0xc7, alpha: 1 };
+// Matches --color-background / the layout themeColor (#e9ecf2).
+const GROUND = { r: 0xe9, g: 0xec, b: 0xf2, alpha: 1 };
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
 
-// `scale` is the globe's share of the canvas; the rest is cream margin. The
+// `scale` is the globe's share of the canvas; the rest is ground-grey margin. The
 // plain/apple icons sit at ~0.72 so the globe reads as an inset glyph rather
 // than filling the tile edge-to-edge. Maskable variants go smaller (0.66) to
 // stay inside the launcher's ~80% safe-zone crop.
@@ -42,7 +42,7 @@ async function render(svg: Buffer, size: number, scale: number): Promise<Buffer>
     .png()
     .toBuffer();
 
-  return sharp({ create: { width: size, height: size, channels: 4, background: CREAM } })
+  return sharp({ create: { width: size, height: size, channels: 4, background: GROUND } })
     .composite([{ input: logo, gravity: 'center' }])
     .png()
     .toBuffer();

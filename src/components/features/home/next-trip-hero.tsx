@@ -34,13 +34,13 @@ export function NextTripHero({ trip }: { trip: Trip }) {
         <CardContent className="flex flex-col gap-6 px-6 py-7 sm:flex-row sm:items-stretch sm:gap-10 sm:px-8 sm:py-8">
           {/* Trip identity */}
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <p className="text-coral-ink font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-coral-ink font-mono text-[10px] tracking-[0.06em] uppercase">
               {trip.status === 'active' ? 'On the trip' : 'Next departure'}
             </p>
             <h2 className="font-display text-foreground text-3xl leading-tight font-medium tracking-tight sm:text-4xl">
               {trip.title}
             </h2>
-            <p className="text-foreground/70 font-mono text-[11px] tracking-[0.18em] uppercase">
+            <p className="text-foreground/70 font-mono text-[11px] tracking-[0.06em] uppercase">
               {range}
             </p>
             {trip.summary && (

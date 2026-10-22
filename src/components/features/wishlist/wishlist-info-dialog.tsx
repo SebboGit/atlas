@@ -165,7 +165,7 @@ export function WishlistInfoDialog({
 
           {item.tags.length > 0 && (
             <section className="flex flex-col gap-2">
-              <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+              <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
                 Tags
               </h4>
               <div className="flex flex-wrap gap-1.5">

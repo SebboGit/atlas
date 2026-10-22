@@ -31,7 +31,7 @@ export function SearchTrigger() {
       variant="ghost"
       size="sm"
       onClick={() => setOpen(true)}
-      className="text-foreground/70 hover:text-foreground min-h-11 min-w-11 gap-2 sm:min-h-9 sm:min-w-0"
+      className="text-muted-foreground hover:text-foreground sm:bg-card sm:border-border min-h-11 min-w-11 gap-2 sm:min-h-10 sm:border sm:font-medium lg:w-56 lg:justify-start"
       aria-label="Search Atlas"
     >
       <Search className="size-4" aria-hidden />
@@ -43,7 +43,7 @@ export function SearchTrigger() {
       {modKey ? (
         <kbd
           aria-hidden="true"
-          className="border-foreground/15 text-muted-foreground hidden items-center gap-0.5 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tracking-[0.1em] sm:inline-flex"
+          className="border-border text-muted-foreground hidden items-center gap-0.5 rounded-md border px-1.5 py-0.5 font-mono text-[10px] sm:inline-flex lg:ml-auto"
         >
           {modKey}
           <span>K</span>

@@ -41,7 +41,7 @@ export function YearStrip({
   return (
     <Card variant="paper" className="h-full">
       <CardContent className="flex h-full flex-col gap-4 p-6">
-        <p className="text-foreground/70 flex items-center gap-2.5 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-foreground/70 flex items-center gap-2.5 font-mono text-[10px] tracking-[0.06em] uppercase">
           <span aria-hidden className="bg-foreground/25 h-px w-5" />
           <span>{label}</span>
         </p>

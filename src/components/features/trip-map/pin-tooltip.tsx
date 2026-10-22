@@ -62,7 +62,7 @@ export function PinTooltip({ x, y, containerWidth, containerHeight, pin }: PinTo
         {pin.label}
       </p>
       {captionParts.length > 0 && (
-        <p className="text-muted-foreground mt-1 font-mono text-[10px] tracking-[0.18em] uppercase">
+        <p className="text-muted-foreground mt-1 font-mono text-[10px] tracking-[0.06em] uppercase">
           {captionParts.join(' · ')}
         </p>
       )}

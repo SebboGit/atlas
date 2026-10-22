@@ -68,7 +68,7 @@ export function TripCountdown({ status, startYmd }: { status: string; startYmd: 
       >
         {big}
       </span>
-      <span className="text-foreground/60 max-w-[8rem] font-mono text-xs leading-snug font-medium tracking-[0.16em] uppercase">
+      <span className="text-foreground/60 max-w-[8rem] font-mono text-xs leading-snug font-medium tracking-[0.06em] uppercase">
         {cap}
       </span>
     </div>

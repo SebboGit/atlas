@@ -29,7 +29,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <h1 className="font-display text-foreground text-7xl leading-none font-medium tracking-tight">
           Atlas
         </h1>
-        <p className="text-muted-foreground mt-6 flex items-center justify-center gap-3 font-mono text-[10px] tracking-[0.32em] uppercase">
+        <p className="text-muted-foreground mt-6 flex items-center justify-center gap-3 font-mono text-[10px] tracking-[0.06em] uppercase">
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
           <span>Self-hosted · Vol. I</span>
           <span aria-hidden className="bg-foreground/30 h-px w-8" />
@@ -61,7 +61,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
         <CardContent className="flex flex-col gap-6 px-7 pt-20 pb-8">
           <div className="text-center">
-            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
               Entry
             </p>
             <h2 className="font-display text-foreground mt-2 text-3xl leading-none font-medium tracking-tight">

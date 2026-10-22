@@ -55,7 +55,7 @@ export function CountryChipStrip({ countries, activeCountry, tripId }: CountryCh
             <span className="truncate">{c.name}</span>
             <span
               className={cn(
-                'font-mono text-[10px] tracking-[0.18em]',
+                'font-mono text-[10px] tracking-[0.06em]',
                 // Mono code suffix gives chips the same texture as
                 // CountrySelect options — recognisably "this is the
                 // ISO code", quietly de-emphasised when inactive.

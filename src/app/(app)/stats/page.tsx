@@ -72,7 +72,7 @@ export default async function StatsPage() {
 
           {/* ── Year over year — three strips, 3-col on laptop ── */}
           <section className="atlas-rise flex flex-col gap-5" style={{ animationDelay: '220ms' }}>
-            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
               Year by year
             </p>
             <div className="grid gap-5 lg:grid-cols-3">

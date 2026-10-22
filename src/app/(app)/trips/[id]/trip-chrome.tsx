@@ -157,7 +157,7 @@ export function TripChrome({
              *  ride the back-link line above, so neither layout spends a
              *  line of its own on them. */}
             <div className="mb-4 hidden items-center gap-3 sm:flex">
-              <p className="text-muted-foreground flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+              <p className="text-muted-foreground flex items-center gap-3 font-mono text-[10px] tracking-[0.06em] uppercase">
                 <span aria-hidden className="bg-foreground/30 h-px w-8" />
                 <span>Trip</span>
               </p>
@@ -443,7 +443,7 @@ function TripOverflowMenu({
 // sub-AA register used across the trip chrome.
 function PrivateBadge() {
   return (
-    <span className="border-foreground/20 text-foreground/55 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.18em] uppercase">
+    <span className="border-foreground/20 text-foreground/55 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.06em] uppercase">
       <Lock className="size-2.5" strokeWidth={2} aria-hidden />
       Private
     </span>
