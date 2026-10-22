@@ -6,7 +6,7 @@ import { formatTripDateRange, toYmd } from '@/lib/trips/format';
 import { TripCountdown } from './trip-countdown';
 
 // The signature home element: the trip you're on, or the next one up,
-// rendered as a wide bookplate with a terracotta countdown. Fed by the
+// rendered as a wide bookplate with a coral countdown. Fed by the
 // same tripsRepo + partitionForDashboard the trips page already uses.
 
 export function NextTripHero({ trip }: { trip: Trip }) {

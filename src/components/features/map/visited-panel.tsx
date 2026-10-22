@@ -15,7 +15,7 @@ interface VisitedPanelProps {
 
 /**
  * Bottom-left overlay for the world choropleth — without it the map is a
- * lone shape and one number up in the header. Anchors a terracotta
+ * lone shape and one number up in the header. Anchors a coral
  * swatch (matching the map's visited fill) to the headline count, and
  * discloses a per-continent breakdown built entirely client-side from
  * the visited ISO codes (no server query — see iso-continent.ts).

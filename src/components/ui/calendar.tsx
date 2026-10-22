@@ -13,9 +13,9 @@ import { cn } from '@/lib/utils';
  *
  * Visual brief:
  *  - Container reads as a small notebook page (paper card surface).
- *  - Month label in Fraunces; weekday letters in monospace small-caps.
- *  - Selected day: filled terracotta disc.
- *  - Today: a thin terracotta dot beneath the day number.
+ *  - Month label in the display face; weekday letters in monospace small-caps.
+ *  - Selected day: filled coral disc.
+ *  - Today: a thin coral dot beneath the day number.
  *  - Outside-month days: 30% opacity, still clickable.
  *  - Prev / Next: hairline-bordered round chevron buttons.
  *
@@ -90,12 +90,12 @@ export function Calendar({
           'disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed',
         ),
 
-        // Today: subtle terracotta dot beneath the number. Pure CSS
+        // Today: subtle coral dot beneath the number. Pure CSS
         // pseudo-element via ::after attached at the day button level.
         today:
           '[&_button]:after:absolute [&_button]:after:bottom-1 [&_button]:after:left-1/2 [&_button]:after:size-1 [&_button]:after:-translate-x-1/2 [&_button]:after:rounded-full [&_button]:after:bg-primary',
 
-        // Selected: filled terracotta disc, cream text. Wins over today.
+        // Selected: filled coral disc, ink text. Wins over today.
         selected:
           '[&_button]:bg-primary [&_button]:text-primary-foreground [&_button]:hover:bg-primary/92 [&_button]:after:bg-primary-foreground/70',
 

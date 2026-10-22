@@ -21,7 +21,7 @@ type Row = { label: string; value: string; note?: string };
  * strands an empty cell beside it.
  *
  * This is the printed keepsake at the foot of the logbook: a paired
- * hairline, a mono plate number, and the section's only Fraunces
+ * hairline, a mono plate number, and the section's only display
  * sub-heading lift it above the bar strips it sits under.
  */
 export function RecordsPanel({ records }: { records: PersonalRecords }) {
@@ -73,7 +73,7 @@ export function RecordsPanel({ records }: { records: PersonalRecords }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Plate header — a paired hairline, the plate number, and the
-       *  section's only Fraunces sub-heading. */}
+       *  section's only display sub-heading. */}
       <div className="flex flex-col gap-4">
         <div className="atlas-rule" aria-hidden />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">

@@ -31,7 +31,7 @@ export function YearStrip({
 }: {
   label: string;
   tallies: YearTally[];
-  /** Bar colour family. `primary` = terracotta, `accent` = sage olive. */
+  /** Bar colour family. `primary` = coral, `accent` = ink. */
   accent?: 'primary' | 'accent';
 }) {
   const max = tallies.reduce((m, t) => Math.max(m, t.count), 0);

@@ -123,11 +123,9 @@ function formatPastRangeLabel(first: Date, last: Date): string {
   return `${firstLabel} – ${formatRangeLabel(last)}`;
 }
 
-// Collapsed past span — a single eyebrow-ruled row in the field-notebook
-// language: a mono tracked-uppercase date range covering every past day,
-// a quiet location summary drawn from all of them, the total segment
-// count, and a chevron. The whole row is the toggle; it meets the 44px
-// touch target via min-height and generous vertical padding.
+// Collapsed past span — a single card-shaped row: a chevron, the date range
+// covering every past day and the day count. The whole row is the toggle;
+// it meets the 44px touch target via min-height.
 //
 // Density follows the viewport (CLAUDE.md responsive rule). At 360px
 // the row carries only what fits without horizontal scroll: chevron,

@@ -2,7 +2,7 @@
 
 // Atlas-flavoured shadcn-style DropdownMenu. Radix gives us the menu
 // ARIA contract (role="menu", arrow-key nav, focus management); the
-// styling here matches the Atlas paper + warm-sand register used by
+// styling here matches the Atlas card + ink register used by
 // Popover / Dialog.
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
