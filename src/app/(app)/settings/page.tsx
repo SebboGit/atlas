@@ -1,9 +1,11 @@
 import { NotificationSettingsForm } from '@/components/features/settings/notification-settings-form';
+import { ThemePreferencePicker } from '@/components/features/settings/theme-preference-picker';
 import { SectionEyebrow } from '@/components/section-eyebrow';
 import { Card, CardContent } from '@/components/ui/card';
 import { requireUser } from '@/lib/auth/session';
 import { deploymentTopic, notificationsConfigured } from '@/lib/notifications';
 import { getNotificationSettings } from '@/lib/notifications/repo';
+import { getThemePreference } from '@/lib/theme/server';
 
 export const metadata = {
   title: 'Settings · Atlas',
@@ -14,6 +16,7 @@ export default async function SettingsPage() {
   const configured = notificationsConfigured();
   const settings = configured ? await getNotificationSettings(user.id) : null;
   const defaultTopic = deploymentTopic();
+  const themePreference = await getThemePreference();
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 pt-8 pb-24 sm:px-8 sm:pt-20">
@@ -26,15 +29,30 @@ export default async function SettingsPage() {
 
       {/* Label column beside the card on laptop; stacked on phone. */}
       <section
+        aria-labelledby="settings-appearance"
+        className="atlas-rise mb-10 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-10"
+        style={{ animationDelay: '80ms' }}
+      >
+        <div>
+          <h2 id="settings-appearance" className="heading-section">
+            Appearance
+          </h2>
+          <p className="text-muted-foreground mt-2 text-sm">This device.</p>
+        </div>
+        <Card variant="paper">
+          <CardContent className="p-5 sm:p-6">
+            <ThemePreferencePicker initial={themePreference} />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section
         aria-labelledby="settings-notifications"
         className="atlas-rise grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-10"
         style={{ animationDelay: '120ms' }}
       >
         <div>
-          <h2
-            id="settings-notifications"
-            className="font-display text-foreground text-2xl font-medium tracking-tight"
-          >
+          <h2 id="settings-notifications" className="heading-section">
             Notifications
           </h2>
           <p className="text-muted-foreground mt-2 text-sm">Pushed through ntfy.</p>

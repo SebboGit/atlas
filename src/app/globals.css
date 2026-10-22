@@ -1,65 +1,147 @@
 @import 'tailwindcss';
 
 /*
- * Atlas — warm sand / paper palette.
+ * Atlas — "Ticket Stub" palette.
  *
- * Hues sit in 32–42 (warm beige), with terracotta as the single accent.
- * Light only by design: a homelab travel companion that reads like
- * paper, not a dashboard at 2am.
+ * Cool grey ground, white cards, near-black ink, one coral accent. Every
+ * segment type owns a pastel tone (stub fill + ink) that means the same
+ * thing on a ticket stub, a map pin and a filter chip, in both themes.
+ *
+ * Light and dark: the light values live in @theme; dark overrides the same
+ * custom properties when <html data-theme="dark">, or when the OS prefers
+ * dark and the user hasn't pinned light (data-theme="light"). The root
+ * layout writes data-theme from the `atlas-theme` cookie — see
+ * src/lib/theme/.
  */
 @theme {
   /* Surfaces */
-  --color-background: hsl(38 32% 90%);
-  --color-foreground: hsl(28 22% 14%);
-  --color-card: hsl(42 50% 95%);
-  --color-card-foreground: hsl(28 22% 14%);
-  --color-popover: hsl(42 50% 96%);
-  --color-popover-foreground: hsl(28 22% 14%);
+  --color-background: #e9ecf2;
+  --color-foreground: #15161a;
+  --color-card: #ffffff;
+  --color-card-foreground: #15161a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #15161a;
 
   /* Quiet tones */
-  --color-muted: hsl(38 26% 84%);
-  --color-muted-foreground: hsl(28 14% 34%);
-  --color-border: hsl(34 22% 74%);
-  --color-input: hsl(34 22% 74%);
+  --color-muted: #f0f2f6;
+  --color-muted-foreground: #4a4f59;
+  --color-border: #dfe2e8;
+  --color-input: #c9cdd6;
 
-  /* Brand — terracotta ink */
-  --color-primary: hsl(18 52% 36%);
-  --color-primary-foreground: hsl(42 50% 96%);
+  /* Brand — coral. Always carries ink text, never white. */
+  --color-primary: #ff6b4a;
+  --color-primary-foreground: #15161a;
 
-  /* Quiet support — sage olive (34% L clears AA for accent text on cream) */
-  --color-accent: hsl(82 18% 34%);
-  --color-accent-foreground: hsl(42 50% 96%);
+  /* Accent — the ink itself, for secondary solid actions. */
+  --color-accent: #15161a;
+  --color-accent-foreground: #ffffff;
 
-  /* Warning ink — a darker rust than primary, used only for destructive paths */
-  --color-destructive: hsl(4 56% 38%);
-  --color-destructive-foreground: hsl(42 50% 96%);
+  --color-destructive: #c4281c;
+  --color-destructive-foreground: #ffffff;
 
-  --color-ring: hsl(18 52% 36%);
+  --color-ring: #ff6b4a;
+
+  /* Inverse surface — the "now / next" hero. Dark in light mode, light in dark. */
+  --color-inverse: #15161a;
+  --color-inverse-foreground: #ffffff;
+  --color-inverse-muted: #c9cdd6;
+  --color-inverse-line: #3e424b;
+
+  /* Segment tones — identical in both themes. */
+  --color-seg-flight: #a9cbff;
+  --color-seg-flight-ink: #0b2350;
+  --color-seg-hotel: #d6c6ff;
+  --color-seg-hotel-ink: #2a1263;
+  --color-seg-activity: #ffcb94;
+  --color-seg-activity-ink: #4a2200;
+  --color-seg-food: #ffb3aa;
+  --color-seg-food-ink: #4e0f0a;
+  --color-seg-transit: #a6e8c8;
+  --color-seg-transit-ink: #073a25;
+  --color-seg-note: #ffe98a;
+  --color-seg-note-ink: #4a3b00;
+
+  /* Perforation dash between a stub and its ticket body. */
+  --color-perforation: rgb(21 22 26 / 0.28);
 
   /* Type stack — wired by next/font in layout.tsx */
-  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
-  --font-mono: var(--font-mono-ibm), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  --radius: 0.875rem;
+  --radius: 1rem;
 
-  /* Warm-ink elevation — one ink (40 28 18), three depths. Replaces the
-   * hand-built shadow strings that drifted across three different inks. */
-  --shadow-paper: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 18px 40px -24px rgb(40 28 18 / 0.2);
-  --shadow-lifted: 0 30px 60px -30px rgb(40 28 18 / 0.25), 0 8px 20px -12px rgb(40 28 18 / 0.15);
-  --shadow-overlay: 0 40px 80px -40px rgb(40 28 18 / 0.42), 0 12px 32px -16px rgb(40 28 18 / 0.22);
+  /* Elevation — flat by default; shadows only where something floats. */
+  --shadow-paper: 0 1px 2px rgb(21 22 26 / 0.04);
+  --shadow-lifted: 0 18px 40px -20px rgb(21 22 26 / 0.25), 0 4px 12px -6px rgb(21 22 26 / 0.12);
+  --shadow-overlay: 0 40px 80px -30px rgb(21 22 26 / 0.45), 0 12px 28px -12px rgb(21 22 26 / 0.25);
+}
+
+/* Dark values, applied by an explicit choice or by the OS preference. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-background: #0f1014;
+  --color-foreground: #f2f3f5;
+  --color-card: #1a1c22;
+  --color-card-foreground: #f2f3f5;
+  --color-popover: #1f2127;
+  --color-popover-foreground: #f2f3f5;
+  --color-muted: #262930;
+  --color-muted-foreground: #a9aeb8;
+  --color-border: #2c3038;
+  --color-input: #3a3f49;
+  --color-accent: #f2f3f5;
+  --color-accent-foreground: #15161a;
+  --color-destructive: #ff5c4d;
+  --color-destructive-foreground: #15161a;
+  --color-inverse: #f2f3f5;
+  --color-inverse-foreground: #15161a;
+  --color-inverse-muted: #4a4f59;
+  --color-inverse-line: #c9cdd6;
+  --shadow-paper: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-lifted: 0 18px 40px -20px rgb(0 0 0 / 0.6), 0 4px 12px -6px rgb(0 0 0 / 0.4);
+  --shadow-overlay: 0 40px 80px -30px rgb(0 0 0 / 0.7), 0 12px 28px -12px rgb(0 0 0 / 0.5);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --color-background: #0f1014;
+    --color-foreground: #f2f3f5;
+    --color-card: #1a1c22;
+    --color-card-foreground: #f2f3f5;
+    --color-popover: #1f2127;
+    --color-popover-foreground: #f2f3f5;
+    --color-muted: #262930;
+    --color-muted-foreground: #a9aeb8;
+    --color-border: #2c3038;
+    --color-input: #3a3f49;
+    --color-accent: #f2f3f5;
+    --color-accent-foreground: #15161a;
+    --color-destructive: #ff5c4d;
+    --color-destructive-foreground: #15161a;
+    --color-inverse: #f2f3f5;
+    --color-inverse-foreground: #15161a;
+    --color-inverse-muted: #4a4f59;
+    --color-inverse-line: #c9cdd6;
+    --shadow-paper: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-lifted: 0 18px 40px -20px rgb(0 0 0 / 0.6), 0 4px 12px -6px rgb(0 0 0 / 0.4);
+    --shadow-overlay: 0 40px 80px -30px rgb(0 0 0 / 0.7), 0 12px 28px -12px rgb(0 0 0 / 0.5);
+  }
+}
+:root[data-theme='light'] {
+  color-scheme: light;
 }
 
 /*
- * Base layer — typography, paper texture, atmospheric background.
+ * Base layer — typography and a flat ground.
  */
 html,
 body {
   @apply text-foreground antialiased;
   min-height: 100vh;
   font-family: var(--font-sans);
-  font-feature-settings: 'ss01', 'cv11';
-  letter-spacing: -0.005em;
+  /* Fixed-width digits everywhere: times, dates and counts line up in lists. */
+  font-variant-numeric: tabular-nums;
 }
 
 /* Inside the installed PWA, suppress the document rubber-band / overscroll
@@ -74,83 +156,103 @@ body {
 }
 
 body {
-  /* Layered warm light: a soft top wash, a low warm pool, and a
-   * paper-grain noise overlay. The grain is barely perceptible but
-   * kills the "flat AI gradient" look. */
-  background-color: hsl(38 32% 90%);
-  background-image:
-    radial-gradient(ellipse 80% 60% at 18% 0%, hsl(42 55% 94% / 0.9), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 100% 100%, hsl(22 40% 80% / 0.55), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 50% 110%, hsl(36 30% 78% / 0.4), transparent 70%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0 0.08  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  background-attachment: fixed, fixed, fixed, fixed;
-  background-size:
-    auto,
-    auto,
-    auto,
-    220px 220px;
+  background-color: var(--color-background);
 }
 
-/* Soft scrollbar that matches the warm palette */
 * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(34 22% 60%) transparent;
+  scrollbar-color: var(--color-input) transparent;
 }
 
-/* Selection: terracotta ink on cream */
 ::selection {
-  background: hsl(18 52% 36% / 0.18);
-  color: hsl(28 22% 14%);
+  background: rgb(255 107 74 / 0.3);
+  color: var(--color-foreground);
 }
 
-/* Display utility for the Fraunces wordmark — used sparingly. */
+/* Display utility — Bricolage at its heaviest, tightly tracked. */
 .font-display {
   font-family: var(--font-display);
-  font-feature-settings: 'ss01', 'ss03';
-  font-optical-sizing: auto;
-  /* Fraunces' SOFT axis is downloaded via next/font `axes` but sits at 0
-   * (sharp) until asked for. Nudging it rounds the terminals just enough to
-   * read engraved-warm rather than sharp. opsz is deliberately NOT pinned
-   * here so `font-optical-sizing: auto` keeps refining large display sizes. */
-  font-variation-settings: 'SOFT' 50;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .font-mono {
   font-family: var(--font-mono);
-  font-feature-settings: 'ss03';
 }
 
 /*
  * Display heading rungs — three locked tiers so titles stop drifting
- * screen-to-screen. Each carries the full Fraunces voice (SOFT axis,
- * stylistic sets) so a heading is one class, not a copy-pasted
- * `font-display text-Nxl leading-… tracking-tight` string. opsz stays on
- * auto for size-aware refinement. Sizes are fluid (clamp) so the same rung
- * reads intentional at 360px and 1440px without breakpoint soup.
+ * screen-to-screen. Sizes are fluid (clamp) so the same rung reads
+ * intentional at 360px and 1440px without breakpoint soup.
  */
 .heading-page,
 .heading-section,
 .heading-card {
   font-family: var(--font-display);
-  font-feature-settings: 'ss01', 'ss03';
-  font-optical-sizing: auto;
-  font-variation-settings: 'SOFT' 50;
   color: var(--color-foreground);
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 .heading-page {
-  font-size: clamp(2.25rem, 1.55rem + 3.1vw, 3rem);
-  line-height: 1.04;
+  font-size: clamp(2.25rem, 1.5rem + 3.2vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
 }
 .heading-section {
   font-size: clamp(1.5rem, 1.2rem + 1.3vw, 1.875rem);
-  line-height: 1.15;
+  line-height: 1.1;
 }
 .heading-card {
   font-size: 1.25rem;
-  line-height: 1.3;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+/*
+ * Ticket — the one recurring motif. A stub (segment tone) joined to its body
+ * by a dashed perforation, with two notches punched out of the ground colour.
+ * `.ticket-stub` sits on the left; `.ticket-stub-top` is the header-strip
+ * variant used on wishlist cards.
+ */
+.ticket-stub {
+  position: relative;
+  border-right: 2px dashed var(--color-perforation);
+}
+.ticket-stub::before,
+.ticket-stub::after {
+  content: '';
+  position: absolute;
+  right: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--ticket-notch, var(--color-background));
+}
+.ticket-stub::before {
+  top: -8px;
+}
+.ticket-stub::after {
+  bottom: -8px;
+}
+.ticket-stub-top {
+  position: relative;
+  border-bottom: 2px dashed var(--color-perforation);
+}
+.ticket-stub-top::before,
+.ticket-stub-top::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--ticket-notch, var(--color-background));
+}
+.ticket-stub-top::before {
+  left: -8px;
+}
+.ticket-stub-top::after {
+  right: -8px;
 }
 
 /*
@@ -173,24 +275,17 @@ body {
 }
 
 /*
- * Decorative hairline — a paired-rule used as a section divider.
- * Suggests engraved book plates without going full editorial.
+ * Section hairlines. `-double` survives as an alias from the previous
+ * palette; both are a single quiet line now.
  */
 .atlas-rule {
-  background-image: linear-gradient(
-    to right,
-    transparent,
-    hsl(28 22% 14% / 0.35) 20%,
-    hsl(28 22% 14% / 0.35) 80%,
-    transparent
-  );
+  background: var(--color-border);
   height: 1px;
 }
 
 .atlas-rule-double {
-  border-top: 1px solid hsl(28 22% 14% / 0.3);
-  border-bottom: 1px solid hsl(28 22% 14% / 0.3);
-  height: 4px;
+  background: var(--color-border);
+  height: 1px;
 }
 
 /*

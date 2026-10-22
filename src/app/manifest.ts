@@ -8,7 +8,7 @@ const ICON_REV = '2';
 // Web app manifest — makes Atlas installable to the home screen and lets it
 // launch standalone (no browser chrome). Next serves this at
 // /manifest.webmanifest and injects the <link rel="manifest"> automatically.
-// Colors track the warm-sand palette (--color-background / themeColor).
+// Colors track the light palette (--color-background / themeColor).
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Atlas — Travel Companion',
@@ -18,8 +18,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     scope: '/',
     display: 'standalone',
-    background_color: '#e8dec7',
-    theme_color: '#e8dec7',
+    background_color: '#e9ecf2',
+    theme_color: '#e9ecf2',
     lang: 'en',
     dir: 'ltr',
     categories: ['travel'],

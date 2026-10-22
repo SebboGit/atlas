@@ -1,29 +1,26 @@
 import type { Metadata, Viewport } from 'next';
-import { Fraunces, Hanken_Grotesk, IBM_Plex_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, DM_Mono } from 'next/font/google';
 
 import { Providers } from '@/components/providers';
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
+import { THEME_COLOR } from '@/lib/theme/preference';
+import { getThemePreference } from '@/lib/theme/server';
 
 import './globals.css';
 
-const hanken = Hanken_Grotesk({
+// One family carries display and body: Bricolage's opsz axis tightens it at
+// headline sizes and opens it up for running text.
+const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
-  variable: '--font-hanken',
+  variable: '--font-bricolage',
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  axes: ['opsz'],
 });
 
-const fraunces = Fraunces({
+// Codes, times and small labels.
+const dmMono = DM_Mono({
   subsets: ['latin'],
-  variable: '--font-fraunces',
-  display: 'swap',
-  axes: ['SOFT', 'opsz'],
-  style: ['normal', 'italic'],
-});
-
-const ibmMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono-ibm',
+  variable: '--font-dm-mono',
   display: 'swap',
   weight: ['400', '500'],
 });
@@ -47,15 +44,28 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: '#e8dec7',
-};
+// Browser-chrome colour follows the theme: pinned when the user chose one,
+// otherwise one entry per OS scheme.
+export async function generateViewport(): Promise<Viewport> {
+  const preference = await getThemePreference();
+  if (preference !== 'system') return { themeColor: THEME_COLOR[preference] };
+  return {
+    themeColor: [
+      { media: '(prefers-color-scheme: light)', color: THEME_COLOR.light },
+      { media: '(prefers-color-scheme: dark)', color: THEME_COLOR.dark },
+    ],
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // `system` leaves data-theme off so the CSS media query decides; an
+  // explicit choice pins it. Read server-side so the first paint is right.
+  const preference = await getThemePreference();
   return (
     <html
       lang="en"
-      className={`${hanken.variable} ${fraunces.variable} ${ibmMono.variable}`}
+      className={`${bricolage.variable} ${dmMono.variable}`}
+      data-theme={preference === 'system' ? undefined : preference}
       suppressHydrationWarning
     >
       <body className="min-h-screen">
