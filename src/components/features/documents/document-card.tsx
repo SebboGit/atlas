@@ -43,7 +43,7 @@ export function DocumentCard({ document, tripId }: DocumentCardProps) {
               {renderIcon(document.mime)}
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
+              <p className="text-foreground/70 font-mono text-[9px] tracking-[0.06em] uppercase">
                 {typeLabel} · {formatBytes(document.bytes)}
               </p>
               <div className="flex min-w-0 items-center gap-1">
@@ -79,7 +79,7 @@ export function DocumentCard({ document, tripId }: DocumentCardProps) {
             />
             <a
               href={`/api/documents/${document.id}?disposition=attachment`}
-              className="text-foreground/70 hover:text-foreground inline-flex h-8 items-center justify-center rounded-full px-3 font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
+              className="text-foreground/70 hover:text-foreground inline-flex h-8 items-center justify-center rounded-full px-3 font-mono text-[10px] tracking-[0.06em] uppercase transition-colors"
             >
               Download
             </a>
@@ -123,7 +123,7 @@ function ExtractedSummary({
     <div className="border-foreground/10 mt-1 flex items-start gap-3 border-t pt-3">
       <p
         aria-hidden
-        className="text-foreground/70 mt-[1px] font-mono text-[9px] tracking-[0.28em] uppercase"
+        className="text-foreground/70 mt-[1px] font-mono text-[9px] tracking-[0.06em] uppercase"
       >
         {kindLabel(payload.kind)}
       </p>

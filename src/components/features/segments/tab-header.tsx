@@ -15,7 +15,7 @@ export function TabHeader({ eyebrow, count, action }: TabHeaderProps) {
       className="atlas-rise mb-6 flex flex-wrap items-center gap-3 sm:mb-7"
       style={{ animationDelay: '240ms' }}
     >
-      <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+      <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
         {eyebrow}
       </p>
       <span className="text-foreground/40 font-mono text-[10px] tracking-[0.2em]">

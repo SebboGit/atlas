@@ -113,7 +113,7 @@ function SegmentRailRow({
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           {item.timeLabel && (
-            <span className="text-foreground/70 shrink-0 font-mono text-[10px] tracking-[0.14em] tabular-nums">
+            <span className="text-foreground/70 shrink-0 font-mono text-[10px] tracking-[0.06em] tabular-nums">
               {item.timeLabel}
             </span>
           )}
@@ -126,7 +126,7 @@ function SegmentRailRow({
             {item.label}
           </span>
           {continuation && (
-            <span className="border-foreground/20 text-foreground/70 shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.16em] uppercase">
+            <span className="border-foreground/20 text-foreground/70 shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.06em] uppercase">
               {item.continuationPill ?? 'Ongoing'}
             </span>
           )}
@@ -226,17 +226,17 @@ function DayBlock({
       >
         <span
           className={cn(
-            'font-mono text-[11px] tracking-[0.16em] uppercase transition-colors',
+            'font-mono text-[11px] tracking-[0.06em] uppercase transition-colors',
             isToday ? 'text-coral-ink' : isPast ? 'text-foreground/70' : 'text-foreground/80',
           )}
         >
           Day {String(day.dayNumber).padStart(2, '0')}
         </span>
-        <span className="text-foreground/70 font-mono text-[10px] tracking-[0.14em] whitespace-nowrap uppercase transition-colors">
+        <span className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] whitespace-nowrap uppercase transition-colors">
           {formatDayLabel(date)}
         </span>
         {isToday && (
-          <span className="bg-primary/12 text-coral-ink border-primary/25 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase">
+          <span className="bg-primary/12 text-coral-ink border-primary/25 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.06em] uppercase">
             Today
           </span>
         )}
@@ -281,7 +281,7 @@ function CollapsedPastRow({ days, onExpand }: { days: ResolvedRailDay[]; onExpan
         strokeWidth={1.75}
         className="text-foreground/35 group-hover:text-foreground/70 size-3.5 shrink-0 -rotate-90 transition-[transform,color]"
       />
-      <span className="text-foreground/70 group-hover:text-foreground/85 min-w-0 truncate font-mono text-[10px] tracking-[0.16em] uppercase">
+      <span className="text-foreground/70 group-hover:text-foreground/85 min-w-0 truncate font-mono text-[10px] tracking-[0.06em] uppercase">
         {rangeLabel}
       </span>
       <span aria-hidden className="bg-foreground/12 h-px flex-1" />

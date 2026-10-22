@@ -263,7 +263,7 @@ export function WorldMap({ visited }: WorldMapProps) {
           header's "Section 03 · Map". Faint, non-interactive chrome. */}
       <span
         aria-hidden
-        className="text-foreground/35 pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.28em] uppercase select-none"
+        className="text-foreground/35 pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.06em] uppercase select-none"
       >
         Plate 03 · World
       </span>
@@ -326,7 +326,7 @@ function MapTooltip({
       <p className="font-display text-foreground text-sm leading-tight font-medium tracking-tight">
         {country.name}
       </p>
-      <p className="text-muted-foreground mt-1 font-mono text-[10px] tracking-[0.18em] uppercase">
+      <p className="text-muted-foreground mt-1 font-mono text-[10px] tracking-[0.06em] uppercase">
         {tooltipCaption(country)}
       </p>
     </div>

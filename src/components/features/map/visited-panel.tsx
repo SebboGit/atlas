@@ -94,7 +94,7 @@ export function VisitedPanel({ codes }: VisitedPanelProps) {
         className="w-[min(15rem,calc(100vw-1.5rem))] p-0"
       >
         <div className="border-foreground/10 border-b px-4 pt-3 pb-2">
-          <h3 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+          <h3 className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
             By continent
           </h3>
         </div>

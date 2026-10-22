@@ -69,7 +69,7 @@ export function PinMarker({ kind, label, hovered, dimmed }: PinMarkerProps) {
           className={cn(
             'pointer-events-none absolute bottom-full mb-1 inline-flex rounded-md border px-1.5 py-0.5 whitespace-nowrap',
             'border-foreground/15 bg-card/85 text-foreground/85 backdrop-blur-sm',
-            'font-mono text-[10px] font-medium tracking-[0.16em] uppercase shadow-sm',
+            'font-mono text-[10px] font-medium tracking-[0.06em] uppercase shadow-sm',
           )}
         >
           {label}

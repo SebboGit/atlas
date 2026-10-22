@@ -1076,7 +1076,7 @@ export function TripMap({
           // toggle top-right, chips bottom-left). aria-hidden: pure chrome.
           <span
             aria-hidden
-            className="text-foreground/35 pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.28em] uppercase select-none"
+            className="text-foreground/35 pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.06em] uppercase select-none"
           >
             Plate · {plateLabel}
           </span>

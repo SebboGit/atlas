@@ -169,7 +169,7 @@ interface ColumnProps {
 const Column = React.forwardRef<HTMLDivElement, ColumnProps>(
   ({ label, items, selected, onPick }, ref) => (
     <div className="flex flex-col">
-      <div className="text-foreground/70 px-3 pt-2 pb-1 text-center font-mono text-[9px] tracking-[0.22em] uppercase">
+      <div className="text-foreground/70 px-3 pt-2 pb-1 text-center font-mono text-[9px] tracking-[0.06em] uppercase">
         {label}
       </div>
       <div

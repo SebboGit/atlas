@@ -170,7 +170,7 @@ function CommandShortcut({ className, ...props }: React.HTMLAttributes<HTMLSpanE
   return (
     <span
       className={cn(
-        'text-muted-foreground ml-auto font-mono text-[10px] tracking-[0.18em]',
+        'text-muted-foreground ml-auto font-mono text-[10px] tracking-[0.06em]',
         className,
       )}
       {...props}

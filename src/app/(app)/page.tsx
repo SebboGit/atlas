@@ -50,7 +50,7 @@ export default async function HomePage() {
           <br />
           <span className="italic">{firstName}</span>.
         </h1>
-        <p className="text-muted-foreground mt-5 font-mono text-[10px] tracking-[0.22em] uppercase">
+        <p className="text-muted-foreground mt-5 font-mono text-[10px] tracking-[0.06em] uppercase">
           {buildStateOfPlay(trips.length, nextTrip, stampDate)}
         </p>
       </section>
@@ -109,7 +109,7 @@ function NoUpcoming({ hasTrips }: { hasTrips: boolean }) {
         01
       </span>
       <CardContent className="flex flex-col items-start gap-4 px-6 py-9 sm:px-8 sm:py-11">
-        <p className="text-coral-ink font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-coral-ink font-mono text-[10px] tracking-[0.06em] uppercase">
           Next departure
         </p>
         <h2 className="font-display text-foreground text-3xl leading-tight font-medium tracking-tight sm:text-4xl">

@@ -83,7 +83,7 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
           )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+          <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
             {isFood ? 'Food' : 'Activity'}
           </p>
           <h3 className="font-display text-foreground text-xl leading-tight font-medium tracking-tight">

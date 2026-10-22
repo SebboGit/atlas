@@ -188,11 +188,11 @@ function TimelineSheet(railProps: TripTimelineRailProps) {
               <Drawer.Title className="text-foreground/85 font-mono text-[11px] tracking-[0.2em] uppercase">
                 {summary.label}
               </Drawer.Title>
-              <span className="text-foreground/40 font-mono text-[10px] tracking-[0.14em]">
+              <span className="text-foreground/40 font-mono text-[10px] tracking-[0.06em]">
                 · {summary.count} {summary.count === 1 ? 'item' : 'items'}
               </span>
               <span aria-hidden className="bg-foreground/12 h-px flex-1 self-center" />
-              <span className="text-foreground/35 font-mono text-[9px] tracking-[0.18em] uppercase">
+              <span className="text-foreground/35 font-mono text-[9px] tracking-[0.06em] uppercase">
                 Drag to expand
               </span>
             </div>

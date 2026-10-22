@@ -90,7 +90,7 @@ export function WishlistSuggestionsPanel({
               open && 'rotate-0',
             )}
           />
-          <span className="text-foreground/85 font-mono text-[10px] tracking-[0.28em] uppercase">
+          <span className="text-foreground/85 font-mono text-[10px] tracking-[0.06em] uppercase">
             From your wishlist
           </span>
           <span className="text-foreground/40 font-mono text-[10px] tracking-[0.2em]">
@@ -192,7 +192,7 @@ function SuggestionCard({
           {isFood ? <UtensilsCrossed strokeWidth={1.5} /> : <Sparkles strokeWidth={1.5} />}
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <p className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
+          <p className="text-foreground/70 font-mono text-[9px] tracking-[0.06em] uppercase">
             {isFood ? 'Food' : 'Activity'}
           </p>
           <p

@@ -48,7 +48,7 @@ export function TripTabs({ tripId }: { tripId: string }) {
             href={href}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'relative shrink-0 px-1 py-2 font-mono text-xs tracking-[0.16em] uppercase transition-colors sm:px-3 sm:tracking-[0.28em]',
+              'relative shrink-0 px-1 py-2 font-mono text-xs tracking-[0.06em] uppercase transition-colors sm:px-3',
               // Tap target on touch per CLAUDE.md responsive rules.
               'inline-flex min-h-11 items-center',
               // Hover lift gated to pointer devices (CLAUDE.md responsive

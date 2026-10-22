@@ -133,7 +133,7 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
           style={{ animationDelay: '240ms' }}
         >
           <CardContent className="px-6 py-6 sm:px-7 sm:py-7">
-            <p className="text-foreground/70 mb-3 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 mb-3 font-mono text-[10px] tracking-[0.06em] uppercase">
               Summary
             </p>
             <p className="text-foreground/85 text-base leading-relaxed sm:text-[17px]">
@@ -150,10 +150,10 @@ export default async function ItineraryPage({ params, searchParams }: ItineraryP
         className="atlas-rise mb-6 flex flex-wrap items-center gap-3"
         style={{ animationDelay: '260ms' }}
       >
-        <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
           Itinerary
         </p>
-        <Badge variant="primary" className="border-primary/60 text-xs tracking-[0.16em]">
+        <Badge variant="primary" className="border-primary/60 text-xs tracking-[0.06em]">
           {dayCount} {dayCount === 1 ? 'day' : 'days'}
         </Badge>
         <span aria-hidden className="bg-foreground/15 hidden h-px flex-1 sm:block" />

@@ -122,7 +122,7 @@ export function NotificationSettingsForm({ initial, defaultTopic }: Notification
        *  undefined, and the prefs schema would then default it back to on,
        *  silently undoing a switch the user turned off. */}
       <fieldset className={enabled ? 'flex flex-col gap-1' : 'flex flex-col gap-1 opacity-50'}>
-        <legend className="text-foreground/70 mb-2 font-mono text-[10px] tracking-[0.28em] uppercase">
+        <legend className="text-foreground/70 mb-2 font-mono text-[10px] tracking-[0.06em] uppercase">
           Send me
         </legend>
         <ToggleRow

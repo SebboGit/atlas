@@ -33,7 +33,7 @@ export function SectionTile({
           {index}
         </span>
         <CardContent className="flex min-h-0 flex-col justify-between pt-5 sm:min-h-40 sm:pt-7">
-          <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.28em] uppercase sm:block">
+          <p className="text-foreground/70 hidden font-mono text-[10px] tracking-[0.06em] uppercase sm:block">
             Section
           </p>
           <h2 className="heading-section">{title}</h2>

@@ -23,7 +23,7 @@ export function TripStatusBadge({ status, className }: { status: TripStatus; cla
         // Carries a touch more weight than a plain micro-label — slightly
         // larger, medium mono, a bolder dot — so the trip's state reads at
         // a glance everywhere it appears (cards, chrome, home hero).
-        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[10px] font-medium tracking-[0.18em] uppercase',
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[10px] font-medium tracking-[0.06em] uppercase',
         STYLES[status],
         className,
       )}

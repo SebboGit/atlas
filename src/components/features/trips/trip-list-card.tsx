@@ -49,7 +49,7 @@ export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
             className={`mt-[5px] size-1.5 shrink-0 rounded-full bg-current ${STATUS_DOT_COLOR[trip.status]}`}
           />
           <div className="min-w-0 flex-1">
-            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.14em] uppercase">
+            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
               {compactRange}
             </p>
             <h3
@@ -82,7 +82,7 @@ export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
 
         <CardContent className="flex flex-col gap-4 px-6 py-6 sm:px-7 sm:py-7">
           <div className="flex flex-col gap-2 pr-12">
-            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
               {range}
             </p>
             <h3

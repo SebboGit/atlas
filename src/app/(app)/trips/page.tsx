@@ -52,7 +52,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
         </p>
         <Link
           href={{ pathname: '/trips', query: showingArchived ? undefined : { status: 'archived' } }}
-          className="text-foreground/70 hover:text-foreground font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
+          className="text-foreground/70 hover:text-foreground font-mono text-[10px] tracking-[0.06em] uppercase transition-colors"
         >
           {showingArchived ? '← All trips' : 'View archived →'}
         </Link>

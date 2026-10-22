@@ -14,6 +14,7 @@ import { usePathname } from 'next/navigation';
 import * as React from 'react';
 
 import { SearchTrigger } from '@/components/search/search-trigger';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -55,7 +56,7 @@ export function Topbar() {
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
   return (
-    <header className="border-foreground/10 bg-background/55 supports-[backdrop-filter]:bg-background/35 sticky top-0 z-40 border-b backdrop-blur-xl">
+    <header className="border-border bg-background/90 supports-[backdrop-filter]:bg-background/75 sticky top-0 z-40 border-b backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-5 sm:gap-5 sm:px-8">
         {/* Hamburger — phone only. Sits left of the logo so the
          *  thumb-zone affordance for nav lives on the side opposite the
@@ -88,7 +89,7 @@ export function Topbar() {
             <SheetDescription className="mb-5">Self-hosted travel log.</SheetDescription>
             {/* Full-bleed hairline — reads as a section break between the
              *  masthead and the route list. */}
-            <div aria-hidden className="bg-foreground/10 -mx-6 mb-4 h-px" />
+            <div aria-hidden className="bg-border -mx-6 mb-4 h-px" />
             <nav aria-label="Mobile main" className="flex flex-col gap-1">
               {ROUTES.map((route) => {
                 const active = isActiveRoute(pathname, route.href);
@@ -103,15 +104,15 @@ export function Topbar() {
                         // Hover gated to pointer devices (CLAUDE.md rule 4)
                         // so it doesn't stick after a tap on this touch surface.
                         active
-                          ? 'bg-foreground/8 text-foreground'
-                          : 'text-foreground/80 [@media(hover:hover)]:hover:bg-foreground/5 [@media(hover:hover)]:hover:text-foreground',
+                          ? 'bg-foreground text-background font-semibold'
+                          : 'text-foreground/80 [@media(hover:hover)]:hover:bg-muted [@media(hover:hover)]:hover:text-foreground',
                       )}
                     >
                       <Icon
                         aria-hidden
                         className={cn(
                           'size-[18px] shrink-0',
-                          active ? 'text-coral-ink' : 'text-foreground/45',
+                          active ? 'text-primary' : 'text-foreground/50',
                         )}
                         strokeWidth={1.75}
                       />
@@ -121,7 +122,7 @@ export function Topbar() {
                 );
               })}
             </nav>
-            <div className="border-foreground/10 mt-auto flex flex-col gap-1 border-t pt-4">
+            <div className="border-border mt-auto flex flex-col gap-1 border-t pt-4">
               <SheetClose asChild>
                 <Link
                   href="/settings"
@@ -129,8 +130,8 @@ export function Topbar() {
                   className={cn(
                     'flex min-h-11 items-center gap-3 rounded-xl px-3 text-base transition-colors',
                     isActiveRoute(pathname, '/settings')
-                      ? 'bg-foreground/8 text-foreground'
-                      : 'text-foreground/80 [@media(hover:hover)]:hover:bg-foreground/5 [@media(hover:hover)]:hover:text-foreground',
+                      ? 'bg-foreground text-background font-semibold'
+                      : 'text-foreground/80 [@media(hover:hover)]:hover:bg-muted [@media(hover:hover)]:hover:text-foreground',
                   )}
                 >
                   <Settings
@@ -161,53 +162,43 @@ export function Topbar() {
             src="/atlas_logo.svg"
             alt=""
             aria-hidden
-            width={36}
-            height={36}
-            className="h-9 w-9 transition-opacity group-hover:opacity-80"
+            width={34}
+            height={34}
+            className="h-[34px] w-[34px] transition-opacity group-hover:opacity-80"
           />
-          <span className="flex flex-col leading-none transition-opacity group-hover:opacity-80">
-            <span className="font-display text-foreground text-[1.5rem] font-medium">Atlas</span>
-            {/* The masthead caption — stitches the sign-in "Vol. I" voice
-             *  into the chrome. Hidden below sm: where the bar is tight; the
-             *  hamburger sheet carries the same caption on phone. */}
-            <span className="text-muted-foreground mt-1 hidden font-mono text-[9px] tracking-[0.26em] uppercase sm:block">
-              Self-hosted · Vol. I
-            </span>
+          <span className="font-display text-foreground text-2xl leading-none transition-opacity group-hover:opacity-80">
+            atlas
           </span>
         </Link>
 
-        {/* Laptop inline nav — hidden below sm:, where the hamburger
-         *  carries the same routes. */}
-        <nav
-          aria-label="Main"
-          className="ml-2 hidden flex-1 items-center justify-start gap-1 sm:flex lg:ml-4"
-        >
-          {ROUTES.map((route) => {
-            const active = isActiveRoute(pathname, route.href);
-            return (
-              <Link
-                key={route.href}
-                href={route.href}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  // A 2px terracotta underline marks the active section —
-                  // wayfinding finally uses the brand color (was a near-
-                  // invisible opacity bump on the same ink).
-                  'relative rounded-lg px-3 py-1.5 text-sm transition-colors',
-                  'after:bg-primary after:absolute after:inset-x-3 after:-bottom-0.5 after:h-0.5 after:rounded-full after:transition-opacity',
-                  active
-                    ? 'text-foreground after:opacity-100'
-                    : 'text-foreground/70 hover:text-foreground after:opacity-0',
-                )}
-              >
-                {route.label}
-              </Link>
-            );
-          })}
+        {/* Laptop inline nav — a pill group; the active section is the ink
+         *  pill. Hidden below sm:, where the hamburger carries the routes. */}
+        <nav aria-label="Main" className="ml-2 hidden flex-1 items-center sm:flex lg:ml-4">
+          <div className="bg-card border-border flex items-center gap-0.5 rounded-full border p-1">
+            {ROUTES.map((route) => {
+              const active = isActiveRoute(pathname, route.href);
+              return (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'rounded-full px-3.5 py-1.5 text-[15px] font-semibold transition-colors lg:px-4',
+                    active
+                      ? 'bg-foreground text-background'
+                      : 'text-muted-foreground [@media(hover:hover)]:hover:text-foreground',
+                  )}
+                >
+                  {route.label}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 sm:gap-5">
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <SearchTrigger />
+          <ThemeToggle />
           {/* Laptop settings — an icon beside sign-out; secondary to the
            *  section nav, so it stays out of ROUTES. Phone users reach it
            *  from the hamburger sheet. */}
