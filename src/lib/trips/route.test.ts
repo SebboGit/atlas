@@ -4,16 +4,24 @@ import { buildTripRoute } from './route';
 
 const at = (iso: string) => new Date(iso);
 
-const flight = (from: string, to: string, iso: string, flightNumber = '42') => ({
+const flight = (
+  from: string,
+  to: string,
+  iso: string,
+  flightNumber = '42',
+  endIso: string | null = null,
+) => ({
   type: 'flight' as const,
   data: { carrier: 'JL', flightNumber, originAirport: from, destinationAirport: to },
   startsAt: at(iso),
+  endsAt: endIso ? at(endIso) : null,
 });
 
 const train = (from: string, to: string, iso: string) => ({
   type: 'transit' as const,
   data: { mode: 'train', fromName: from, toName: to },
   startsAt: at(iso),
+  endsAt: null,
 });
 
 describe('buildTripRoute', () => {
@@ -60,19 +68,41 @@ describe('buildTripRoute', () => {
         type: 'transit' as const,
         data: { mode: 'bus', fromName: 'Kyoto Station', toName: 'Ryokan pickup' },
         startsAt: at('2025-10-08T14:00:00Z'),
+        endsAt: null,
       },
     ]);
     expect(route.map((s) => s.label)).toEqual(['Tokyo', 'Kyoto']);
   });
 
+  it("dates an overnight flight's destination by its arrival", () => {
+    const route = buildTripRoute([
+      flight('FRA', 'HND', '2025-10-01T20:00:00Z', '204', '2025-10-02T15:00:00Z'),
+    ]);
+    expect(route.map((s) => s.arrivedOn)).toEqual([null, '2025-10-02']);
+  });
+
+  it('draws a leg booked twice only once', () => {
+    const route = buildTripRoute([
+      flight('FRA', 'HND', '2025-10-01T20:00:00Z', '204'),
+      flight('FRA', 'HND', '2025-10-01T20:00:00Z', '204'),
+    ]);
+    expect(route.map((s) => s.label)).toEqual(['FRA', 'HND']);
+  });
+
   it('skips undated legs, other segment types and legs missing an end', () => {
     const route = buildTripRoute([
-      { type: 'hotel', data: { propertyName: 'Hotel Niwa' }, startsAt: at('2025-10-05T00:00:00Z') },
+      {
+        type: 'hotel',
+        data: { propertyName: 'Hotel Niwa' },
+        startsAt: at('2025-10-05T00:00:00Z'),
+        endsAt: null,
+      },
       { ...flight('LHR', 'HND', '2025-10-04T11:05:00Z'), startsAt: null },
       {
         type: 'transit',
         data: { mode: 'train', fromName: 'Kyoto' },
         startsAt: at('2025-10-08T14:00:00Z'),
+        endsAt: null,
       },
     ]);
     expect(route).toEqual([]);

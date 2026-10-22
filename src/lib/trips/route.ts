@@ -14,11 +14,16 @@ export interface RouteStop {
   via: RouteLink | null;
   /** Short caption for the arriving link — a flight number or transit mode. */
   viaLabel: string | null;
-  /** UTC day (`YYYY-MM-DD`) of the leg that arrives here; null for the start. */
+  /**
+   * UTC day (`YYYY-MM-DD`) the traveller is here by: the arriving leg's end
+   * (its start when it has no end) — so an overnight flight lands its
+   * destination on the next day. A transfer stop takes the day of the leg
+   * that leaves it, the only time Atlas has for it. Null for the start.
+   */
   arrivedOn: string | null;
 }
 
-type RouteSegment = Pick<Segment, 'type' | 'data' | 'startsAt'>;
+type RouteSegment = Pick<Segment, 'type' | 'data' | 'startsAt' | 'endsAt'>;
 
 interface Leg {
   from: string;
@@ -26,7 +31,10 @@ interface Leg {
   link: 'flight' | 'transit';
   caption: string | null;
   startsAt: number;
+  /** UTC day the leg leaves. */
   day: string;
+  /** UTC day the leg arrives (its end, else its start). */
+  arrivalDay: string;
 }
 
 // Transit modes that move a trip between places. Buses, cars and "other"
@@ -48,6 +56,7 @@ function placeLabel(name: string): string {
 function toLeg(segment: RouteSegment): Leg | null {
   if (!segment.startsAt) return null;
   const day = utcDay(segment.startsAt);
+  const arrivalDay = segment.endsAt ? utcDay(segment.endsAt) : day;
   const startsAt = segment.startsAt.getTime();
 
   if (segment.type === 'flight') {
@@ -62,6 +71,7 @@ function toLeg(segment: RouteSegment): Leg | null {
       caption: formatFlightNumber(carrier, flightNumber),
       startsAt,
       day,
+      arrivalDay,
     };
   }
 
@@ -78,6 +88,7 @@ function toLeg(segment: RouteSegment): Leg | null {
       caption: mode,
       startsAt,
       day,
+      arrivalDay,
     };
   }
 
@@ -94,7 +105,18 @@ export function buildTripRoute(segments: RouteSegment[]): RouteStop[] {
   const legs = segments
     .map(toLeg)
     .filter((leg): leg is Leg => leg !== null)
-    .sort((a, b) => a.startsAt - b.startsAt);
+    .sort((a, b) => a.startsAt - b.startsAt)
+    // The same leg twice — two household members' boarding passes for one
+    // flight — would otherwise draw a phantom loop back to its origin.
+    .filter((leg, i, all) => {
+      const prev = all[i - 1];
+      return !(
+        prev &&
+        prev.startsAt === leg.startsAt &&
+        prev.from === leg.from &&
+        prev.to === leg.to
+      );
+    });
 
   const stops: RouteStop[] = [];
   for (const leg of legs) {
@@ -104,7 +126,7 @@ export function buildTripRoute(segments: RouteSegment[]): RouteStop[] {
     } else if (last.label.toLowerCase() !== leg.from.toLowerCase()) {
       stops.push({ label: leg.from, via: 'transfer', viaLabel: null, arrivedOn: leg.day });
     }
-    stops.push({ label: leg.to, via: leg.link, viaLabel: leg.caption, arrivedOn: leg.day });
+    stops.push({ label: leg.to, via: leg.link, viaLabel: leg.caption, arrivedOn: leg.arrivalDay });
   }
   return stops.length >= 2 ? stops : [];
 }

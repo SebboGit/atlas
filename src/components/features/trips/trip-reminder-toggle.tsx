@@ -5,6 +5,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { setTripReminderMuteAction } from '@/lib/notifications/actions';
+import { cn } from '@/lib/utils';
 
 /**
  * Per-user mute for a trip's reminders (ADR-0020). Rendered for every
@@ -16,10 +17,13 @@ export function TripReminderToggle({
   tripId,
   initialMuted,
   className,
+  statusClassName,
 }: {
   tripId: string;
   initialMuted: boolean;
   className?: string;
+  /** Colour for the "Not saved." line — the trip banner passes its inverse accent. */
+  statusClassName?: string;
 }) {
   const [muted, setMuted] = React.useState(initialMuted);
   const [failed, setFailed] = React.useState(false);
@@ -55,7 +59,7 @@ export function TripReminderToggle({
         <Icon className="size-3.5" strokeWidth={1.75} />
         <span>{muted ? 'Reminders muted' : 'Mute reminders'}</span>
       </Button>
-      <span role="status" className="text-destructive text-xs">
+      <span role="status" className={cn('text-destructive text-xs', statusClassName)}>
         {failed ? 'Not saved.' : null}
       </span>
     </span>

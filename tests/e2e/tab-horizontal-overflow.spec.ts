@@ -102,9 +102,9 @@ test.describe('trip tabs — segment cards fit their list at 360px', () => {
 
 /**
  * The largest overlap, in px², between the action cluster and any line of
- * the card's own text (headline, subtitle, body). Zero means the buttons
- * cover nothing — whether they sit beside the text (the left-stub layout
- * from `sm:`) or above it in the phone ticket's strip.
+ * the card's own text — headline, subtitle, body, and the stub's type label
+ * and times. Zero means the buttons cover nothing, whether they sit beside
+ * the text (the left-stub layout from `sm:`) or in the phone ticket's strip.
  */
 async function clusterOverlap(page: Page, segmentId: string): Promise<number> {
   return page.evaluate((id) => {
@@ -112,9 +112,7 @@ async function clusterOverlap(page: Page, segmentId: string): Promise<number> {
     if (!card) throw new Error(`segment card seg-${id} not rendered`);
     const cluster = card.querySelector('.absolute');
     if (!cluster) throw new Error(`seg-${id}: no action cluster`);
-    const texts = Array.from(card.querySelectorAll('h3, p')).filter(
-      (el) => !el.closest('.ticket-stub'),
-    );
+    const texts = Array.from(card.querySelectorAll('h3, p, .ticket-stub > div'));
     if (texts.length === 0) throw new Error(`seg-${id}: no text`);
     const c = cluster.getBoundingClientRect();
     let worst = 0;
@@ -168,6 +166,22 @@ test.describe('segment cards — action cluster clears the text on touch', () =>
       'action cluster overlaps the card text on a touch device',
     ).toBe(0);
   });
+});
+
+// The topbar carries the most chrome from `sm:` up — logo, the route
+// pills, search, the theme toggle, settings and sign-out — and at the
+// bottom of that range (a 640px window, an iPad mini in portrait) a
+// labelled search field and "Sign out" pushed it 197px past the viewport.
+// Pointer emulation on purpose: that is where the bar is widest.
+test.describe('topbar — fits a tablet-width window', () => {
+  for (const width of [640, 768]) {
+    test(`no sideways scroll at ${width}px`, async ({ authedPage }) => {
+      await authedPage.setViewportSize({ width, height: 900 });
+      await authedPage.goto('/trips');
+      await expect(authedPage.getByRole('navigation', { name: 'Main' })).toBeVisible();
+      expect(await pageOverflow(authedPage), 'the topbar scrolls sideways').toBeLessThanOrEqual(0);
+    });
+  }
 });
 
 /**

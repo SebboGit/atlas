@@ -53,7 +53,7 @@ export function WishlistDeleteButton({ itemId, noun = 'item' }: WishlistDeleteBu
           type="button"
           aria-label={`Delete this ${noun}`}
           // currentColor: the card's strip sets it to the type's ink.
-          className="[@media(hover:hover)]:hover:bg-card/60 inline-flex h-11 w-11 items-center justify-center rounded-full text-current transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-current transition-colors [@media(hover:hover)]:h-7 [@media(hover:hover)]:w-7 [@media(hover:hover)]:hover:bg-white/50"
         >
           <Trash2 className="size-3.5" strokeWidth={1.5} aria-hidden />
         </button>

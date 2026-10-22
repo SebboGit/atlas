@@ -44,12 +44,11 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
   // to also remove the documents (rows + files) when destroying a trip.
   const attachedDocumentCount = await documentsRepo.countForTrip(user.id, id);
 
+  // The banner's route diagram, built from the trip's dated segments.
+  const route = buildTripRoute(await segmentsRepo.listForTrip(user.id, id, { scheduled: true }));
+
   // Resolve display names server-side (keeps the ISO_COUNTRIES list off the
   // client bundle) so the filter chips read "United Kingdom", not "GB".
-  // Dated flights and transit only — the banner's route diagram.
-  const routeSegments = await segmentsRepo.listForTrip(user.id, id, { scheduled: true });
-  const route = buildTripRoute(routeSegments);
-
   const countries = countryCodes.map((code) => ({ code, name: countryName(code) ?? code }));
 
   // Every trip tab renders through this layout, so a misconfigured
