@@ -101,26 +101,40 @@ test.describe('trip tabs — segment cards fit their list at 360px', () => {
 });
 
 /**
- * How far a card's text column runs past the left edge of the action
- * cluster. Positive means the buttons sit on top of the text.
+ * The largest overlap, in px², between the action cluster and any line of
+ * the card's own text (headline, subtitle, body). Zero means the buttons
+ * cover nothing — whether they sit beside the text (the left-stub layout
+ * from `sm:`) or above it in the phone ticket's strip.
  */
 async function clusterOverlap(page: Page, segmentId: string): Promise<number> {
   return page.evaluate((id) => {
     const card = document.getElementById(`seg-${id}`);
     if (!card) throw new Error(`segment card seg-${id} not rendered`);
-    const textCol = card.querySelector('.min-w-0.flex-1');
     const cluster = card.querySelector('.absolute');
-    if (!textCol) throw new Error(`seg-${id}: no text column`);
     if (!cluster) throw new Error(`seg-${id}: no action cluster`);
-    return Math.round(textCol.getBoundingClientRect().right - cluster.getBoundingClientRect().left);
+    const texts = Array.from(card.querySelectorAll('h3, p')).filter(
+      (el) => !el.closest('.ticket-stub'),
+    );
+    if (texts.length === 0) throw new Error(`seg-${id}: no text`);
+    const c = cluster.getBoundingClientRect();
+    let worst = 0;
+    for (const el of texts) {
+      for (const r of Array.from(el.getClientRects())) {
+        const w = Math.min(c.right, r.right) - Math.max(c.left, r.left);
+        const h = Math.min(c.bottom, r.bottom) - Math.max(c.top, r.top);
+        if (w > 0 && h > 0) worst = Math.max(worst, Math.round(w * h));
+      }
+    }
+    return worst;
   }, segmentId);
 }
 
 // Regression guard for #123. The action cluster is `size-7` on pointer
 // (88px) but `size-11` on touch to meet the 44px tap-target rule
-// (136px), while the card reserved a flat 112px lane — so on every touch
-// device the buttons sat 35px inside the text column and a long title
-// truncated underneath them. The lane is now measured per input type.
+// (136px), while the card once reserved a flat 112px lane — so on every
+// touch device the buttons sat on top of a long title. On a phone the
+// cluster now sits in the ticket's stub strip above the text; from `sm:`
+// a float sized per input type keeps the text clear.
 //
 // `hasTouch` + `isMobile` is what flips Chromium to `hover: none`, which
 // is the media query both the lane width and the glyph hang off. Without
@@ -152,7 +166,7 @@ test.describe('segment cards — action cluster clears the text on touch', () =>
     expect(
       await clusterOverlap(authedPage, activityId),
       'action cluster overlaps the card text on a touch device',
-    ).toBeLessThanOrEqual(0);
+    ).toBe(0);
   });
 });
 
@@ -310,25 +324,27 @@ test.describe('itinerary continuation — the check-out chip keeps the name', ()
 });
 
 /**
- * Vertical gap between a card's meta block and the bottom of its
- * headline. Negative means the meta still shares the title row.
- *
- * Walks up from the `h3` rather than matching the meta by class: the
- * nearest `.min-w-0.flex-1` ancestor is the text column, and the meta is
- * its next sibling in both layouts — so the measurement says where the
- * block landed without encoding which classes put it there.
+ * Where a card's headline sits relative to its stub at 360px: the stub
+ * (type + time) must end above the headline, and the headline must span
+ * the card's body rather than share a row with the time block.
  */
-async function metaGapBelowHeadline(page: Page, segmentId: string): Promise<number> {
+async function headlineLayout(
+  page: Page,
+  segmentId: string,
+): Promise<{ stubAbove: boolean; widthShare: number }> {
   return page.evaluate((id) => {
     const card = document.getElementById(`seg-${id}`);
     if (!card) throw new Error(`segment card seg-${id} not rendered`);
     const headline = card.querySelector('h3');
     if (!headline) throw new Error(`seg-${id}: no headline`);
-    const textCol = headline.closest('.min-w-0.flex-1');
-    if (!textCol) throw new Error(`seg-${id}: the headline is not inside a text column`);
-    const meta = textCol.nextElementSibling;
-    if (!meta) throw new Error(`seg-${id}: no meta block beside the text column`);
-    return Math.round(meta.getBoundingClientRect().top - headline.getBoundingClientRect().bottom);
+    const stub = card.querySelector('.ticket-stub');
+    if (!stub) throw new Error(`seg-${id}: no ticket stub`);
+    const h = headline.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    return {
+      stubAbove: stub.getBoundingClientRect().bottom <= h.top,
+      widthShare: Math.round((h.width / c.width) * 100),
+    };
   }, segmentId);
 }
 
@@ -348,20 +364,15 @@ function relDay(offset: number, hour = 12): Date {
 }
 
 // Regression guard for #151 C. A transit headline is two station names
-// and an arrow, and below `sm:` the departure/arrival block beside it
-// left the title 65px of a 138px text column — "Kyoto Station →
-// Shin-Osaka Station" wrapped over five lines. The card now passes
-// `stackMetaOnMobile`, which drops the shell's title row to a column so
-// the meta sits under the headline and the title gets the full width.
-//
-// Drop that prop and the shell falls back to its default row layout:
-// the meta returns to the top-right of the title row, its top lands
-// 199px ABOVE the bottom of the five-line headline, and this fails
-// (verified by removing it).
-test.describe('transit cards — the time meta stacks under the headline at 360px', () => {
+// and an arrow, and below `sm:` a departure/arrival block beside it left
+// the title 65px of a 138px text column — "Kyoto Station → Shin-Osaka
+// Station" wrapped over five lines. On a phone the ticket's stub (type and
+// times) is a strip across the top, so the headline below it gets the
+// card's full width.
+test.describe('transit cards — the headline gets the full width at 360px', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: PHONE });
 
-  test('the departure and arrival times sit below the station headline', async ({
+  test('the departure and arrival times sit above the station headline', async ({
     authedPage,
     authedUser,
   }) => {
@@ -392,9 +403,10 @@ test.describe('transit cards — the time meta stacks under the headline at 360p
     // also waits out hydration before anything is measured.
     await expect(authedPage.getByRole('button', { name: 'View transit details' })).toBeVisible();
 
-    expect(
-      await metaGapBelowHeadline(authedPage, transitId),
-      'the transit time meta still shares the row with the headline at 360px',
-    ).toBeGreaterThanOrEqual(0);
+    const layout = await headlineLayout(authedPage, transitId);
+    expect(layout.stubAbove, 'the transit stub shares a row with the headline at 360px').toBe(true);
+    // The body's side padding is the only thing between the headline and
+    // the card edge: well over 80% of the card at 360px.
+    expect(layout.widthShare, 'the transit headline is squeezed at 360px').toBeGreaterThan(80);
   });
 });
