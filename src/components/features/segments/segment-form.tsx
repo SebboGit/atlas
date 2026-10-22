@@ -28,6 +28,7 @@ import { HotelFields } from './segment-form-fields/hotel-fields';
 import { NoteFields } from './segment-form-fields/note-fields';
 import { NoteDateField, SharedDateFields } from './segment-form-fields/shared-date-fields';
 import { TransitFields } from './segment-form-fields/transit-fields';
+import { SEGMENT_TONE } from './segment-tone';
 
 const TYPE_LABELS: Record<SegmentType, string> = {
   flight: 'Flight',
@@ -228,15 +229,14 @@ export function SegmentForm({
                       'inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium tracking-tight transition-[background-color,border-color,color] duration-150',
                       'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
                       '[&_svg]:size-4 [&_svg]:shrink-0',
+                      // The chosen type takes its segment tone — the colour
+                      // its ticket stub will carry.
                       selected
-                        ? 'border-primary/55 bg-primary/8 text-coral-ink'
-                        : 'border-foreground/15 bg-card/60 text-foreground/70 hover:border-foreground/30 hover:text-foreground',
+                        ? cn('border-transparent font-semibold', SEGMENT_TONE[t])
+                        : 'border-border bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground',
                     )}
                   >
-                    <Glyph
-                      strokeWidth={1.5}
-                      className={selected ? 'text-coral-ink' : 'text-foreground/55'}
-                    />
+                    <Glyph strokeWidth={selected ? 2 : 1.5} />
                     {TYPE_LABELS[t]}
                   </button>
                 );
