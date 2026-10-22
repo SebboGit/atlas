@@ -24,7 +24,7 @@ export const TRANSIT_LINE_LAYER_ID = 'trip-transit-line';
 export const ARC_ENDPOINTS_SOURCE_ID = 'trip-arc-endpoints';
 export const ARC_ENDPOINTS_LAYER_ID = 'trip-arc-endpoints-dots';
 
-const IVORY = 'rgba(255, 253, 248, 0.9)';
+const IVORY = 'rgba(255, 255, 255, 0.9)';
 // Opacity that drops to `dimmed` while the dim effect has set the
 // feature's `dimmed` state (country filter or timeline highlight).
 function dimmable(dimmed: number, normal: number): ExpressionSpecification {

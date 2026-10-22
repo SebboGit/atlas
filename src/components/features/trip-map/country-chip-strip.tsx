@@ -89,10 +89,10 @@ function Chip({
       // Tablet-sized touch devices (768–1024 px) hit `sm:` but are
       // still touch-input, so we don't shrink the target at `sm:`.
       className={cn(
-        'inline-flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+        'inline-flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors',
         active
-          ? 'bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-3px_rgba(155,74,38,0.5)]'
-          : 'border-foreground/12 bg-card/60 text-foreground/75 hover:border-foreground/25 hover:text-foreground hover:bg-card/85',
+          ? 'bg-foreground text-background border-foreground'
+          : 'border-border bg-card text-muted-foreground hover:text-foreground',
       )}
       aria-current={active ? 'true' : undefined}
     >

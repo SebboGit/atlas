@@ -3,6 +3,7 @@
 import { Bed, ChevronUp, Plane, Star, Train, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { SEGMENT_TONE } from '@/components/features/segments/segment-tone';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { TripMapArc, TripMapPinKind } from '@/lib/trip-map/repo';
 import { cn } from '@/lib/utils';
@@ -107,17 +108,15 @@ export function PinLegendChip({ kinds, routeKinds = NO_ROUTES }: PinLegendChipPr
   );
 }
 
-// The pin glyph rendered at chip/legend scale. Echoes PinMarker's
-// fill discipline: food rides the sage `accent`, every other kind the
-// terracotta `primary`.
+// The pin glyph rendered at chip/legend scale, in the kind's segment tone
+// like PinMarker.
 function LegendSwatch({ kind, size }: { kind: TripMapPinKind; size: 'xs' | 'md' }) {
   const Icon = ICON_BY_KIND[kind];
-  const isFood = kind === 'food';
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full border border-white/90 shadow-sm',
-        isFood ? 'bg-accent text-accent-foreground' : 'bg-primary text-primary-foreground',
+        'inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#15161a]',
+        SEGMENT_TONE[kind],
         size === 'xs' ? 'h-4 w-4' : 'h-6 w-6',
       )}
     >
@@ -149,7 +148,7 @@ function RouteSwatch({ style }: { style: RouteStyle }) {
             y1="4"
             x2="22"
             y2="4"
-            stroke="rgba(255, 253, 248, 0.9)"
+            stroke="rgba(255, 255, 255, 0.9)"
             strokeWidth="4"
             strokeLinecap="round"
           />

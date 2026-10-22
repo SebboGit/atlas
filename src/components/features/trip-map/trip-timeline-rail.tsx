@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 
+import { SEGMENT_TONE } from '@/components/features/segments/segment-tone';
 import { splitCollapsedDays } from '@/components/features/segments/day-temporal';
 import { useItineraryCollapse } from '@/components/features/segments/use-itinerary-collapse';
 import { parseDateString } from '@/components/ui/date-picker';
@@ -99,9 +100,8 @@ function SegmentRailRow({
         aria-hidden
         className={cn(
           'mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full border',
-          item.icon === 'food'
-            ? 'border-accent/30 bg-accent/10 text-accent'
-            : 'border-primary/25 bg-primary/8 text-coral-ink',
+          'border-transparent',
+          SEGMENT_TONE[item.icon],
           // A continuation is a quiet backdrop, not a fresh event — mute
           // its glyph regardless of type.
           continuation && 'border-foreground/15 bg-foreground/5 text-foreground/45',

@@ -174,7 +174,7 @@ function TimelineSheet(railProps: TripTimelineRailProps) {
           style={{ height: '100svh' }}
           className={cn(
             'border-foreground/12 bg-card/95 fixed inset-x-0 bottom-0 z-30 flex flex-col',
-            'rounded-t-2xl border-t shadow-[0_-12px_40px_-24px_rgba(60,40,20,0.4)] backdrop-blur-md',
+            'rounded-t-2xl border-t shadow-[0_-12px_40px_-24px_rgba(21,22,26,0.4)] backdrop-blur-md',
             'outline-none',
           )}
         >

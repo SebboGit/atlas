@@ -7,11 +7,13 @@ import { useMounted } from '@/components/client-only';
 import type { LinkedDocument } from '@/lib/documents';
 import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
 import type { Segment } from '@/lib/segments';
+import { cn } from '@/lib/utils';
 
 import { ScheduleSegmentDialog } from './schedule-segment-dialog';
 import { SegmentDeleteButton } from './segment-delete-button';
 import { SegmentFormDialog } from './segment-form-dialog';
 import { SegmentInfoDialog } from './segment-info-dialog';
+import { SEGMENT_INK_PHONE } from './segment-tone';
 
 interface SegmentRowSurfaceProps {
   segment: Segment;
@@ -73,7 +75,12 @@ export function SegmentRowSurface({
         entirely. Each Radix Dialog sibling carries an explicit `key` so
         React's reconciliation never pairs the wrong siblings across renders.
       */}
-      <div className="absolute top-3 right-3 flex items-center gap-0.5">
+      <div
+        className={cn(
+          'text-foreground absolute top-3 right-3 flex items-center gap-0.5',
+          SEGMENT_INK_PHONE[segment.type],
+        )}
+      >
         {showScheduleAction && (segment.type === 'activity' || segment.type === 'food') && (
           <ScheduleSegmentDialog
             key="schedule"
@@ -88,7 +95,7 @@ export function SegmentRowSurface({
                 aria-label={`${segment.startsAt ? 'Reschedule' : 'Schedule'} ${segment.type}`}
                 // 44px touch hit-area; the glyph is unboxed, so the larger
                 // target stays invisible. Shrinks to 28px on pointer devices.
-                className="text-foreground/40 [@media(hover:hover)]:hover:text-foreground/85 inline-flex size-11 items-center justify-center rounded-full transition-colors [@media(hover:hover)]:size-7"
+                className="inline-flex size-11 items-center justify-center rounded-full text-current opacity-70 transition-opacity [@media(hover:hover)]:size-7 [@media(hover:hover)]:hover:opacity-100"
               >
                 <CalendarClock className="size-3.5" strokeWidth={1.5} />
               </button>
@@ -112,7 +119,7 @@ export function SegmentRowSurface({
               // pointer.
               className="group/edit inline-flex size-11 items-center justify-center [@media(hover:hover)]:size-7"
             >
-              <span className="border-foreground/15 bg-card/70 text-foreground/70 [@media(hover:hover)]:group-hover/edit:bg-card [@media(hover:hover)]:group-hover/edit:text-foreground [@media(hover:hover)]:group-hover/edit:border-foreground/30 inline-flex size-7 items-center justify-center rounded-full border transition-colors">
+              <span className="border-border bg-card text-foreground/80 [@media(hover:hover)]:group-hover/edit:text-foreground [@media(hover:hover)]:group-hover/edit:border-foreground/30 inline-flex size-7 items-center justify-center rounded-full border transition-colors">
                 <Pencil className="size-3.5" strokeWidth={1.75} />
               </span>
             </button>

@@ -111,7 +111,7 @@ export function WishlistInfoDialog({
           // causes no shift.
           'group rounded-2xl outline-none',
           'cursor-pointer transition-[transform,box-shadow] duration-200',
-          '[@media(hover:hover)]:hover:-translate-y-px [@media(hover:hover)]:hover:shadow-[0_28px_60px_-30px_rgba(60,40,20,0.32)]',
+          '[@media(hover:hover)]:hover:-translate-y-px [@media(hover:hover)]:hover:shadow-[0_28px_60px_-30px_rgba(21,22,26,0.32)]',
           'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2',
           className,
         )}

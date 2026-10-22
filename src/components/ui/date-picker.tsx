@@ -118,7 +118,7 @@ export function DatePicker({
               'hidden [@media(pointer:fine)]:flex',
               // Match Input visuals so the form reads as one consistent surface.
               'border-foreground/15 bg-card/70 h-11 w-full items-center justify-between rounded-xl border px-4 text-[15px]',
-              'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(60,40,20,0.04)] backdrop-blur-sm',
+              'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(21,22,26,0.04)] backdrop-blur-sm',
               'transition-[border-color,box-shadow] duration-200',
               'hover:border-foreground/30',
               'focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_rgb(255_107_74/0.25)] focus-visible:outline-none',

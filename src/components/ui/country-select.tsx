@@ -143,7 +143,7 @@ export function CountrySelect({
             // form row without standing out.
             'border-foreground/15 bg-card/70 text-foreground',
             'flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-4 py-2 text-[15px]',
-            'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(60,40,20,0.04)] backdrop-blur-sm',
+            'shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_1px_2px_rgba(21,22,26,0.04)] backdrop-blur-sm',
             'transition-[border-color,box-shadow] duration-200',
             'focus-visible:outline-none',
             'focus-visible:border-primary/55 focus-visible:shadow-[0_0_0_3px_rgb(255_107_74/0.25)]',
