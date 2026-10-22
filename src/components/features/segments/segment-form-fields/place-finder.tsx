@@ -359,13 +359,13 @@ function CandidateRow({ candidate, onPick }: { candidate: GeocodeCandidate; onPi
         // Hover affordance gated to pointer devices so a tap on touch
         // (which picks + closes) doesn't leave a sticky hover state.
         'border-foreground/12 bg-card/60 [@media(hover:hover)]:hover:bg-card [@media(hover:hover)]:hover:border-foreground/25',
-        'focus-visible:ring-primary/40 focus-visible:ring-offset-background flex w-full',
+        'focus-visible:ring-ring focus-visible:ring-offset-background flex w-full',
         'min-h-11 flex-col gap-1 rounded-xl border px-4 py-3 text-left transition-colors',
         'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
       )}
     >
       <span className="flex items-start gap-2">
-        <MapPin aria-hidden className="text-primary mt-0.5 size-4 shrink-0" />
+        <MapPin aria-hidden className="text-coral-ink mt-0.5 size-4 shrink-0" />
         <span className="text-foreground text-sm leading-snug font-medium">{candidate.name}</span>
       </span>
       <span className="text-muted-foreground pl-6 text-xs leading-snug break-words">

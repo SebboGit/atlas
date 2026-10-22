@@ -127,7 +127,7 @@ export function DeleteTripDialog({
           <label className="border-foreground/12 bg-card/60 flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-[0_1px_0_rgba(255,255,255,0.7)_inset]">
             <input
               type="checkbox"
-              className="border-foreground/30 text-primary focus-visible:ring-primary/40 focus-visible:ring-offset-background mt-0.5 size-4 shrink-0 rounded border bg-transparent transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+              className="border-foreground/30 text-coral-ink focus-visible:ring-ring focus-visible:ring-offset-background mt-0.5 size-4 shrink-0 rounded border bg-transparent transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
               checked={deleteDocs}
               onChange={(e) => setDeleteDocs(e.target.checked)}
               disabled={pending}

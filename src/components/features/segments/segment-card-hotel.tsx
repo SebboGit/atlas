@@ -48,10 +48,13 @@ export function SegmentCardHotel({
     venue: propertyName,
   });
 
+  // On the stub's tone fill — inherits the tone ink.
   const meta = checkInTime ? (
-    <div className="text-foreground/75 font-mono text-sm leading-tight tracking-wider">
-      <div className="text-foreground/45 text-[10px] tracking-[0.2em] uppercase">Check-in</div>
-      <div className="mt-1">{checkInTime}</div>
+    <div className="flex items-baseline gap-2 leading-tight sm:block">
+      <div className="font-display text-lg sm:text-xl">{checkInTime}</div>
+      <div className="font-mono text-[10px] tracking-[0.08em] uppercase opacity-75 sm:mt-1">
+        Check-in
+      </div>
     </div>
   ) : null;
 

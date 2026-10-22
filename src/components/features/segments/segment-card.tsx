@@ -70,6 +70,6 @@ export function SegmentCard({
         />
       );
     case 'note':
-      return <SegmentCardNote segment={segment} />;
+      return <SegmentCardNote segment={segment} showDate={showDate} />;
   }
 }

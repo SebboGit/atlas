@@ -111,7 +111,7 @@ export function Topbar() {
                         aria-hidden
                         className={cn(
                           'size-[18px] shrink-0',
-                          active ? 'text-primary' : 'text-foreground/45',
+                          active ? 'text-coral-ink' : 'text-foreground/45',
                         )}
                         strokeWidth={1.75}
                       />
@@ -137,7 +137,9 @@ export function Topbar() {
                     aria-hidden
                     className={cn(
                       'size-[18px] shrink-0',
-                      isActiveRoute(pathname, '/settings') ? 'text-primary' : 'text-foreground/45',
+                      isActiveRoute(pathname, '/settings')
+                        ? 'text-coral-ink'
+                        : 'text-foreground/45',
                     )}
                     strokeWidth={1.75}
                   />

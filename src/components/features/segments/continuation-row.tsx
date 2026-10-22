@@ -38,7 +38,7 @@ function renderIcon(segment: Segment) {
     const parsed = transitDataSchema.safeParse(segment.data);
     if (parsed.success) Icon = TRANSIT_MODE_ICON[parsed.data.mode] ?? TYPE_ICON.transit;
   }
-  return <Icon aria-hidden strokeWidth={1.5} className="size-3.5 shrink-0" />;
+  return <Icon aria-hidden strokeWidth={2} className="size-4 shrink-0" />;
 }
 
 // "28 May" — the check-in date a continuing stay began on. Read in UTC
@@ -106,9 +106,9 @@ function ContinuationRow({
       aria-label={label}
       onClick={onActivate}
       className={cn(
-        'group flex min-h-[44px] items-center gap-2.5 rounded-lg px-2 py-1.5 text-left',
-        'text-accent/90 [@media(hover:hover)]:hover:text-accent transition-colors',
-        '[@media(hover:hover)]:hover:bg-accent/5',
+        'group flex min-h-[44px] items-center gap-2.5 px-4 py-2 text-left sm:px-5',
+        'text-muted-foreground [@media(hover:hover)]:hover:text-foreground transition-colors',
+        '[@media(hover:hover)]:hover:bg-muted',
       )}
     >
       {renderIcon(segment)}
@@ -132,7 +132,7 @@ function ContinuationRow({
       <span
         aria-hidden
         className={cn(
-          'border-accent/45 text-accent shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.18em] uppercase',
+          'bg-muted text-foreground/80 shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] tracking-[0.06em] uppercase',
           checkOutTime && 'hidden sm:inline',
         )}
       >
@@ -141,7 +141,10 @@ function ContinuationRow({
       {since && (
         <span
           aria-hidden
-          className="text-accent shrink-0 font-mono text-[10px] tracking-[0.12em] whitespace-nowrap"
+          className={cn(
+            'shrink-0 font-mono text-[11px] whitespace-nowrap',
+            checkOutTime && 'hidden sm:inline',
+          )}
         >
           since {since}
         </span>
@@ -153,7 +156,7 @@ function ContinuationRow({
       {checkOutTime && (
         <span
           aria-hidden
-          className="bg-accent text-accent-foreground shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.08em] whitespace-nowrap"
+          className="bg-primary text-primary-foreground shrink-0 rounded-full px-2 py-0.5 font-mono text-[11px] font-medium whitespace-nowrap"
         >
           Check Out {checkOutTime}
         </span>
@@ -181,7 +184,7 @@ export function DayContinuations({
 }) {
   if (continuations.length === 0) return null;
   return (
-    <div className="mb-3 space-y-0.5 sm:mb-4">
+    <div className="divide-border divide-y">
       {continuations.map((seg) => (
         <ContinuationRow
           key={seg.id}

@@ -260,11 +260,11 @@ function Option({
       className={cn(
         'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors',
         highlighted ? 'bg-foreground/8' : 'hover:bg-foreground/5',
-        selected && 'text-primary',
+        selected && 'text-coral-ink',
       )}
     >
       {children}
-      {selected && <Check className="text-primary ml-auto size-3.5 shrink-0" strokeWidth={2} />}
+      {selected && <Check className="text-coral-ink ml-auto size-3.5 shrink-0" strokeWidth={2} />}
     </button>
   );
 }

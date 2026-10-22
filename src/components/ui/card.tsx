@@ -8,12 +8,11 @@ const cardVariants = tv({
   variants: {
     variant: {
       // Solid surface for in-app dense UI (lists, forms).
-      default: 'border-border/80 bg-card shadow-sm shadow-black/[0.03]',
-      // Frosted-glass surface — warm cream tint, softly lit.
-      glass: 'border-foreground/10 bg-card/65 shadow-[var(--shadow-lifted)] backdrop-blur-2xl',
-      // Paper surface — for content blocks that should feel like
-      // a page from a notebook: warmer fill, hairline border, ruled edge.
-      paper: 'border-foreground/15 bg-card/85 shadow-[var(--shadow-paper)]',
+      default: 'border-border bg-card',
+      // Floating surface — the same card, lifted (sign-in, overlays).
+      glass: 'border-border bg-card shadow-[var(--shadow-lifted)]',
+      // Content surface — the everyday white card on the grey ground.
+      paper: 'border-border bg-card shadow-[var(--shadow-paper)]',
     },
   },
   defaultVariants: {

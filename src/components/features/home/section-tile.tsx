@@ -19,7 +19,7 @@ export function SectionTile({
   return (
     <Link
       href={href}
-      className="atlas-rise group focus-visible:ring-primary/40 focus-visible:ring-offset-background block focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="atlas-rise group focus-visible:ring-ring focus-visible:ring-offset-background block focus-visible:rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       style={delay ? { animationDelay: delay } : undefined}
     >
       <Card
@@ -28,7 +28,7 @@ export function SectionTile({
       >
         <span
           aria-hidden
-          className="border-primary/40 text-primary/80 absolute top-4 right-4 hidden h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] sm:inline-flex"
+          className="border-primary/40 text-coral-ink/80 absolute top-4 right-4 hidden h-7 w-7 items-center justify-center rounded-full border font-mono text-[10px] sm:inline-flex"
         >
           {index}
         </span>

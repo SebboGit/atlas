@@ -51,7 +51,7 @@ export function DocumentCard({ document, tripId }: DocumentCardProps) {
                   href={`/api/documents/${document.id}?disposition=inline`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-display text-foreground hover:text-primary truncate text-[17px] leading-tight font-medium tracking-tight transition-colors"
+                  className="font-display text-foreground hover:text-coral-ink truncate text-[17px] leading-tight font-medium tracking-tight transition-colors"
                   title={displayName}
                 >
                   {displayName}

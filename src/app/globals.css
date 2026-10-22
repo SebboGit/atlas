@@ -39,7 +39,12 @@
   --color-destructive: #c4281c;
   --color-destructive-foreground: #ffffff;
 
-  --color-ring: #ff6b4a;
+  /* Focus rings use ink: coral on white is under the 3:1 non-text minimum. */
+  --color-ring: #15161a;
+
+  /* Coral for TEXT and icons on light surfaces — the fill coral is 2.9:1 on
+   * white, this deeper shade clears 4.5:1. Dark mode uses a lighter coral. */
+  --color-coral-ink: #c2391b;
 
   /* Inverse surface — the "now / next" hero. Dark in light mode, light in dark. */
   --color-inverse: #15161a;
@@ -94,6 +99,8 @@
   --color-accent-foreground: #15161a;
   --color-destructive: #ff5c4d;
   --color-destructive-foreground: #15161a;
+  --color-ring: #f2f3f5;
+  --color-coral-ink: #ff8a70;
   --color-inverse: #f2f3f5;
   --color-inverse-foreground: #15161a;
   --color-inverse-muted: #4a4f59;
@@ -119,6 +126,8 @@
     --color-accent-foreground: #15161a;
     --color-destructive: #ff5c4d;
     --color-destructive-foreground: #15161a;
+    --color-ring: #f2f3f5;
+    --color-coral-ink: #ff8a70;
     --color-inverse: #f2f3f5;
     --color-inverse-foreground: #15161a;
     --color-inverse-muted: #4a4f59;
@@ -210,34 +219,21 @@ body {
 
 /*
  * Ticket — the one recurring motif. A stub (segment tone) joined to its body
- * by a dashed perforation, with two notches punched out of the ground colour.
- * `.ticket-stub` sits on the left; `.ticket-stub-top` is the header-strip
- * variant used on wishlist cards.
+ * by a dashed perforation, with two notches punched out of the ground colour
+ * (`--ticket-notch`, transparent where tickets sit edge to edge in a day card).
+ *
+ * `.ticket-stub` adapts: below 640px it is a strip across the top of the
+ * ticket (the body below gets the full phone width, and the edit/delete
+ * cluster sits in the strip); from 640px it is the column on the left.
+ * `.ticket-stub-top` is the always-on-top variant (wishlist cards).
  */
-.ticket-stub {
-  position: relative;
-  border-right: 2px dashed var(--color-perforation);
-}
-.ticket-stub::before,
-.ticket-stub::after {
-  content: '';
-  position: absolute;
-  right: -9px;
-  width: 16px;
-  height: 16px;
-  border-radius: 9999px;
-  background: var(--ticket-notch, var(--color-background));
-}
-.ticket-stub::before {
-  top: -8px;
-}
-.ticket-stub::after {
-  bottom: -8px;
-}
+.ticket-stub,
 .ticket-stub-top {
   position: relative;
   border-bottom: 2px dashed var(--color-perforation);
 }
+.ticket-stub::before,
+.ticket-stub::after,
 .ticket-stub-top::before,
 .ticket-stub-top::after {
   content: '';
@@ -248,11 +244,31 @@ body {
   border-radius: 9999px;
   background: var(--ticket-notch, var(--color-background));
 }
+.ticket-stub::before,
 .ticket-stub-top::before {
   left: -8px;
 }
+.ticket-stub::after,
 .ticket-stub-top::after {
   right: -8px;
+}
+@media (min-width: 640px) {
+  .ticket-stub {
+    border-bottom: 0;
+    border-right: 2px dashed var(--color-perforation);
+  }
+  .ticket-stub::before,
+  .ticket-stub::after {
+    left: auto;
+    right: -9px;
+    bottom: auto;
+  }
+  .ticket-stub::before {
+    top: -8px;
+  }
+  .ticket-stub::after {
+    bottom: -8px;
+  }
 }
 
 /*

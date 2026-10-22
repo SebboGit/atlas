@@ -72,7 +72,7 @@ const SheetContent = React.forwardRef<
           // so the close affordance is always reached by touch.
           'absolute top-3 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full',
           'border-foreground/15 text-foreground/70 hover:bg-foreground/8 border transition-colors',
-          'focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:ring-offset-2',
+          'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2',
           'focus-visible:ring-offset-background focus-visible:outline-none',
         )}
       >

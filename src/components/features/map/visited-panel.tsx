@@ -80,7 +80,7 @@ export function VisitedPanel({ codes }: VisitedPanelProps) {
           <ChevronUp
             aria-hidden
             className={cn(
-              'text-primary h-3.5 w-3.5 transition-transform duration-150',
+              'text-coral-ink h-3.5 w-3.5 transition-transform duration-150',
               open && 'rotate-180',
             )}
             strokeWidth={2.25}

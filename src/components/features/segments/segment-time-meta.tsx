@@ -41,22 +41,31 @@ export function SegmentTimeMeta({ startsAt, endsAt, showDate = false }: SegmentT
   const timed = hasTimeComponent(startsAt);
   if (!showDate && !timed) return null;
 
+  // Rendered on a ticket stub: colours come from the inherited tone ink,
+  // varied only by opacity.
   return (
-    <div className="text-foreground/75 font-mono text-[11px] leading-tight tracking-wider">
+    // One line in the phone strip, stacked in the laptop stub column.
+    <div className="flex flex-wrap items-baseline gap-x-2 leading-tight sm:block">
       {showDate && (
         <div
           className={
             timed
-              ? 'text-foreground/55 mb-1 text-[10px] tracking-[0.2em] uppercase'
-              : 'tracking-[0.2em] uppercase'
+              ? 'font-mono text-[10px] tracking-[0.08em] uppercase opacity-75 sm:mb-1'
+              : 'font-mono text-[11px] font-medium tracking-[0.08em] uppercase'
           }
         >
           {DAY_FMT.format(startsAt)}
         </div>
       )}
-      {timed && <div>{formatTime(startsAt, { timeZone: 'UTC' })}</div>}
+      {timed && (
+        <div className="font-display text-lg sm:text-xl">
+          {formatTime(startsAt, { timeZone: 'UTC' })}
+        </div>
+      )}
       {timed && endsAt && hasTimeComponent(endsAt) && (
-        <div className="text-foreground/45 mt-0.5">→ {formatTime(endsAt, { timeZone: 'UTC' })}</div>
+        <div className="font-mono text-xs opacity-80 sm:mt-1">
+          → {formatTime(endsAt, { timeZone: 'UTC' })}
+        </div>
       )}
     </div>
   );

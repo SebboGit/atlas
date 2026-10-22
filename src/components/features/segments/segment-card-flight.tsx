@@ -105,47 +105,26 @@ export function SegmentCardFlight({
   const overnight =
     segment.startsAt && segment.endsAt && utcDay(segment.startsAt) !== utcDay(segment.endsAt);
 
+  // Sits on the stub's tone fill: colours come from the inherited tone ink,
+  // varied only by opacity.
   const meta =
     depart || arrive ? (
-      <div className="text-foreground/75 font-mono text-base leading-tight tracking-wider">
-        {/* whitespace-nowrap on each time row keeps "12:30 UTC" together
-            — without it the zone label can break onto its own line on
-            narrow viewports, which reads as the time and zone being
-            unrelated. */}
-        <div className="whitespace-nowrap">
-          {depart ? (
-            <>
-              {depart.time}
-              {depart.zone && (
-                <span className="text-foreground/40 ml-1 text-[10px] tracking-normal">
-                  {depart.zone}
-                </span>
-              )}
-            </>
-          ) : (
-            '—'
+      // One line in the phone strip, stacked in the laptop stub column.
+      // whitespace-nowrap keeps "12:30 BST" together — a zone label on its
+      // own line reads as unrelated to the time.
+      <div className="flex flex-wrap items-baseline gap-x-2 leading-tight sm:block">
+        <div className="font-display text-lg whitespace-nowrap sm:text-xl">
+          {depart ? depart.time : '—'}
+          {depart?.zone && (
+            <span className="ml-1 font-mono text-[10px] font-normal tracking-normal opacity-75">
+              {depart.zone}
+            </span>
           )}
         </div>
-        <div className="text-foreground/45 mt-1 flex items-baseline gap-1">
-          <span>→</span>
-          {arrive ? (
-            <span className="whitespace-nowrap">
-              {arrive.time}
-              {overnight && <sup className="ml-0.5 text-[10px]">+1</sup>}
-              {arrive.zone &&
-                (overnight ? (
-                  <span className="text-foreground/40 mt-0.5 block text-[10px] tracking-normal">
-                    {arrive.zone}
-                  </span>
-                ) : (
-                  <span className="text-foreground/40 ml-1 text-[10px] tracking-normal">
-                    {arrive.zone}
-                  </span>
-                ))}
-            </span>
-          ) : (
-            <span>—</span>
-          )}
+        <div className="font-mono text-xs whitespace-nowrap opacity-80 sm:mt-1">
+          → {arrive ? arrive.time : '—'}
+          {arrive && overnight && <sup className="ml-0.5 text-[9px]">+1</sup>}
+          {arrive?.zone && <span className="ml-1 text-[10px]">{arrive.zone}</span>}
         </div>
       </div>
     ) : null;
@@ -162,12 +141,6 @@ export function SegmentCardFlight({
         linkedDocuments.length > 0 ? <LinkedDocumentChips documents={linkedDocuments} /> : undefined
       }
       needsReview={segment.needsReview}
-      // Flights' meta is a two-line stacked time block — at 360px it
-      // ran flush against the "JFK → LAX" headline. Stacking the meta
-      // beneath the subtitle on mobile gives both elements room to
-      // breathe; sm:+ reverts to the side-by-side layout shared with
-      // the other segment variants.
-      stackMetaOnMobile
     />
   );
 }

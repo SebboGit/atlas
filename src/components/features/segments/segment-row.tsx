@@ -52,17 +52,19 @@ export function SegmentRow({
     // browser scrolls to the anchor. The flash animation hooks via the
     // data-seg-flash attribute set by use-segment-scroll-flash.
     //
-    // `--segment-action-lane` tells SegmentCardShell how wide the touch
-    // action cluster is, so the card reserves only what this row needs:
+    // `--segment-action-lane` tells SegmentCardShell how far the touch
+    // action cluster reaches, so the card reserves only what this row needs:
     // 44px buttons with a 2px gap plus the 12px `right-3` inset come to
-    // 102px for edit + delete and 148px with reschedule. A flat 152px
-    // lane left every two-button card 50px of blank space beside its
-    // title, which a two-station transit headline couldn't spare.
+    // 102px for edit + delete and 148px with reschedule.
+    // `--segment-action-row` is the same cluster on pointer devices, where
+    // it is a row of 28px buttons.
     <div
       id={`seg-${segment.id}`}
       className={cn(
         'relative scroll-mt-24',
-        scheduleAction ? '[--segment-action-lane:9.5rem]' : '[--segment-action-lane:6.75rem]',
+        scheduleAction
+          ? '[--segment-action-lane:9.5rem] [--segment-action-row:5.5rem]'
+          : '[--segment-action-lane:6.75rem] [--segment-action-row:3.75rem]',
       )}
     >
       <SegmentRowSurface

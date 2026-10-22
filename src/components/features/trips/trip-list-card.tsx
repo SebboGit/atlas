@@ -11,7 +11,7 @@ import { TripStatusBadge } from './trip-status-badge';
 // element coloured by the matching status text utility.
 const STATUS_DOT_COLOR: Record<TripStatus, string> = {
   planned: 'text-foreground/65',
-  active: 'text-primary',
+  active: 'text-coral-ink',
   completed: 'text-accent',
   archived: 'text-foreground/45',
 };
@@ -28,7 +28,7 @@ export function TripListCard({ trip, index }: { trip: Trip; index: number }) {
   return (
     <Link
       href={{ pathname: `/trips/${trip.id}` }}
-      className="atlas-rise group focus-visible:ring-primary/40 focus-visible:ring-offset-background block rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="atlas-rise group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       {/* Phone: stacked row. Date eyebrow on top, title beneath — the title
        *  wraps to as many lines as it needs rather than truncating, so a

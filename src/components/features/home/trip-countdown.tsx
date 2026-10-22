@@ -62,7 +62,7 @@ export function TripCountdown({ status, startYmd }: { status: string; startYmd: 
       <span
         className={
           'font-display leading-none font-medium ' +
-          (ready ? 'text-primary ' : 'text-primary/20 ') +
+          (ready ? 'text-coral-ink ' : 'text-coral-ink/20 ') +
           (large ? 'text-5xl sm:text-6xl' : 'text-3xl sm:text-4xl')
         }
       >
