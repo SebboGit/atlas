@@ -37,7 +37,7 @@ const LINE_LAYER_ID = 'country-line';
 // Ocean / map canvas. Light enough to feel like sea on paper.
 const OCEAN = '#eaeef2';
 // Terracotta fallback if `--color-primary` isn't readable from CSS yet.
-const PRIMARY_FALLBACK = '#9b4a26';
+const PRIMARY_FALLBACK = '#ff6b4a';
 
 function readCssColor(varName: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback;
@@ -125,8 +125,8 @@ export function WorldMap({ visited }: WorldMapProps) {
       );
 
       const primary = readCssColor('--color-primary', PRIMARY_FALLBACK);
-      const borderInk = 'rgba(28, 22, 14, 0.35)';
-      const unvisitedFill = 'rgba(28, 22, 14, 0.06)';
+      const borderInk = 'rgba(21, 22, 26, 0.35)';
+      const unvisitedFill = 'rgba(21, 22, 26, 0.06)';
 
       map.addSource(SOURCE_ID, { type: 'geojson', data: GEOJSON_URL, promoteId: 'iso_a2' });
 
@@ -249,7 +249,7 @@ export function WorldMap({ visited }: WorldMapProps) {
     <div className="relative w-full">
       <div
         ref={containerRef}
-        className="border-foreground/10 bg-card/65 w-full overflow-hidden rounded-2xl border shadow-[0_18px_40px_-28px_rgba(60,40,20,0.25)]"
+        className="border-foreground/10 bg-card/65 w-full overflow-hidden rounded-2xl border shadow-[0_18px_40px_-28px_rgba(21,22,26,0.25)]"
         // Reserve ~320px below the map for: 64px sticky topbar + the
         // /map page chrome above + the attribution line below + a
         // comfortable bottom gap. svh (not dvh) is intentional: dvh
@@ -315,7 +315,7 @@ function MapTooltip({
       role="tooltip"
       className={cn(
         'pointer-events-none absolute z-10 max-w-[14rem] rounded-lg border px-3 py-2',
-        'border-foreground/15 bg-card/95 shadow-[0_10px_24px_-12px_rgba(60,40,20,0.35)] backdrop-blur-sm',
+        'border-foreground/15 bg-card/95 shadow-[0_10px_24px_-12px_rgba(21,22,26,0.35)] backdrop-blur-sm',
       )}
       style={{
         left: x,
