@@ -8,6 +8,7 @@ import { getTripReminderState } from '@/lib/notifications/repo';
 import { getUploadMaxBytesOrFallback } from '@/lib/documents/upload-limit';
 import * as segmentsRepo from '@/lib/segments/repo';
 import * as tripsRepo from '@/lib/trips/repo';
+import { buildTripRoute } from '@/lib/trips/route';
 
 import { TripChrome } from './trip-chrome';
 
@@ -45,6 +46,10 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
 
   // Resolve display names server-side (keeps the ISO_COUNTRIES list off the
   // client bundle) so the filter chips read "United Kingdom", not "GB".
+  // Dated flights and transit only — the banner's route diagram.
+  const routeSegments = await segmentsRepo.listForTrip(user.id, id, { scheduled: true });
+  const route = buildTripRoute(routeSegments);
+
   const countries = countryCodes.map((code) => ({ code, name: countryName(code) ?? code }));
 
   // Every trip tab renders through this layout, so a misconfigured
@@ -67,6 +72,7 @@ export default async function TripLayout({ children, params }: TripLayoutProps) 
       attachedDocumentCount={attachedDocumentCount}
       uploadMaxBytes={uploadMaxBytes}
       reminders={reminders}
+      route={route}
     >
       {children}
     </TripChrome>

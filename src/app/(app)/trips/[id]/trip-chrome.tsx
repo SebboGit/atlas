@@ -12,6 +12,7 @@ import { TripFilterBar } from '@/components/features/trips/trip-filter-bar';
 import { TripFormDialog } from '@/components/features/trips/trip-form-dialog';
 import { TripReminderToggle } from '@/components/features/trips/trip-reminder-toggle';
 import { TripStatusBadge } from '@/components/features/trips/trip-status-badge';
+import { RouteDiagram } from '@/components/features/trips/route-diagram';
 import { TripTabs } from '@/components/features/trips/trip-tabs';
 import { UnarchiveButton } from '@/components/features/trips/unarchive-button';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { unarchiveTripAction } from '@/lib/trips/actions';
 import { formatTripDateSpan } from '@/lib/trips/format';
+import type { RouteStop } from '@/lib/trips/route';
 import type { Trip } from '@/lib/trips/repo';
 import { cn } from '@/lib/utils';
 
@@ -50,8 +52,17 @@ interface TripChromeProps {
    * is hidden then. Shown to every member, not just the owner.
    */
   reminders: { muted: boolean } | null;
+  /** The trip's stops for the banner's route diagram (empty: no diagram). */
+  route: RouteStop[];
   children: React.ReactNode;
 }
+
+// Button skins for the inverse banner: a solid pill in the banner's own
+// foreground, and an outline that holds on either inverse surface.
+const INVERSE_SOLID =
+  'bg-inverse-foreground text-inverse hover:bg-inverse-foreground/90 shadow-none';
+const INVERSE_OUTLINE =
+  'border-inverse-line text-inverse-foreground bg-transparent hover:bg-inverse-foreground/10 hover:text-inverse-foreground';
 
 /**
  * Switches the trip-detail chrome between two variants:
@@ -75,6 +86,7 @@ export function TripChrome({
   attachedDocumentCount,
   uploadMaxBytes,
   reminders,
+  route,
   children,
 }: TripChromeProps) {
   const isPrivate = trip.visibility === 'private';
@@ -92,7 +104,7 @@ export function TripChrome({
     <main
       className={cn(
         'mx-auto w-full px-6 pb-24 sm:px-8',
-        isMapView ? 'max-w-6xl pt-6 sm:pt-10' : 'max-w-5xl pt-6 sm:pt-16',
+        isMapView ? 'max-w-6xl pt-6 sm:pt-10' : 'max-w-5xl pt-5 sm:pt-10',
       )}
     >
       {isMapView ? (
@@ -114,7 +126,7 @@ export function TripChrome({
             className="atlas-rise mb-5 flex flex-wrap items-end justify-between gap-3"
             style={{ animationDelay: '100ms' }}
           >
-            <h1 className="font-display text-foreground min-w-0 text-3xl leading-[1.04] font-medium tracking-tight break-words hyphens-auto sm:text-4xl">
+            <h1 className="font-display text-foreground min-w-0 text-3xl leading-[1.04] tracking-tight break-words hyphens-auto sm:text-4xl">
               {trip.title}
             </h1>
             <p className="text-muted-foreground font-mono text-xs tracking-wider">{dateRange}</p>
@@ -122,192 +134,179 @@ export function TripChrome({
         </>
       ) : (
         <>
-          {/* Back link, and on phone the trip's badges beside it. The
-           *  badges sit here rather than in the title row because at
-           *  360px the row is 312px wide and the status pill alone is
-           *  108px of it — the title was left ~136px at `text-4xl`,
-           *  narrow enough that "Copenhagen" could not fit a line and
-           *  broke mid-word. Up here they cost no vertical space (the
-           *  back link already owns the line) and the title keeps
-           *  ~256px. Laptop is unchanged: the cluster is `sm:hidden`
-           *  and the badges show in the eyebrow row below. */}
+          {/* Back link with the trip's badges beside it, at every width —
+           *  the badges stay on the ground colour, off the inverse banner
+           *  where the status pills would lose their contrast, and the
+           *  title below keeps the banner's full width at 360px. */}
           <div
-            className="atlas-rise mb-5 flex items-center justify-between gap-3 sm:mb-8"
+            className="atlas-rise mb-4 flex items-center justify-between gap-3"
             style={{ animationDelay: '40ms' }}
           >
             <Link
               href="/trips"
               // Touch keeps the 44px target at every width — a tablet is
               // `sm:`+ but still finger-driven, and CLAUDE.md's rule 4 is
-              // about the input, not the viewport. Only pointer drops it,
-              // so the laptop line stays the height it always was.
-              className="text-foreground/70 hover:text-foreground inline-flex min-h-11 items-center gap-1.5 text-sm transition-colors [@media(hover:hover)]:min-h-0"
+              // about the input, not the viewport. Only pointer drops it.
+              className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center gap-1.5 text-sm font-medium transition-colors [@media(hover:hover)]:min-h-0"
             >
               <span aria-hidden>←</span>
               <span>All trips</span>
             </Link>
-            <div className="flex shrink-0 items-center gap-2 sm:hidden">
+            <div className="flex shrink-0 items-center gap-2">
               {isPrivate && <PrivateBadge />}
               <TripStatusBadge status={trip.status} />
             </div>
           </div>
 
-          <header className="atlas-rise mb-6 sm:mb-8" style={{ animationDelay: '100ms' }}>
-            {/* Eyebrow + status — laptop only. On phone the same badges
-             *  ride the back-link line above, so neither layout spends a
-             *  line of its own on them. */}
-            <div className="mb-4 hidden items-center gap-3 sm:flex">
-              <p className="text-muted-foreground flex items-center gap-3 font-mono text-[10px] tracking-[0.06em] uppercase">
-                <span aria-hidden className="bg-foreground/30 h-px w-8" />
-                <span>Trip</span>
-              </p>
-              <TripStatusBadge status={trip.status} />
-              {isPrivate && <PrivateBadge />}
-            </div>
+          {/* The trip banner — the inverse "now / next" surface. Identity and
+           *  actions on the left; from `md:` the route diagram sits on a
+           *  perforated stub to the right. */}
+          <header
+            className="atlas-rise bg-inverse text-inverse-foreground mb-5 flex flex-col overflow-hidden rounded-[1.75rem] md:flex-row"
+            style={{ animationDelay: '100ms' }}
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-5 px-5 py-6 sm:px-8 sm:py-8">
+              <div>
+                <p className="text-inverse-muted font-mono text-xs tracking-[0.06em] uppercase">
+                  {dateRange}
+                </p>
+                {/* Title row — on phone the ⋯ overflow menu sits beside the
+                 *  title (Upload / Edit / Archive / Delete); laptop puts the
+                 *  actions in the inline row below. */}
+                <div className="mt-2 flex items-start gap-3">
+                  {/* `min-w-0` + `break-words`: a single long word (a place
+                   *  name) would otherwise hold the title at its unbroken
+                   *  width and scroll a 360px page sideways. `hyphens-auto`
+                   *  lands the break on a syllable. */}
+                  <h1 className="font-display min-w-0 flex-1 text-4xl leading-none tracking-tight break-words hyphens-auto sm:text-6xl">
+                    {trip.title}
+                  </h1>
+                  {isOwner && (
+                    <TripOverflowMenu
+                      trip={trip}
+                      isArchived={isArchived}
+                      attachedDocumentCount={attachedDocumentCount}
+                      uploadMaxBytes={uploadMaxBytes}
+                    />
+                  )}
+                </div>
+              </div>
 
-            {/* Title row — on phone the ⋯ overflow menu sits beside the
-             *  title (Upload / Edit / Archive / Delete); laptop hides it
-             *  and puts the actions in the inline row below. The badges
-             *  are on the back-link line above in both layouts. */}
-            <div className="flex items-start gap-3">
-              {/* `min-w-0` + `break-words`: a flex item's default
-               *  `min-width: auto` is its min-content width, so a single
-               *  long word (a place name, a compound) held the title at
-               *  its unbroken width and pushed everything beside it off
-               *  the right edge of a 360px viewport — the whole page
-               *  scrolled sideways, which CLAUDE.md forbids. Both type
-               *  scales need it: `sm:text-6xl` is wider still.
-               *  `hyphens-auto` rides along so the break lands on a
-               *  syllable with a hyphen (the document is `lang="en"`)
-               *  rather than mid-glyph. It is the backstop for a word
-               *  that cannot break well; the room to avoid needing it
-               *  comes from the badges moving up. */}
-              <h1 className="font-display text-foreground min-w-0 flex-1 text-4xl leading-[1.04] font-medium tracking-tight break-words hyphens-auto sm:text-6xl">
-                {trip.title}
-              </h1>
-              {isOwner && (
-                <TripOverflowMenu
-                  trip={trip}
-                  isArchived={isArchived}
-                  attachedDocumentCount={attachedDocumentCount}
-                  uploadMaxBytes={uploadMaxBytes}
-                />
-              )}
-            </div>
-
-            <p className="text-muted-foreground mt-3 font-mono text-xs tracking-wider sm:mt-4">
-              {dateRange}
-            </p>
-
-            {/* Phone action row — Map is the only inline primary; the
-             *  other maintenance actions live in the ⋯ menu above. */}
-            {/* Two buttons side by side here, so both take the 44px touch
-             *  target (CLAUDE.md rule 4); pointer keeps the compact pill. */}
-            <div className="mt-5 flex flex-wrap items-center gap-3 sm:hidden">
-              <Link
-                href={`/trips/${trip.id}/map`}
-                className={cn(
-                  buttonVariants({ variant: 'ink', size: 'sm' }),
-                  'inline-flex [@media(hover:none)]:h-11',
-                )}
-              >
-                <MapIcon className="size-3.5" strokeWidth={1.75} />
-                <span>View map</span>
-              </Link>
-              {reminders && (
-                <TripReminderToggle
-                  tripId={trip.id}
-                  initialMuted={reminders.muted}
-                  className="[@media(hover:none)]:h-11"
-                />
-              )}
-            </div>
-
-            {/* Laptop action row — kept as the previous inline strip.
-             *  Delete-forever is normalised to outline + destructive tint
-             *  so it carries the same visual weight as its peers; the
-             *  bare-text variant was a phone-only special case at most. */}
-            <div className="mt-7 hidden flex-wrap items-center gap-3 sm:flex">
-              {isOwner && (
-                <DocumentUploadDialog
-                  tripId={trip.id}
-                  maxBytes={uploadMaxBytes}
-                  trigger={<Button size="sm">+ Upload</Button>}
-                />
-              )}
-              {/*
-                Render the Link directly with `buttonVariants` instead
-                of wrapping it in `<Button asChild>`. The Slot+Link
-                composition was shifting React 19's useId sequence
-                between server and client by ±2, which cascaded into a
-                hydration mismatch downstream in SegmentRow — Radix's
-                Dialog uses useId for the trigger/content linkage, and
-                the offset caused the Edit and Delete triggers to swap
-                IDs. The `ink` variant is the only foreground-on-
-                background pill in this row, which is the visual cue
-                that "View map" is a perspective switch rather than a
-                same-context action like Edit or Archive.
-              */}
-              <Link
-                href={`/trips/${trip.id}/map`}
-                className={buttonVariants({ variant: 'ink', size: 'sm' })}
-              >
-                <MapIcon className="size-3.5" strokeWidth={1.75} />
-                <span>View map</span>
-              </Link>
-              {reminders && <TripReminderToggle tripId={trip.id} initialMuted={reminders.muted} />}
-              {/* Trip-row maintenance is owner-only (ADR-0015). A household
-                  member viewing a shared trip gets the read surfaces plus
-                  "View map" — Edit/Archive/Delete don't render for them. */}
-              {isOwner && (
-                <>
-                  <TripFormDialog
-                    mode="edit"
-                    trip={trip}
-                    trigger={
-                      <Button variant="outline" size="sm">
-                        Edit trip
-                      </Button>
-                    }
+              {/* Phone action row — Map is the only inline primary; the
+               *  other maintenance actions live in the ⋯ menu above. Both
+               *  take the 44px touch target (CLAUDE.md rule 4). */}
+              <div className="flex flex-wrap items-center gap-3 sm:hidden">
+                <Link
+                  href={`/trips/${trip.id}/map`}
+                  className={cn(
+                    buttonVariants({ size: 'sm' }),
+                    INVERSE_SOLID,
+                    'inline-flex [@media(hover:none)]:h-11',
+                  )}
+                >
+                  <MapIcon className="size-3.5" strokeWidth={2} />
+                  <span>View map</span>
+                </Link>
+                {reminders && (
+                  <TripReminderToggle
+                    tripId={trip.id}
+                    initialMuted={reminders.muted}
+                    className={cn(INVERSE_OUTLINE, '[@media(hover:none)]:h-11')}
                   />
-                  {isArchived ? (
-                    <UnarchiveButton tripId={trip.id} />
-                  ) : (
-                    <DeleteTripDialog
-                      tripId={trip.id}
-                      tripTitle={trip.title}
-                      mode="archive"
+                )}
+              </div>
+
+              {/* Laptop action row. */}
+              <div className="hidden flex-wrap items-center gap-2.5 sm:flex">
+                {isOwner && (
+                  <DocumentUploadDialog
+                    tripId={trip.id}
+                    maxBytes={uploadMaxBytes}
+                    trigger={<Button size="sm">+ Upload</Button>}
+                  />
+                )}
+                {/*
+                  Render the Link directly with `buttonVariants` instead
+                  of wrapping it in `<Button asChild>`. The Slot+Link
+                  composition was shifting React 19's useId sequence
+                  between server and client by ±2, which cascaded into a
+                  hydration mismatch downstream in SegmentRow — Radix's
+                  Dialog uses useId for the trigger/content linkage, and
+                  the offset caused the Edit and Delete triggers to swap
+                  IDs. The solid light pill marks "View map" as a
+                  perspective switch rather than a same-context action.
+                */}
+                <Link
+                  href={`/trips/${trip.id}/map`}
+                  className={cn(buttonVariants({ size: 'sm' }), INVERSE_SOLID)}
+                >
+                  <MapIcon className="size-3.5" strokeWidth={2} />
+                  <span>View map</span>
+                </Link>
+                {reminders && (
+                  <TripReminderToggle
+                    tripId={trip.id}
+                    initialMuted={reminders.muted}
+                    className={INVERSE_OUTLINE}
+                  />
+                )}
+                {/* Trip-row maintenance is owner-only (ADR-0015). A household
+                    member viewing a shared trip gets the read surfaces plus
+                    "View map" — Edit/Archive/Delete don't render for them. */}
+                {isOwner && (
+                  <>
+                    <TripFormDialog
+                      mode="edit"
+                      trip={trip}
                       trigger={
-                        <Button variant="outline" size="sm">
-                          Archive
+                        <Button variant="outline" size="sm" className={INVERSE_OUTLINE}>
+                          Edit trip
                         </Button>
                       }
                     />
-                  )}
-                  <DeleteTripDialog
-                    tripId={trip.id}
-                    tripTitle={trip.title}
-                    mode="delete"
-                    attachedDocumentCount={attachedDocumentCount}
-                    trigger={
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-destructive/30 text-destructive hover:bg-destructive/8 hover:text-destructive"
-                      >
-                        Delete forever
-                      </Button>
-                    }
-                  />
-                </>
-              )}
+                    {isArchived ? (
+                      <UnarchiveButton tripId={trip.id} className={INVERSE_OUTLINE} />
+                    ) : (
+                      <DeleteTripDialog
+                        tripId={trip.id}
+                        tripTitle={trip.title}
+                        mode="archive"
+                        trigger={
+                          <Button variant="outline" size="sm" className={INVERSE_OUTLINE}>
+                            Archive
+                          </Button>
+                        }
+                      />
+                    )}
+                    <DeleteTripDialog
+                      tripId={trip.id}
+                      tripTitle={trip.title}
+                      mode="delete"
+                      attachedDocumentCount={attachedDocumentCount}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(INVERSE_OUTLINE, 'text-inverse-accent')}
+                        >
+                          Delete forever
+                        </Button>
+                      }
+                    />
+                  </>
+                )}
+              </div>
             </div>
+
+            {route.length > 0 && (
+              <div className="border-inverse-line hidden min-w-0 border-l-2 border-dashed px-7 py-8 md:block md:w-[min(52%,34rem)]">
+                <RouteDiagram stops={route} active={trip.status === 'active'} />
+              </div>
+            )}
           </header>
 
-          <div className="atlas-rule mb-5 sm:mb-6" aria-hidden />
-
           <div
-            className="atlas-rise mb-6 flex flex-col gap-4 sm:mb-10"
+            className="atlas-rise mb-6 flex flex-col gap-4 sm:mb-8"
             style={{ animationDelay: '180ms' }}
           >
             <TripTabs tripId={trip.id} />
@@ -355,7 +354,7 @@ function TripOverflowMenu({
             variant="outline"
             size="icon"
             aria-label="Trip actions"
-            className="size-11 shrink-0 sm:hidden"
+            className={cn('size-11 shrink-0 sm:hidden', INVERSE_OUTLINE)}
           >
             <MoreHorizontal className="size-5" strokeWidth={1.75} />
           </Button>
@@ -439,11 +438,10 @@ function TripOverflowMenu({
 
 // Marks a trip the owner has opted out of household sharing. Only the
 // owner ever reaches a private trip, so this never renders for anyone
-// else. Field-notebook styling — the muted /50 ink is the deliberate
-// sub-AA register used across the trip chrome.
+// else.
 function PrivateBadge() {
   return (
-    <span className="border-foreground/20 text-foreground/55 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.06em] uppercase">
+    <span className="border-border text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-mono text-[11px] tracking-[0.06em] uppercase">
       <Lock className="size-2.5" strokeWidth={2} aria-hidden />
       Private
     </span>

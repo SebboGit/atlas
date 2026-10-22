@@ -5,7 +5,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { unarchiveTripAction } from '@/lib/trips/actions';
 
-export function UnarchiveButton({ tripId }: { tripId: string }) {
+export function UnarchiveButton({ tripId, className }: { tripId: string; className?: string }) {
   const [pending, startTransition] = React.useTransition();
 
   return (
@@ -14,6 +14,7 @@ export function UnarchiveButton({ tripId }: { tripId: string }) {
       variant="outline"
       size="sm"
       disabled={pending}
+      className={className}
       onClick={() => startTransition(() => unarchiveTripAction(tripId).then(() => undefined))}
     >
       {pending ? 'Restoring…' : 'Restore from archive'}
