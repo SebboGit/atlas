@@ -461,6 +461,21 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     pin: null,
   },
   {
+    // Tomorrow — a dated note, so the active trip's upcoming days carry
+    // one too (the hero's only dated note is in the past).
+    type: 'note',
+    data: { body: 'Pack the rain shell — wind picks up after 3pm on the W.' },
+    startsAt: relDay(1, 7),
+  },
+  {
+    type: 'food',
+    data: { venue: 'Refugio Chileno', bookingRef: 'RCH-19' },
+    startsAt: relDay(1, 13),
+    locationName: 'Valle Ascencio',
+    countryCode: 'CL',
+    pin: { lat: -50.9581, lng: -72.9103 },
+  },
+  {
     // #144 edge case: a name-only origin the tagged station rungs miss.
     // Its seeded cache row carries a free-text source, so both pins
     // render but the map withholds the line and the leg joins the
@@ -541,13 +556,418 @@ const PATAGONIA_SEGMENTS: HeroSegment[] = [
     countryCode: 'CL',
     pin: { lat: -33.4372, lng: -70.6394 },
   },
+  // Last-day hop across the Andes — a second country on the active trip,
+  // so its country chips and map span CL and AR.
+  {
+    type: 'flight',
+    data: {
+      carrier: 'LA',
+      flightNumber: '465',
+      originAirport: 'SCL',
+      destinationAirport: 'EZE',
+      pnr: 'PATGON',
+      seat: '21K',
+    },
+    startsAt: relDay(4, 9),
+    endsAt: relDay(4, 11, 5),
+    countryCode: 'AR',
+    originCountryCode: 'CL',
+  },
+  {
+    type: 'food',
+    data: { venue: 'Don Julio', bookingRef: 'DJ-3021' },
+    startsAt: relDay(4, 20),
+    locationName: 'Palermo',
+    countryCode: 'AR',
+    pin: { lat: -34.5864, lng: -58.4269 },
+  },
+];
+
+// --- Side trips: Lisbon `now`-relative, the rest fixed-date ----------
+//
+// Lighter than the hero, but each a believable trip end to end, so the
+// dashboard, stats and per-trip maps look lived-in rather than empty.
+// Same `HeroSegment` shape and pin rules as above.
+
+// Trip titles double as the lookup keys that wire each segment list to
+// its inserted trip row.
+const PATAGONIA_TITLE = 'Patagonia';
+const LISBON_TITLE = 'Lisbon, Porto & Seville';
+const DOLOMITES_TITLE = 'Dolomites';
+// Deliberately long — see the trip insert.
+const SCOTLAND_TITLE = 'A Long Way Round the North Coast of Scotland and the Outer Hebrides';
+
+// Upcoming: three cities, two countries, one train and three flights.
+// `now`-relative like Patagonia — it starts six weeks out on every seed
+// run, so it never goes stale into a second active trip. Two of its
+// stops (Pastéis de Belém, Cervejaria Ramiro) are materialised from the
+// wishlist below, dated via `scheduledAt`.
+const LISBON_SEGMENTS: HeroSegment[] = [
+  {
+    type: 'flight',
+    data: {
+      carrier: 'TP',
+      flightNumber: '1351',
+      originAirport: 'LHR',
+      destinationAirport: 'LIS',
+      pnr: 'IBERX4',
+      seat: '12A',
+    },
+    startsAt: relDay(42, 7, 10),
+    endsAt: relDay(42, 9, 45),
+    countryCode: 'PT',
+    originCountryCode: 'GB',
+  },
+  {
+    type: 'hotel',
+    data: {
+      propertyName: 'Memmo Alfama',
+      address: 'Travessa das Merceeiras 27, Lisbon',
+      confirmationNumber: 'MA-30912',
+      roomType: 'Terrace double',
+      checkInTime: '14:00',
+      checkOutTime: '11:00',
+    },
+    startsAt: relDay(42, 0),
+    endsAt: relDay(45, 0),
+    locationName: 'Alfama',
+    countryCode: 'PT',
+    pin: { lat: 38.7108, lng: -9.1311 },
+  },
+  {
+    type: 'activity',
+    data: { title: 'Tram 28 and the Alfama walk' },
+    startsAt: relDay(44, 9, 30),
+    locationName: 'Alfama',
+    countryCode: 'PT',
+    pin: { lat: 38.7118, lng: -9.1302 },
+  },
+  {
+    type: 'transit',
+    data: {
+      mode: 'train',
+      carrier: 'CP Alfa Pendular',
+      fromName: 'Lisboa Santa Apolónia',
+      toName: 'Porto Campanhã',
+      referenceNumber: 'AP-133',
+    },
+    startsAt: relDay(45, 9),
+    endsAt: relDay(45, 11, 58),
+    locationName: 'Lisbon → Porto',
+    countryCode: 'PT',
+    pin: { lat: 41.1487, lng: -8.5855 },
+    fromPin: { lat: 38.7137, lng: -9.1226 },
+  },
+  {
+    type: 'hotel',
+    data: {
+      propertyName: 'The Yeatman',
+      address: 'Rua do Choupelo 88, Vila Nova de Gaia',
+      confirmationNumber: 'YT-5520',
+      roomType: 'River view',
+      checkInTime: '15:00',
+      checkOutTime: '12:00',
+    },
+    startsAt: relDay(45, 0),
+    endsAt: relDay(47, 0),
+    locationName: 'Vila Nova de Gaia',
+    countryCode: 'PT',
+    pin: { lat: 41.1336, lng: -8.6136 },
+  },
+  {
+    type: 'activity',
+    data: { title: 'Port lodge tasting', bookingRef: 'GRAHAMS-77' },
+    startsAt: relDay(46, 15),
+    locationName: 'Vila Nova de Gaia',
+    countryCode: 'PT',
+    pin: { lat: 41.1372, lng: -8.6145 },
+  },
+  {
+    type: 'flight',
+    data: {
+      carrier: 'FR',
+      flightNumber: '4120',
+      originAirport: 'OPO',
+      destinationAirport: 'SVQ',
+      pnr: 'RYSVQ9',
+      seat: '7F',
+    },
+    startsAt: relDay(47, 10, 20),
+    endsAt: relDay(47, 12, 35),
+    countryCode: 'ES',
+    originCountryCode: 'PT',
+  },
+  {
+    type: 'hotel',
+    data: {
+      propertyName: 'Hotel Mercer Sevilla',
+      address: 'Calle Castelar 26, Seville',
+      confirmationNumber: 'HMS-2210',
+      roomType: 'Patio room',
+      checkInTime: '15:00',
+      checkOutTime: '12:00',
+    },
+    startsAt: relDay(47, 0),
+    endsAt: relDay(49, 0),
+    locationName: 'Arenal',
+    countryCode: 'ES',
+    pin: { lat: 37.3881, lng: -5.9967 },
+  },
+  {
+    type: 'activity',
+    data: { title: 'Real Alcázar', bookingRef: 'ALC-44871' },
+    startsAt: relDay(48, 9, 30),
+    locationName: 'Santa Cruz',
+    countryCode: 'ES',
+    pin: { lat: 37.3831, lng: -5.9903 },
+  },
+  {
+    type: 'food',
+    data: { venue: 'Eslava' },
+    startsAt: relDay(48, 21),
+    locationName: 'San Lorenzo',
+    countryCode: 'ES',
+    pin: { lat: 37.3986, lng: -5.9985 },
+  },
+  {
+    type: 'flight',
+    data: {
+      carrier: 'BA',
+      flightNumber: '2711',
+      originAirport: 'SVQ',
+      destinationAirport: 'LHR',
+      pnr: 'BAHOME',
+      seat: '23C',
+    },
+    startsAt: relDay(49, 14, 5),
+    endsAt: relDay(49, 15, 45),
+    countryCode: 'GB',
+    originCountryCode: 'ES',
+  },
+];
+
+// Private trip: hut to hut, then over the Brenner into Austria.
+const DOLOMITES_SEGMENTS: HeroSegment[] = [
+  {
+    type: 'flight',
+    data: {
+      carrier: 'BA',
+      flightNumber: '2584',
+      originAirport: 'LHR',
+      destinationAirport: 'VCE',
+      pnr: 'DOLO25',
+      seat: '18A',
+    },
+    startsAt: d(2025, 6, 13, 8, 15),
+    endsAt: d(2025, 6, 13, 11, 25),
+    countryCode: 'IT',
+    originCountryCode: 'GB',
+  },
+  {
+    type: 'transit',
+    data: {
+      mode: 'train',
+      carrier: 'Trenitalia',
+      fromName: 'Venezia Santa Lucia',
+      toName: 'Bolzano',
+      referenceNumber: 'RV-2270',
+    },
+    startsAt: d(2025, 6, 13, 13, 20),
+    endsAt: d(2025, 6, 13, 16, 45),
+    locationName: 'Venice → Bolzano',
+    countryCode: 'IT',
+    pin: { lat: 46.4966, lng: 11.358 },
+    fromPin: { lat: 45.4412, lng: 12.3208 },
+  },
+  {
+    type: 'hotel',
+    data: {
+      propertyName: 'Rifugio Firenze',
+      confirmationNumber: 'RF-118',
+      roomType: 'Dorm bunk',
+      checkInTime: '16:00',
+      checkOutTime: '08:00',
+    },
+    startsAt: d(2025, 6, 14, 0),
+    endsAt: d(2025, 6, 17, 0),
+    locationName: 'Val Gardena',
+    countryCode: 'IT',
+    pin: { lat: 46.5967, lng: 11.7428 },
+  },
+  {
+    type: 'activity',
+    data: { title: 'Seceda ridge walk' },
+    startsAt: d(2025, 6, 15, 8),
+    locationName: 'Ortisei',
+    countryCode: 'IT',
+    pin: { lat: 46.6003, lng: 11.7242 },
+  },
+  {
+    type: 'activity',
+    data: { title: 'Lago di Braies at sunrise' },
+    startsAt: d(2025, 6, 17, 6),
+    locationName: 'Braies',
+    countryCode: 'IT',
+    pin: { lat: 46.6944, lng: 12.0857 },
+  },
+  {
+    // Cross-border leg: one country per transit row (ADR-0019), the
+    // arrival's, so the Bolzano origin keys under AT.
+    type: 'transit',
+    data: {
+      mode: 'train',
+      carrier: 'ÖBB EuroCity',
+      fromName: 'Bolzano',
+      toName: 'Innsbruck Hbf',
+      referenceNumber: 'EC-87',
+    },
+    startsAt: d(2025, 6, 18, 10, 30),
+    endsAt: d(2025, 6, 18, 12, 40),
+    locationName: 'Bolzano → Innsbruck',
+    countryCode: 'AT',
+    pin: { lat: 47.2633, lng: 11.4008 },
+    fromPin: { lat: 46.4966, lng: 11.358 },
+  },
+  {
+    type: 'hotel',
+    data: {
+      propertyName: 'Hotel Grauer Bär',
+      address: 'Universitätsstraße 5, Innsbruck',
+      confirmationNumber: 'GB-9902',
+      checkInTime: '14:00',
+      checkOutTime: '11:00',
+    },
+    startsAt: d(2025, 6, 18, 0),
+    endsAt: d(2025, 6, 21, 0),
+    locationName: 'Innsbruck',
+    countryCode: 'AT',
+    pin: { lat: 47.269, lng: 11.3965 },
+  },
+  {
+    type: 'food',
+    data: { venue: 'Gasthaus Anich' },
+    startsAt: d(2025, 6, 19, 19, 30),
+    locationName: 'Innsbruck',
+    countryCode: 'AT',
+    pin: { lat: 47.2627, lng: 11.3917 },
+  },
+  {
+    type: 'flight',
+    data: {
+      carrier: 'BA',
+      flightNumber: '2617',
+      originAirport: 'INN',
+      destinationAirport: 'LHR',
+      pnr: 'DOLO25',
+      seat: '9F',
+    },
+    startsAt: d(2025, 6, 21, 16, 10),
+    endsAt: d(2025, 6, 21, 17, 20),
+    countryCode: 'GB',
+    originCountryCode: 'AT',
+  },
+];
+
+// Long-title trip: a hire car north, the ferry out to Lewis, and a
+// small-plane hop home. The car leg keeps one pin (ADR-0019).
+const SCOTLAND_SEGMENTS: HeroSegment[] = [
+  {
+    type: 'flight',
+    data: {
+      carrier: 'BA',
+      flightNumber: '1490',
+      originAirport: 'LHR',
+      destinationAirport: 'INV',
+      pnr: 'NC500X',
+      seat: '3A',
+    },
+    startsAt: d(2024, 9, 6, 9),
+    endsAt: d(2024, 9, 6, 10, 35),
+    countryCode: 'GB',
+    originCountryCode: 'GB',
+  },
+  {
+    type: 'transit',
+    data: {
+      mode: 'car',
+      carrier: 'Arnold Clark',
+      fromName: 'Inverness Airport',
+      toName: 'Ullapool',
+    },
+    startsAt: d(2024, 9, 6, 12),
+    endsAt: d(2024, 9, 6, 14, 30),
+    locationName: 'Inverness → Ullapool',
+    countryCode: 'GB',
+    pin: { lat: 57.8954, lng: -5.1601 },
+  },
+  {
+    type: 'hotel',
+    data: {
+      propertyName: 'The Ceilidh Place',
+      confirmationNumber: 'CP-4410',
+      checkInTime: '15:00',
+      checkOutTime: '10:00',
+    },
+    startsAt: d(2024, 9, 6, 0),
+    endsAt: d(2024, 9, 9, 0),
+    locationName: 'Ullapool',
+    countryCode: 'GB',
+    pin: { lat: 57.8987, lng: -5.1593 },
+  },
+  {
+    type: 'transit',
+    data: {
+      mode: 'ferry',
+      carrier: 'CalMac',
+      fromName: 'Ullapool',
+      toName: 'Stornoway',
+      referenceNumber: 'CALMAC-61',
+    },
+    startsAt: d(2024, 9, 9, 9, 30),
+    endsAt: d(2024, 9, 9, 12, 15),
+    locationName: 'The Minch',
+    countryCode: 'GB',
+    pin: { lat: 58.2077, lng: -6.3861 },
+    fromPin: { lat: 57.8951, lng: -5.1589 },
+  },
+  {
+    type: 'activity',
+    data: { title: 'Callanish Standing Stones' },
+    startsAt: d(2024, 9, 10, 11),
+    locationName: 'Isle of Lewis',
+    countryCode: 'GB',
+    pin: { lat: 58.1975, lng: -6.7453 },
+  },
+  {
+    type: 'activity',
+    data: { title: 'Luskentyre beach' },
+    startsAt: d(2024, 9, 12, 14),
+    locationName: 'Isle of Harris',
+    countryCode: 'GB',
+    pin: { lat: 57.8889, lng: -6.9411 },
+  },
+  {
+    type: 'flight',
+    data: {
+      carrier: 'Loganair',
+      flightNumber: 'LM465',
+      originAirport: 'SYY',
+      destinationAirport: 'GLA',
+      pnr: 'LMSYY2',
+      seat: '2C',
+    },
+    startsAt: d(2024, 9, 20, 15),
+    endsAt: d(2024, 9, 20, 15, 55),
+    countryCode: 'GB',
+    originCountryCode: 'GB',
+  },
 ];
 
 // Wishlist items — the household's reusable place list. A few JP food
 // + activity spots so the Japan trip's suggestions panel has something
-// to surface, plus a couple of PT items that get a chance to be added
-// to the upcoming Lisbon trip. One JP food item gets materialised onto
-// the hero trip as a wishlist-derived segment so the
+// to surface, plus a couple of PT items materialised onto the upcoming
+// Lisbon trip as dated stops. One JP food item gets materialised onto
+// the hero trip as an undated wishlist-derived segment so the
 // segments.wishlistItemId backref has live coverage too.
 type WishlistFixture = {
   type: 'food' | 'activity';
@@ -556,8 +976,16 @@ type WishlistFixture = {
   notes?: string;
   tags?: string[];
   data: Record<string, unknown>;
-  /** Materialise onto a specific trip as a startsAt=null segment. */
+  /**
+   * Materialise onto a specific trip as a segment — undated unless
+   * `scheduledAt` is set.
+   */
   materialiseOn?: 'hero' | 'lisbon';
+  /**
+   * Schedule the materialised copy onto a day, as the reschedule dialog
+   * would after the add. Omitted keeps it undated.
+   */
+  scheduledAt?: Date;
 };
 
 const WISHLIST_ITEMS: WishlistFixture[] = [
@@ -592,12 +1020,15 @@ const WISHLIST_ITEMS: WishlistFixture[] = [
     locationName: 'Belém',
     data: { title: 'Pastéis de Belém', description: 'Worth the queue.' },
     materialiseOn: 'lisbon',
+    scheduledAt: relDay(43, 10),
   },
   {
     type: 'food',
     countryCode: 'PT',
-    locationName: 'Cais do Sodré',
+    locationName: 'Anjos',
     data: { venue: 'Cervejaria Ramiro' },
+    materialiseOn: 'lisbon',
+    scheduledAt: relDay(42, 20, 30),
   },
   {
     // THE city-line case: a full Plus Code and nothing else — no
@@ -674,6 +1105,10 @@ const WISHLIST_PINS: Array<{ index: number; lat: number; lng: number; city?: str
   { index: 1, lat: 35.6727, lng: 139.7036, city: 'Tokyo' },
   // Ghibli Museum — geocoded via "Ghibli Museum, Mitaka"
   { index: 2, lat: 35.6962, lng: 139.5704, city: 'Mitaka' },
+  // Pastéis de Belém and Cervejaria Ramiro — both materialised onto the
+  // Lisbon trip as dated stops, so its map needs their pins too.
+  { index: 3, lat: 38.6975, lng: -9.2032, city: 'Lisbon' },
+  { index: 4, lat: 38.724, lng: -9.136, city: 'Lisbon' },
   // Myeongdong Kyoja — the Plus-Code-only item. Its coords decode
   // offline; ONLY this cache row supplies the city, which is the whole
   // point of the seed.
@@ -715,7 +1150,13 @@ export interface FixtureGeocodeSeed {
  */
 export function fixtureGeocodeSeeds(): FixtureGeocodeSeed[] {
   const byKey = new Map<string, FixtureGeocodeSeed>();
-  for (const seg of [...HERO_SEGMENTS, ...PATAGONIA_SEGMENTS]) {
+  for (const seg of [
+    ...HERO_SEGMENTS,
+    ...PATAGONIA_SEGMENTS,
+    ...LISBON_SEGMENTS,
+    ...DOLOMITES_SEGMENTS,
+    ...SCOTLAND_SEGMENTS,
+  ]) {
     const place = placeForHeroSegment(seg);
     const endpoints = buildTransitEndpointQueries(place);
     const wanted = endpoints
@@ -818,9 +1259,10 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
   await db.delete(userVisitedCountries).where(eq(userVisitedCountries.userId, userId));
   await db.delete(sessions).where(eq(sessions.userId, userId));
 
-  // 3) Trips — one rich "hero" trip plus three lighter ones so the
+  // 3) Trips — one rich "hero" trip plus four lighter ones so the
   //    list view carries weight. Statuses span planned / active /
-  //    completed; dates are relative to a 2026-05 capture.
+  //    completed; dates are fixed except the active and upcoming
+  //    trips', which ride `relDay` so they never go stale.
   const [hero] = await db
     .insert(trips)
     .values({
@@ -839,27 +1281,29 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     .values([
       {
         userId,
-        title: 'Lisbon',
-        summary: 'A few days in Lisbon. Flights are booked, nothing else planned yet.',
+        title: LISBON_TITLE,
+        summary: 'A week down the coast: Lisbon, the train to Porto, then a hop over to Seville.',
         status: 'planned',
-        startDate: d(2026, 7, 9),
-        endDate: d(2026, 7, 14),
+        startDate: relDay(42),
+        endDate: relDay(49),
       },
       {
         userId,
-        title: 'Patagonia',
-        summary: 'Two weeks in Patagonia, hiking the W trek in Torres del Paine.',
+        title: PATAGONIA_TITLE,
+        summary:
+          'Eight days in Patagonia, hiking the W trek in Torres del Paine, out via Buenos Aires.',
         status: 'active',
         // `now`-relative so the active trip always straddles today —
         // see PATAGONIA_SEGMENTS and the `relDay` note above. Ends relDay(4)
-        // to cover the onward Santiago leg (the same-day flight→hotel demo).
+        // to cover the onward Santiago leg (the same-day flight→hotel demo)
+        // and the morning hop to Buenos Aires.
         startDate: relDay(-3),
         endDate: relDay(4),
       },
       {
         userId,
-        title: 'Dolomites',
-        summary: 'A week hiking hut to hut in the Dolomites.',
+        title: DOLOMITES_TITLE,
+        summary: 'Hut to hut in the Dolomites, then the train over the Brenner to Innsbruck.',
         status: 'completed',
         // Opted out of household sharing (ADR-0015) so the dev view shows
         // the "Private" badge + the form's Private state. Every other
@@ -873,7 +1317,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         // trip card's title wrapping on phone and the year-group spacing
         // across two completed years on the dashboard.
         userId,
-        title: 'A Long Way Round the North Coast of Scotland and the Outer Hebrides',
+        title: SCOTLAND_TITLE,
         summary: 'A slow loop up the NC500 and out to Lewis and Harris.',
         status: 'completed',
         startDate: d(2024, 9, 6),
@@ -881,8 +1325,12 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
       },
     ])
     .returning({ id: trips.id, title: trips.title });
-  const lisbonTripId = otherTripsInserted.find((t) => t.title === 'Lisbon')?.id;
-  const patagoniaTripId = otherTripsInserted.find((t) => t.title === 'Patagonia')?.id;
+  const tripIdByTitle = (title: string): string => {
+    const id = otherTripsInserted.find((t) => t.title === title)?.id;
+    if (!id) throw new Error(`Fixture trip "${title}" insert returned no row`);
+    return id;
+  };
+  const lisbonTripId = tripIdByTitle(LISBON_TITLE);
 
   // 4) Hero itinerary — segments. RETURNING keeps insert order so we
   //    can wire documents to the right flight / hotel rows below.
@@ -903,14 +1351,22 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     )
     .returning({ id: segments.id, type: segments.type });
 
-  // 4b) Active-trip (Patagonia) itinerary — `now`-relative segments so
-  //     the chronological map's active-trip behaviours are demonstrable
-  //     in a worktree. No documents are wired to these; they only need
-  //     to exist on the map + itinerary.
-  if (patagoniaTripId) {
+  // 4b) Side-trip itineraries — the active trip's `now`-relative
+  //     segments, so the chronological map's active-trip behaviours are
+  //     demonstrable in a worktree, plus the other side trips. No
+  //     documents are wired to these; they only need to exist on the
+  //     map + itinerary.
+  const sideTripSegments: Array<[string, HeroSegment[]]> = [
+    [PATAGONIA_TITLE, PATAGONIA_SEGMENTS],
+    [LISBON_TITLE, LISBON_SEGMENTS],
+    [DOLOMITES_TITLE, DOLOMITES_SEGMENTS],
+    [SCOTLAND_TITLE, SCOTLAND_SEGMENTS],
+  ];
+  for (const [title, tripSegments] of sideTripSegments) {
+    const tripId = tripIdByTitle(title);
     await db.insert(segments).values(
-      PATAGONIA_SEGMENTS.map((s) => ({
-        tripId: patagoniaTripId,
+      tripSegments.map((s) => ({
+        tripId,
         type: s.type,
         data: s.data,
         startsAt: s.startsAt ?? null,
@@ -918,6 +1374,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         locationName: s.locationName ?? null,
         countryCode: s.countryCode ?? null,
         originCountryCode: s.originCountryCode ?? null,
+        needsReview: s.needsReview ?? false,
       })),
     );
   }
@@ -1085,8 +1542,8 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
   }
 
   // 8) Wishlist items — household reusable place list, plus the
-  //    one-or-two items materialised onto trips as startsAt=null
-  //    wishlist segments (ADR-0003).
+  //    items materialised onto trips as wishlist segments — undated
+  //    (ADR-0003) unless `scheduledAt` dates them.
   const insertedWishlist = await db
     .insert(wishlistItems)
     .values(
@@ -1143,11 +1600,12 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
   // Materialise selected wishlist items onto their target trips.
   // Materialisation is a verbatim copy of the wishlist data + the
   // wishlistItemId backref + startsAt=null (ADR-0003: per-trip
-  // wishlist state).
+  // wishlist state), unless `scheduledAt` dates the copy.
   const materialiseRows: Array<{
     tripId: string;
     type: 'food' | 'activity';
     data: Record<string, unknown>;
+    startsAt: Date | null;
     locationName: string | null;
     countryCode: string | null;
     wishlistItemId: string;
@@ -1157,11 +1615,11 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     const inserted = insertedWishlist[idx];
     if (!inserted) return;
     const targetTripId = w.materialiseOn === 'hero' ? hero.id : lisbonTripId;
-    if (!targetTripId) return;
     materialiseRows.push({
       tripId: targetTripId,
       type: w.type,
       data: w.data,
+      startsAt: w.scheduledAt ?? null,
       locationName: w.locationName ?? null,
       countryCode: w.countryCode,
       wishlistItemId: inserted.id,
