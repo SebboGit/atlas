@@ -166,11 +166,11 @@ const COUNTRIES_LINE_LAYER_ID = 'country-line';
 // Background colour for the area outside the basemap's data extent
 // (or when the tile file is missing). Matches the Protomaps White
 // theme's `background.color` for the cleanest seam.
-const PRIMARY_FALLBACK = '#ff6b4a';
+const PRIMARY_FALLBACK = '#9b4a26';
 // Country fill is intentionally a barely-there neutral — this map is
 // about the pins on top, not which countries are "visited".
-const COUNTRY_FILL = 'rgba(21, 22, 26, 0.045)';
-const COUNTRY_LINE = 'rgba(21, 22, 26, 0.28)';
+const COUNTRY_FILL = 'rgba(28, 22, 14, 0.045)';
+const COUNTRY_LINE = 'rgba(28, 22, 14, 0.28)';
 
 // Same framing as the global /map view — populated world, no
 // Antarctica / Greenland-ice padding. Used as the fallback frame
@@ -757,11 +757,11 @@ export function TripMap({
         'width:28px',
         'height:28px',
         'border-radius:9999px',
-        'border:1.5px dashed rgba(21,22,26,0.45)',
-        'background:rgba(255,255,255,0.85)',
-        'color:rgba(21,22,26,0.65)',
+        'border:1.5px dashed rgba(28,22,14,0.45)',
+        'background:rgba(255,253,248,0.85)',
+        'color:rgba(28,22,14,0.65)',
         'backdrop-filter:blur(4px)',
-        'box-shadow:0 1px 2px rgba(21,22,26,0.12)',
+        'box-shadow:0 1px 2px rgba(60,40,20,0.12)',
         'cursor:pointer',
         'transition:opacity 150ms ease',
         'opacity:0.85',
@@ -791,10 +791,10 @@ export function TripMap({
       // hover-tracking machinery.
       const popupHtml = [
         '<div style="font-family:inherit;padding:2px 4px;min-width:120px">',
-        '<div style="font-family:ui-monospace,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(21,22,26,0.55)">',
+        '<div style="font-family:ui-monospace,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(28,22,14,0.55)">',
         pin.kind === 'food' ? 'Wishlist · Food' : 'Wishlist · Activity',
         '</div>',
-        '<div style="font-size:14px;font-weight:500;color:rgba(21,22,26,0.92);margin-top:3px;line-height:1.25">',
+        '<div style="font-size:14px;font-weight:500;color:rgba(28,22,14,0.92);margin-top:3px;line-height:1.25">',
         escapeHtml(pin.label),
         '</div>',
         '</div>',
@@ -1055,7 +1055,7 @@ export function TripMap({
         <div
           ref={containerRef}
           className={cn(
-            'border-foreground/10 bg-card/65 w-full overflow-hidden rounded-2xl border shadow-[0_18px_40px_-28px_rgba(21,22,26,0.25)]',
+            'border-foreground/10 bg-card/65 w-full overflow-hidden rounded-2xl border shadow-[0_18px_40px_-28px_rgba(60,40,20,0.25)]',
             mapHeightClassName,
           )}
           // 320px reserved leaves comfortable breathing room below the
@@ -1076,7 +1076,7 @@ export function TripMap({
           // toggle top-right, chips bottom-left). aria-hidden: pure chrome.
           <span
             aria-hidden
-            className="text-foreground/35 pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.06em] uppercase select-none"
+            className="text-foreground/35 pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.28em] uppercase select-none"
           >
             Plate · {plateLabel}
           </span>
@@ -1121,9 +1121,9 @@ export function TripMap({
                 : `Show ${wishlistPins.length} wishlist ${wishlistPins.length === 1 ? 'pin' : 'pins'}`
             }
             onClick={() => setShowWishlist((v) => !v)}
-            className={`absolute top-3 right-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.06em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5 ${
+            className={`absolute top-3 right-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5 ${
               showWishlist
-                ? 'border-primary/55 bg-primary/12 text-coral-ink'
+                ? 'border-primary/55 bg-primary/12 text-primary'
                 : 'border-foreground/20 bg-card/85 text-foreground/70 hover:text-foreground'
             }`}
           >
@@ -1144,7 +1144,7 @@ export function TripMap({
       </div>
 
       {!hideAttribution && (
-        <p className="text-muted-foreground mt-6 text-center font-mono text-[10px] tracking-[0.06em] uppercase">
+        <p className="text-muted-foreground mt-6 text-center font-mono text-[10px] tracking-[0.2em] uppercase">
           Map data © OpenStreetMap contributors · Country shapes © Natural Earth · Geocoding by
           Nominatim
         </p>

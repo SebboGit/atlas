@@ -218,7 +218,7 @@ export function SearchPalette() {
           row, esc to close. Mono micro-label register, terse glyph + verb. */}
       <div
         aria-hidden="true"
-        className="border-foreground/10 text-muted-foreground flex items-center justify-between gap-3 border-t px-4 py-2 font-mono text-[10px] tracking-[0.06em] uppercase"
+        className="border-foreground/10 text-muted-foreground flex items-center justify-between gap-3 border-t px-4 py-2 font-mono text-[10px] tracking-[0.18em] uppercase"
       >
         <span className="flex items-center gap-1.5">
           <kbd className="border-foreground/15 text-foreground/70 rounded border px-1 py-px not-italic">
