@@ -54,19 +54,27 @@ describe('arcEndpointsToFeatureCollection', () => {
 
 describe('route layers', () => {
   it('keeps flights dashed and filtered to flight arcs', () => {
-    const layer = flightArcLayer('#ff6b4a');
+    const layer = flightArcLayer('#ff6b4a', 0.8);
     expect(layer.filter).toEqual(['==', ['get', 'kind'], 'flight']);
     expect(layer.paint?.['line-dasharray']).toEqual([2, 2]);
+    // Resting opacity is the caller's; the dim branch stays fixed.
+    expect(layer.paint?.['line-opacity']).toEqual([
+      'case',
+      ['boolean', ['feature-state', 'dimmed'], false],
+      0.12,
+      0.8,
+    ]);
   });
 
   it('draws transit solid, cased, filtered, and dimmable', () => {
-    const [casing, core] = transitRouteLayers('#ff6b4a');
+    const [casing, core] = transitRouteLayers('#ff6b4a', '#ffffff');
     for (const layer of [casing, core]) {
       expect(layer.filter).toEqual(['==', ['get', 'kind'], 'transit']);
       expect(layer.paint?.['line-dasharray']).toBeUndefined();
       expect(JSON.stringify(layer.paint?.['line-opacity'])).toContain('feature-state');
     }
     expect(core.paint?.['line-color']).toBe('#ff6b4a');
+    expect(casing.paint?.['line-color']).toBe('#ffffff');
     // Casing must be wider than the core at every stop to show as an edge.
     const stops = (layer: typeof casing) =>
       (layer.paint?.['line-width'] as unknown[]).slice(3).filter((_, i) => i % 2 === 1);

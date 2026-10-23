@@ -16,18 +16,21 @@ import type {
   WishlistMapPin,
 } from '@/lib/trip-map/repo';
 import '@/lib/maplibre/worker-url';
+import {
+  readCssColor,
+  readResolvedTheme,
+  useResolvedTheme,
+  type ResolvedTheme,
+} from '@/lib/theme/client';
 import { cn } from '@/lib/utils';
 
 import {
   ARC_ENDPOINTS_SOURCE_ID,
-  arcEndpointsLayer,
   arcEndpointsToFeatureCollection,
   ARCS_SOURCE_ID,
   arcsToFeatureCollection,
   firstSymbolLayerId,
-  flightArcLayer,
   presentRouteKinds,
-  transitRouteLayers,
 } from './arc-layers';
 import { buildBasemapStyle } from './basemap-style';
 import { CountryChipStrip } from './country-chip-strip';
@@ -38,6 +41,12 @@ import { PinMarker } from './pin-marker';
 import { PinTooltip } from './pin-tooltip';
 import { resolveFocusTarget, type FramePoint } from './map-focus';
 import { NotPinnedChip } from './not-pinned-chip';
+import {
+  COUNTRIES_SOURCE_ID,
+  overlayLayers,
+  withOverlays,
+  type OverlayPalette,
+} from './overlay-layers';
 import { isArcDimmed, isPinDimmed } from './timeline-model';
 
 // Register the pmtiles:// protocol with MapLibre on module load.
@@ -159,18 +168,18 @@ interface HoverInfo {
 }
 
 const COUNTRIES_GEOJSON_URL = '/geo/world-countries-110m.geojson';
-const COUNTRIES_SOURCE_ID = 'countries';
-const COUNTRIES_FILL_LAYER_ID = 'country-fill';
-const COUNTRIES_LINE_LAYER_ID = 'country-line';
 
-// Background colour for the area outside the basemap's data extent
-// (or when the tile file is missing). Matches the Protomaps White
-// theme's `background.color` for the cleanest seam.
-const PRIMARY_FALLBACK = '#ff6b4a';
-// Country fill is intentionally a barely-there neutral — this map is
-// about the pins on top, not which countries are "visited".
-const COUNTRY_FILL = 'rgba(21, 22, 26, 0.045)';
-const COUNTRY_LINE = 'rgba(21, 22, 26, 0.28)';
+// The overlay colours for whichever theme is on screen. Fallbacks are
+// the light values, used only if a token can't be read yet.
+function readOverlayPalette(): OverlayPalette {
+  return {
+    primary: readCssColor('--color-primary', '#ff6b4a'),
+    countryFill: readCssColor('--map-country-fill', 'rgba(21, 22, 26, 0.045)'),
+    countryLine: readCssColor('--map-country-line', 'rgba(21, 22, 26, 0.28)'),
+    casing: readCssColor('--map-casing', 'rgba(255, 255, 255, 0.9)'),
+    flightOpacity: Number(readCssColor('--map-flight-opacity', '0.55')) || 0.55,
+  };
+}
 
 // Same framing as the global /map view — populated world, no
 // Antarctica / Greenland-ice padding. Used as the fallback frame
@@ -186,12 +195,6 @@ const DEFAULT_WORLD_BOUNDS: LngLatBoundsLike = [
 // flyTo guards on `Math.max(currentZoom, this)` so a user who's
 // already pulled in tighter never gets zoomed back out.
 const PIN_CLICK_ZOOM = 12;
-
-function readCssColor(varName: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  return val || fallback;
-}
 
 // Tiny HTML escaper for the wishlist marker popup. Popup content is
 // built as raw HTML so labels containing user-typed brackets, quotes,
@@ -313,6 +316,14 @@ export function TripMap({
   // we can't setFeatureState on it.
   const [mapReady, setMapReady] = useState(false);
   const [hover, setHover] = useState<HoverInfo | null>(null);
+  // The theme on screen (null until hydrated), the one the map is
+  // currently drawn in, and whether a restyle is still settling. The
+  // mount reads the document directly, so the first paint is already
+  // right; the restyle effect only acts when the first two differ.
+  const theme = useResolvedTheme();
+  const wantedThemeRef = useRef<ResolvedTheme | null>(null);
+  const drawnThemeRef = useRef<ResolvedTheme | null>(null);
+  const restylingRef = useRef(false);
   // hover mirrored into a ref so the mount effect's 'move' handler —
   // bound once — can reproject the active pin without re-binding every
   // time hover state changes.
@@ -364,15 +375,17 @@ export function TripMap({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const initialTheme = readResolvedTheme();
+    drawnThemeRef.current = initialTheme;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      // Self-hosted Protomaps White basemap. The pmtiles JS library
-      // (registered above) handles the byte-range fetches against
-      // /tiles/world.pmtiles. If the tile file is missing (operator
-      // hasn't run `pmtiles extract` yet) the basemap renders empty
-      // and we still get country polygons + arcs on top — graceful
-      // degradation rather than a hard error.
-      style: buildBasemapStyle(),
+      // Self-hosted Protomaps basemap, White or Black to match the
+      // theme. The pmtiles JS library (registered above) handles the
+      // byte-range fetches against /tiles/world.pmtiles. If the tile
+      // file is missing (operator hasn't run `pmtiles extract` yet) the
+      // basemap renders empty and we still get country polygons + arcs
+      // on top — graceful degradation rather than a hard error.
+      style: buildBasemapStyle({ theme: initialTheme }),
       center: [10, 20],
       zoom: 0.4,
       minZoom: 0.4,
@@ -479,65 +492,34 @@ export function TripMap({
     map.on('load', () => {
       map.fitBounds(DEFAULT_WORLD_BOUNDS, { padding: 12, animate: false, duration: 0 });
 
-      // Country polygons — visual texture only, not data. They sit
-      // ABOVE the basemap layers (added last, so the highest-z
-      // layer at insertion time) and fade out as the user zooms in
-      // so the basemap's city / street detail can come through. At
-      // world zoom (the default) the polygons read as the headline
-      // texture; by Z6+ the basemap dominates.
+      // Overlay sources. Routes render BEFORE pins so the DOM markers
+      // (added later via maplibregl.Marker — those go in a separate DOM
+      // overlay above the canvas) sit above their endpoints. Both route
+      // kinds share one source; filtered layers split them. The endpoint
+      // dots' feature-state `dimmed` is set from the SAME arc idx as the
+      // line, so a country filter fades a route's dots and line together.
       map.addSource(COUNTRIES_SOURCE_ID, {
         type: 'geojson',
         data: COUNTRIES_GEOJSON_URL,
         promoteId: 'iso_a2',
       });
-      map.addLayer({
-        id: COUNTRIES_FILL_LAYER_ID,
-        type: 'fill',
-        source: COUNTRIES_SOURCE_ID,
-        paint: {
-          'fill-color': COUNTRY_FILL,
-          // Prominent at world view, gone by neighbourhood view.
-          'fill-opacity': ['interpolate', ['linear'], ['zoom'], 2, 1, 6, 0],
-        },
-      });
-      map.addLayer({
-        id: COUNTRIES_LINE_LAYER_ID,
-        type: 'line',
-        source: COUNTRIES_SOURCE_ID,
-        paint: {
-          'line-color': COUNTRY_LINE,
-          'line-width': 0.5,
-          // Lines linger a beat longer than the fill so country
-          // boundaries remain identifiable at country / city zoom.
-          'line-opacity': ['interpolate', ['linear'], ['zoom'], 2, 0.55, 7, 0],
-        },
-      });
-
-      const primary = readCssColor('--color-primary', PRIMARY_FALLBACK);
-
-      // Routes render BEFORE pins so the DOM markers (added later via
-      // maplibregl.Marker — those go in a separate DOM overlay above the
-      // canvas) sit above their endpoints. Both route kinds share one
-      // source; filtered layers split them.
       map.addSource(ARCS_SOURCE_ID, {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
       });
-      // Transit lines slide in under the basemap's place labels, like a
-      // road (ADR-0019). Flights stay on top: a course plotted over the
-      // chart, not part of it.
-      const beforeLabels = firstSymbolLayerId(map.getStyle().layers);
-      for (const layer of transitRouteLayers(primary)) map.addLayer(layer, beforeLabels);
-      map.addLayer(flightArcLayer(primary));
-
-      // Terracotta endpoint dots — the start/end marks of each route.
-      // Their feature-state `dimmed` is set from the SAME arc idx as the
-      // line, so a country filter fades a route's dots and line together.
       map.addSource(ARC_ENDPOINTS_SOURCE_ID, {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
       });
-      map.addLayer(arcEndpointsLayer(primary));
+
+      // The overlay layers themselves — ordering and paint live in
+      // overlay-layers.ts, shared with the theme restyle below. Every
+      // overlay layer must come from overlayLayers(), or a theme switch
+      // drops it.
+      const { underLabels, onTop } = overlayLayers(readOverlayPalette());
+      const beforeLabels = firstSymbolLayerId(map.getStyle().layers);
+      for (const layer of underLabels) map.addLayer(layer, beforeLabels);
+      for (const layer of onTop) map.addLayer(layer);
 
       setMapReady(true);
     });
@@ -558,11 +540,55 @@ export function TripMap({
       ro.disconnect();
       map.remove();
       mapRef.current = null;
+      restylingRef.current = false;
       hoveredIdxRef.current = null;
       firstFitDoneRef.current = false;
       setMapReady(false);
     };
   }, []);
+
+  // Follow the theme: swap White ↔ Black and repaint the overlays when
+  // the user flips the toggle or the OS preference changes. `setStyle`
+  // diffs against the live style, and `withOverlays` hands it the same
+  // overlay sources, so only the basemap paint, the sprite and the
+  // overlay colours change — tiles, GeoJSON data and the dim
+  // feature-state stay put. HTML markers live outside the style and
+  // aren't touched (their colours follow the CSS tokens on their own).
+  //
+  // One restyle at a time: MapLibre doesn't abort an in-flight sprite
+  // request, so dark → light → dark inside one round-trip could land the
+  // wrong sheet. A switch that arrives mid-restyle only records the
+  // wanted theme; the running restyle re-checks once the map is idle.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !theme) return;
+    wantedThemeRef.current = theme;
+    if (restylingRef.current) return;
+
+    function restyle(m: MapLibreMap) {
+      const target = wantedThemeRef.current;
+      if (!target || target === drawnThemeRef.current) return;
+      restylingRef.current = true;
+      // Read now, not at effect time: the tokens on <html> already belong
+      // to `target`, the latest theme.
+      const palette = readOverlayPalette();
+      m.setStyle(buildBasemapStyle({ theme: target }), {
+        transformStyle: (previous, next) => {
+          // Runs when MapLibre applies the new style — only then is the
+          // map actually drawn in `target`.
+          drawnThemeRef.current = target;
+          return withOverlays(next, previous, palette);
+        },
+      });
+      m.once('idle', () => {
+        restylingRef.current = false;
+        if (mapRef.current === m) restyle(m);
+      });
+      // Guarantee a frame, so `idle` follows even if the diff was a no-op.
+      m.triggerRepaint();
+    }
+    restyle(map);
+  }, [theme, mapReady]);
 
   // Re-create the DOM marker set whenever `pins` changes. For our
   // pin counts (<100 per trip), tearing down and re-mounting on prop
@@ -750,6 +776,8 @@ export function TripMap({
       // Inline style — Tailwind would tree-shake unknown runtime-built
       // class strings, leaving the marker invisible. Inline keeps the
       // muted-dotted-ring visual stable regardless of build pipeline.
+      // Colours are token mixes, so the marker follows a theme switch
+      // without being rebuilt.
       el.style.cssText = [
         'display:inline-flex',
         'align-items:center',
@@ -757,9 +785,9 @@ export function TripMap({
         'width:28px',
         'height:28px',
         'border-radius:9999px',
-        'border:1.5px dashed rgba(21,22,26,0.45)',
-        'background:rgba(255,255,255,0.85)',
-        'color:rgba(21,22,26,0.65)',
+        'border:1.5px dashed color-mix(in srgb, var(--color-foreground) 45%, transparent)',
+        'background:color-mix(in srgb, var(--color-card) 85%, transparent)',
+        'color:color-mix(in srgb, var(--color-foreground) 65%, transparent)',
         'backdrop-filter:blur(4px)',
         'box-shadow:0 1px 2px rgba(21,22,26,0.12)',
         'cursor:pointer',
@@ -791,10 +819,10 @@ export function TripMap({
       // hover-tracking machinery.
       const popupHtml = [
         '<div style="font-family:inherit;padding:2px 4px;min-width:120px">',
-        '<div style="font-family:ui-monospace,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(21,22,26,0.55)">',
+        '<div style="font-family:ui-monospace,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:color-mix(in srgb, var(--color-foreground) 55%, transparent)">',
         pin.kind === 'food' ? 'Wishlist · Food' : 'Wishlist · Activity',
         '</div>',
-        '<div style="font-size:14px;font-weight:500;color:rgba(21,22,26,0.92);margin-top:3px;line-height:1.25">',
+        '<div style="font-size:14px;font-weight:500;color:color-mix(in srgb, var(--color-foreground) 92%, transparent);margin-top:3px;line-height:1.25">',
         escapeHtml(pin.label),
         '</div>',
         '</div>',

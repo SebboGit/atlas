@@ -127,7 +127,7 @@ function LegendSwatch({ kind, size }: { kind: TripMapPinKind; size: 'xs' | 'md' 
 
 // A short sample of the line a kind draws on the map, echoing the layer
 // paint in arc-layers.ts: the flight's dashed thread, the transit line's
-// ivory casing under a solid core. Decorative — the row label names it.
+// casing under a solid core. Decorative — the row label names it.
 function RouteSwatch({ style }: { style: RouteStyle }) {
   return (
     <svg aria-hidden viewBox="0 0 24 8" className="text-coral-ink ml-auto h-2 w-6 shrink-0">
@@ -148,7 +148,9 @@ function RouteSwatch({ style }: { style: RouteStyle }) {
             y1="4"
             x2="22"
             y2="4"
-            stroke="rgba(255, 255, 255, 0.9)"
+            // The map's casing token, so the swatch matches the line in
+            // either theme.
+            style={{ stroke: 'var(--map-casing)' }}
             strokeWidth="4"
             strokeLinecap="round"
           />

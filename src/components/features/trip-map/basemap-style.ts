@@ -1,4 +1,6 @@
-// Protomaps "White" basemap style spec. See ADR-0011.
+// Protomaps basemap style spec — "White" in the light theme, "Black" in
+// the dark one. Same tiles, same glyphs; only the flavor and its sprite
+// change. See ADR-0011.
 //
 // Style construction is intentionally local — the @protomaps/basemaps
 // `layers()` helper returns the per-zoom Protomaps layer set keyed
@@ -14,7 +16,9 @@
 import { layers, namedFlavor } from '@protomaps/basemaps';
 import type { StyleSpecification } from 'maplibre-gl';
 
-const PROTOMAPS_SOURCE_ID = 'protomaps';
+import type { ResolvedTheme } from '@/lib/theme/preference';
+
+export const PROTOMAPS_SOURCE_ID = 'protomaps';
 
 // Same-origin under Next.js's static `public/` directory. The `v4`
 // segment matches the basemaps schema version that @protomaps/basemaps
@@ -29,7 +33,16 @@ const PROTOMAPS_SOURCE_ID = 'protomaps';
 // which Atlas doesn't do today) fall back to a bare relative path
 // and would surface the same MapLibre error there.
 const GLYPHS_URL = '/basemaps-assets/fonts/{fontstack}/{range}.pbf';
-const SPRITE_PATH = '/basemaps-assets/sprites/v4/light';
+const SPRITE_DIR = '/basemaps-assets/sprites/v4';
+
+// Flavor + sprite sheet per theme. White pairs with the `light` sheet, the
+// one Atlas has always shipped (upstream also ships a `white` sheet); Black
+// has its own. Neither flavor draws POI icons, so of either sheet only the
+// road shields, oneway arrows and town dots are used.
+export const BASEMAP_FLAVOR = {
+  light: { flavor: 'white', sprite: 'light' },
+  dark: { flavor: 'black', sprite: 'black' },
+} as const satisfies Record<ResolvedTheme, { flavor: string; sprite: string }>;
 
 export interface BasemapStyleOptions {
   /**
@@ -46,13 +59,16 @@ export interface BasemapStyleOptions {
    * language.
    */
   lang?: string;
+  /** Which flavor to draw. Defaults to `light` (White). */
+  theme?: ResolvedTheme;
 }
 
 /**
  * Build a MapLibre style spec wired to a self-hosted Protomaps
- * PMTiles source with the White theme applied. Theme choice rationale
- * lives in ADR-0011 §4 — White's warm-beige terrain matches Atlas's
- * paper aesthetic best.
+ * PMTiles source in the flavor for `theme`: White (white land, grey
+ * water) for light, Black (near-black land, charcoal water) for dark.
+ * Both stay neutral so Atlas's coral routes and pastel pins carry the
+ * colour. Rationale in ADR-0011 §4 and its amendment.
  *
  * The returned style has only the basemap layers; callers add their
  * own sources / layers (country polygons, flight arcs, …) on top
@@ -61,12 +77,13 @@ export interface BasemapStyleOptions {
 export function buildBasemapStyle(opts: BasemapStyleOptions = {}): StyleSpecification {
   const pmtilesUrl = opts.pmtilesUrl ?? '/api/tiles/world.pmtiles';
   const lang = opts.lang ?? 'en';
+  const { flavor, sprite } = BASEMAP_FLAVOR[opts.theme ?? 'light'];
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
   return {
     version: 8,
     glyphs: GLYPHS_URL,
-    sprite: `${origin}${SPRITE_PATH}`,
+    sprite: `${origin}${SPRITE_DIR}/${sprite}`,
     sources: {
       [PROTOMAPS_SOURCE_ID]: {
         type: 'vector',
@@ -79,6 +96,6 @@ export function buildBasemapStyle(opts: BasemapStyleOptions = {}): StyleSpecific
         attribution: '<a href="https://protomaps.com">Protomaps</a> © OpenStreetMap',
       },
     },
-    layers: layers(PROTOMAPS_SOURCE_ID, namedFlavor('white'), { lang }),
+    layers: layers(PROTOMAPS_SOURCE_ID, namedFlavor(flavor), { lang }),
   };
 }

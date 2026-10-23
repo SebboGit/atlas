@@ -24,7 +24,6 @@ export const TRANSIT_LINE_LAYER_ID = 'trip-transit-line';
 export const ARC_ENDPOINTS_SOURCE_ID = 'trip-arc-endpoints';
 export const ARC_ENDPOINTS_LAYER_ID = 'trip-arc-endpoints-dots';
 
-const IVORY = 'rgba(255, 255, 255, 0.9)';
 // Opacity that drops to `dimmed` while the dim effect has set the
 // feature's `dimmed` state (country filter or timeline highlight).
 function dimmable(dimmed: number, normal: number): ExpressionSpecification {
@@ -77,7 +76,7 @@ export function arcEndpointsToFeatureCollection(arcs: readonly TripMapArc[]): Fe
   };
 }
 
-export function flightArcLayer(primary: string): LineLayerSpecification {
+export function flightArcLayer(primary: string, opacity: number): LineLayerSpecification {
   return {
     id: FLIGHT_ARC_LAYER_ID,
     type: 'line',
@@ -95,20 +94,24 @@ export function flightArcLayer(primary: string): LineLayerSpecification {
       'line-dasharray': [2, 2],
       // Dimmed = arc isn't fully within the active country (when a chip
       // is active). Otherwise a soft default so arcs read as connective
-      // tissue, not the headline.
-      'line-opacity': dimmable(0.12, 0.55),
+      // tissue, not the headline — `opacity` per theme, since the same
+      // coral sinks further into Black than into White.
+      'line-opacity': dimmable(0.12, opacity),
     },
   };
 }
 
 /**
- * The transit line: an ivory casing under a solid coral core. Solid
- * so it can't be read as a flight's dashed course or the basemap's
- * dashed railway; coral rather than ink so it doesn't read as a
- * country border. Returned casing-first — add them in this order.
+ * The transit line: a casing under a solid coral core. Solid so it
+ * can't be read as a flight's dashed course or the basemap's dashed
+ * railway; coral rather than ink so it doesn't read as a country
+ * border. The casing is the basemap's own ground (ivory on White,
+ * near-black on Black), so it separates the line from what it
+ * crosses. Returned casing-first — add them in this order.
  */
 export function transitRouteLayers(
   primary: string,
+  casing: string,
 ): [LineLayerSpecification, LineLayerSpecification] {
   const filter: LineLayerSpecification['filter'] = ['==', ['get', 'kind'], 'transit'];
   const layout: LineLayerSpecification['layout'] = { 'line-cap': 'round', 'line-join': 'round' };
@@ -120,7 +123,7 @@ export function transitRouteLayers(
       filter,
       layout,
       paint: {
-        'line-color': IVORY,
+        'line-color': casing,
         'line-width': ['interpolate', ['linear'], ['zoom'], 3, 2.5, 8, 4, 12, 6],
         'line-opacity': dimmable(0.1, 0.85),
       },
@@ -140,7 +143,7 @@ export function transitRouteLayers(
   ];
 }
 
-export function arcEndpointsLayer(primary: string): CircleLayerSpecification {
+export function arcEndpointsLayer(primary: string, casing: string): CircleLayerSpecification {
   return {
     id: ARC_ENDPOINTS_LAYER_ID,
     type: 'circle',
@@ -148,10 +151,10 @@ export function arcEndpointsLayer(primary: string): CircleLayerSpecification {
     paint: {
       'circle-radius': 2.6,
       'circle-color': primary,
-      // A hairline ivory ring lifts the dot off a dark coastline or the
-      // line crossing under it.
+      // A hairline casing ring lifts the dot off a coastline or the line
+      // crossing under it.
       'circle-stroke-width': 1,
-      'circle-stroke-color': IVORY,
+      'circle-stroke-color': casing,
       'circle-opacity': dimmable(0.15, 0.9),
       'circle-stroke-opacity': dimmable(0.15, 0.9),
     },
