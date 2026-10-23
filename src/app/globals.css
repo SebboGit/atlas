@@ -84,6 +84,24 @@
   --shadow-overlay: 0 40px 80px -30px rgb(21 22 26 / 0.45), 0 12px 28px -12px rgb(21 22 26 / 0.25);
 }
 
+/*
+ * Map paint — read by the trip map and the world map from JS, since
+ * MapLibre's canvas can't take var(). Plain custom properties rather than
+ * @theme entries: nothing styles with them as utilities. Keep them to
+ * colour forms MapLibre parses (hex, rgb/rgba); the production minifier
+ * rewrites rgba() to #rrggbbaa, which it also reads. The trip map's basemap
+ * is Protomaps White in light and Black in dark (ADR-0011); these sit on
+ * top of it.
+ */
+:root {
+  /* Trip map: country texture over the basemap, and the edge under routes. */
+  --map-country-fill: rgba(21, 22, 26, 0.045);
+  --map-country-line: rgba(21, 22, 26, 0.28);
+  --map-casing: rgba(255, 255, 255, 0.9);
+  /* Resting opacity of the dashed flight course. */
+  --map-flight-opacity: 0.55;
+}
+
 /* Dark values, applied by an explicit choice or by the OS preference. */
 :root[data-theme='dark'] {
   color-scheme: dark;
@@ -111,6 +129,10 @@
   --shadow-paper: 0 1px 2px rgb(0 0 0 / 0.3);
   --shadow-lifted: 0 18px 40px -20px rgb(0 0 0 / 0.6), 0 4px 12px -6px rgb(0 0 0 / 0.4);
   --shadow-overlay: 0 40px 80px -30px rgb(0 0 0 / 0.7), 0 12px 28px -12px rgb(0 0 0 / 0.5);
+  --map-country-fill: rgba(242, 243, 245, 0.05);
+  --map-country-line: rgba(242, 243, 245, 0.22);
+  --map-casing: rgba(20, 20, 20, 0.9);
+  --map-flight-opacity: 0.8;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
@@ -139,6 +161,10 @@
     --shadow-paper: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-lifted: 0 18px 40px -20px rgb(0 0 0 / 0.6), 0 4px 12px -6px rgb(0 0 0 / 0.4);
     --shadow-overlay: 0 40px 80px -30px rgb(0 0 0 / 0.7), 0 12px 28px -12px rgb(0 0 0 / 0.5);
+    --map-country-fill: rgba(242, 243, 245, 0.05);
+    --map-country-line: rgba(242, 243, 245, 0.22);
+    --map-casing: rgba(20, 20, 20, 0.9);
+    --map-flight-opacity: 0.8;
   }
 }
 :root[data-theme='light'] {
@@ -459,4 +485,33 @@ body {
   .atlas-popover {
     animation: none !important;
   }
+}
+
+/* The trip map's wishlist popup. MapLibre paints popups white; take the
+ * popover surface instead so it follows the theme, tip included. */
+.atlas-wishlist-popup .maplibregl-popup-content {
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+}
+.atlas-wishlist-popup:is(
+    .maplibregl-popup-anchor-top,
+    .maplibregl-popup-anchor-top-left,
+    .maplibregl-popup-anchor-top-right
+  )
+  .maplibregl-popup-tip {
+  border-bottom-color: var(--color-popover);
+}
+.atlas-wishlist-popup:is(
+    .maplibregl-popup-anchor-bottom,
+    .maplibregl-popup-anchor-bottom-left,
+    .maplibregl-popup-anchor-bottom-right
+  )
+  .maplibregl-popup-tip {
+  border-top-color: var(--color-popover);
+}
+.atlas-wishlist-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--color-popover);
+}
+.atlas-wishlist-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--color-popover);
 }
