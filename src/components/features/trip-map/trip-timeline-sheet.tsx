@@ -185,7 +185,7 @@ function TimelineSheet(railProps: TripTimelineRailProps) {
           <div className="shrink-0 cursor-grab px-4 pt-2 pb-3 active:cursor-grabbing">
             <Drawer.Handle className="bg-foreground/20 mx-auto mb-3 h-1.5 w-10 rounded-full" />
             <div className="flex items-baseline gap-2">
-              <Drawer.Title className="text-foreground/85 font-mono text-[11px] tracking-[0.2em] uppercase">
+              <Drawer.Title className="text-foreground/85 font-mono text-[11px] tracking-[0.06em] uppercase">
                 {summary.label}
               </Drawer.Title>
               <span className="text-foreground/40 font-mono text-[10px] tracking-[0.06em]">

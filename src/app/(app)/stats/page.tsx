@@ -108,7 +108,7 @@ function EmptyState() {
       <CardContent className="flex min-h-64 flex-col items-center justify-center px-6 py-14 text-center">
         <span
           aria-hidden
-          className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]"
+          className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.06em]"
         >
           ø
         </span>

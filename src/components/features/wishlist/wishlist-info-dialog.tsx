@@ -182,7 +182,7 @@ export function WishlistInfoDialog({
           )}
 
           {addedByLabel && (
-            <p className="text-foreground/65 font-mono text-[10px] tracking-[0.2em] uppercase">
+            <p className="text-foreground/65 font-mono text-[10px] tracking-[0.06em] uppercase">
               added by {addedByLabel}
             </p>
           )}

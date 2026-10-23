@@ -305,7 +305,7 @@ function ExpandedPastHeader({ onCollapse }: { onCollapse: () => void }) {
         strokeWidth={1.75}
         className="text-foreground/35 group-hover:text-foreground/70 size-3.5 shrink-0 transition-colors"
       />
-      <span className="text-foreground/70 group-hover:text-foreground/85 font-mono text-[10px] tracking-[0.2em] uppercase">
+      <span className="text-foreground/70 group-hover:text-foreground/85 font-mono text-[10px] tracking-[0.06em] uppercase">
         Earlier
       </span>
       <span aria-hidden className="bg-foreground/12 h-px flex-1" />

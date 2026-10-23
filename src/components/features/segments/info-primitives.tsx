@@ -48,7 +48,7 @@ export function InfoRow({
         multiline ? 'flex-col gap-1 sm:flex-row sm:gap-4' : 'items-baseline',
       )}
     >
-      <dt className="text-foreground/70 w-24 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
+      <dt className="text-foreground/70 w-24 shrink-0 font-mono text-[10px] tracking-[0.06em] uppercase">
         {label}
       </dt>
       <dd
