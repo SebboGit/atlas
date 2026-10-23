@@ -32,6 +32,6 @@ test.describe('authed smoke', () => {
   test('/stats renders', async ({ authedPage }) => {
     await authedPage.goto('/stats');
     await expect(authedPage).toHaveURL(/\/stats$/);
-    await expect(authedPage.getByRole('heading', { name: /tally so far/i })).toBeVisible();
+    await expect(authedPage.getByRole('heading', { name: /^stats$/i })).toBeVisible();
   });
 });
