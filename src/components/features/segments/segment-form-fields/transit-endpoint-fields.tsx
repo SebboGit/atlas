@@ -111,7 +111,7 @@ export function TransitEndpointFields({ form, side, locate, located }: TransitEn
             aria-expanded={expanded}
             aria-controls={regionId}
             onClick={() => setSectionOpen(!expanded)}
-            className="text-foreground/70 hover:text-foreground inline-flex items-center gap-1.5 self-start font-mono text-[10px] tracking-[0.2em] uppercase [@media(hover:none)]:min-h-11"
+            className="text-foreground/70 hover:text-foreground inline-flex items-center gap-1.5 self-start font-mono text-[10px] tracking-[0.06em] uppercase [@media(hover:none)]:min-h-11"
           >
             <ChevronDown
               aria-hidden
