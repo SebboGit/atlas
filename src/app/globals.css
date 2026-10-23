@@ -87,8 +87,8 @@
 /*
  * Map paint — read by the trip map and the world map from JS, since
  * MapLibre's canvas can't take var(). Plain custom properties rather than
- * @theme entries: nothing styles with them as utilities. Keep them to
- * colour forms MapLibre parses (hex, rgb/rgba); the production minifier
+ * @theme entries: nothing styles with them as utilities. Keep colours to
+ * forms MapLibre parses (hex, rgb/rgba); the production minifier
  * rewrites rgba() to #rrggbbaa, which it also reads. The trip map's basemap
  * is Protomaps White in light and Black in dark (ADR-0011); these sit on
  * top of it.
@@ -100,6 +100,12 @@
   --map-casing: rgba(255, 255, 255, 0.9);
   /* Resting opacity of the dashed flight course. */
   --map-flight-opacity: 0.55;
+  /* World map: no basemap, just sea, land and borders. */
+  --map-ocean: #eaeef2;
+  --map-land: rgba(21, 22, 26, 0.06);
+  --map-border: rgba(21, 22, 26, 0.35);
+  /* Resting opacity of a visited (coral) country on the world map. */
+  --map-visited-opacity: 0.78;
 }
 
 /* Dark values, applied by an explicit choice or by the OS preference. */
@@ -133,6 +139,10 @@
   --map-country-line: rgba(242, 243, 245, 0.22);
   --map-casing: rgba(20, 20, 20, 0.9);
   --map-flight-opacity: 0.8;
+  --map-ocean: #14161b;
+  --map-land: rgba(242, 243, 245, 0.08);
+  --map-border: rgba(242, 243, 245, 0.3);
+  --map-visited-opacity: 0.92;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
@@ -165,6 +175,10 @@
     --map-country-line: rgba(242, 243, 245, 0.22);
     --map-casing: rgba(20, 20, 20, 0.9);
     --map-flight-opacity: 0.8;
+    --map-ocean: #14161b;
+    --map-land: rgba(242, 243, 245, 0.08);
+    --map-border: rgba(242, 243, 245, 0.3);
+    --map-visited-opacity: 0.92;
   }
 }
 :root[data-theme='light'] {
