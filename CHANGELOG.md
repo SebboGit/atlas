@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   diagram: flights, trains and ferries between the stops, with "You're here"
   on a trip in progress. The trip list and the home page's next trip use the
   same ticket and banner styles, and the logo is redrawn to match.
+- **Stats as tickets** — the stats page opens with a lifetime pass: countries,
+  nights away, flights and distance flown (with laps around the Earth), your
+  name, and on a laptop a barcode with one bar per trip. Each year gets its own
+  ticket with trips, a nights bar and new countries, and the records are
+  tickets too, including a north–south line from your furthest south to your
+  furthest north.
 
 ### Added
 
