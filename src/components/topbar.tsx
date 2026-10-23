@@ -140,7 +140,7 @@ export function Topbar() {
                     className={cn(
                       'size-[18px] shrink-0',
                       isActiveRoute(pathname, '/settings')
-                        ? 'text-coral-ink'
+                        ? 'text-inverse-accent'
                         : 'text-foreground/45',
                     )}
                     strokeWidth={1.75}
