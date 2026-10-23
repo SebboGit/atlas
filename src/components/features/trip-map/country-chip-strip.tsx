@@ -59,7 +59,7 @@ export function CountryChipStrip({ countries, activeCountry, tripId }: CountryCh
                 // Mono code suffix gives chips the same texture as
                 // CountrySelect options — recognisably "this is the
                 // ISO code", quietly de-emphasised when inactive.
-                active ? 'text-primary-foreground/70' : 'text-foreground/40',
+                active ? 'text-background/70' : 'text-foreground/40',
               )}
             >
               {c.code}
