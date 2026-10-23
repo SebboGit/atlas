@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildTripRoute } from './route';
+import { buildTripRoute, windowRoute, type RouteItem, type RouteStop } from './route';
 
 const at = (iso: string) => new Date(iso);
 
@@ -106,5 +106,48 @@ describe('buildTripRoute', () => {
       },
     ]);
     expect(route).toEqual([]);
+  });
+});
+
+const stopsNamed = (...labels: string[]): RouteStop[] =>
+  labels.map((label, i) => ({
+    label,
+    via: i === 0 ? null : 'flight',
+    viaLabel: null,
+    arrivedOn: null,
+  }));
+
+const show = (items: RouteItem[]) =>
+  items.map((it) => (it.kind === 'stop' ? it.stop.label : `+${it.count}`));
+
+describe('windowRoute', () => {
+  const seven = stopsNamed('A', 'B', 'C', 'D', 'E', 'F', 'G');
+
+  it('draws a short route whole', () => {
+    expect(show(windowRoute(stopsNamed('A', 'B', 'C', 'D', 'E'), 2))).toEqual([
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+    ]);
+  });
+
+  it('shows the focus and the next two, folds the rest, keeps the last stop', () => {
+    expect(show(windowRoute(seven, 0))).toEqual(['A', 'B', 'C', '+3', 'G']);
+  });
+
+  it('folds stops before the focus, but never a lone one', () => {
+    expect(show(windowRoute(seven, 1))).toEqual(['A', 'B', 'C', 'D', '+2', 'G']);
+    expect(show(windowRoute(seven, 2))).toEqual(['+2', 'C', 'D', 'E', 'F', 'G']);
+  });
+
+  it('reaches back near the end so a few stops stay visible', () => {
+    expect(show(windowRoute(seven, 6))).toEqual(['+3', 'D', 'E', 'F', 'G']);
+  });
+
+  it('keeps each stop’s index in the full route', () => {
+    const items = windowRoute(seven, 6);
+    expect(items.flatMap((it) => (it.kind === 'stop' ? [it.index] : []))).toEqual([3, 4, 5, 6]);
   });
 });

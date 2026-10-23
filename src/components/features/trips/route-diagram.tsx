@@ -3,7 +3,7 @@
 import * as React from 'react';
 
 import { useMounted } from '@/components/client-only';
-import type { RouteLink, RouteStop } from '@/lib/trips/route';
+import { windowRoute, type RouteLink, type RouteStop } from '@/lib/trips/route';
 import { cn } from '@/lib/utils';
 
 const DAY_FMT = new Intl.DateTimeFormat('en-GB', {
@@ -54,6 +54,10 @@ function describe(stops: RouteStop[]): string {
  * laptop-only (the caller hides it below `md:`): on a phone the itinerary
  * already reads top to bottom. On an active trip the latest stop reached
  * by today is marked, resolved after mount in the viewer's own day.
+ *
+ * A long route never clips: `windowRoute` keeps the current stop and the
+ * next two, folds the rest into "+N stops" and keeps the last stop. The
+ * screen-reader description still names every stop.
  */
 export function RouteDiagram({ stops, active }: { stops: RouteStop[]; active: boolean }) {
   const mounted = useMounted();
@@ -66,6 +70,8 @@ export function RouteDiagram({ stops, active }: { stops: RouteStop[]; active: bo
     });
     return index;
   }, [active, mounted, stops]);
+  // Before mount (and on trips not under way) the window starts at the start.
+  const items = React.useMemo(() => windowRoute(stops, Math.max(hereIndex, 0)), [stops, hereIndex]);
 
   return (
     <figure className="min-w-0">
@@ -73,37 +79,63 @@ export function RouteDiagram({ stops, active }: { stops: RouteStop[]; active: bo
         Route
       </figcaption>
       <p className="sr-only">{describe(stops)}.</p>
-      <div aria-hidden className="flex items-start overflow-x-auto pb-1">
-        {stops.map((stop, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && stop.via && (
-              <div className={cn('flex flex-1 flex-col', stop.viaLabel ? 'min-w-12' : 'min-w-5')}>
-                <span className="text-inverse-muted h-6 truncate px-1 text-center font-mono text-[10px] leading-6 uppercase">
-                  {stop.viaLabel ?? ''}
+      <div aria-hidden className="flex items-start">
+        {items.map((item, slot) => {
+          if (item.kind === 'more') {
+            return (
+              <div key={`more-${item.side}`} className="flex min-w-14 flex-1 flex-col">
+                <span className="text-inverse-muted h-6 px-1 text-center font-mono text-[10px] leading-6 whitespace-nowrap uppercase">
+                  +{item.count} {item.count === 1 ? 'stop' : 'stops'}
                 </span>
                 <span className="flex h-4 items-center px-0.5">
-                  <span className={cn('w-full', LINK_LINE[stop.via])} />
+                  <span className="border-inverse-muted w-full border-t-2 border-dotted" />
                 </span>
               </div>
-            )}
-            <div className="flex max-w-[6.5rem] shrink-0 flex-col items-center text-center">
-              <span className="font-display h-6 max-w-full truncate text-base leading-6">
-                {stop.label}
-              </span>
-              <span
-                className={cn(
-                  'size-4 rounded-full border-[3px]',
-                  i === hereIndex
-                    ? 'border-inverse-foreground bg-inverse-accent ring-inverse-accent/30 ring-4'
-                    : 'border-inverse-foreground bg-inverse',
-                )}
-              />
-              <span className="text-inverse-muted mt-1.5 font-mono text-[10px] whitespace-nowrap uppercase">
-                {i === hereIndex ? 'You’re here' : stop.arrivedOn ? formatDay(stop.arrivedOn) : ''}
-              </span>
-            </div>
-          </React.Fragment>
-        ))}
+            );
+          }
+          const { stop, index } = item;
+          // A fold already stands between this stop and the one drawn before it.
+          const linked = slot > 0 && items[slot - 1]?.kind === 'stop' && stop.via;
+          return (
+            <React.Fragment key={index}>
+              {linked && stop.via && (
+                <div
+                  className={cn(
+                    'flex min-w-0 flex-1 flex-col',
+                    stop.viaLabel ? 'min-w-12' : 'min-w-5',
+                  )}
+                >
+                  <span className="text-inverse-muted h-6 truncate px-1 text-center font-mono text-[10px] leading-6 uppercase">
+                    {stop.viaLabel ?? ''}
+                  </span>
+                  <span className="flex h-4 items-center px-0.5">
+                    <span className={cn('w-full', LINK_LINE[stop.via])} />
+                  </span>
+                </div>
+              )}
+              <div className="flex max-w-[6.5rem] min-w-0 shrink-0 flex-col items-center text-center">
+                <span className="font-display h-6 max-w-full truncate text-base leading-6">
+                  {stop.label}
+                </span>
+                <span
+                  className={cn(
+                    'size-4 rounded-full border-[3px]',
+                    index === hereIndex
+                      ? 'border-inverse-foreground bg-inverse-accent ring-inverse-accent/30 ring-4'
+                      : 'border-inverse-foreground bg-inverse',
+                  )}
+                />
+                <span className="text-inverse-muted mt-1.5 font-mono text-[10px] whitespace-nowrap uppercase">
+                  {index === hereIndex
+                    ? 'You’re here'
+                    : stop.arrivedOn
+                      ? formatDay(stop.arrivedOn)
+                      : ''}
+                </span>
+              </div>
+            </React.Fragment>
+          );
+        })}
       </div>
     </figure>
   );
