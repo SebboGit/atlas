@@ -35,7 +35,7 @@ export function NotPinnedChip({ items }: NotPinnedChipProps) {
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label={`${items.length} ${items.length === 1 ? 'segment' : 'segments'} not on the map`}
-          className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground absolute bottom-3 left-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
+          className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground absolute bottom-3 left-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.06em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
         >
           <MapPinOff aria-hidden className="text-foreground/70 h-3.5 w-3.5" strokeWidth={1.5} />
           <span>Not pinned · {String(items.length).padStart(2, '0')}</span>
@@ -55,7 +55,7 @@ export function NotPinnedChip({ items }: NotPinnedChipProps) {
         className="w-[min(22rem,calc(100vw-1.5rem))] max-w-sm p-0"
       >
         <div className="border-foreground/10 border-b px-4 pt-3 pb-2">
-          <h3 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
+          <h3 className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
             Not on the map
           </h3>
         </div>

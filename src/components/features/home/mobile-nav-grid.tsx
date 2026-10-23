@@ -25,10 +25,10 @@ export function MobileNavGrid() {
         <Link
           key={href}
           href={href}
-          className="focus-visible:ring-primary/40 focus-visible:ring-offset-background block rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="focus-visible:ring-ring focus-visible:ring-offset-background block rounded-2xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <Card variant="glass" className="flex min-h-[5.5rem] flex-col justify-between gap-3 p-4">
-            <Icon aria-hidden className="text-primary h-5 w-5" strokeWidth={1.5} />
+            <Icon aria-hidden className="text-coral-ink h-5 w-5" strokeWidth={1.5} />
             <span className="heading-card">{label}</span>
           </Card>
         </Link>

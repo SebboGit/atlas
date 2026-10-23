@@ -50,7 +50,7 @@ export function PinTooltip({ x, y, containerWidth, containerHeight, pin }: PinTo
       role="tooltip"
       className={cn(
         'pointer-events-none absolute z-10 max-w-[14rem] rounded-lg border px-3 py-2',
-        'border-foreground/15 bg-card/95 shadow-[0_10px_24px_-12px_rgba(60,40,20,0.35)] backdrop-blur-sm',
+        'border-foreground/15 bg-card/95 shadow-[0_10px_24px_-12px_rgba(21,22,26,0.35)] backdrop-blur-sm',
       )}
       style={{
         left: x,
@@ -62,7 +62,7 @@ export function PinTooltip({ x, y, containerWidth, containerHeight, pin }: PinTo
         {pin.label}
       </p>
       {captionParts.length > 0 && (
-        <p className="text-muted-foreground mt-1 font-mono text-[10px] tracking-[0.18em] uppercase">
+        <p className="text-muted-foreground mt-1 font-mono text-[10px] tracking-[0.06em] uppercase">
           {captionParts.join(' · ')}
         </p>
       )}

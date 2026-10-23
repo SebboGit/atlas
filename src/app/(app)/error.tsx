@@ -21,7 +21,7 @@ export default function AppError({ error, reset }: AppErrorProps) {
     <main className="mx-auto w-full max-w-3xl px-6 pt-24 pb-24 sm:px-8">
       <Card variant="glass" className="atlas-rise relative overflow-hidden">
         <CardContent className="flex min-h-72 flex-col items-center justify-center px-6 py-16 text-center">
-          <span className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]">
+          <span className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.06em]">
             ø
           </span>
           <h1 className="font-display text-foreground text-3xl tracking-tight">
@@ -31,7 +31,7 @@ export default function AppError({ error, reset }: AppErrorProps) {
             This page didn&apos;t load. Try again, or head back to your trips.
           </p>
           {error.digest ? (
-            <p className="text-muted-foreground/60 mt-4 font-mono text-[10px] tracking-[0.2em] uppercase">
+            <p className="text-muted-foreground/60 mt-4 font-mono text-[10px] tracking-[0.06em] uppercase">
               Ref {error.digest}
             </p>
           ) : null}

@@ -174,7 +174,7 @@ function TimelineSheet(railProps: TripTimelineRailProps) {
           style={{ height: '100svh' }}
           className={cn(
             'border-foreground/12 bg-card/95 fixed inset-x-0 bottom-0 z-30 flex flex-col',
-            'rounded-t-2xl border-t shadow-[0_-12px_40px_-24px_rgba(60,40,20,0.4)] backdrop-blur-md',
+            'rounded-t-2xl border-t shadow-[0_-12px_40px_-24px_rgba(21,22,26,0.4)] backdrop-blur-md',
             'outline-none',
           )}
         >
@@ -185,14 +185,14 @@ function TimelineSheet(railProps: TripTimelineRailProps) {
           <div className="shrink-0 cursor-grab px-4 pt-2 pb-3 active:cursor-grabbing">
             <Drawer.Handle className="bg-foreground/20 mx-auto mb-3 h-1.5 w-10 rounded-full" />
             <div className="flex items-baseline gap-2">
-              <Drawer.Title className="text-foreground/85 font-mono text-[11px] tracking-[0.2em] uppercase">
+              <Drawer.Title className="text-foreground/85 font-mono text-[11px] tracking-[0.06em] uppercase">
                 {summary.label}
               </Drawer.Title>
-              <span className="text-foreground/40 font-mono text-[10px] tracking-[0.14em]">
+              <span className="text-foreground/40 font-mono text-[10px] tracking-[0.06em]">
                 · {summary.count} {summary.count === 1 ? 'item' : 'items'}
               </span>
               <span aria-hidden className="bg-foreground/12 h-px flex-1 self-center" />
-              <span className="text-foreground/35 font-mono text-[9px] tracking-[0.18em] uppercase">
+              <span className="text-foreground/35 font-mono text-[9px] tracking-[0.06em] uppercase">
                 Drag to expand
               </span>
             </div>
