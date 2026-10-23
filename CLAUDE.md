@@ -41,7 +41,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 | OCR fallback     | **Tesseract.js** (Node) or PaddleOCR sidecar      | Only when PDF text extraction fails                                            |
 | Structuring      | **Ollama** (local LLM, e.g. Qwen)                 | Extract structured data from raw OCR/text — see ADR-0006                       |
 | Airline lookup   | **Static IATA→name table** (OpenFlights snapshot) | Friendly carrier names without an external API — see ADR-0009                  |
-| Airport lookup   | **Static IATA→airport table** (OurAirports)       | Coords + timezone for flight pins/times, no runtime API call                   |
+| Airport lookup   | **Static IATA→airport table** (OpenFlights)       | Coords + timezone for flight pins/times; cities in a server-only side table    |
 | Jobs             | **pg-boss** (`Jobs` interface, Postgres-backed)   | Durable background work + recurring schedules; one schema, no Redis (ADR-0012) |
 | Notifications    | **ntfy** (self-hosted)                            | Push reminders for upcoming segments, extraction events, errors                |
 | Testing          | **Vitest** (unit) + **Playwright** (e2e)          | Fast unit, real-browser e2e                                                    |
@@ -106,7 +106,7 @@ Two map surfaces ship today: a visited-countries world choropleth at `/map`, and
 │   │   ├── geocoding/       # Photon + Nominatim clients, fallback ladder, DB cache (ADR-0010/0018)
 │   │   ├── maplibre/        # MapLibre worker-URL bootstrap (worker staged under public/maplibre/)
 │   │   ├── airlines/        # Reference data — static IATA → airline-name lookup (OpenFlights snapshot)
-│   │   ├── airports/        # Reference data — static IATA → airport (coords, tz, country)
+│   │   ├── airports/        # Reference data — static IATA → airport (coords, tz, country; city via server-only cities.ts)
 │   │   ├── countries/       # Reference data — country names + ISO codes
 │   │   ├── ocr/             # PDF text extraction + OCR fallback
 │   │   ├── extraction/      # Ollama-backed structuring
