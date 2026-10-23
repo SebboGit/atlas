@@ -130,3 +130,41 @@ export function buildTripRoute(segments: RouteSegment[]): RouteStop[] {
   }
   return stops.length >= 2 ? stops : [];
 }
+
+/** One slot in the banner's diagram: a stop, or a fold standing in for hidden stops. */
+export type RouteItem =
+  | { kind: 'stop'; stop: RouteStop; index: number }
+  | { kind: 'more'; count: number; side: 'before' | 'after' };
+
+/** Routes this long or shorter are drawn whole. */
+export const ROUTE_FULL_MAX = 5;
+
+/**
+ * The part of a long route the banner draws, centred on where the traveller
+ * is: the `focus` stop and the two after it — what comes next matters most —
+ * then the stops up to the last folded into one "+N", then the last stop.
+ * Stops before the focus fold into a leading "+N". A fold never hides a
+ * single stop (that stop is drawn instead), and near the end the window
+ * reaches back so about four stops stay visible.
+ */
+export function windowRoute(stops: RouteStop[], focus: number): RouteItem[] {
+  const whole = stops.map((stop, index): RouteItem => ({ kind: 'stop', stop, index }));
+  if (stops.length <= ROUTE_FULL_MAX) return whole;
+
+  const last = stops.length - 1;
+  const f = Math.min(Math.max(focus, 0), last);
+  let start = f;
+  let end = Math.min(f + 2, last);
+  if (last - end - 1 <= 1) end = last;
+  if (end === last) start = Math.min(start, last - 3);
+  if (start === 1) start = 0;
+
+  const items: RouteItem[] = [];
+  if (start > 0) items.push({ kind: 'more', count: start, side: 'before' });
+  items.push(...whole.slice(start, end + 1));
+  if (end < last) {
+    items.push({ kind: 'more', count: last - end - 1, side: 'after' });
+    items.push(whole[last]!);
+  }
+  return items;
+}
