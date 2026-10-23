@@ -72,7 +72,7 @@ export default async function StatsPage() {
 
           {/* ── Year over year — three strips, 3-col on laptop ── */}
           <section className="atlas-rise flex flex-col gap-5" style={{ animationDelay: '220ms' }}>
-            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
+            <p className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
               Year by year
             </p>
             <div className="grid gap-5 lg:grid-cols-3">
@@ -108,7 +108,7 @@ function EmptyState() {
       <CardContent className="flex min-h-64 flex-col items-center justify-center px-6 py-14 text-center">
         <span
           aria-hidden
-          className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.06em]"
+          className="border-foreground/25 text-foreground/70 mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]"
         >
           ø
         </span>

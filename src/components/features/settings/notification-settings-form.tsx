@@ -122,7 +122,7 @@ export function NotificationSettingsForm({ initial, defaultTopic }: Notification
        *  undefined, and the prefs schema would then default it back to on,
        *  silently undoing a switch the user turned off. */}
       <fieldset className={enabled ? 'flex flex-col gap-1' : 'flex flex-col gap-1 opacity-50'}>
-        <legend className="text-foreground/70 mb-2 font-mono text-[10px] tracking-[0.06em] uppercase">
+        <legend className="text-foreground/70 mb-2 font-mono text-[10px] tracking-[0.28em] uppercase">
           Send me
         </legend>
         <ToggleRow
@@ -203,7 +203,7 @@ function ToggleRow({
       <input
         id={id}
         type="checkbox"
-        className="border-foreground/30 text-coral-ink accent-primary focus-visible:ring-ring focus-visible:ring-offset-background mt-0.5 size-4 shrink-0 rounded border bg-transparent transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        className="border-foreground/30 text-primary accent-primary focus-visible:ring-primary/40 focus-visible:ring-offset-background mt-0.5 size-4 shrink-0 rounded border bg-transparent transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         {...registration}
       />
       <span className="flex min-w-0 flex-col gap-0.5">

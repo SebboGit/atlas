@@ -78,7 +78,7 @@ export function WishlistSuggestionsPanel({
             'bg-foreground/[0.04] [@media(hover:hover)]:hover:bg-foreground/[0.07]',
             // Inset ring: the container clips overflow, so an outward
             // offset ring would be cut off on three sides.
-            'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
+            'focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
             open && 'border-foreground/12 border-b',
           )}
         >
@@ -86,14 +86,14 @@ export function WishlistSuggestionsPanel({
             aria-hidden
             strokeWidth={2.25}
             className={cn(
-              'text-coral-ink size-4 shrink-0 -rotate-90 transition-transform duration-150',
+              'text-primary size-4 shrink-0 -rotate-90 transition-transform duration-150',
               open && 'rotate-0',
             )}
           />
-          <span className="text-foreground/85 font-mono text-[10px] tracking-[0.06em] uppercase">
+          <span className="text-foreground/85 font-mono text-[10px] tracking-[0.28em] uppercase">
             From your wishlist
           </span>
-          <span className="text-foreground/40 font-mono text-[10px] tracking-[0.06em]">
+          <span className="text-foreground/40 font-mono text-[10px] tracking-[0.2em]">
             · {String(items.length).padStart(2, '0')}
           </span>
           {!open && preview && (
@@ -186,13 +186,13 @@ function SuggestionCard({
           aria-hidden
           className={cn(
             'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border [&_svg]:size-4',
-            isFood ? 'border-accent/40 text-accent' : 'border-primary/40 text-coral-ink',
+            isFood ? 'border-accent/40 text-accent' : 'border-primary/40 text-primary',
           )}
         >
           {isFood ? <UtensilsCrossed strokeWidth={1.5} /> : <Sparkles strokeWidth={1.5} />}
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <p className="text-foreground/70 font-mono text-[9px] tracking-[0.06em] uppercase">
+          <p className="text-foreground/70 font-mono text-[9px] tracking-[0.28em] uppercase">
             {isFood ? 'Food' : 'Activity'}
           </p>
           <p

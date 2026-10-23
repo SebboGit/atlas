@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 export function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
+      <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
         {title}
       </h4>
       <dl className="border-foreground/10 divide-foreground/8 divide-y rounded-xl border">
@@ -48,7 +48,7 @@ export function InfoRow({
         multiline ? 'flex-col gap-1 sm:flex-row sm:gap-4' : 'items-baseline',
       )}
     >
-      <dt className="text-foreground/70 w-24 shrink-0 font-mono text-[10px] tracking-[0.06em] uppercase">
+      <dt className="text-foreground/70 w-24 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
         {label}
       </dt>
       <dd

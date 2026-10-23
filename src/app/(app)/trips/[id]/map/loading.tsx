@@ -9,10 +9,10 @@ export default function TripMapLoading() {
         className="bg-muted/55 absolute inset-0 animate-pulse motion-reduce:animate-none"
       />
       <div aria-hidden className="relative flex flex-col items-center gap-4 text-center">
-        <span className="border-foreground/25 text-foreground/70 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.06em]">
+        <span className="border-foreground/25 text-foreground/70 inline-flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[10px] tracking-[0.2em]">
           ø
         </span>
-        <p className="text-muted-foreground font-mono text-[10px] tracking-[0.06em] uppercase">
+        <p className="text-muted-foreground font-mono text-[10px] tracking-[0.2em] uppercase">
           Loading map
         </p>
       </div>

@@ -40,7 +40,7 @@ export function PinLine({
         aria-hidden
         className={cn(
           'size-3.5 shrink-0',
-          pin.state === 'pinned' ? 'text-coral-ink' : 'text-foreground/40',
+          pin.state === 'pinned' ? 'text-primary' : 'text-foreground/40',
         )}
         strokeWidth={1.75}
       />

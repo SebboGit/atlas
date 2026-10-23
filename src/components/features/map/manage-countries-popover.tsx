@@ -126,7 +126,7 @@ export function ManageCountriesPopover({ manualCodes }: ManageCountriesPopoverPr
         )}
 
         <div className="border-foreground/10 mt-4 border-t pt-3">
-          <p className="text-muted-foreground mb-2 font-mono text-[10px] tracking-[0.06em] uppercase">
+          <p className="text-muted-foreground mb-2 font-mono text-[10px] tracking-[0.22em] uppercase">
             Marked {optimistic.length > 0 && `· ${optimistic.length}`}
           </p>
           {optimistic.length === 0 ? (

@@ -107,14 +107,14 @@ export function SegmentDocumentsManager({
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-4">
-        <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase">
+        <h4 className="text-foreground/70 font-mono text-[10px] tracking-[0.28em] uppercase">
           Documents
         </h4>
         {editing ? (
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="text-foreground/70 hover:text-foreground font-mono text-[10px] tracking-[0.06em] uppercase transition-colors"
+            className="text-foreground/70 hover:text-foreground font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
           >
             Done
           </button>
@@ -122,7 +122,7 @@ export function SegmentDocumentsManager({
           <button
             type="button"
             onClick={openEditor}
-            className="text-foreground/70 hover:text-foreground font-mono text-[10px] tracking-[0.06em] uppercase transition-colors"
+            className="text-foreground/70 hover:text-foreground font-mono text-[10px] tracking-[0.24em] uppercase transition-colors"
           >
             {chipDocs.length > 0 ? 'Manage' : 'Attach'}
           </button>
@@ -176,7 +176,7 @@ export function SegmentDocumentsManager({
                     <span className="text-foreground/90 block truncate text-sm leading-snug">
                       {doc.title ?? doc.originalName}
                     </span>
-                    <span className="text-foreground/70 block font-mono text-[9px] tracking-[0.06em] uppercase">
+                    <span className="text-foreground/70 block font-mono text-[9px] tracking-[0.24em] uppercase">
                       {formatMimeLabel(doc.mime)}
                     </span>
                   </span>
