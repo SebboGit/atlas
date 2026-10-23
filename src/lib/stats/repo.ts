@@ -58,15 +58,25 @@ export interface YearOverYearStats {
   newCountriesPerYear: YearTally[];
 }
 
+export interface LatitudeRecord {
+  label: string;
+  lat: number;
+  airport: boolean;
+}
+
 export interface PersonalRecords {
   /**
    * Longest trip by nights; null when no dated multi-night trip exists.
    * An in-progress trip competes with the nights elapsed so far.
    */
   longestTrip: { tripId: string; title: string; nights: number } | null;
-  /** Most extreme latitudes touched by any placed point. */
-  northernmost: { label: string; lat: number } | null;
-  southernmost: { label: string; lat: number } | null;
+  /**
+   * Most extreme latitudes touched by any placed point. `airport` says the
+   * label is a flight's IATA code rather than a segment's location name,
+   * so a location the user called "CAN" is never read as Guangzhou.
+   */
+  northernmost: LatitudeRecord | null;
+  southernmost: LatitudeRecord | null;
   /** Airport IATA appearing on the most flight legs (origin or dest). */
   mostVisitedAirport: { code: string; visits: number } | null;
   /** Carrier name on the most flight segments. */
@@ -431,10 +441,10 @@ function buildRecords(
   // We take whichever point reaches furthest from the equator.
   let northernmost: PersonalRecords['northernmost'] = null;
   let southernmost: PersonalRecords['southernmost'] = null;
-  const considerPoint = (label: string, lat: number, lng: number) => {
+  const considerPoint = (label: string, lat: number, lng: number, airport: boolean) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-    if (!northernmost || lat > northernmost.lat) northernmost = { label, lat };
-    if (!southernmost || lat < southernmost.lat) southernmost = { label, lat };
+    if (!northernmost || lat > northernmost.lat) northernmost = { label, lat, airport };
+    if (!southernmost || lat < southernmost.lat) southernmost = { label, lat, airport };
   };
 
   // Flight airports + airport-visit tally + carrier tally in one pass.
@@ -454,7 +464,7 @@ function buildRecords(
       // matches how distance and extremes already skip unknown codes.
       if (!coords) continue;
       airportVisits.set(code, (airportVisits.get(code) ?? 0) + 1);
-      considerPoint(code, coords.lat, coords.lng);
+      considerPoint(code, coords.lat, coords.lng, true);
     }
     // Resolve the stored carrier to a friendly name before tallying.
     // `data.carrier` may hold a bare IATA code ("BA") on legacy rows or
@@ -466,7 +476,7 @@ function buildRecords(
       airlineFlights.set(carrierName, (airlineFlights.get(carrierName) ?? 0) + 1);
     }
   }
-  for (const pt of nonFlightPoints) considerPoint(pt.label, pt.lat, pt.lng);
+  for (const pt of nonFlightPoints) considerPoint(pt.label, pt.lat, pt.lng, false);
 
   return {
     longestTrip,

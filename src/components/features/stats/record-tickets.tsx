@@ -5,7 +5,7 @@ import { SEGMENT_TONE } from '@/components/features/segments/segment-tone';
 import { Card } from '@/components/ui/card';
 import type { PersonalRecords } from '@/lib/stats';
 import { plural } from '@/lib/stats/format';
-import { airportCountryName } from '@/lib/stats/places';
+import { airportPlace } from '@/lib/stats/places';
 import { cn } from '@/lib/utils';
 
 import { LatitudeTicket } from './latitude-ticket';
@@ -40,7 +40,7 @@ export function RecordTickets({ records }: { records: PersonalRecords }) {
       : flightCount === 1
         ? 'col-span-2 sm:col-span-1'
         : 'col-span-1';
-  const airportCountry = airport ? airportCountryName(airport.code) : null;
+  const airportWhere = airport ? airportPlace(airport.code) : null;
 
   return (
     <section aria-labelledby="stats-records">
@@ -88,11 +88,11 @@ export function RecordTickets({ records }: { records: PersonalRecords }) {
                 <span className="text-[1.625rem] leading-[1.05] font-bold tracking-[-0.02em] sm:text-2xl sm:leading-[1.15]">
                   {airport.code}
                 </span>
-                {/* The country on phone and laptop alike; the phone adds the
-                 *  visit count the laptop carries on its stub. */}
-                {airportCountry && (
+                {/* The city (else the country) on phone and laptop alike; the
+                 *  phone adds the visit count the laptop carries on its stub. */}
+                {airportWhere && (
                   <span className="text-muted-foreground truncate text-[0.8125rem] sm:text-[0.9375rem]">
-                    {airportCountry}
+                    {airportWhere}
                   </span>
                 )}
                 <span className="text-muted-foreground text-[0.8125rem] sm:hidden">

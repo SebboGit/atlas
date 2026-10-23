@@ -7,12 +7,16 @@ import { latitudeLabel } from './format';
 export interface LatitudeExtreme {
   label: string;
   lat: number;
+  /** An airport's IATA code, shown after `label` ("Punta Arenas (PUQ)"). */
+  code?: string;
 }
 
 export interface LatitudeLabel {
   caption: string;
   value: string;
   place: string;
+  /** The airport code after the place, kept apart so it never truncates. */
+  code?: string;
   /** Marker position along the line, 0 (south end) to 100 (north end). */
   pct: number;
   /**
@@ -96,6 +100,10 @@ export function latitudeTicks(bound: number, widthPx: number): LatitudeTick[] {
   return ticks.sort((a, b) => a.lat - b.lat);
 }
 
+function placeText({ label, code }: LatitudeExtreme): string {
+  return code ? `${label} (${code})` : label;
+}
+
 /**
  * Lay out the latitude record from the furthest-south and furthest-north
  * points. Either may be missing; when both are the same point it is drawn
@@ -124,6 +132,7 @@ export function layoutLatitude(
           caption: 'Furthest south',
           value: latitudeLabel(south.lat),
           place: south.label,
+          code: south.code,
           pct: from,
           anchor: 'start',
         },
@@ -131,6 +140,7 @@ export function layoutLatitude(
           caption: 'Furthest north',
           value: latitudeLabel(north.lat),
           place: north.label,
+          code: north.code,
           pct: to,
           anchor: 'end',
         },
@@ -139,7 +149,7 @@ export function layoutLatitude(
       leadSpacer: from,
       trailSpacer: 100 - to,
       ticks,
-      description: `Furthest south ${latitudeLabel(south.lat)}, ${south.label}. Furthest north ${latitudeLabel(north.lat)}, ${north.label}.`,
+      description: `Furthest south ${latitudeLabel(south.lat)}, ${placeText(south)}. Furthest north ${latitudeLabel(north.lat)}, ${placeText(north)}.`,
     };
   }
 
@@ -152,11 +162,20 @@ export function layoutLatitude(
   return {
     bound,
     span: same ? 0 : null,
-    labels: [{ caption, value: latitudeLabel(point.lat), place: point.label, pct, anchor }],
+    labels: [
+      {
+        caption,
+        value: latitudeLabel(point.lat),
+        place: point.label,
+        code: point.code,
+        pct,
+        anchor,
+      },
+    ],
     bar: null,
     leadSpacer: anchor === 'start' ? pct : 0,
     trailSpacer: anchor === 'end' ? 100 - pct : 0,
     ticks,
-    description: `${caption} ${latitudeLabel(point.lat)}, ${point.label}.`,
+    description: `${caption} ${latitudeLabel(point.lat)}, ${placeText(point)}.`,
   };
 }

@@ -3,7 +3,7 @@ import { Compass } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { PersonalRecords } from '@/lib/stats';
 import { layoutLatitude, type LatitudeLabel } from '@/lib/stats/latitude';
-import { placeName } from '@/lib/stats/places';
+import { latitudePlace } from '@/lib/stats/places';
 import { cn } from '@/lib/utils';
 
 import { STRIP_LABEL } from './styles';
@@ -28,8 +28,8 @@ type Extreme = PersonalRecords['northernmost'];
  */
 export function LatitudeTicket({ south, north }: { south: Extreme; north: Extreme }) {
   const layout = layoutLatitude(
-    south && { ...south, label: placeName(south.label) },
-    north && { ...north, label: placeName(north.label) },
+    south && { lat: south.lat, ...latitudePlace(south) },
+    north && { lat: north.lat, ...latitudePlace(north) },
     TICK_TRACK_WIDTH,
   );
   if (!layout) return null;
@@ -136,8 +136,10 @@ function ExtremeLabel({ label }: { label: LatitudeLabel }) {
       <span className="text-xl leading-none font-bold tracking-[-0.02em] whitespace-nowrap sm:mt-1.5 sm:text-[1.75rem]">
         {label.value}
       </span>
-      <span className="text-muted-foreground mt-[3px] max-w-full truncate text-xs sm:mt-1.5 sm:text-[0.9375rem]">
-        {label.place}
+      {/* The city truncates before an airport's code does. */}
+      <span className="text-muted-foreground mt-[3px] flex max-w-full text-xs sm:mt-1.5 sm:text-[0.9375rem]">
+        <span className="truncate">{label.place}</span>
+        {label.code && <span className="shrink-0">&nbsp;({label.code})</span>}
       </span>
     </div>
   );
