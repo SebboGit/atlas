@@ -2,11 +2,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   convertDistance,
+  dayMonthYear,
+  earthLaps,
+  figureWidthEm,
+  firstName,
   getDistanceUnit,
   groupDigits,
   latitudeLabel,
-  monthYear,
   plural,
+  shortMonthYear,
+  timeOnTheRoad,
 } from './format';
 
 describe('groupDigits', () => {
@@ -27,13 +32,85 @@ describe('groupDigits', () => {
   });
 });
 
-describe('monthYear', () => {
-  it('renders a UTC month and year', () => {
-    expect(monthYear(new Date('2025-03-15T00:00:00Z'))).toBe('March 2025');
+describe('shortMonthYear', () => {
+  it('renders a short UTC month and year', () => {
+    expect(shortMonthYear(new Date('2025-03-15T00:00:00Z'))).toBe('Mar 2025');
   });
 
   it('does not slip a month at a UTC boundary', () => {
-    expect(monthYear(new Date('2025-03-01T00:00:00Z'))).toBe('March 2025');
+    expect(shortMonthYear(new Date('2025-03-01T00:00:00Z'))).toBe('Mar 2025');
+  });
+});
+
+describe('dayMonthYear', () => {
+  it('puts the day first', () => {
+    expect(dayMonthYear(new Date('2026-10-23T12:00:00Z'))).toBe('23 Oct 2026');
+  });
+
+  it('reads the UTC calendar day', () => {
+    expect(dayMonthYear(new Date('2026-10-23T23:30:00Z'))).toBe('23 Oct 2026');
+  });
+});
+
+describe('firstName', () => {
+  it('takes the first word of the name', () => {
+    expect(firstName('Sebastian Theimer')).toBe('Sebastian');
+    expect(firstName('  Ana   María ')).toBe('Ana');
+  });
+
+  it('is null without a name', () => {
+    expect(firstName(null)).toBeNull();
+    expect(firstName(undefined)).toBeNull();
+    expect(firstName('   ')).toBeNull();
+  });
+});
+
+describe('timeOnTheRoad', () => {
+  it('says nothing under a month', () => {
+    expect(timeOnTheRoad(0)).toBeNull();
+    expect(timeOnTheRoad(30)).toBeNull();
+  });
+
+  it('counts whole months, rounded', () => {
+    expect(timeOnTheRoad(31)).toBe('1 month on the road');
+    expect(timeOnTheRoad(299)).toBe('10 months on the road');
+  });
+
+  it('switches to years from twelve months', () => {
+    expect(timeOnTheRoad(365)).toBe('1 year on the road');
+    expect(timeOnTheRoad(430)).toBe('1 year, 2 months on the road');
+    expect(timeOnTheRoad(400)).toBe('1 year, 1 month on the road');
+    expect(timeOnTheRoad(731)).toBe('2 years on the road');
+  });
+});
+
+describe('earthLaps', () => {
+  it('is null for no distance, or one that rounds to nothing', () => {
+    expect(earthLaps(0)).toBeNull();
+    expect(earthLaps(1500)).toBeNull();
+  });
+
+  it('keeps one decimal below 100 laps', () => {
+    expect(earthLaps(2500)).toBe('0.1');
+    expect(earthLaps(268_940)).toBe('6.7');
+    expect(earthLaps(1_268_940)).toBe('31.7');
+  });
+
+  it('rounds to whole laps from 100', () => {
+    expect(earthLaps(4_007_500)).toBe('100');
+    expect(earthLaps(12_480_300)).toBe('311');
+  });
+
+  it('groups very large lap counts', () => {
+    expect(earthLaps(48_090_000)).toBe('1\u202F200');
+  });
+});
+
+describe('figureWidthEm', () => {
+  it('counts digits wider than the thin spaces between groups', () => {
+    expect(figureWidthEm('0')).toBe(0.62);
+    expect(figureWidthEm(groupDigits(268_940))).toBeCloseTo(6 * 0.62 + 0.14);
+    expect(figureWidthEm(groupDigits(12_480_300))).toBeCloseTo(8 * 0.62 + 2 * 0.14);
   });
 });
 
@@ -48,6 +125,11 @@ describe('latitudeLabel', () => {
 
   it('drops the hemisphere letter on the equator', () => {
     expect(latitudeLabel(0)).toBe('0.0°');
+  });
+
+  it('drops it too when the figure rounds to the equator', () => {
+    expect(latitudeLabel(-0.04)).toBe('0.0°');
+    expect(latitudeLabel(0.04)).toBe('0.0°');
   });
 });
 

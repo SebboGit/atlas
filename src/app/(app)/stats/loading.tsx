@@ -1,30 +1,29 @@
-// Mirrors the /stats page scaffold (same <main> width, header rule, and
-// lifetime tile grid) so the swap to real content doesn't shift layout.
+// Mirrors the /stats page scaffold (same <main> width, the title row, the
+// lifetime pass and a few year tickets) so the swap to real content
+// doesn't shift layout.
 export default function StatsLoading() {
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 pt-8 pb-24 sm:px-8 sm:pt-20">
-      <header className="atlas-rise mb-8">
-        <p className="text-muted-foreground mb-4 hidden items-center gap-3 font-mono text-[10px] tracking-[0.06em] uppercase sm:flex">
-          <span aria-hidden className="bg-foreground/30 h-px w-8" />
-          <span>Logbook</span>
-        </p>
-        <div className="bg-muted/70 h-12 w-64 max-w-full animate-pulse rounded-lg motion-reduce:animate-none sm:h-14 sm:w-80" />
+    <main className="mx-auto w-full max-w-6xl px-6 pt-7 pb-24 sm:px-8 sm:pt-14">
+      <header className="mb-5 flex items-baseline justify-between gap-4 sm:mb-8 sm:justify-start sm:gap-[1.125rem]">
+        <h1 className="text-foreground text-[2.5rem] leading-none font-bold tracking-[-0.035em] sm:text-[3.5rem]">
+          Stats
+        </h1>
+        <span className="bg-muted h-4 w-32 animate-pulse rounded-full motion-reduce:animate-none" />
       </header>
 
-      <div className="atlas-rule mb-10" aria-hidden />
+      <div aria-hidden className="flex flex-col gap-11 md:gap-[4.5rem]">
+        {/* The lifetime pass: inverse body plus its stub strip / column. */}
+        <div className="bg-inverse/90 h-[19rem] animate-pulse rounded-[1.375rem] motion-reduce:animate-none sm:h-[22rem] lg:h-[23.5rem] lg:rounded-[1.75rem]" />
 
-      {/* Lifetime headline — 2×2 on phone, single row on laptop, matching the page. */}
-      <div
-        aria-hidden
-        className="atlas-rise grid grid-cols-2 gap-5 lg:grid-cols-4"
-        style={{ animationDelay: '120ms' }}
-      >
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="border-foreground/10 bg-card/40 h-32 animate-pulse rounded-2xl border motion-reduce:animate-none"
-          />
-        ))}
+        <div className="flex flex-col gap-2.5">
+          <div className="bg-muted mb-1 h-8 w-48 animate-pulse rounded-lg motion-reduce:animate-none md:mb-2.5 md:h-10" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="border-border bg-card h-[5.25rem] animate-pulse rounded-2xl border motion-reduce:animate-none md:h-20"
+            />
+          ))}
+        </div>
       </div>
 
       <span role="status" className="sr-only">
