@@ -1,4 +1,5 @@
-// One-shot: refresh src/lib/airports/iata-airports.json from OpenFlights.
+// One-shot: refresh src/lib/airports/iata-airports.json (and its
+// server-only sibling iata-airport-cities.json) from OpenFlights.
 //
 // Airports change rarely — IATA-coded commercial airports change names
 // occasionally, but the IATA↔IANA-timezone mapping is essentially
@@ -28,6 +29,14 @@
 // flight-destination pins. They're optional in the output (treated
 // the same as country): a row with malformed coords still keeps tz
 // and country if those are sound.
+//
+// The city goes to a separate file, iata-airport-cities.json, read
+// only through src/lib/airports/cities.ts. iata-airports.json ships to
+// the browser with the segment forms; the city names are only needed
+// by server-rendered pages, so they stay out of the client bundle.
+// Same rows, same filter: a code has a city only if it's in the main
+// snapshot. Blank cities are skipped and upstream's escaped quotes
+// (`Xi\'AN`) unescaped; otherwise the spelling is upstream's.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -37,6 +46,7 @@ import { ISO_COUNTRIES } from '../src/lib/countries/data';
 const SOURCE_URL =
   'https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat';
 const OUTPUT_REL = 'src/lib/airports/iata-airports.json';
+const CITIES_OUTPUT_REL = 'src/lib/airports/iata-airport-cities.json';
 
 function parseCsvLine(line: string): string[] {
   const fields: string[] = [];
@@ -72,6 +82,14 @@ function normaliseName(s: string): string {
     .replace(/[.,]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// Trim and collapse whitespace ("Norfolk  Nebraska"), and undo the
+// backslash-escaped apostrophes some rows carry. `\N` and blanks → null.
+function cleanCity(raw: string | undefined): string | null {
+  if (!raw || raw === '\\N') return null;
+  const city = raw.replace(/\\'/g, "'").replace(/\s+/g, ' ').trim();
+  return city.length > 0 ? city : null;
 }
 
 // Aliases for OpenFlights' country names that don't match our
@@ -205,6 +223,7 @@ async function main(): Promise<void> {
     country: string | null;
     lat: number | null;
     lng: number | null;
+    city: string | null;
     sourceId: number;
   };
   const byIata = new Map<string, Entry>();
@@ -213,7 +232,7 @@ async function main(): Promise<void> {
   for (const line of lines) {
     const cols = parseCsvLine(line);
     if (cols.length < 14) continue;
-    const [idRaw, , , countryRaw, iata, , latRaw, lngRaw, , , , tzRaw, type] = cols;
+    const [idRaw, , cityRaw, countryRaw, iata, , latRaw, lngRaw, , , , tzRaw, type] = cols;
     if (type !== 'airport') continue;
     typeAirport += 1;
 
@@ -271,11 +290,12 @@ async function main(): Promise<void> {
       collisions += 1;
       if (existing.sourceId <= sourceId) continue;
     }
-    byIata.set(code, { tz, country, lat, lng, sourceId });
+    byIata.set(code, { tz, country, lat, lng, city: cleanCity(cityRaw), sourceId });
   }
 
   type OutEntry = { tz: string; country?: string; lat?: number; lng?: number };
   const sorted: Record<string, OutEntry> = {};
+  const cities: Record<string, string> = {};
   for (const code of [...byIata.keys()].sort()) {
     const entry = byIata.get(code);
     if (!entry) continue;
@@ -292,15 +312,19 @@ async function main(): Promise<void> {
       withCoords += 1;
     }
     sorted[code] = out;
+    if (entry.city) cities[code] = entry.city;
   }
 
   const outPath = path.resolve(process.cwd(), OUTPUT_REL);
   await fs.mkdir(path.dirname(outPath), { recursive: true });
   await fs.writeFile(outPath, `${JSON.stringify(sorted, null, 2)}\n`, 'utf8');
+  const citiesPath = path.resolve(process.cwd(), CITIES_OUTPUT_REL);
+  await fs.writeFile(citiesPath, `${JSON.stringify(cities, null, 2)}\n`, 'utf8');
 
   console.log(
     `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, with coords: ${withCoords}, dropped for missing tz: ${droppedNoTz})`,
   );
+  console.log(`Wrote ${CITIES_OUTPUT_REL}: ${Object.keys(cities).length} cities`);
 
   if (droppedNoTz > 0) {
     console.log(
