@@ -50,9 +50,8 @@ function formatDayLabel(d: Date): string {
 
 // One day of the itinerary as a single card: a header (date, day number,
 // Today badge, a tally of the day's segment types) over the day's tickets,
-// separated by hairlines. Tickets drop their own card chrome in here — the
-// day is the card — and the stub notches are hidden, because rows meet edge
-// to edge. Today's card carries the coral ring.
+// each a bordered ticket of its own with the stub and details joined.
+// Today's card carries the coral ring.
 export function DayGroup({
   dayNumber,
   date,
@@ -116,11 +115,13 @@ export function DayGroup({
       {segments.length > 0 && (
         <ol
           className={cn(
-            'divide-border divide-y',
+            'flex flex-col gap-2 p-2 sm:gap-2.5 sm:p-3',
             continuations.length > 0 && 'border-border border-t',
-            // The day is the card: tickets inside lose their own chrome and
-            // notches (rows meet edge to edge).
-            '[--ticket-notch:transparent] [&_.ticket]:rounded-none [&_.ticket]:border-0 [&_.ticket]:bg-transparent [&_.ticket]:shadow-none',
+            // Inside a day each segment reads as one bordered ticket — the
+            // tone stub and its details joined by a plain seam, with no
+            // perforation or notches. (Free-standing tickets on the type
+            // tabs keep both.)
+            '[--color-perforation:transparent] [--ticket-notch:transparent] [&_.ticket]:rounded-xl [&_.ticket]:shadow-none',
           )}
         >
           {segments.map((s) => (

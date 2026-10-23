@@ -59,8 +59,8 @@ export const STUB_LABEL =
 // Shared ticket for every segment card variant: a tone-filled stub (icon,
 // type, time) joined by a perforation to a body (title, subtitle, footer).
 // Variants pass in only what's specific to their type. Inside a day card the
-// ticket drops its own chrome (see DayGroup), so a day reads as one ticket
-// book rather than a stack of separate cards.
+// perforation and notches are switched off (see DayGroup), so the stub and
+// its details read as one bordered ticket.
 export function SegmentCardShell({
   type,
   glyph,
