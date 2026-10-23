@@ -46,7 +46,8 @@ export function ItineraryUndated({
           Not scheduled
         </span>
       </header>
-      <ol className="divide-border divide-y [--ticket-notch:transparent] [&_.ticket]:rounded-none [&_.ticket]:border-0 [&_.ticket]:bg-transparent [&_.ticket]:shadow-none">
+      {/* Same bordered tickets as a DayGroup. */}
+      <ol className="flex flex-col gap-2 p-2 [--color-perforation:transparent] [--ticket-notch:transparent] sm:gap-2.5 sm:p-3 [&_.ticket]:rounded-xl [&_.ticket]:shadow-none">
         {segments.map((s) => (
           <li key={s.id} className="relative">
             <SegmentRow
