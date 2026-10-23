@@ -8,6 +8,7 @@ import { chromium } from 'playwright';
 
 interface FixturePayload {
   sessionToken: string;
+  detailTripId: string;
   trips: Array<{ id: string; title: string; status: string }>;
 }
 
@@ -20,8 +21,10 @@ const VIEWPORTS = [
 
 async function main() {
   const fixture: FixturePayload = JSON.parse(await readFile('tmp/fixture.json', 'utf8'));
-  const detail = fixture.trips[0];
-  if (!detail) throw new Error('fixture has no trips');
+  // The hero trip, by id: `trips` is ordered by start date, so its first
+  // entry moves whenever the fixture gains an earlier trip.
+  const detail = fixture.trips.find((t) => t.id === fixture.detailTripId);
+  if (!detail) throw new Error('fixture has no detail trip');
 
   const browser = await chromium.launch();
   try {
