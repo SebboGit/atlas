@@ -616,21 +616,37 @@ function describeInstant(d: Date | null, tz: string | null): InstantParts | null
   };
 }
 
-function formatInstant(parts: InstantParts | null): string | null {
+// Date on one line, time (and zone) always on the next — a "date · time"
+// run wrapped at an arbitrary point on a phone and left the separator
+// dangling, and the rows read unevenly when only some of them wrapped.
+function formatInstant(parts: InstantParts | null): React.ReactNode {
   if (!parts) return null;
   if (!parts.time) return parts.date;
-  return parts.zone
-    ? `${parts.date} · ${parts.time} ${parts.zone}`
-    : `${parts.date} · ${parts.time}`;
+  return (
+    <>
+      <span className="block">{parts.date}</span>
+      <span className="block">
+        {parts.time}
+        {parts.zone && <span className="text-foreground/70 ml-1 text-[11px]">{parts.zone}</span>}
+      </span>
+    </>
+  );
 }
 
 // Appends a display-only wall-clock ("15:00") to a formatted date label.
 // Used for hotel check-in/out, whose time is `data` metadata kept off the
 // date-only `startsAt`/`endsAt`. Falls back to the bare time if somehow
 // there's a time but no date, and to null when neither is present.
-function withClock(dateLabel: string | null, clock: string | undefined): string | null {
+function withClock(dateLabel: string | null, clock: string | undefined): React.ReactNode {
   if (!dateLabel) return clock ?? null;
-  return clock ? `${dateLabel} · ${clock}` : dateLabel;
+  return clock ? (
+    <>
+      <span className="block">{dateLabel}</span>
+      <span className="block">{clock}</span>
+    </>
+  ) : (
+    dateLabel
+  );
 }
 
 function resolveCountry(code: string | null | undefined): string | null {
@@ -652,7 +668,7 @@ function FlightLeg({
   if (!iata && !instant) return null;
   return (
     <div className="flex gap-4 px-4 py-3">
-      <dt className="text-foreground/70 w-20 shrink-0 font-mono text-[10px] tracking-[0.2em] uppercase">
+      <dt className="text-foreground/70 w-20 shrink-0 font-mono text-[10px] tracking-[0.06em] uppercase">
         {label}
       </dt>
       <dd className="min-w-0 flex-1">
@@ -663,19 +679,15 @@ function FlightLeg({
           )}
         </div>
         {instant && (
-          <div className="text-foreground/65 mt-0.5 text-xs">
-            <span className="font-mono tracking-wider">
-              {instant.date}
-              {instant.time ? (
-                <>
-                  <span className="text-foreground/35"> · </span>
-                  {instant.time}
-                  {instant.zone && (
-                    <span className="text-foreground/70 ml-1 text-[10px]">{instant.zone}</span>
-                  )}
-                </>
-              ) : null}
-            </span>
+          // Date and time on their own lines, every leg alike.
+          <div className="text-muted-foreground mt-0.5 font-mono text-xs">
+            <span className="block">{instant.date}</span>
+            {instant.time ? (
+              <span className="block">
+                {instant.time}
+                {instant.zone && <span className="ml-1 text-[10px]">{instant.zone}</span>}
+              </span>
+            ) : null}
           </div>
         )}
       </dd>
