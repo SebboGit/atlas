@@ -1,6 +1,6 @@
 # ADR-0011: Self-hosted Protomaps PMTiles basemap
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-10-23, see §4)
 - **Date:** 2026-05-17
 - **Deciders:** @SebboGit
 
@@ -94,6 +94,25 @@ matches Atlas's paper aesthetic. The style JSON is committed under
 module wrapping the published JSON) so the basemap doesn't fetch
 its style from a CDN at runtime. Style updates are operator-initiated
 re-fetches, not automatic.
+
+> **Amended 2026-10-23 — §4.** The flavor now follows the theme.
+> Light keeps White; dark draws Protomaps **Black**. White is in fact
+> neutral rather than warm beige, with white land and grey water, and
+> Black is its dark counterpart, with near-black land and charcoal water.
+> Both leave the colour to Atlas's coral routes and pastel pins. The
+> tiles, the source and the glyphs are the same for both. Only the layer
+> set from `@protomaps/basemaps` and the sprite change, and each flavor
+> has its own sheet under `public/basemaps-assets/sprites/v4/` (`light`
+> for White, `black` for Black). Black uses the same four Noto fontstacks
+> as White, so no new glyphs were needed. The map takes the theme on
+> screen: a pinned light or dark choice, or the OS preference under
+> "system". On a switch it calls `setStyle` with a `transformStyle` that
+> carries Atlas's overlay sources across, so MapLibre diffs the two
+> styles instead of rebuilding. Tiles, GeoJSON data and feature-state
+> stay; only paint and the sprite change. The overlay colours come from
+> `--map-*` CSS tokens, which are read again on every switch. The style
+> is built in `basemap-style.ts` from `@protomaps/basemaps`, not
+> committed as a JSON module. Still no runtime fetch outside Atlas.
 
 Country polygons stay rendered on top with zoom-interpolated
 opacity — prominent at world zoom, fade out as the basemap takes
