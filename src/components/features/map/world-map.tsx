@@ -1,12 +1,13 @@
 'use client';
 
 import * as maplibregl from 'maplibre-gl';
-import type { Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl';
+import type { ExpressionSpecification, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { VisitedCountry } from '@/lib/countries/repo';
 import '@/lib/maplibre/worker-url';
+import { readCssColor, useResolvedTheme } from '@/lib/theme/client';
 import { cn } from '@/lib/utils';
 
 import { VisitedPanel } from './visited-panel';
@@ -33,16 +34,52 @@ const GEOJSON_URL = '/geo/world-countries-110m.geojson';
 const SOURCE_ID = 'countries';
 const FILL_LAYER_ID = 'country-fill';
 const LINE_LAYER_ID = 'country-line';
+const OCEAN_LAYER_ID = 'ocean';
 
-// Ocean / map canvas. Light enough to feel like sea on paper.
-const OCEAN = '#eaeef2';
-// Terracotta fallback if `--color-primary` isn't readable from CSS yet.
-const PRIMARY_FALLBACK = '#ff6b4a';
+/**
+ * Map colours for the theme on screen, from the `--map-*` tokens in
+ * globals.css (fallbacks are the light values). Canvas paint can't take
+ * `var()`, so a theme switch re-reads them and repaints.
+ */
+interface WorldPalette {
+  /** The sea — the map's background layer. */
+  ocean: string;
+  /** Unvisited countries — a faint tint of ink over the sea. */
+  land: string;
+  border: string;
+  /** Visited countries stay coral in both themes. */
+  visited: string;
+  /**
+   * Coral's resting opacity. Lower on the light sea, where it reads as
+   * a soft salmon; near-solid on the dark one, where the same blend
+   * would sink to brick.
+   */
+  visitedOpacity: number;
+}
 
-function readCssColor(varName: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  return val || fallback;
+function readWorldPalette(): WorldPalette {
+  return {
+    ocean: readCssColor('--map-ocean', '#eaeef2'),
+    land: readCssColor('--map-land', 'rgba(21, 22, 26, 0.06)'),
+    border: readCssColor('--map-border', 'rgba(21, 22, 26, 0.35)'),
+    visited: readCssColor('--color-primary', '#ff6b4a'),
+    visitedOpacity: Number(readCssColor('--map-visited-opacity', '0.78')) || 0.78,
+  };
+}
+
+function fillColor(palette: WorldPalette): ExpressionSpecification {
+  return ['case', ['boolean', ['feature-state', 'visited'], false], palette.visited, palette.land];
+}
+
+function fillOpacity(palette: WorldPalette): ExpressionSpecification {
+  return [
+    'case',
+    ['boolean', ['feature-state', 'hovered'], false],
+    0.95,
+    ['boolean', ['feature-state', 'visited'], false],
+    palette.visitedOpacity,
+    1,
+  ];
 }
 
 export function WorldMap({ visited }: WorldMapProps) {
@@ -53,6 +90,9 @@ export function WorldMap({ visited }: WorldMapProps) {
   // can't setFeatureState or attach layer-scoped listeners.
   const [mapReady, setMapReady] = useState(false);
   const [hover, setHover] = useState<HoverInfo | null>(null);
+  // Null until hydrated; the mount reads the tokens directly, so this only
+  // drives the repaint on a later switch.
+  const theme = useResolvedTheme();
 
   const visitedIndex = useMemo(() => {
     const m = new Map<string, VisitedCountryWithName>();
@@ -70,12 +110,15 @@ export function WorldMap({ visited }: WorldMapProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const palette = readWorldPalette();
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: {
         version: 8,
         sources: {},
-        layers: [{ id: 'ocean', type: 'background', paint: { 'background-color': OCEAN } }],
+        layers: [
+          { id: OCEAN_LAYER_ID, type: 'background', paint: { 'background-color': palette.ocean } },
+        ],
       },
       center: [10, 20],
       zoom: 0.4,
@@ -124,10 +167,6 @@ export function WorldMap({ visited }: WorldMapProps) {
         { padding: 12, animate: false, duration: 0 },
       );
 
-      const primary = readCssColor('--color-primary', PRIMARY_FALLBACK);
-      const borderInk = 'rgba(21, 22, 26, 0.35)';
-      const unvisitedFill = 'rgba(21, 22, 26, 0.06)';
-
       map.addSource(SOURCE_ID, { type: 'geojson', data: GEOJSON_URL, promoteId: 'iso_a2' });
 
       map.addLayer({
@@ -135,20 +174,8 @@ export function WorldMap({ visited }: WorldMapProps) {
         type: 'fill',
         source: SOURCE_ID,
         paint: {
-          'fill-color': [
-            'case',
-            ['boolean', ['feature-state', 'visited'], false],
-            primary,
-            unvisitedFill,
-          ],
-          'fill-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'hovered'], false],
-            0.95,
-            ['boolean', ['feature-state', 'visited'], false],
-            0.78,
-            1,
-          ],
+          'fill-color': fillColor(palette),
+          'fill-opacity': fillOpacity(palette),
         },
       });
 
@@ -157,7 +184,7 @@ export function WorldMap({ visited }: WorldMapProps) {
         type: 'line',
         source: SOURCE_ID,
         paint: {
-          'line-color': borderInk,
+          'line-color': palette.border,
           'line-width': ['case', ['boolean', ['feature-state', 'hovered'], false], 1.1, 0.5],
           'line-opacity': 0.55,
         },
@@ -174,6 +201,21 @@ export function WorldMap({ visited }: WorldMapProps) {
       setMapReady(false);
     };
   }, []);
+
+  // Repaint for the theme on screen when the user flips the toggle or the
+  // OS preference changes. Four paint properties — no source or layer is
+  // touched, so the visited / hovered feature-state stays. MapLibre skips
+  // a property whose value hasn't changed, so the run on first ready is
+  // free.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !theme) return;
+    const palette = readWorldPalette();
+    map.setPaintProperty(OCEAN_LAYER_ID, 'background-color', palette.ocean);
+    map.setPaintProperty(FILL_LAYER_ID, 'fill-color', fillColor(palette));
+    map.setPaintProperty(FILL_LAYER_ID, 'fill-opacity', fillOpacity(palette));
+    map.setPaintProperty(LINE_LAYER_ID, 'line-color', palette.border);
+  }, [theme, mapReady]);
 
   // Re-apply visited fills + hover listeners whenever the visited set
   // changes. Listeners are recreated so their closure over `visitedIndex`
