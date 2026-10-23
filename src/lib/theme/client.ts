@@ -2,16 +2,34 @@
 
 import * as React from 'react';
 
-import type { ThemePreference } from './preference';
+import { resolveTheme, type ResolvedTheme, type ThemePreference } from './preference';
 
-export type ResolvedTheme = 'light' | 'dark';
+export type { ResolvedTheme };
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
-function readResolved(): ResolvedTheme {
-  const pinned = document.documentElement.dataset.theme;
-  if (pinned === 'light' || pinned === 'dark') return pinned;
-  return window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light';
+/**
+ * The theme on screen right now, read straight off the document. For code
+ * that runs outside render (a map built in an effect); components that
+ * re-render on a switch use `useResolvedTheme`.
+ */
+export function readResolvedTheme(): ResolvedTheme {
+  if (typeof window === 'undefined') return 'light';
+  return resolveTheme(
+    document.documentElement.dataset.theme,
+    window.matchMedia(DARK_QUERY).matches,
+  );
+}
+
+/**
+ * A CSS custom property's current value on <html>, for canvas surfaces
+ * (MapLibre paint) that can't take `var()`. Re-read after a theme switch:
+ * the dark tokens override the same names.
+ */
+export function readCssColor(varName: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return val || fallback;
 }
 
 function subscribe(onChange: () => void): () => void {
@@ -30,7 +48,7 @@ function subscribe(onChange: () => void): () => void {
  * render, so markup that depends on it can't mismatch on hydration.
  */
 export function useResolvedTheme(): ResolvedTheme | null {
-  return React.useSyncExternalStore<ResolvedTheme | null>(subscribe, readResolved, () => null);
+  return React.useSyncExternalStore<ResolvedTheme | null>(subscribe, readResolvedTheme, () => null);
 }
 
 /** Apply a preference to the document right away; persisting is the caller's job. */
