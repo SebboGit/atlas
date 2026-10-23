@@ -51,6 +51,10 @@ export const FIXTURE_EMAIL = 'screenshot@atlas.local';
 const d = (y: number, m: number, day: number, h = 12, min = 0): Date =>
   new Date(Date.UTC(y, m - 1, day, h, min));
 
+// Midnight UTC of the same day — a trip's date from a segment's time.
+const dayOf = (at: Date): Date =>
+  new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()));
+
 // `now`-relative UTC date helper. The screenshots use fixed dates (the
 // hero trip), but the *active* trip below must straddle "today" on
 // every seed run so the chronological-map behaviours — collapsed-past,
@@ -596,6 +600,14 @@ const LISBON_TITLE = 'Lisbon, Porto & Seville';
 const DOLOMITES_TITLE = 'Dolomites';
 // Deliberately long — see the trip insert.
 const SCOTLAND_TITLE = 'A Long Way Round the North Coast of Scotland and the Outer Hebrides';
+// Earlier, smaller trips — a flight out, a hotel, a flight home — so the
+// stats page has years to show: 2019, then a gap in 2020, then one a
+// year up to the Scotland trip. Enough rows for the phone's year fold and
+// a multi-year barcode on the lifetime pass, each with a new country.
+const REYKJAVIK_TITLE = 'Reykjavík in winter';
+const COPENHAGEN_TITLE = 'Copenhagen';
+const MARRAKECH_TITLE = 'Marrakech';
+const HANOI_TITLE = 'Hanoi';
 
 // Upcoming: three cities, two countries, one train and three flights.
 // `now`-relative like Patagonia — it starts six weeks out on every seed
@@ -963,6 +975,161 @@ const SCOTLAND_SEGMENTS: HeroSegment[] = [
   },
 ];
 
+// Builds one of the earlier trips: out and back from Heathrow with a
+// single hotel in between. Same `HeroSegment` shape and pin rules.
+function shortTripSegments(t: {
+  carrier: string;
+  outNumber: string;
+  homeNumber: string;
+  airport: string;
+  countryCode: string;
+  pnr: string;
+  out: Date;
+  home: Date;
+  hotel: {
+    propertyName: string;
+    confirmationNumber: string;
+    locationName: string;
+    pin: FixturePin;
+  };
+}): HeroSegment[] {
+  return [
+    {
+      type: 'flight',
+      data: {
+        carrier: t.carrier,
+        flightNumber: t.outNumber,
+        originAirport: 'LHR',
+        destinationAirport: t.airport,
+        pnr: t.pnr,
+      },
+      startsAt: t.out,
+      endsAt: new Date(t.out.getTime() + 3 * 60 * 60 * 1000),
+      countryCode: t.countryCode,
+      originCountryCode: 'GB',
+    },
+    {
+      type: 'hotel',
+      data: {
+        propertyName: t.hotel.propertyName,
+        confirmationNumber: t.hotel.confirmationNumber,
+        checkInTime: '15:00',
+        checkOutTime: '11:00',
+      },
+      startsAt: dayOf(t.out),
+      endsAt: dayOf(t.home),
+      locationName: t.hotel.locationName,
+      countryCode: t.countryCode,
+      pin: t.hotel.pin,
+    },
+    {
+      type: 'flight',
+      data: {
+        carrier: t.carrier,
+        flightNumber: t.homeNumber,
+        originAirport: t.airport,
+        destinationAirport: 'LHR',
+        pnr: t.pnr,
+      },
+      startsAt: t.home,
+      endsAt: new Date(t.home.getTime() + 3 * 60 * 60 * 1000),
+      countryCode: 'GB',
+      originCountryCode: t.countryCode,
+    },
+  ];
+}
+
+const REYKJAVIK_SEGMENTS = shortTripSegments({
+  carrier: 'FI',
+  outNumber: '451',
+  homeNumber: '450',
+  airport: 'KEF',
+  countryCode: 'IS',
+  pnr: 'FIKEF1',
+  out: d(2019, 2, 14, 13, 5),
+  home: d(2019, 2, 18, 8, 15),
+  hotel: {
+    propertyName: 'Hotel Holt',
+    confirmationNumber: 'HH-1902',
+    locationName: 'Reykjavík',
+    pin: { lat: 64.1442, lng: -21.9383, city: 'Reykjavík' },
+  },
+});
+
+const COPENHAGEN_SEGMENTS = shortTripSegments({
+  carrier: 'SK',
+  outNumber: '1500',
+  homeNumber: '1501',
+  airport: 'CPH',
+  countryCode: 'DK',
+  pnr: 'SKCPH3',
+  out: d(2021, 9, 9, 8, 40),
+  home: d(2021, 9, 12, 18, 20),
+  hotel: {
+    propertyName: 'Hotel Sanders',
+    confirmationNumber: 'SND-2109',
+    locationName: 'Nyhavn',
+    pin: { lat: 55.6797, lng: 12.5856, city: 'Copenhagen' },
+  },
+});
+
+const MARRAKECH_SEGMENTS = shortTripSegments({
+  carrier: 'BA',
+  outNumber: '2650',
+  homeNumber: '2651',
+  airport: 'RAK',
+  countryCode: 'MA',
+  pnr: 'BARAK5',
+  out: d(2022, 3, 18, 10, 15),
+  home: d(2022, 3, 23, 15, 40),
+  hotel: {
+    propertyName: 'Riad Kniza',
+    confirmationNumber: 'RK-2203',
+    locationName: 'Medina',
+    pin: { lat: 31.6342, lng: -7.9967, city: 'Marrakech' },
+  },
+});
+
+const HANOI_SEGMENTS = shortTripSegments({
+  carrier: 'VN',
+  outNumber: '50',
+  homeNumber: '51',
+  airport: 'HAN',
+  countryCode: 'VN',
+  pnr: 'VNHAN8',
+  out: d(2023, 11, 2, 11, 30),
+  home: d(2023, 11, 9, 23, 55),
+  hotel: {
+    propertyName: 'Sofitel Legend Metropole',
+    confirmationNumber: 'SLM-2311',
+    locationName: 'Hoàn Kiếm',
+    pin: { lat: 21.0255, lng: 105.8565, city: 'Hanoi' },
+  },
+});
+
+const EARLIER_TRIPS: Array<{ title: string; summary: string; segments: HeroSegment[] }> = [
+  {
+    title: REYKJAVIK_TITLE,
+    summary: 'A long weekend of short days and hot pools.',
+    segments: REYKJAVIK_SEGMENTS,
+  },
+  {
+    title: COPENHAGEN_TITLE,
+    summary: 'Three days of bikes, harbour swims and smørrebrød.',
+    segments: COPENHAGEN_SEGMENTS,
+  },
+  {
+    title: MARRAKECH_TITLE,
+    summary: 'Five nights in a riad in the medina.',
+    segments: MARRAKECH_SEGMENTS,
+  },
+  {
+    title: HANOI_TITLE,
+    summary: 'A week in the Old Quarter.',
+    segments: HANOI_SEGMENTS,
+  },
+];
+
 // Wishlist items — the household's reusable place list. A few JP food
 // + activity spots so the Japan trip's suggestions panel has something
 // to surface, plus a couple of PT items materialised onto the upcoming
@@ -1156,6 +1323,7 @@ export function fixtureGeocodeSeeds(): FixtureGeocodeSeed[] {
     ...LISBON_SEGMENTS,
     ...DOLOMITES_SEGMENTS,
     ...SCOTLAND_SEGMENTS,
+    ...EARLIER_TRIPS.flatMap((t) => t.segments),
   ]) {
     const place = placeForHeroSegment(seg);
     const endpoints = buildTransitEndpointQueries(place);
@@ -1259,8 +1427,8 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
   await db.delete(userVisitedCountries).where(eq(userVisitedCountries.userId, userId));
   await db.delete(sessions).where(eq(sessions.userId, userId));
 
-  // 3) Trips — one rich "hero" trip plus four lighter ones so the
-  //    list view carries weight. Statuses span planned / active /
+  // 3) Trips — one rich "hero" trip plus eight lighter ones so the
+  //    list view (and the stats page's years) carries weight. Statuses span planned / active /
   //    completed; dates are fixed except the active and upcoming
   //    trips', which ride `relDay` so they never go stale.
   const [hero] = await db
@@ -1323,6 +1491,15 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
         startDate: d(2024, 9, 6),
         endDate: d(2024, 9, 20),
       },
+      // The earlier trips: dated from their first and last flights.
+      ...EARLIER_TRIPS.map((t) => ({
+        userId,
+        title: t.title,
+        summary: t.summary,
+        status: 'completed' as const,
+        startDate: dayOf(t.segments[0]!.startsAt!),
+        endDate: dayOf(t.segments.at(-1)!.startsAt!),
+      })),
     ])
     .returning({ id: trips.id, title: trips.title });
   const tripIdByTitle = (title: string): string => {
@@ -1361,6 +1538,7 @@ async function rebuildInTx(db: DbHandle): Promise<FixturePayload> {
     [LISBON_TITLE, LISBON_SEGMENTS],
     [DOLOMITES_TITLE, DOLOMITES_SEGMENTS],
     [SCOTLAND_TITLE, SCOTLAND_SEGMENTS],
+    ...EARLIER_TRIPS.map((t): [string, HeroSegment[]] => [t.title, t.segments]),
   ];
   for (const [title, tripSegments] of sideTripSegments) {
     const tripId = tripIdByTitle(title);
