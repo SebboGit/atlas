@@ -50,18 +50,21 @@ export default async function HomePage() {
           <br />
           <span className="text-coral-ink">{firstName}</span>.
         </h1>
-        <p className="text-muted-foreground mt-5 font-mono text-[10px] tracking-[0.06em] uppercase">
+        <p className="text-muted-foreground mt-4 font-mono text-[11px] tracking-[0.06em] uppercase sm:mt-5">
           {buildStateOfPlay(trips.length, nextTrip, stampDate)}
         </p>
       </section>
 
+      {/* Laptop only: on a phone the hairline and its margins pushed the
+       *  trip card well below the greeting. */}
       <div
         aria-hidden
-        className="atlas-rise atlas-rule-double mt-10 mb-9"
+        className="atlas-rise atlas-rule-double mt-10 mb-9 hidden sm:block"
         style={{ animationDelay: '140ms' }}
       />
-
-      {nextTrip ? <NextTripHero trip={nextTrip} /> : <NoUpcoming hasTrips={trips.length > 0} />}
+      <div className="mt-6 sm:mt-0">
+        {nextTrip ? <NextTripHero trip={nextTrip} /> : <NoUpcoming hasTrips={trips.length > 0} />}
+      </div>
 
       {/* Phone-only quick nav. The laptop tiles below are hidden on mobile
        *  (they collapse to bare title cards), so a compact 2×2 icon grid
