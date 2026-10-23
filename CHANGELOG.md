@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dark mode** — follows the system by default. The sun/moon button in the
   top bar switches it, and Settings → Appearance can pin Light, Dark or
   System for each device.
+- **Dark maps** — in dark mode the trip map draws a dark basemap, with routes
+  and the wishlist markers retuned to match, and the world map's sea, land
+  and borders go dark too. Both maps follow the theme as it changes,
+  from the top-bar button or the system, without reloading.
 
 ## [1.9.0] - 2026-10-22
 
