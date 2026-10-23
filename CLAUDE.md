@@ -472,7 +472,7 @@ Architectural decisions live in `docs/adr/` as numbered ADRs.
 - **ADR-0008** — Auto-create and link segments on document extraction (manual trigger, soft ±2 day date check). Accepted.
 - **ADR-0009** — Drop flight-metadata lookup; Ollama extracts times directly + static airline-name table. Accepted.
 - **ADR-0010** — Geocoding via Nominatim (public OSM endpoint), DB-cached. Accepted (provider clause amended by ADR-0018).
-- **ADR-0011** — Self-hosted Protomaps PMTiles basemap (bind-mounted, byte-range served, no third-party tile origins). Accepted.
+- **ADR-0011** — Self-hosted Protomaps PMTiles basemap (bind-mounted, byte-range served, no third-party tile origins). Accepted (flavor follows the theme — White light / Black dark — amended 2026-10-23).
 - **ADR-0012** — pg-boss for durable jobs and in-stack scheduling (graduates `Jobs` and the `worker` service from their minimal in-process implementations). Accepted.
 - **ADR-0013** — Postgres-native search via generated `tsvector` columns directly on source tables (no central `search_index`, no out-of-process search engine). Accepted.
 - **ADR-0014** — Floating local time for non-flight segment times: store and display the typed wall-clock verbatim (interpret at UTC, render in UTC), server-side and deterministic. Today/countdown stay viewer-relative. Accepted (its flight-airport-tz clause superseded by ADR-0016).
