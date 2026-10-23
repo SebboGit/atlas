@@ -332,8 +332,24 @@ describe('getStatsDashboardData — personal records', () => {
     seedGeocode('1 Lake St, Queenstown, NZ', -45.03, 168.66);
     const data = await getStatsDashboardData('u1');
     expect(data.records.northernmost?.label).toBe('LHR');
+    expect(data.records.northernmost?.airport).toBe(true);
     expect(data.records.southernmost?.label).toBe('Queenstown');
+    expect(data.records.southernmost?.airport).toBe(false);
     expect(data.records.southernmost!.lat).toBeLessThan(0);
+  });
+
+  it('never marks a location name as an airport, even one shaped like a code', async () => {
+    dbState.trips = [trip({ id: 't1', startDate: new Date('2024-01-01T00:00:00Z') })];
+    dbState.segments = [
+      hotel({
+        id: 'h1',
+        locationName: 'CAN',
+        data: { propertyName: 'Maple Inn', address: '1 Front St, Toronto' },
+      }),
+    ];
+    seedGeocode('1 Front St, Toronto', 43.65, -79.38);
+    const data = await getStatsDashboardData('u1');
+    expect(data.records.northernmost).toEqual({ label: 'CAN', lat: 43.65, airport: false });
   });
 
   it('uses the buildGeocodeQuery output verbatim as the cache key (geocoder-ready, ADR-0018)', async () => {

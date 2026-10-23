@@ -88,6 +88,17 @@ describe('layoutLatitude', () => {
     );
   });
 
+  it('carries an airport code beside its place and into the description', () => {
+    const layout = layoutLatitude({ label: 'Punta Arenas', lat: -53.0, code: 'PUQ' }, north, 800)!;
+    expect(layout.labels.map((l) => [l.place, l.code])).toEqual([
+      ['Punta Arenas', 'PUQ'],
+      ['Butt of Lewis', undefined],
+    ]);
+    expect(layout.description).toBe(
+      'Furthest south 53.0° S, Punta Arenas (PUQ). Furthest north 58.5° N, Butt of Lewis.',
+    );
+  });
+
   it('keeps both extremes on one side when they share a hemisphere', () => {
     const layout = layoutLatitude(
       { label: 'Oslo', lat: 59.9 },
