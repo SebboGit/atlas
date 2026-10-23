@@ -63,7 +63,7 @@ export function PinLegendChip({ kinds, routeKinds = NO_ROUTES }: PinLegendChipPr
           type="button"
           aria-expanded={open}
           aria-label="Map legend"
-          className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.2em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
+          className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.06em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
         >
           {/* A miniature stack of the present swatches doubles as the icon —
               the chip already previews the legend before it's opened. */}

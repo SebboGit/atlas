@@ -42,7 +42,7 @@ export function VisitedPanel({ codes }: VisitedPanelProps) {
         aria-hidden
         className="bg-primary inline-block h-3 w-3 shrink-0 rounded-[3px] shadow-sm"
       />
-      <span className="text-foreground/80 font-mono text-[10px] tracking-[0.2em] uppercase">
+      <span className="text-foreground/80 font-mono text-[10px] tracking-[0.06em] uppercase">
         Visited
       </span>
       <span className="font-display text-foreground text-base leading-none font-semibold tabular-nums">

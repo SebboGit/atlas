@@ -141,7 +141,7 @@ export function WishlistCard({ item, addedByLabel, coords }: WishlistCardProps) 
           </div>
         )}
         {addedByLabel && (
-          <p className="text-foreground/65 mt-2 font-mono text-[10px] tracking-[0.2em] uppercase">
+          <p className="text-foreground/65 mt-2 font-mono text-[10px] tracking-[0.06em] uppercase">
             added by {addedByLabel}
           </p>
         )}

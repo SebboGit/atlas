@@ -93,7 +93,7 @@ export function WishlistSuggestionsPanel({
           <span className="text-foreground/85 font-mono text-[10px] tracking-[0.06em] uppercase">
             From your wishlist
           </span>
-          <span className="text-foreground/40 font-mono text-[10px] tracking-[0.2em]">
+          <span className="text-foreground/40 font-mono text-[10px] tracking-[0.06em]">
             · {String(items.length).padStart(2, '0')}
           </span>
           {!open && preview && (

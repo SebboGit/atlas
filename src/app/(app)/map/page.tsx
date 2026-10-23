@@ -35,7 +35,7 @@ export default async function MapPage() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <h1 className="heading-page">Where you&apos;ve been.</h1>
           <div className="flex items-center gap-5">
-            <p className="text-muted-foreground font-mono text-[11px] tracking-[0.2em] uppercase">
+            <p className="text-muted-foreground font-mono text-[11px] tracking-[0.06em] uppercase">
               {totalCountries} {totalCountries === 1 ? 'country' : 'countries'}
             </p>
             <ManageCountriesPopover manualCodes={manualCodes} />
@@ -50,7 +50,7 @@ export default async function MapPage() {
       </div>
 
       <p
-        className="text-muted-foreground atlas-rise mt-6 text-center font-mono text-[10px] tracking-[0.2em] uppercase"
+        className="text-muted-foreground atlas-rise mt-6 text-center font-mono text-[10px] tracking-[0.06em] uppercase"
         style={{ animationDelay: '220ms' }}
       >
         Map data © OpenStreetMap contributors · Country shapes © Natural Earth
