@@ -56,6 +56,10 @@ function CommandDialog({
           // off the visible area when the soft keyboard opens. Safe-area
           // padding handles the top notch + bottom home indicator.
           'inset-0 max-h-none rounded-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
+          // A flex column below `sm:` so the palette fills the screen: the
+          // dialog's grid rows would otherwise size to content and leave the
+          // footer floating mid-screen.
+          'flex flex-col sm:grid',
           // Laptop: centered card.
           'sm:inset-x-auto sm:top-[14vh] sm:bottom-auto sm:left-1/2 sm:max-h-[70vh] sm:max-w-[640px] sm:-translate-x-1/2 sm:translate-y-0 sm:rounded-2xl sm:p-0',
           // Hide the default close button — the input row carries
@@ -72,7 +76,7 @@ function CommandDialog({
           // built-in filter would re-rank our DB ordering, which we
           // explicitly want to preserve.
           shouldFilter={false}
-          className="border-foreground/12 bg-card/80 supports-[backdrop-filter]:bg-card/55 border backdrop-blur-2xl"
+          className="border-foreground/12 bg-card/80 supports-[backdrop-filter]:bg-card/55 min-h-0 flex-1 border backdrop-blur-2xl"
         >
           {children}
         </Command>
