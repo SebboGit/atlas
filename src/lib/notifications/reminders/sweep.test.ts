@@ -219,6 +219,53 @@ describe('runReminderSweep', () => {
     expect(mocks.record).not.toHaveBeenCalled();
   });
 
+  describe('an origin the station guard doubts (#164)', () => {
+    // The Patagonia bus: "Laguna Amarga" guessed in Lima (UTC-5), on a
+    // Chilean leg. Chile spans several zones, so the country can't stand
+    // in — no reminder beats one timed in Lima.
+    const bus: ReminderCandidateRow = {
+      ...flight,
+      id: 'seg-bus',
+      type: 'transit',
+      data: { mode: 'bus', fromName: 'Laguna Amarga', toName: 'Pudeto' },
+      startsAt: wall('2026-10-26T14:00:00'),
+      countryCode: 'CL',
+    };
+    const coordsWith = (origin: Record<string, unknown>) => ({
+      coordsById: new Map([
+        [
+          'seg-bus',
+          {
+            lat: -51.0614,
+            lng: -72.9899,
+            city: null,
+            endpoints: { origin, destination: { lat: -51.0614, lng: -72.9899, city: null } },
+          },
+        ],
+      ]),
+      pendingCount: 0,
+    });
+    const LIMA = { lat: -12.0464, lng: -77.0428, city: 'Lima' };
+    // Lima's 14:00 is 19:00 UTC, so the bus's 3h reminder is due at 16:00.
+    const SWEEP = new Date('2026-10-26T16:01:00Z');
+
+    beforeEach(() => mocks.candidates.mockResolvedValue([bus]));
+
+    it('falls through to the country instead of timing the leg there', async () => {
+      mocks.coords.mockResolvedValue(coordsWith({ ...LIMA, implausible: true }));
+      const counts = await runReminderSweep(SWEEP);
+      expect(counts.noZone).toBe(1);
+      expect(mocks.record).not.toHaveBeenCalled();
+    });
+
+    it('still times the leg by the same pin when the guard trusts it', async () => {
+      mocks.coords.mockResolvedValue(coordsWith(LIMA));
+      const counts = await runReminderSweep(SWEEP);
+      expect(counts.noZone).toBe(0);
+      expect(mocks.enqueue.mock.calls[0]![0]).toMatchObject({ title: 'Bus departs 14:00' });
+    });
+  });
+
   it('asks for fresh coordinates when a pin has expired', async () => {
     mocks.candidates.mockResolvedValue([
       { ...flight, id: 'seg-hotel', type: 'hotel', data: { propertyName: 'X' } },

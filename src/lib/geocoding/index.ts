@@ -68,6 +68,15 @@ export {
   tryParseStationQuery,
 } from './station-query';
 
+export {
+  greatCircleKm,
+  implausibleEnds,
+  isGuessedStation,
+  MAX_FALLBACK_KM,
+  type GuardedEnd,
+  type ImplausibleEnds,
+} from './station-guard';
+
 export { getPlaceCoordsMap, getPlaceCoordsView, type PlaceCoordsView } from './place-coords';
 
 export { normalizeForGeocoder, rejoinSplitDiacritics } from './normalize-for-geocoder';

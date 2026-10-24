@@ -278,6 +278,7 @@ describe('transit endpoints — train, bus and ferry (ADR-0019)', () => {
       data: { mode: 'train', fromName: 'Tokyo Station', toName: 'Kyoto Station' },
     });
     expect(buildTransitEndpointQueries(seg)).toEqual({
+      mode: 'train',
       origin: 'station:train:jp:Tokyo Station',
       destination: 'station:train:jp:Kyoto Station',
     });
@@ -319,6 +320,7 @@ describe('transit endpoints — train, bus and ferry (ADR-0019)', () => {
       },
     });
     expect(buildTransitEndpointQueries(seg)).toEqual({
+      mode: 'ferry',
       origin: '47Q3WVX9+GH',
       destination: 'Refugio Paine Grande, Torres del Paine',
     });
@@ -331,6 +333,7 @@ describe('transit endpoints — train, bus and ferry (ADR-0019)', () => {
       data: { mode: 'train', fromName: 'Paddington Station', plusCode: '9C3XGV4C+VR' },
     });
     expect(buildTransitEndpointQueries(seg)).toEqual({
+      mode: 'train',
       origin: 'station:train:gb:Paddington Station',
       destination: '9C3XGV4C+VR',
     });

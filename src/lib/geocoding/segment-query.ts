@@ -202,6 +202,8 @@ export function buildGeocodeQuery(segment: PlaceLike): string | null {
 }
 
 export interface TransitEndpointQueries {
+  /** The leg's mode — train, bus or ferry, the ones with two ends. */
+  mode: TransitEndpointMode;
   origin: string | null;
   destination: string | null;
 }
@@ -220,6 +222,7 @@ export function buildTransitEndpointQueries(place: PlaceLike): TransitEndpointQu
   if (!parsed.success || !hasTransitEndpoints(parsed.data.mode)) return null;
   const { origin, destination } = resolveTransitEndpoints(parsed.data);
   return {
+    mode: parsed.data.mode,
     origin: endpointQuery(origin, parsed.data.mode, place),
     destination: endpointQuery(destination, parsed.data.mode, place),
   };

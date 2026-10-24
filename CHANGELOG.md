@@ -70,6 +70,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now get the same words you see on the search button, the map's Legend,
   Not pinned and Wishlist chips, the past-days toggles and the time picker,
   which now also reads out the chosen time.
+- **A guessed station stays off the inspector, reminders and the stats page**
+  — when a train, bus or ferry stop is only a name and the map already says it
+  looks wrong, its details no longer show a Plus Code for that end, so tapping
+  it can't open Google Maps somewhere far away. The other end keeps its badge.
+  A reminder for the leg no longer takes its time zone from a departure stop
+  that looks wrong, and that stop no longer counts toward your furthest north
+  or south. Adding the stop's address or Plus Code brings it back.
 
 ### Upgrading
 

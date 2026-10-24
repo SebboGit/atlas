@@ -3,7 +3,12 @@
 // end, decide whether a line is drawn and which single "Not pinned"
 // reason (if any) the segment carries. The repo does the I/O.
 
+// Leaf import, not the geocoding barrel: this module stays pure.
+import { greatCircleKm, implausibleEnds } from '@/lib/geocoding/station-guard';
 import type { TransitEndpointMode } from '@/lib/segments';
+
+// Re-exported so the map's tests and callers keep one import site.
+export { greatCircleKm, MAX_FALLBACK_KM } from '@/lib/geocoding/station-guard';
 
 /** What the cache knows about one end of a leg. */
 export type EndpointLookup =
@@ -17,8 +22,7 @@ export type EndpointLookup =
       /**
        * `geocode_cache.source` for this end's row — which rung of the
        * ladder produced the coordinates (ADR-0018). Absent for an
-       * offline Plus Code decode and for rows written before the
-       * column carried a ladder value.
+       * offline Plus Code decode, which reads no row.
        */
       source?: string | null;
       /**
@@ -32,9 +36,9 @@ export const PENDING_REASON = 'Geocoding pending — try again in a moment.';
 export const NOT_FOUND_REASON = "We couldn't find this place on the map.";
 export const DEPARTURE_NOT_FOUND_REASON = "We couldn't find the departure point on the map.";
 export const ARRIVAL_NOT_FOUND_REASON = "We couldn't find the arrival point on the map.";
-// A station we DID place, but only by guessing (see MAX_FALLBACK_KM).
-// Its pin stays — it may well be right — but the line is withheld and
-// the entry says what to do about it.
+// A station we DID place, but only by guessing (see MAX_FALLBACK_KM in
+// geocoding/station-guard.ts). Its pin stays — it may well be right —
+// but the line is withheld and the entry says what to do about it.
 export const DEPARTURE_UNCERTAIN_REASON =
   'The departure point looks wrong — add its address or Plus Code.';
 export const ARRIVAL_UNCERTAIN_REASON =
@@ -53,59 +57,6 @@ export const MAX_ROUTE_KM: Readonly<Record<TransitEndpointMode, number>> = {
 
 // Below this the two ends are the same place; a line would be a dot.
 export const MIN_ROUTE_KM = 0.05;
-
-// Tighter caps for an end that only the free-text ladder could place.
-// When every tagged station rung misses, the resolver sends the bare
-// name on without the segment's country (ADR-0019 §3), so a "Pudeto"
-// can land in the wrong province and the mode cap above — sized for
-// wrong-continent hits — still draws a confident line to it. Past
-// these distances the line is withheld and the leg says which end
-// looks wrong; both pins stay, because the guess may be right and a
-// pin claims far less than a line does.
-//
-// The population is wider than the rare true failure: a name with no
-// comparable Latin words (北京南, Москва-Пассажирская) never reaches the
-// tagged rungs at all, and ADR-0019's probes found "Berlin Hbf"-class
-// names fall back and land correctly. So these numbers govern every
-// such leg, and a false positive costs only the line plus an entry —
-// which is why they sit well above an ordinary long leg. An end given
-// an address or a Plus Code is trusted at any distance, and setting
-// one is the fix the entry names. Initial values; tuning them doesn't
-// need a new ADR.
-export const MAX_FALLBACK_KM: Readonly<Record<TransitEndpointMode, number>> = {
-  // A long day's ride, up to the Beijing–Kunming class.
-  train: 2500,
-  // Overnight coaches, up to the Buenos Aires–Bariloche class.
-  bus: 1800,
-  // Past any overnight crossing; catches the 1,065 km Pudeto case.
-  ferry: 900,
-};
-
-// Ladder rungs that mean "free text answered, not a station lookup".
-// 'photon-station' is a tag-filtered, name-guarded station hit and
-// 'plus-code' an offline decode — both trusted. An unknown or empty
-// source is a row from before the ladder recorded one: trusted too,
-// so existing correct pins keep their lines.
-const FALLBACK_SOURCES: ReadonlySet<string> = new Set(['photon', 'nominatim']);
-
-/** True when this end is a bare station name that only free text could place. */
-function isFallbackHit(end: Extract<EndpointLookup, { state: 'hit' }>): boolean {
-  return end.station === true && FALLBACK_SOURCES.has(end.source ?? '');
-}
-
-const EARTH_RADIUS_KM = 6371;
-
-export function greatCircleKm(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number {
-  const rad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = rad(b.lat - a.lat);
-  const dLng = rad(b.lng - a.lng);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(h)));
-}
 
 export interface TransitRouteDecision {
   drawRoute: boolean;
@@ -136,21 +87,20 @@ export function resolveTransitRoute(
     return { drawRoute: false, reason: PENDING_REASON };
   }
   if (origin.state === 'hit' && destination.state === 'hit') {
-    const km = greatCircleKm(origin, destination);
-    const originFallback = isFallbackHit(origin);
-    const destinationFallback = isFallbackHit(destination);
     // The guard needs the other end to measure against, so it only
     // applies once both ends resolved. A lone fallback pin keeps its
     // pin and its silence — no line asserts a journey from it.
-    if ((originFallback || destinationFallback) && km > MAX_FALLBACK_KM[mode]) {
-      if (originFallback && destinationFallback) {
-        return { drawRoute: false, reason: ROUTE_UNCERTAIN_REASON };
-      }
+    const doubtful = implausibleEnds(mode, origin, destination);
+    if (doubtful.origin && doubtful.destination) {
+      return { drawRoute: false, reason: ROUTE_UNCERTAIN_REASON };
+    }
+    if (doubtful.origin || doubtful.destination) {
       return {
         drawRoute: false,
-        reason: originFallback ? DEPARTURE_UNCERTAIN_REASON : ARRIVAL_UNCERTAIN_REASON,
+        reason: doubtful.origin ? DEPARTURE_UNCERTAIN_REASON : ARRIVAL_UNCERTAIN_REASON,
       };
     }
+    const km = greatCircleKm(origin, destination);
     return { drawRoute: km >= MIN_ROUTE_KM && km <= MAX_ROUTE_KM[mode], reason: null };
   }
   if (origin.state === 'null' && destination.state === 'hit') {

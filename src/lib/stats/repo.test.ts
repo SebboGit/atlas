@@ -110,7 +110,28 @@ const geocodingMocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock('@/lib/geocoding', () => geocodingMocks);
+// Train / bus / ferry legs go through the REAL per-end query builder and
+// the real station guard (pure leaf modules): how stats applies the
+// guard is what's under test, not a stand-in for it. car / other legs
+// never reach them and keep the simplified buildGeocodeQuery above.
+vi.mock('@/lib/geocoding', async () => {
+  const guard = await vi.importActual<typeof import('@/lib/geocoding/station-guard')>(
+    '@/lib/geocoding/station-guard',
+  );
+  const query = await vi.importActual<typeof import('@/lib/geocoding/segment-query')>(
+    '@/lib/geocoding/segment-query',
+  );
+  const station = await vi.importActual<typeof import('@/lib/geocoding/station-query')>(
+    '@/lib/geocoding/station-query',
+  );
+  return {
+    ...geocodingMocks,
+    buildTransitEndpointQueries: query.buildTransitEndpointQueries,
+    implausibleEnds: guard.implausibleEnds,
+    isGuessedStation: guard.isGuessedStation,
+    tryParseStationQuery: station.tryParseStationQuery,
+  };
+});
 
 // The viewer's manual world-map marks (#87). The stats repo reads these
 // through @/lib/countries/repo; mocking that boundary lets a test control
@@ -121,11 +142,12 @@ vi.mock('@/lib/countries/repo', () => ({
 }));
 
 // Seed a positive cache hit for `query` at the given coordinates.
-function seedGeocode(query: string, lat: number, lng: number) {
+// `source` is the ladder rung that produced it (geocode_cache.source).
+function seedGeocode(query: string, lat: number, lng: number, source?: string) {
   const key = query.toLowerCase().trim().replace(/\s+/g, ' ');
   geoState.cache.set(key, {
     kind: 'hit',
-    result: { lat, lng, displayName: query },
+    result: { lat, lng, displayName: query, ...(source && { source }) },
     cityPending: false,
   });
 }
@@ -178,6 +200,10 @@ function hotel(over: Partial<Segment>): Segment {
 
 function activity(over: Partial<Segment>): Segment {
   return flight({ type: 'activity', ...over });
+}
+
+function transit(over: Partial<Segment>): Segment {
+  return flight({ type: 'transit', ...over });
 }
 
 beforeEach(() => {
@@ -391,6 +417,134 @@ describe('getStatsDashboardData — personal records', () => {
     // Extremes fall back to the flight airports only.
     expect(data.records.northernmost?.label).toBe('LHR');
     expect(data.records.southernmost?.label).toBe('CDG');
+  });
+
+  describe('guessed stations (#164)', () => {
+    // LHR → CDG bounds the extremes on their own (51.5° N to 49.0° N),
+    // so whether a leg's point counts shows in the records.
+    const flights = [
+      flight({ id: 'f1', data: { originAirport: 'LHR', destinationAirport: 'CDG' } }),
+    ];
+    const pudetoBus = transit({
+      id: 'b1',
+      locationName: 'Torres del Paine',
+      countryCode: 'CL',
+      data: { mode: 'bus', fromName: 'Laguna Amarga', toName: 'Pudeto' },
+    });
+    const LAGUNA_AMARGA = { lat: -50.9761, lng: -72.7567 };
+    // ~2,150 km south of Laguna Amarga: past the 1,800 km bus threshold.
+    const SOUTHERN_OCEAN = { lat: -70, lng: -60 };
+    const seed = (q: string, p: { lat: number; lng: number }, source: string) =>
+      seedGeocode(q, p.lat, p.lng, source);
+
+    beforeEach(() => {
+      dbState.trips = [trip({ id: 't1', startDate: new Date('2024-01-01T00:00:00Z') })];
+    });
+
+    it('reads both ends of every leg in the one batch read', async () => {
+      dbState.segments = [...flights, pudetoBus];
+      geocodingMocks.getCachedMany.mockClear();
+      await getStatsDashboardData('u1');
+      expect(geocodingMocks.getCachedMany).toHaveBeenCalledTimes(1);
+      expect(geocodingMocks.getCachedMany).toHaveBeenCalledWith([
+        'station:bus:cl:Laguna Amarga',
+        'station:bus:cl:Pudeto',
+      ]);
+    });
+
+    it('leaves out an end the guard flags and counts the sound one', async () => {
+      dbState.segments = [...flights, pudetoBus];
+      seed('station:bus:cl:Laguna Amarga', LAGUNA_AMARGA, 'photon-station');
+      seed('station:bus:cl:Pudeto', SOUTHERN_OCEAN, 'photon');
+      const data = await getStatsDashboardData('u1');
+      expect(data.records.southernmost).toEqual({
+        label: 'Torres del Paine',
+        lat: LAGUNA_AMARGA.lat,
+        airport: false,
+      });
+    });
+
+    it('counts nothing for a leg whose ends are both flagged', async () => {
+      dbState.segments = [...flights, pudetoBus];
+      seed('station:bus:cl:Laguna Amarga', LAGUNA_AMARGA, 'nominatim');
+      seed('station:bus:cl:Pudeto', SOUTHERN_OCEAN, 'photon');
+      const data = await getStatsDashboardData('u1');
+      expect(data.records.southernmost?.label).toBe('CDG');
+    });
+
+    it('counts fallback stations the guard trusts — CJK and Cyrillic names', async () => {
+      // Names with no Latin words never reach the tagged rungs, so they
+      // always come back from the fallback; placed sensibly, they count.
+      dbState.segments = [
+        ...flights,
+        transit({
+          id: 'r1',
+          locationName: 'Kansai',
+          countryCode: 'JP',
+          data: { mode: 'train', fromName: '東京駅', toName: '京都駅' },
+        }),
+        transit({
+          id: 'r2',
+          locationName: 'Neva',
+          countryCode: 'RU',
+          data: { mode: 'train', fromName: 'Москва', toName: 'Санкт-Петербург' },
+        }),
+      ];
+      seed('station:train:jp:東京駅', { lat: 35.6812, lng: 139.7671 }, 'nominatim');
+      seed('station:train:jp:京都駅', { lat: 34.9858, lng: 135.7588 }, 'nominatim');
+      seed('station:train:ru:Москва', { lat: 55.7766, lng: 37.6552 }, 'photon');
+      seed('station:train:ru:Санкт-Петербург', { lat: 59.9311, lng: 30.3609 }, 'photon');
+      const data = await getStatsDashboardData('u1');
+      expect(data.records.southernmost).toEqual({ label: 'Kansai', lat: 34.9858, airport: false });
+      expect(data.records.northernmost).toEqual({ label: 'Neva', lat: 59.9311, airport: false });
+    });
+
+    it('leaves out a guessed station with no other end to measure against', async () => {
+      dbState.segments = [
+        ...flights,
+        transit({ ...pudetoBus, data: { mode: 'bus', toName: 'Pudeto' } }),
+      ];
+      seed('station:bus:cl:Pudeto', SOUTHERN_OCEAN, 'photon');
+      const data = await getStatsDashboardData('u1');
+      expect(data.records.southernmost?.label).toBe('CDG');
+    });
+
+    it('still counts a lone station a tagged station rung placed', async () => {
+      dbState.segments = [
+        ...flights,
+        transit({ ...pudetoBus, data: { mode: 'bus', toName: 'Pudeto' } }),
+      ];
+      seed('station:bus:cl:Pudeto', { lat: -51.0614, lng: -72.9899 }, 'photon-station');
+      const data = await getStatsDashboardData('u1');
+      expect(data.records.southernmost).toEqual({
+        label: 'Torres del Paine',
+        lat: -51.0614,
+        airport: false,
+      });
+    });
+
+    it('still counts a free-text hit that was not a station lookup', async () => {
+      // A car leg keys by its plain name and a hotel by its address:
+      // free text is the ordinary path for both, not a guess.
+      dbState.segments = [
+        ...flights,
+        transit({
+          id: 'c1',
+          locationName: 'Ruta 9',
+          data: { mode: 'car', toName: 'Punta Arenas' },
+        }),
+        hotel({
+          id: 'h1',
+          locationName: 'Tromsø',
+          data: { propertyName: 'Lodge', address: '1 Storgata, Tromsø' },
+        }),
+      ];
+      seedGeocode('Punta Arenas', -53.16, -70.91, 'photon');
+      seedGeocode('1 Storgata, Tromsø', 69.65, 18.96, 'nominatim');
+      const data = await getStatsDashboardData('u1');
+      expect(data.records.southernmost?.label).toBe('Ruta 9');
+      expect(data.records.northernmost?.label).toBe('Tromsø');
+    });
   });
 
   it('picks the most-visited airport and the top airline', async () => {
