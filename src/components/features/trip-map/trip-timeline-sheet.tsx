@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { Drawer } from 'vaul';
 
 import { cn } from '@/lib/utils';
 
+import { snapTranslateCss, stepSnap } from './sheet-snap';
 import type { ResolvedRailDay } from './timeline-model';
 import { TripTimelineRail, type TripTimelineRailProps } from './trip-timeline-rail';
 import { useMediaQuery } from './use-media-query';
+import { useSheetDrag } from './use-sheet-drag';
 
 // Tailwind's `lg` breakpoint in Tailwind's own unit: `--breakpoint-lg`
 // is `64rem`, and a rem media query resolves against the browser's
@@ -21,14 +22,28 @@ const LG = '64rem';
 // is no sub-pixel gap between the two at fractional viewport widths.
 const SHEET_VIEWPORT = `(width < ${LG})`;
 
-// Snap points for the bottom sheet. "Peek" shows the handle + the
-// today/summary header (≈ the bottom 18% of the screen); "open" pulls
-// the full timeline up to 82%. The peek height is generous enough to
-// surface "Today · N items" without overlapping the map's bottom-left
-// "Not pinned" / wishlist chips, which sit just above it.
+// Snap points for the bottom sheet, as fractions of the viewport height
+// the sheet shows. "Peek" shows the handle + the today/summary header
+// (≈ the bottom 18% of the screen); "open" pulls the full timeline up to
+// 82%.
 const SNAP_PEEK = 0.18;
 const SNAP_OPEN = 0.82;
 const SNAP_POINTS = [SNAP_PEEK, SNAP_OPEN] as const;
+
+// The header's height: the least the peek ever shows. On a very short
+// viewport (a phone in landscape, 400% zoom) 18% would clip the summary.
+const MIN_PEEK_REM = 3.5;
+
+// The peek's on-screen height, as CSS. The map runs on under the sheet
+// and its bottom-left chips (Legend, Not pinned) sit at its very bottom,
+// so at rest they are covered by the peek. The page reserves this much
+// below the map and keeps focus scrolling clear of it (see
+// TimelineSheet), so a focused chip is always scrolled out from under the
+// sheet rather than behind it.
+const PEEK_HEIGHT = `max(${SNAP_PEEK * 100}svh, ${MIN_PEEK_REM}rem)`;
+
+// Breathing room between a focused control and the peek's top edge.
+const FOCUS_CLEARANCE = '0.75rem';
 
 // Count of items in the currently-relevant "anchor" day — today for an
 // active trip, else the first day — so the peek header reads
@@ -55,64 +70,119 @@ interface TripTimelineSheetProps extends TripTimelineRailProps {
 /**
  * Breakpoint gate for the bottom sheet below.
  *
- * This is a mount gate, not a CSS class, and it has to be: vaul builds
- * the sheet on a Radix dialog and never forwards its own `modal={false}`
- * to it, so Radix's `modal` default applies and `aria-hidden="true"`
- * lands on every sibling subtree for as long as the sheet exists. A
- * `lg:hidden` class hid the sheet on laptop but left it mounted, which
- * quietly took the map, the rail and the page chrome out of the
- * accessibility tree at desktop width (#150).
- *
- * Known residual below `lg`: for as long as the sheet exists, Radix
- * takes everything outside it out of the accessibility tree — the map
- * and its controls, the page heading, the back link and the top bar —
- * so a screen reader sees only the sheet, and focus that enters it
- * cannot leave (Escape is swallowed by `dismissible={false}`). Clearing
- * that needs vaul to forward `modal` to the Radix dialog, or the sheet
- * to stop being a dialog — tracked in #159.
+ * The sheet used to be a vaul Drawer, i.e. a Radix dialog that vaul
+ * never made non-modal: wherever it mounted, Radix hid the rest of the
+ * page from assistive tech and trapped focus inside it (#150 at desktop
+ * width, #159 below `lg`). It is now a plain positioned landmark, so
+ * mounting it hides nothing — but it stays a mount gate rather than a
+ * `lg:hidden` class, for two reasons: the laptop rail already renders
+ * the same `TripTimelineRail`, and a second copy would run its
+ * scroll-to-today and its listeners for nothing; and the page would
+ * carry two "Trip timeline" landmarks in the DOM, one of them waiting on
+ * a class to stay out of the tree.
  */
 export function TripTimelineSheet({ hasDays, ...railProps }: TripTimelineSheetProps) {
   const isSheetViewport = useMediaQuery(SHEET_VIEWPORT);
 
   // Unmounting on the way up (rather than gating inside the sheet) also
-  // resets its snap + open state, so coming back down re-runs vaul's
-  // open lifecycle from scratch instead of resuming mid-drag.
+  // resets its snap state, so coming back down starts at the peek
+  // instead of resuming mid-drag.
   if (!hasDays || !isSheetViewport) return null;
 
   return <TimelineSheet {...railProps} />;
 }
 
 /**
- * Mobile bottom sheet (vaul) wrapping the shared timeline rail. Pinned
- * to the bottom over a full-screen map:
- *   - peek snap shows a handle + "Today · N items";
- *   - drag up → expands to ~82% revealing the full timeline;
- *   - `modal={false}` so the map underneath stays tappable and
- *     pinch-zoomable while the sheet is peeking (vaul honours this for
- *     pointer events; it does not pass it through to Radix, hence the
- *     mount gate above);
- *   - never fully dismissible — the lowest snap point keeps it on
- *     screen (the timeline is the primary control, not a transient
- *     overlay).
+ * Mobile bottom sheet wrapping the shared timeline rail. Pinned to the
+ * bottom over a full-screen map:
+ *   - peek snap shows the header: a grab bar + "Today · N items";
+ *   - drag up (or tap the header) → expands to ~82%, revealing the full
+ *     timeline;
+ *   - no scrim, and the sheet covers only what it shows, so the map
+ *     above it stays tappable and pinch-zoomable;
+ *   - never dismissible — the peek snap is the floor (the timeline is
+ *     the primary control, not a transient overlay).
  *
- * Selecting a segment in the sheet pans the map beneath it; the sheet
- * stays where it is so the user keeps their place in the timeline.
+ * It is an `<aside>`, not a dialog: the complementary landmark the
+ * laptop rail already is, under the same name, so a screen reader finds
+ * "Trip timeline" at either width and nothing else on the page is hidden
+ * or made inert. Keyboard model:
+ *   - the header is a real button (`aria-expanded`, ≥44px tall): Enter /
+ *     Space toggle peek ↔ open, Arrow Up / Down step between snaps;
+ *   - Tab moves in and out freely — no focus trap;
+ *   - keyboard focus that lands in the list at the peek raises the sheet,
+ *     so a focused row is never below the screen edge;
+ *   - keyboard focus that leaves an open sheet lowers it, so the control
+ *     it lands on (the map's chips sit right behind the open sheet) is
+ *     never covered;
+ *   - Escape lowers an open sheet to the peek and returns focus to the
+ *     header; at the peek it does nothing.
+ *
+ * Rendered in place rather than portalled, so it reads after the map in
+ * DOM and tab order. `position: fixed` relies on no ancestor carrying a
+ * transform (`atlas-rise` does — keep it off `<main>`).
+ *
+ * Selecting a segment (a tap in the sheet, or a pin under it) pans the
+ * map beneath it and drops the sheet to its peek; a selection made from
+ * the keyboard leaves it where it is, so the focused row stays on screen.
  */
 function TimelineSheet(railProps: TripTimelineRailProps) {
-  // Controlled snap so a drag/tap settles on a known point and the
-  // header summary reflects it. Starts at the peek floor.
-  const [snap, setSnap] = React.useState<number | string | null>(SNAP_PEEK);
+  const sheetRef = React.useRef<HTMLElement | null>(null);
+  const bodyRef = React.useRef<HTMLDivElement | null>(null);
+  const handleRef = React.useRef<HTMLButtonElement | null>(null);
+  const bodyId = React.useId();
 
-  // Mount the Drawer one frame AFTER the component mounts, with
-  // `defaultOpen`, so vaul runs its open lifecycle (measure container →
-  // compute snap offsets → translate to the active snap). A drawer that
-  // mounts already-open skips that lifecycle and gets stuck at the
-  // default 100% off-screen transform.
-  const [mounted, setMounted] = React.useState(false);
+  // Starts at the peek floor.
+  const [snap, setSnap] = React.useState<number>(SNAP_PEEK);
+  const isOpen = snap === SNAP_OPEN;
+
+  // Hold the first frame below the screen edge, then let the snap
+  // transition slide the sheet up to its peek — the entrance vaul used
+  // to animate. Reduced motion skips the slide (no transition).
+  const [entered, setEntered] = React.useState(false);
   React.useEffect(() => {
-    const raf = requestAnimationFrame(() => setMounted(true));
+    const raf = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(raf);
   }, []);
+
+  // While the sheet exists, focus scrolling (Tab, `focus()`) treats the
+  // peek as the bottom of the screen, so a control the browser brings
+  // into view lands above the sheet. Set on the root because that is the
+  // page's scroller; put back on unmount.
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.style.scrollPaddingBottom;
+    root.style.scrollPaddingBottom = `calc(${PEEK_HEIGHT} + ${FOCUS_CLEARANCE})`;
+    return () => {
+      root.style.scrollPaddingBottom = previous;
+    };
+  }, []);
+
+  const drag = useSheetDrag({
+    sheetRef,
+    bodyRef,
+    snaps: SNAP_POINTS,
+    snap,
+    minPeekRem: MIN_PEEK_REM,
+    onSettle: setSnap,
+  });
+
+  // Whether the click now running through the list came from the
+  // keyboard (Enter / Space on a button dispatches `detail === 0`). Set
+  // in the capture phase, read by the selection handler just after.
+  const keyboardClickRef = React.useRef(false);
+  // A keyboard selection marks its segment here, in the same batch as
+  // the parent's selection update, so the adjust-on-prop-change below
+  // knows not to drop the sheet under the focused row.
+  const [holdSnapFor, setHoldSnapFor] = React.useState<string | null>(null);
+  const { onSelectSegment: parentSelect, selectedSegmentId } = railProps;
+  const onSelectSegment = React.useCallback(
+    (segmentId: string) => {
+      if (keyboardClickRef.current && segmentId !== selectedSegmentId) setHoldSnapFor(segmentId);
+      parentSelect(segmentId);
+    },
+    [parentSelect, selectedSegmentId],
+  );
 
   // Selecting a segment (a tap in the sheet, or a pin under it) pans the
   // map to it — drop the sheet back to its peek so the focused pin +
@@ -121,95 +191,156 @@ function TimelineSheet(railProps: TripTimelineRailProps) {
   // Implemented as "adjust state when a prop changes" (compare to the
   // previous value during render) — React's preferred pattern over a
   // selection-watching effect.
-  const [prevSelected, setPrevSelected] = React.useState(railProps.selectedSegmentId);
-  if (railProps.selectedSegmentId !== prevSelected) {
-    setPrevSelected(railProps.selectedSegmentId);
-    if (railProps.selectedSegmentId !== null) setSnap(SNAP_PEEK);
+  const [prevSelected, setPrevSelected] = React.useState(selectedSegmentId);
+  if (selectedSegmentId !== prevSelected) {
+    setPrevSelected(selectedSegmentId);
+    if (selectedSegmentId !== null && selectedSegmentId !== holdSnapFor) setSnap(SNAP_PEEK);
+    if (holdSnapFor !== null) setHoldSnapFor(null);
   }
 
-  if (!mounted) return null;
+  // Keyboard focus arriving in the list while it hangs below the screen
+  // edge raises the sheet. `:focus-visible` keeps a tap on a peeking row
+  // from doing the same — that tap is a selection, not navigation.
+  const onFocus = (e: React.FocusEvent<HTMLElement>) => {
+    if (isOpen || !bodyRef.current?.contains(e.target)) return;
+    if (e.target.matches(':focus-visible')) setSnap(SNAP_OPEN);
+  };
+
+  // Keyboard focus leaving an open sheet lowers it: the map's chips sit
+  // right behind the open sheet, so Shift+Tab out of it would otherwise
+  // land on a covered control. A null `relatedTarget` (the window lost
+  // focus) leaves it alone, and so does a pointer: a tap on the map after
+  // a tap in the list moves focus too, and shouldn't fold the sheet away
+  // under the finger. `:focus-visible` is only readable once focus has
+  // landed, hence the frame.
+  const onBlur = (e: React.FocusEvent<HTMLElement>) => {
+    const next = e.relatedTarget;
+    if (!(next instanceof HTMLElement) || snap === SNAP_PEEK) return;
+    if (e.currentTarget.contains(next)) return;
+    requestAnimationFrame(() => {
+      if (document.activeElement === next && next.matches(':focus-visible')) setSnap(SNAP_PEEK);
+    });
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== 'Escape' || snap === SNAP_PEEK) return;
+    setSnap(SNAP_PEEK);
+    // The focused row is about to drop below the screen edge — move
+    // focus to the header, which stays in view at every snap.
+    if (bodyRef.current?.contains(document.activeElement)) {
+      handleRef.current?.focus({ preventScroll: true });
+    }
+  };
+
+  const onHandleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    // Also keeps the arrow from scrolling the page.
+    e.preventDefault();
+    setSnap(stepSnap(SNAP_POINTS, snap, e.key === 'ArrowUp' ? 1 : -1));
+  };
 
   const summary = anchorSummary(railProps.days, railProps.isActive);
+  const restingOffset = entered ? snapTranslateCss(snap, MIN_PEEK_REM) : '100%';
+  // Label-only, and true to the state.
+  const dragHint = isOpen ? 'Drag to collapse' : 'Drag to expand';
+  const hintClass = 'text-foreground/70 font-mono text-[10px] tracking-[0.06em] uppercase';
 
   return (
-    <Drawer.Root
-      // Uncontrolled-open so vaul drives the open animation that applies
-      // the initial snap transform.
-      defaultOpen
-      // Non-modal: no scrim, map stays interactive underneath.
-      modal={false}
-      // Never dismiss — the peek snap is the floor.
-      dismissible={false}
-      snapPoints={[...SNAP_POINTS]}
-      activeSnapPoint={snap}
-      setActiveSnapPoint={setSnap}
-      // No `handleOnly`: the whole header (and the sheet body) is
-      // draggable, matching the grab cursor + "Drag to expand" affordance
-      // and the Apple-Maps idiom. vaul still lets the scrollable list
-      // below scroll on its own — it only converts a drag into a sheet
-      // move when the list is already at the top, so a flick inside the
-      // timeline scrolls it rather than collapsing the sheet.
-    >
-      <Drawer.Portal>
-        {/*
-          No Drawer.Overlay — a scrim would block the map. The content
-          is a self-contained card anchored to the bottom. Nothing here
-          hides the sheet by breakpoint: the mount gate above already
-          keeps it off laptop entirely.
-        */}
-        <Drawer.Content
-          // The accessible name comes from Drawer.Title below (Radix
-          // wires aria-labelledby), so no redundant aria-label. The sheet
-          // carries no description; `aria-describedby={undefined}` opts
-          // out of Radix's description wiring and silences its dev-only
-          // missing-Description warning (same as the segment dialogs).
-          aria-describedby={undefined}
-          // Full-viewport height: vaul, for a fractional snap point,
-          // translates this `bottom-0` content DOWN by
-          // `viewportHeight * (1 - snap)` px, so the top `snap` fraction
-          // peeks above the bottom edge. That maths only lines up when
-          // the content spans the full viewport — a shorter fixed height
-          // would translate fully off-screen. The visible region is
-          // therefore capped by the snap fractions, not by a max-height.
-          style={{ height: '100svh' }}
-          className={cn(
-            'border-foreground/12 bg-card/95 fixed inset-x-0 bottom-0 z-30 flex flex-col',
-            'rounded-t-2xl border-t shadow-[0_-12px_40px_-24px_rgba(21,22,26,0.4)] backdrop-blur-md',
-            'outline-none',
-          )}
-        >
-          {/* Drag handle + peek header. Dragging anywhere on the sheet
-           *  moves it; the scrollable list below still scrolls on its own
-           *  (vaul only converts a drag into a sheet move when the list is
-           *  at the top). */}
-          <div className="shrink-0 cursor-grab px-4 pt-2 pb-3 active:cursor-grabbing">
-            <Drawer.Handle className="bg-foreground/20 mx-auto mb-3 h-1.5 w-10 rounded-full" />
-            <div className="flex items-baseline gap-2">
-              <Drawer.Title className="text-foreground/85 font-mono text-[11px] tracking-[0.06em] uppercase">
+    <>
+      {/* Room below the map for the peek, so the page can scroll the map's
+       *  bottom edge (and its chips) up clear of the sheet. */}
+      <div aria-hidden className="shrink-0" style={{ height: PEEK_HEIGHT }} />
+      <aside
+        ref={sheetRef}
+        aria-label="Trip timeline"
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
+        onClickCapture={drag.onClickCapture}
+        style={{
+          // As tall as the highest snap, anchored to the bottom edge and
+          // translated down by its height less what the snap shows, so it
+          // never covers more of the map than it shows, and the whole list
+          // is reachable when open. A live drag overrides the offset via
+          // `--sheet-drag-y` (see useSheetDrag). svh, like the map's own
+          // height, so the sheet doesn't jump as the mobile URL bar
+          // collapses.
+          height: `${SNAP_OPEN * 100}svh`,
+          transform: `translateY(var(--sheet-drag-y, ${restingOffset}))`,
+        }}
+        className={cn(
+          'border-foreground/12 bg-card/95 fixed inset-x-0 bottom-0 z-30 flex flex-col',
+          'rounded-t-2xl border-t shadow-[0_-12px_40px_-24px_rgba(21,22,26,0.4)] backdrop-blur-md',
+          // vaul's snap easing and duration, so the settle feels the same.
+          'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          'data-dragging:transition-none motion-reduce:transition-none',
+        )}
+      >
+        {/* Drag handle + peek header, as one button: tap / Enter / Space
+         *  toggle, arrows step, a drag moves the sheet. `touch-none` so the
+         *  browser never claims the drag for a page scroll. Its name is the
+         *  visible summary. The drag hint is pointer-only advice, so it sits
+         *  outside the button (over it, click-through) rather than inside
+         *  it unnamed; an invisible copy in the row keeps its room. An
+         *  outline, not a ring, for the focus indicator, so it survives
+         *  forced colours. */}
+        <div className="relative shrink-0">
+          <button
+            ref={handleRef}
+            type="button"
+            aria-expanded={isOpen}
+            aria-controls={bodyId}
+            onClick={() => setSnap(isOpen ? SNAP_PEEK : SNAP_OPEN)}
+            onKeyDown={onHandleKeyDown}
+            {...drag.handleProps}
+            className={cn(
+              'block w-full cursor-grab touch-none rounded-t-2xl px-4 pt-2 pb-3 text-left select-none active:cursor-grabbing',
+              'focus-visible:outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2',
+            )}
+          >
+            <span
+              aria-hidden
+              className="bg-foreground/20 mx-auto mb-3 block h-1.5 w-10 rounded-full"
+            />
+            <span className="flex items-baseline gap-2">
+              <span className="text-foreground/85 font-mono text-[11px] tracking-[0.06em] uppercase">
                 {summary.label}
-              </Drawer.Title>
-              <span className="text-foreground/40 font-mono text-[10px] tracking-[0.06em]">
+              </span>
+              <span className="text-foreground/70 font-mono text-[10px] tracking-[0.06em]">
                 · {summary.count} {summary.count === 1 ? 'item' : 'items'}
               </span>
               <span aria-hidden className="bg-foreground/12 h-px flex-1 self-center" />
-              <span className="text-foreground/35 font-mono text-[9px] tracking-[0.06em] uppercase">
-                Drag to expand
-              </span>
-            </div>
-          </div>
-
-          {/* Scrollable timeline body. `overscroll-contain` keeps a
-           *  scroll-to-top from bubbling into a sheet drag. Bottom
-           *  padding clears the iOS home indicator via the safe-area
-           *  inset. */}
-          <div
-            className="min-h-0 flex-1 overflow-y-auto px-3 pt-1"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+              <span className={cn(hintClass, 'invisible')}>{dragHint}</span>
+            </span>
+          </button>
+          <span
+            aria-hidden
+            className={cn(hintClass, 'pointer-events-none absolute right-4 bottom-3')}
           >
-            <TripTimelineRail {...railProps} />
-          </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+            {dragHint}
+          </span>
+        </div>
+
+        {/* Scrollable timeline body. `overscroll-contain` keeps a scroll
+         *  that hits either end from chaining into the page; below the
+         *  open snap `touch-none` hands every touch drag to the sheet (see
+         *  useSheetDrag). Bottom padding clears the iOS home indicator via
+         *  the safe-area inset. */}
+        <div
+          ref={bodyRef}
+          id={bodyId}
+          onClickCapture={(e) => {
+            keyboardClickRef.current = e.detail === 0;
+          }}
+          className={cn(
+            'min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-1',
+            !isOpen && 'touch-none',
+          )}
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+        >
+          <TripTimelineRail {...railProps} onSelectSegment={onSelectSegment} />
+        </div>
+      </aside>
+    </>
   );
 }

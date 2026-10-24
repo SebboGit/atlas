@@ -74,7 +74,7 @@ const HOVER_CLEAR_DELAY_MS = 140;
  *
  * Layout:
  *   - laptop (lg+): a fixed-width left rail beside a sticky map;
- *   - mobile (<lg): a full-bleed map with a vaul bottom sheet.
+ *   - mobile (<lg): a full-bleed map with a draggable bottom sheet.
  * The same `TripTimelineRail` content backs both.
  */
 export function ChronoTripMap({
@@ -323,10 +323,10 @@ export function ChronoTripMap({
         ONE map instance, ONE layout that reflows by breakpoint:
           - laptop (lg+): the rail is an inline column to the left; the
             map fills the rest. Both share a height so the columns align.
-          - mobile (<lg): the rail column is hidden by class and the vaul
-            sheet mounts in its place (that one is a media-query mount
-            gate, not a class), and the map takes the full width and
-            nearly the full viewport height.
+          - mobile (<lg): the rail column is hidden by class and the
+            bottom sheet mounts in its place (that one is a media-query
+            mount gate, not a class), and the map takes the full width
+            and nearly the full viewport height.
         Rendering the map once avoids two live MapLibre WebGL contexts.
       */}
       <div className="flex gap-6">
@@ -355,11 +355,11 @@ export function ChronoTripMap({
         </div>
       </div>
 
-      {/* Mobile bottom sheet — the same rail content. It gates its own
-       *  mounting on a media query below `lg`, so on laptop it is absent
-       *  from the DOM rather than merely hidden (a hidden vaul sheet
-       *  still aria-hides the rest of the page — see the sheet's own
-       *  comment). */}
+      {/* Mobile bottom sheet — the same rail content, as the same
+       *  "Trip timeline" landmark. It gates its own mounting on a media
+       *  query below `lg`, so on laptop it is absent from the DOM rather
+       *  than a second, class-hidden copy of the rail (see the sheet's
+       *  own comment). */}
       <TripTimelineSheet hasDays={hasDays} {...railProps} />
     </>
   );

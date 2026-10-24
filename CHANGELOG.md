@@ -66,6 +66,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now get the same words you see on the search button, the map's Legend,
   Not pinned and Wishlist chips, the past-days toggles and the time picker,
   which now also reads out the chosen time.
+- **Trip map timeline with a screen reader or keyboard** — on phones, tablets
+  and narrow windows the timeline sheet no longer hides the map, its chips,
+  the trip heading, the back link and the top bar from screen readers, and
+  focus can leave it again with Tab. Its header is now a button: tap it or
+  press Enter to raise or lower the sheet, use the arrow keys to step, and
+  Escape lowers it. Tabbing into a lowered sheet raises it so the focused day
+  is on screen, tabbing out lowers it again, and the map's Legend and Not
+  pinned chips are no longer hidden behind it. The header's item count and
+  drag hint are easier to read, and the raised sheet now scrolls all the way
+  to the last day.
 
 ### Upgrading
 

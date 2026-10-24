@@ -316,6 +316,8 @@ export async function seedGeocodedActivitySegment(
     countryCode?: string | null;
     lat: number;
     lng: number;
+    /** Dated, so the map's timeline lists it as a selectable row. */
+    startsAt?: Date | null;
   },
 ): Promise<string> {
   assertTestDatabase();
@@ -325,6 +327,7 @@ export async function seedGeocodedActivitySegment(
       tripId,
       type: 'activity',
       data: { title: values.title },
+      startsAt: values.startsAt ?? null,
       locationName: values.locationName,
       countryCode: values.countryCode ?? null,
     })
