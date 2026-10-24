@@ -47,11 +47,16 @@ export interface PlaceCoordsView {
    * `endpoints`, and exist when either end resolved. An end the station
    * guard doubts carries `implausible` (station-guard.ts) — the same
    * verdict that withholds the trip map's line for that leg — and so does
-   * the entry itself when its primary point is one.
+   * the entry itself when its primary point is one. `primaryEnd` says
+   * which end the primary point is.
    */
   coordsById: Map<
     string,
-    PlaceCoords & { implausible?: boolean; endpoints?: TransitEndpointCoords }
+    PlaceCoords & {
+      implausible?: boolean;
+      primaryEnd?: 'origin' | 'destination';
+      endpoints?: TransitEndpointCoords;
+    }
   >;
   /**
    * Count of geocodable lookups whose cache row is a miss (worker
@@ -198,6 +203,7 @@ export async function getPlaceCoordsView(
       coordsById.set(id, {
         ...toPlaceCoords(primary),
         ...(primary.implausible && { implausible: true }),
+        primaryEnd: primary === destination ? 'destination' : 'origin',
         endpoints: { origin, destination },
       });
     }

@@ -221,5 +221,10 @@ export interface PlaceCoordsEntry {
    * sound end is preferred as the primary point.
    */
   implausible?: boolean;
+  /**
+   * Which end of a train / bus / ferry leg the primary point is, so a
+   * caller naming the point (a Maps link's venue) names the same end.
+   */
+  primaryEnd?: 'origin' | 'destination';
   endpoints?: TransitEndpointCoords;
 }

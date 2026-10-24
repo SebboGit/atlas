@@ -66,9 +66,10 @@ export function SegmentCardTransit({
         parts,
         // Never badge a guess the station guard doubts (#164).
         coords: coords?.implausible ? null : coords,
-        // Destination is the venue Maps should land on when the user
-        // taps the badge — origin is the boarding point, not the place.
-        venue: data.toName ?? data.fromName ?? null,
+        // Name the end the coordinates belong to: the destination as a
+        // rule, the origin when the destination is missing or doubted.
+        venue:
+          (coords?.primaryEnd === 'origin' ? data.fromName : data.toName) ?? data.fromName ?? null,
       });
 
   return (
