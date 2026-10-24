@@ -1,6 +1,6 @@
 # ADR-0019: Station-aware transit endpoints, route lines, and a Directions link
 
-- **Status:** Accepted (amended 2026-09-18, see below)
+- **Status:** Accepted (amended 2026-09-18 and 2026-10-24, see below)
 - **Date:** 2026-09-13
 - **Deciders:** @SebboGit
 - **Amends:** ADR-0018 (transit queries: train, bus and ferry station
@@ -151,6 +151,25 @@ ADR.
 > wording is left alone here — it is the established term and other work
 > selects the chip by it — and a rename belongs to a later copy pass.
 
+> **Amended 2026-10-24 — the guard's reach.** The guard is no longer
+> map-local. Its rules live in `src/lib/geocoding/station-guard.ts`, and
+> every surface that reads a leg's cached ends runs the same distance
+> verdict on the same rows. The trip map withholds the line as above. The
+> segment inspector drops the Plus Code badge from an end the guard flags,
+> because the badge deep-links Google Maps at the cached coordinates —
+> the thing Decision 8 refuses for the Directions link. The other end
+> keeps its badge, and a leg whose destination is flagged takes its
+> sound origin as the card's primary point. The reminder sweep won't
+> take a leg's time zone from a flagged origin; it falls back to the
+> country, as ADR-0020 prefers to a wrong zone. The stats north and south
+> extremes read both ends of a leg in their one batch query and skip
+> only a flagged end, counting the sound one instead. A leg with only one
+> end resolved has nothing to measure against, and a record is a
+> headline claim, so stats leaves out a lone station that only a
+> fallback rung placed. The edit form's located line still shows the
+> guessed coordinates, since that is where a user can see the guess and
+> fix it (#164).
+
 ## Consequences
 
 ### Positive
@@ -188,10 +207,10 @@ ADR.
   image.
 - The /stats north and south extremes can lose transit points until the
   affected trips' itinerary or map pages have been opened once.
-- The guard is map-local. It governs the route line and the Not-pinned
-  entry only; the segment info dialog's Plus Code badges, the edit form's
-  located line and the stats extremes still read the raw cache row, so a
-  guessed coordinate still shows there. Tracked in #164.
+- The guard governs the route line, the Not-pinned entry, the Plus Code
+  badges, the reminder sweep's origin zone and the stats extremes. Only
+  the edit form's located line still reads the raw cache row, so a
+  guessed coordinate still shows there (see the 2026-10-24 amendment).
 
 ### Neutral
 
