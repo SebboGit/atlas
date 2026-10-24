@@ -67,6 +67,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Not pinned and Wishlist chips, the past-days toggles and the time picker,
   which now also reads out the chosen time.
 
+### Upgrading
+
+Take a database backup first. This release updates pg-boss, whose first start
+migrates its job tables forward (schema 40 → 46) and cannot be undone by
+rolling back the image; restoring that backup is the way back. The update also
+brings Next.js 16.4.2, which fixes security issues in the image optimizer.
+
 ## [1.9.0] - 2026-10-22
 
 ### Added
