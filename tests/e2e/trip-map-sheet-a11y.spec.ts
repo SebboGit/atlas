@@ -61,7 +61,7 @@ async function seedMappedTrip(userId: string, title: string): Promise<string> {
 // trip-map-not-pinned-chip.spec.ts). Deliberately NOT MapLibre's `load`
 // event, which headless runs don't fire reliably.
 async function settle(page: Page): Promise<void> {
-  const chip = page.getByRole('button', { name: /segments? not on the map/i });
+  const chip = page.getByRole('button', { name: /^not pinned\s*,\s*\d+ segments?$/i });
   const popover = page.getByRole('region', { name: /segments? not on the map/i });
   await expect(chip).toBeVisible();
   // Retry the click: on a cold `next dev` the chip is painted before its
@@ -87,7 +87,7 @@ async function expectPageInAccessibilityTree(page: Page, tripTitle: string): Pro
   // A control that lives on the map surface itself. The wishlist toggle
   // would do too, but it only renders for a trip with geocoded wishlist
   // pins; the legend chip is there whenever the map has a pin.
-  await expect(page.getByRole('button', { name: /map legend/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^legend$/i })).toBeVisible();
 
   // Positive control first: `main` must exist for its absence from the
   // aria-hidden selector below to mean anything.

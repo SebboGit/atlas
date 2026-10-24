@@ -34,11 +34,18 @@ export function NotPinnedChip({ items }: NotPinnedChipProps) {
           type="button"
           aria-expanded={open}
           aria-haspopup="dialog"
-          aria-label={`${items.length} ${items.length === 1 ? 'segment' : 'segments'} not on the map`}
           className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground absolute bottom-3 left-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.06em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
         >
           <MapPinOff aria-hidden className="text-foreground/70 h-3.5 w-3.5" strokeWidth={1.5} />
-          <span>Not pinned · {String(items.length).padStart(2, '0')}</span>
+          {/* The visible words are the accessible name (WCAG 2.5.3 label in
+              name); the zero-padded count is visual, the spoken count plain. */}
+          <span>
+            Not pinned
+            <span aria-hidden> · {String(items.length).padStart(2, '0')}</span>
+            <span className="sr-only">
+              , {items.length} {items.length === 1 ? 'segment' : 'segments'}
+            </span>
+          </span>
           <ChevronUp
             aria-hidden
             className={`text-foreground/45 h-3 w-3 transition-transform duration-150 ${

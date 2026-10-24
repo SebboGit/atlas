@@ -273,7 +273,6 @@ function CollapsedPastRow({ days, onExpand }: { days: ResolvedRailDay[]; onExpan
       type="button"
       onClick={onExpand}
       aria-expanded={false}
-      aria-label={`Show ${days.length} past ${days.length === 1 ? 'day' : 'days'}`}
       className="group [@media(hover:hover)]:hover:bg-foreground/4 mb-3 flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors"
     >
       <ChevronDown
@@ -283,6 +282,11 @@ function CollapsedPastRow({ days, onExpand }: { days: ResolvedRailDay[]; onExpan
       />
       <span className="text-foreground/70 group-hover:text-foreground/85 min-w-0 truncate font-mono text-[10px] tracking-[0.06em] uppercase">
         {rangeLabel}
+      </span>
+      {/* The visible range is the name (WCAG 2.5.3); the count is spoken
+          only, and aria-expanded says it opens. */}
+      <span className="sr-only">
+        , {days.length} past {days.length === 1 ? 'day' : 'days'}
       </span>
       <span aria-hidden className="bg-foreground/12 h-px flex-1" />
     </button>
@@ -297,7 +301,6 @@ function ExpandedPastHeader({ onCollapse }: { onCollapse: () => void }) {
       type="button"
       onClick={onCollapse}
       aria-expanded={true}
-      aria-label="Collapse past days"
       className="group [@media(hover:hover)]:hover:bg-foreground/4 mb-2 flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors"
     >
       <ChevronDown

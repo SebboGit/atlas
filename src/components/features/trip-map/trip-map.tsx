@@ -1143,11 +1143,6 @@ export function TripMap({
           <button
             type="button"
             aria-pressed={showWishlist}
-            aria-label={
-              showWishlist
-                ? `Hide ${wishlistPins.length} wishlist ${wishlistPins.length === 1 ? 'pin' : 'pins'}`
-                : `Show ${wishlistPins.length} wishlist ${wishlistPins.length === 1 ? 'pin' : 'pins'}`
-            }
             onClick={() => setShowWishlist((v) => !v)}
             className={`absolute top-3 right-3 inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.06em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5 ${
               showWishlist
@@ -1163,9 +1158,17 @@ export function TripMap({
                   : 'border-foreground/55 inline-block h-3 w-3 rounded-full border border-dashed'
               }
             />
+            {/* The visible word leads the accessible name (WCAG 2.5.3):
+                "Showing 2 wishlist pins" when on, "Wishlist, 2 pins" when
+                off, with aria-pressed and the filled dot as the state. */}
             <span>
-              {showWishlist ? 'Showing' : 'Wishlist'} ·{' '}
-              {String(wishlistPins.length).padStart(2, '0')}
+              {showWishlist ? 'Showing' : 'Wishlist'}
+              <span aria-hidden> · {String(wishlistPins.length).padStart(2, '0')}</span>
+              <span className="sr-only">
+                {showWishlist ? ' ' : ', '}
+                {wishlistPins.length} {showWishlist ? 'wishlist ' : ''}
+                {wishlistPins.length === 1 ? 'pin' : 'pins'}
+              </span>
             </span>
           </button>
         )}

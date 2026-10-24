@@ -150,7 +150,7 @@ test.describe('itinerary continuation re-activation', () => {
     await continuation.click();
     await expect(hotelCard).toBeVisible();
 
-    await authedPage.getByRole('button', { name: 'Collapse past days' }).click();
+    await authedPage.getByRole('button', { name: /^earlier\s*hide$/i }).click();
     await expect(hotelCard).toHaveCount(0);
 
     // Tapping the continuation again must re-open the past — pre-fix the

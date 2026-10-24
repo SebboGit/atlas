@@ -62,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A mistyped trip link shows the not-found page** — a trip URL with a
   malformed id used to land on "Something went wrong."; it now gets the same
   404 as a trip that doesn't exist.
+- **Buttons are named by what they show** — screen readers and voice control
+  now get the same words you see on the search button, the map's Legend,
+  Not pinned and Wishlist chips, the past-days toggles and the time picker,
+  which now also reads out the chosen time.
 
 ## [1.9.0] - 2026-10-22
 

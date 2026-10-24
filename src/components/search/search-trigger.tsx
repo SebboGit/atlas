@@ -34,14 +34,16 @@ export function SearchTrigger() {
       // Icon-only until `lg:` — the topbar can't spare a labelled field at
       // tablet widths without scrolling sideways.
       className="text-muted-foreground hover:text-foreground lg:bg-card lg:border-border min-h-11 min-w-11 gap-2 lg:min-h-10 lg:w-56 lg:justify-start lg:border lg:font-medium"
-      aria-label="Search Atlas"
     >
       <Search className="size-4" aria-hidden />
-      <span className="hidden lg:inline">Search</span>
-      {/* aria-hidden on the kbd hint: the parent button's aria-label
-          already names the action, and screen readers vary on how they
-          announce the ⌘ glyph ("clover", "command", silence). Visual
-          shortcut, no audible noise. */}
+      {/* The visible word is the accessible name (WCAG 2.5.3 label in name):
+          screen-reader-only while the button is icon-only, shown from `lg:`.
+          An aria-label that differs from what's on screen is what voice
+          control users can't say. */}
+      <span className="sr-only lg:not-sr-only">Search</span>
+      {/* aria-hidden on the kbd hint: the word above already names the
+          action, and screen readers vary on how they announce the ⌘ glyph
+          ("clover", "command", silence). Visual shortcut, no audible noise. */}
       {modKey ? (
         <kbd
           aria-hidden="true"
