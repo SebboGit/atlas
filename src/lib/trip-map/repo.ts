@@ -2,7 +2,7 @@ import { and, asc, eq, getTableColumns, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import { segments, trips, type Segment } from '@/db/schema';
-import { getAirportCoords } from '@/lib/airports';
+import { getAirportCoords } from '@/lib/airports/coords';
 import {
   buildGeocodeQuery,
   buildTransitEndpointQueries,

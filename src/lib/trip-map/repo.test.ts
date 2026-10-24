@@ -10,9 +10,9 @@
 //     real query — `db` is mocked to a chain that resolves to dbRows)
 //   - @/lib/geocoding's read helpers are mocked so we can drive
 //     cache-hit / null / miss without touching the cache module
-//   - @/lib/airports is mocked because the non-flight rows don't
-//     need it; the one flight row in the multi-segment test gets a
-//     known coord
+//   - @/lib/airports/coords is mocked because the non-flight rows
+//     don't need it; the one flight row in the multi-segment test gets
+//     a known coord
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -89,10 +89,9 @@ vi.mock('@/lib/geocoding', async () => {
 
 const airportMocks = vi.hoisted(() => ({
   getAirportCoords: vi.fn<(iata: string) => { lat: number; lng: number } | null>(),
-  getAirportCountry: vi.fn<(iata: string | null | undefined) => string | null>(),
 }));
 
-vi.mock('@/lib/airports', () => airportMocks);
+vi.mock('@/lib/airports/coords', () => airportMocks);
 
 import { getTripMapDataForUser } from './repo';
 

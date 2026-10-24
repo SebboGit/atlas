@@ -11,7 +11,7 @@
 //     are driven through the real cache-resolution path (build query →
 //     batch cache read → keep hits) without touching the geocode cache
 //
-// @/lib/airports is NOT mocked — the committed IATA snapshot is real
+// @/lib/airports/coords is NOT mocked — the committed IATA snapshot is real
 // reference data, so distance and flight-derived extremes are checked
 // against actual coordinates.
 

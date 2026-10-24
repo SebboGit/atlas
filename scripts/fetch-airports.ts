@@ -1,5 +1,6 @@
 // One-shot: refresh src/lib/airports/iata-airports.json (and its
-// server-only sibling iata-airport-cities.json) from OpenFlights.
+// server-only siblings iata-airport-coords.json and
+// iata-airport-cities.json) from OpenFlights.
 //
 // Airports change rarely — IATA-coded commercial airports change names
 // occasionally, but the IATA↔IANA-timezone mapping is essentially
@@ -32,15 +33,18 @@
 // script and diff the rows upstream had no zone for.
 //
 // Lat/lng come from the same row and feed the trip-detail map's
-// flight-destination pins. They're optional in the output (treated
-// the same as country): a row with malformed coords still keeps tz
-// and country if those are sound.
+// flight-destination pins and the stats page's distances. They go to a
+// separate file, iata-airport-coords.json, read only through
+// src/lib/airports/coords.ts: iata-airports.json ships to the browser
+// with the segment forms, and coordinates are only needed on the
+// server, so they stay out of the client bundle. They're optional
+// (treated the same as country): a row with malformed coords still
+// keeps tz and country if those are sound.
 //
-// The city goes to a separate file, iata-airport-cities.json, read
-// only through src/lib/airports/cities.ts. iata-airports.json ships to
-// the browser with the segment forms; the city names are only needed
-// by server-rendered pages, so they stay out of the client bundle.
-// Same rows, same filter: a code has a city only if it's in the main
+// The city goes to a third file, iata-airport-cities.json, read only
+// through src/lib/airports/cities.ts, for the same reason: city names
+// are only shown on server-rendered pages. Same rows, same filter for
+// both: a code has coords or a city only if it's in the main
 // snapshot. Upstream's city column is uneven, so `cleanCity` tidies it
 // with two generic rules (all-caps values title-cased, a trailing
 // "International" / "Intl" / "Airport" dropped) and IATA_CITY_OVERRIDES
@@ -57,6 +61,7 @@ import { zoneAt } from '../src/lib/timezones/resolve';
 const SOURCE_URL =
   'https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat';
 const OUTPUT_REL = 'src/lib/airports/iata-airports.json';
+const COORDS_OUTPUT_REL = 'src/lib/airports/iata-airport-coords.json';
 const CITIES_OUTPUT_REL = 'src/lib/airports/iata-airport-cities.json';
 
 function parseCsvLine(line: string): string[] {
@@ -322,7 +327,7 @@ const IATA_TZ_OVERRIDES: Readonly<Record<string, string>> = {
 const OFFSET_PROBES = [0, 6].map((month) => Date.UTC(new Date().getUTCFullYear(), month, 15, 12));
 
 // Airports OpenFlights has no row for at all — its data stops around
-// 2019, before Berlin Brandenburg opened (2020). Merged into both
+// 2019, before Berlin Brandenburg opened (2020). Merged into all three
 // snapshots after the upstream rows; an upstream row for the same code
 // wins and the refresh logs it, so the entry can be dropped. Coords are
 // OurAirports' (public domain), checked against Wikipedia. Keep the
@@ -380,7 +385,6 @@ async function main(): Promise<void> {
     sourceId: number;
   };
   const byIata = new Map<string, Entry>();
-  let withCoords = 0;
 
   for (const line of lines) {
     const cols = parseCsvLine(line);
@@ -522,8 +526,9 @@ async function main(): Promise<void> {
     byIata.set(code, { ...extra, sourceId: -1 });
   }
 
-  type OutEntry = { tz: string; country?: string; lat?: number; lng?: number };
+  type OutEntry = { tz: string; country?: string };
   const sorted: Record<string, OutEntry> = {};
+  const coords: Record<string, { lat: number; lng: number }> = {};
   const cities: Record<string, string> = {};
   for (const code of [...byIata.keys()].sort()) {
     const entry = byIata.get(code);
@@ -536,9 +541,10 @@ async function main(): Promise<void> {
     if (entry.lat !== null && entry.lng !== null) {
       // Round to 5dp (~1m precision) — enough for a map pin, half the
       // bytes of the raw float. Math.round keeps it locale-safe.
-      out.lat = Math.round(entry.lat * 1e5) / 1e5;
-      out.lng = Math.round(entry.lng * 1e5) / 1e5;
-      withCoords += 1;
+      coords[code] = {
+        lat: Math.round(entry.lat * 1e5) / 1e5,
+        lng: Math.round(entry.lng * 1e5) / 1e5,
+      };
     }
     sorted[code] = out;
     if (entry.city) cities[code] = entry.city;
@@ -547,12 +553,15 @@ async function main(): Promise<void> {
   const outPath = path.resolve(process.cwd(), OUTPUT_REL);
   await fs.mkdir(path.dirname(outPath), { recursive: true });
   await fs.writeFile(outPath, `${JSON.stringify(sorted, null, 2)}\n`, 'utf8');
+  const coordsPath = path.resolve(process.cwd(), COORDS_OUTPUT_REL);
+  await fs.writeFile(coordsPath, `${JSON.stringify(coords, null, 2)}\n`, 'utf8');
   const citiesPath = path.resolve(process.cwd(), CITIES_OUTPUT_REL);
   await fs.writeFile(citiesPath, `${JSON.stringify(cities, null, 2)}\n`, 'utf8');
 
   console.log(
-    `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, with coords: ${withCoords}, tz from coords: ${tzFromCoords}, dropped for missing tz: ${droppedNoTz})`,
+    `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, tz from coords: ${tzFromCoords}, dropped for missing tz: ${droppedNoTz})`,
   );
+  console.log(`Wrote ${COORDS_OUTPUT_REL}: ${Object.keys(coords).length} airports with coords`);
   console.log(
     `Wrote ${CITIES_OUTPUT_REL}: ${Object.keys(cities).length} cities (title-cased: ${cityFixes.titleCased.length}, airport word dropped: ${cityFixes.suffixDropped.length}, overridden: ${cityOverrides.length})`,
   );

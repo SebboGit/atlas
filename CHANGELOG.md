@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ticket with trips, a nights bar and new countries, and the records are
   tickets too, including a north–south line from your furthest south to your
   furthest north.
+- **Smaller download for the segment forms** — airport coordinates are only
+  used on the server for map pins and distances, so they no longer ship to the
+  browser with the time zones and countries the forms need. That cuts about
+  two-thirds of the compressed airport data the pages download.
 
 ### Added
 
