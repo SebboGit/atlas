@@ -77,6 +77,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A reminder for the leg no longer takes its time zone from a departure stop
   that looks wrong, and that stop no longer counts toward your furthest north
   or south. Adding the stop's address or Plus Code brings it back.
+- **Trip map timeline with a screen reader or keyboard** — on phones, tablets
+  and narrow windows the timeline sheet no longer hides the map, its chips,
+  the trip heading, the back link and the top bar from screen readers, and
+  focus can leave it again with Tab. Its header is now a button: tap it or
+  press Enter to raise or lower the sheet, use the arrow keys to step, and
+  Escape lowers it. Tabbing into a lowered sheet raises it so the focused day
+  is on screen, tabbing out lowers it again, and the map's Legend and Not
+  pinned chips are no longer hidden behind it. The header's item count and
+  drag hint are easier to read, and the raised sheet now scrolls all the way
+  to the last day.
 
 ### Upgrading
 
