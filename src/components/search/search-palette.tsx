@@ -159,7 +159,8 @@ export function SearchPalette() {
         onValueChange={setQuery}
         autoFocus
       />
-      <CommandList>
+      {/* Full height on a phone, capped from `sm:` where it's a card. */}
+      <CommandList className="max-h-none min-h-0 flex-1 sm:max-h-[60vh] sm:flex-none">
         {/* CommandEmpty is cmdk's empty-state slot — it renders ONLY when
             no items match. The "Go to" rows below count as items, so on
             the empty-query path this never fires; it's left for the
