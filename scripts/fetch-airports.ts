@@ -35,8 +35,11 @@
 // the browser with the segment forms; the city names are only needed
 // by server-rendered pages, so they stay out of the client bundle.
 // Same rows, same filter: a code has a city only if it's in the main
-// snapshot. Blank cities are skipped and upstream's escaped quotes
-// (`Xi\'AN`) unescaped; otherwise the spelling is upstream's.
+// snapshot. Upstream's city column is uneven, so `cleanCity` tidies it
+// with two generic rules (all-caps values title-cased, a trailing
+// "International" / "Intl" / "Airport" dropped) and IATA_CITY_OVERRIDES
+// names the popular airports upstream gets wrong. Blank cities are
+// skipped.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -84,13 +87,71 @@ function normaliseName(s: string): string {
     .trim();
 }
 
-// Trim and collapse whitespace ("Norfolk  Nebraska"), and undo the
-// backslash-escaped apostrophes some rows carry. `\N` and blanks → null.
-function cleanCity(raw: string | undefined): string | null {
+type CityFixes = { titleCased: number; suffixDropped: number };
+
+// A trailing airport word some rows put in the city column ("Queenstown
+// International", "Al Ghaidah Intl", "Qeqertarsuaq Airport"). Only at the
+// end, so "International Falls" keeps its name.
+const CITY_AIRPORT_SUFFIX =
+  /\s+(?:International Airport|Intl Airport|International|Intl|Airport)$/i;
+
+// Trim and collapse whitespace ("Norfolk  Nebraska"), undo the
+// backslash-escaped apostrophes some rows carry, title-case a value that
+// is all capitals ("ST MARY'S" → "St Mary's") and drop a trailing airport
+// word. `\N` and blanks → null. Counts each rule's hits in `fixes`.
+function cleanCity(raw: string | undefined, fixes: CityFixes): string | null {
   if (!raw || raw === '\\N') return null;
-  const city = raw.replace(/\\'/g, "'").replace(/\s+/g, ' ').trim();
+  let city = raw.replace(/\\'/g, "'").replace(/\s+/g, ' ').trim();
+  if (/\p{Lu}/u.test(city) && city === city.toUpperCase()) {
+    // Capitalise after a space, hyphen, slash or bracket — not after an
+    // apostrophe, so the possessive stays lower-case.
+    city = city
+      .toLowerCase()
+      .replace(/(^|[\s\-/(])(\p{Ll})/gu, (_, sep: string, c: string) => sep + c.toUpperCase());
+    fixes.titleCased += 1;
+  }
+  const trimmed = city.replace(CITY_AIRPORT_SUFFIX, '');
+  if (trimmed !== city && trimmed.length > 0) {
+    city = trimmed;
+    fixes.suffixDropped += 1;
+  }
   return city.length > 0 ? city : null;
 }
+
+// Per-IATA city names, for popular airports where upstream's city is
+// misspelt, missing its diacritics, the region or the airport's own
+// district rather than the city it serves, or a non-English name where
+// English has its own. Wins over the cleaned upstream value. Not a full
+// audit of ~5,500 rows: add an entry when an airport someone flies reads
+// wrong on the stats page.
+const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
+  BSL: 'Basel', // EuroAirport Basel-Mulhouse; upstream "Mulhouse"
+  CJU: 'Jeju', // upstream "Cheju", the pre-2000 romanisation
+  DAD: 'Da Nang', // upstream "Danang"
+  DUS: 'Düsseldorf', // upstream "Duesseldorf"
+  FMO: 'Münster', // upstream "Munster"
+  GIG: 'Rio de Janeiro', // upstream "Rio De Janeiro"
+  GOT: 'Gothenburg', // upstream "Gothenborg"
+  GRU: 'São Paulo', // upstream "Sao Paulo"
+  JTR: 'Santorini', // upstream "Thira", the island's Greek name
+  KEF: 'Reykjavík', // the town is Keflavík; the airport serves Reykjavík
+  LYR: 'Longyearbyen', // upstream "Svalbard", the archipelago
+  MAA: 'Chennai', // upstream "Madras", renamed 1996
+  MXP: 'Milan', // upstream "Milano"; LIN already reads "Milan"
+  NUE: 'Nuremberg', // upstream "Nuernberg"
+  OKA: 'Naha', // upstream "Okinawa", the prefecture
+  PNH: 'Phnom Penh', // upstream "Phnom-penh"
+  PQC: 'Phu Quoc', // upstream "Phuquoc"
+  REP: 'Siem Reap', // upstream "Siem-reap"
+  SDU: 'Rio de Janeiro', // upstream "Rio De Janeiro"
+  SIA: "Xi'an", // upstream "Xi'AN" — mixed case, so not caught by the caps rule
+  SVQ: 'Seville', // upstream "Sevilla"
+  TER: 'Terceira', // upstream "Lajes (terceira Island)"; Lajes is the airfield
+  TLL: 'Tallinn', // upstream "Tallinn-ulemiste International", the district
+  TLV: 'Tel Aviv', // upstream "Tel-aviv"
+  TOS: 'Tromsø', // upstream "Tromso"
+  ZRH: 'Zürich', // upstream "Zurich"
+};
 
 // Aliases for OpenFlights' country names that don't match our
 // ISO_COUNTRIES display strings even after normalisation. Keys are the
@@ -216,6 +277,8 @@ async function main(): Promise<void> {
   let collisions = 0;
   let withCountry = 0;
   let droppedNoTz = 0;
+  const cityFixes: CityFixes = { titleCased: 0, suffixDropped: 0 };
+  let cityOverrides = 0;
   const unmappedCountries = new Map<string, number>();
 
   type Entry = {
@@ -290,7 +353,10 @@ async function main(): Promise<void> {
       collisions += 1;
       if (existing.sourceId <= sourceId) continue;
     }
-    byIata.set(code, { tz, country, lat, lng, city: cleanCity(cityRaw), sourceId });
+    const cityOverride = IATA_CITY_OVERRIDES[code];
+    if (cityOverride) cityOverrides += 1;
+    const city = cityOverride ?? cleanCity(cityRaw, cityFixes);
+    byIata.set(code, { tz, country, lat, lng, city, sourceId });
   }
 
   type OutEntry = { tz: string; country?: string; lat?: number; lng?: number };
@@ -324,7 +390,9 @@ async function main(): Promise<void> {
   console.log(
     `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, with coords: ${withCoords}, dropped for missing tz: ${droppedNoTz})`,
   );
-  console.log(`Wrote ${CITIES_OUTPUT_REL}: ${Object.keys(cities).length} cities`);
+  console.log(
+    `Wrote ${CITIES_OUTPUT_REL}: ${Object.keys(cities).length} cities (title-cased: ${cityFixes.titleCased}, airport word dropped: ${cityFixes.suffixDropped}, overridden: ${cityOverrides})`,
+  );
 
   if (droppedNoTz > 0) {
     console.log(

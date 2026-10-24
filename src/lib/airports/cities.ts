@@ -9,8 +9,11 @@
 //
 // Source data is `iata-airport-cities.json` in this directory, written by
 // `scripts/fetch-airports.ts` from the same OpenFlights rows as the main
-// snapshot (CLAUDE.md guardrail #13 / ADR-0009). Spelling is upstream's,
-// so a few cities read as their region or in an older romanisation.
+// snapshot (CLAUDE.md guardrail #13 / ADR-0009). The script tidies
+// upstream's city column (all-caps values title-cased, a trailing
+// "International" / "Airport" dropped) and overrides popular airports
+// it names wrongly (SVQ Seville, KEF Reykjavík); the long tail keeps
+// upstream's spelling, diacritics missing and all.
 
 import citiesData from './iata-airport-cities.json';
 

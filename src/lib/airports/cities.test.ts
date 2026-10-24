@@ -30,6 +30,22 @@ describe('getAirportCity', () => {
     expect(getAirportCity('XQX')).toBeNull();
   });
 
+  it('names the city an overridden airport serves', () => {
+    expect(getAirportCity('SVQ')).toBe('Seville');
+    expect(getAirportCity('KEF')).toBe('Reykjavík');
+    expect(getAirportCity('TLL')).toBe('Tallinn');
+  });
+
+  it('title-cases an all-caps upstream city', () => {
+    expect(getAirportCity('ISC')).toBe("St Mary's");
+    expect(getAirportCity('MGM')).toBe('Montgomery');
+  });
+
+  it('drops a trailing airport word from the city', () => {
+    expect(getAirportCity('ZQN')).toBe('Queenstown');
+    expect(getAirportCity('JGO')).toBe('Qeqertarsuaq');
+  });
+
   it('unescapes upstream backslash-escaped apostrophes', () => {
     // airports.dat has `Fiti\'uta`.
     expect(getAirportCity('FTI')).toBe("Fiti'uta");
