@@ -148,3 +148,29 @@ describe('IST timezone override (regression: issue #86)', () => {
     expect(coords!.lng).toBeCloseTo(28.75, 0);
   });
 });
+
+describe('airports newer than OpenFlights', () => {
+  // Beijing Daxing has an upstream row with a null timezone (backfilled
+  // via IATA_TZ_OVERRIDES, like IST); Berlin Brandenburg has no upstream
+  // row at all and comes from EXTRA_AIRPORTS.
+  it('resolves PKX (Beijing Daxing)', () => {
+    expect(getAirportTimezone('PKX')).toBe('Asia/Shanghai');
+    expect(getAirportCountry('PKX')).toBe('CN');
+    const coords = getAirportCoords('PKX');
+    expect(coords!.lat).toBeCloseTo(39.51, 1);
+    expect(coords!.lng).toBeCloseTo(116.41, 1);
+  });
+
+  it('resolves BER (Berlin Brandenburg)', () => {
+    expect(getAirportTimezone('BER')).toBe('Europe/Berlin');
+    expect(getAirportCountry('BER')).toBe('DE');
+    const coords = getAirportCoords('BER');
+    expect(coords!.lat).toBeCloseTo(52.36, 1);
+    expect(coords!.lng).toBeCloseTo(13.5, 1);
+  });
+
+  it('keeps the airports BER replaced, for older trips', () => {
+    expect(getAirportTimezone('TXL')).toBe('Europe/Berlin');
+    expect(getAirportTimezone('SXF')).toBe('Europe/Berlin');
+  });
+});

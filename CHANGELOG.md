@@ -47,6 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   than Sevilla, Reykjavík rather than Keflavik, and no "International"
   after the name.
 
+### Fixed
+
+- **Berlin Brandenburg and Beijing Daxing** — flights to or from BER and PKX
+  now get their local times, map pins and countries. Both airports opened
+  after the airport list Atlas ships was last updated.
+
 ## [1.9.0] - 2026-10-22
 
 ### Added

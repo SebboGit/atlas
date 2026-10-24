@@ -249,6 +249,19 @@ const IATA_COUNTRY_OVERRIDES: Readonly<Record<string, string>> = {
 // mapping is unambiguous).
 const IATA_TZ_OVERRIDES: Readonly<Record<string, string>> = {
   IST: 'Europe/Istanbul',
+  PKX: 'Asia/Shanghai', // Beijing Daxing (opened 2019), \N upstream
+};
+
+// Airports OpenFlights has no row for at all — its data stops around
+// 2019, before Berlin Brandenburg opened (2020). Merged into both
+// snapshots after the upstream rows; an upstream row for the same code
+// wins and the refresh logs it, so the entry can be dropped. Coords are
+// OurAirports' (public domain), checked against Wikipedia. Keep the
+// predecessors (TXL, SXF): older trips still reference them.
+const EXTRA_AIRPORTS: Readonly<
+  Record<string, { tz: string; country: string; lat: number; lng: number; city: string }>
+> = {
+  BER: { tz: 'Europe/Berlin', country: 'DE', lat: 52.36174, lng: 13.50234, city: 'Berlin' },
 };
 
 // Build a normalised lookup from our authoritative list, then layer
@@ -357,6 +370,14 @@ async function main(): Promise<void> {
     if (cityOverride) cityOverrides += 1;
     const city = cityOverride ?? cleanCity(cityRaw, cityFixes);
     byIata.set(code, { tz, country, lat, lng, city, sourceId });
+  }
+
+  for (const [code, extra] of Object.entries(EXTRA_AIRPORTS)) {
+    if (byIata.has(code)) {
+      console.log(`Upstream now has ${code} — drop it from EXTRA_AIRPORTS.`);
+      continue;
+    }
+    byIata.set(code, { ...extra, sourceId: -1 });
   }
 
   type OutEntry = { tz: string; country?: string; lat?: number; lng?: number };
