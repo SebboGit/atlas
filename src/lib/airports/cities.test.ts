@@ -51,6 +51,16 @@ describe('getAirportCity', () => {
     expect(getAirportCity('PKX')).toBe('Beijing');
   });
 
+  it('names the city of an airport upstream had no timezone for', () => {
+    expect(getAirportCity('DOH')).toBe('Doha');
+    expect(getAirportCity('HYD')).toBe('Hyderabad');
+  });
+
+  it('replaces a city that belongs to another airport', () => {
+    expect(getAirportCity('AMN')).toBe('Alma');
+    expect(getAirportCity('OEL')).toBe('Oryol');
+  });
+
   it('unescapes upstream backslash-escaped apostrophes', () => {
     // airports.dat has `Fiti\'uta`.
     expect(getAirportCity('FTI')).toBe("Fiti'uta");

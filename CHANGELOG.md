@@ -49,9 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Berlin Brandenburg and Beijing Daxing** — flights to or from BER and PKX
-  now get their local times, map pins and countries. Both airports opened
-  after the airport list Atlas ships was last updated.
+- **Newer airports** — flights to or from Berlin Brandenburg, Beijing Daxing,
+  Doha Hamad, Hyderabad and some 550 other airports the shipped airport list
+  had no time zone for now get their local times, map pins and countries.
 
 ## [1.9.0] - 2026-10-22
 

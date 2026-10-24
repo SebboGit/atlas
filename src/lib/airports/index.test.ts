@@ -137,8 +137,8 @@ describe('getAirportCoords', () => {
 describe('IST timezone override (regression: issue #86)', () => {
   // OpenFlights ships the new Istanbul Airport (IST, ICAO LTFM) with a
   // null tz_database_time_zone, which dropped it from the snapshot
-  // entirely. scripts/fetch-airports.ts now backfills the zone via
-  // IATA_TZ_OVERRIDES while keeping the row's own country and coords.
+  // entirely. scripts/fetch-airports.ts now derives the zone from the
+  // row's coordinates while keeping its own country and coords.
   it('resolves IST despite the upstream null timezone', () => {
     expect(getAirportTimezone('IST')).toBe('Europe/Istanbul');
     expect(getAirportCountry('IST')).toBe('TR');
@@ -150,9 +150,9 @@ describe('IST timezone override (regression: issue #86)', () => {
 });
 
 describe('airports newer than OpenFlights', () => {
-  // Beijing Daxing has an upstream row with a null timezone (backfilled
-  // via IATA_TZ_OVERRIDES, like IST); Berlin Brandenburg has no upstream
-  // row at all and comes from EXTRA_AIRPORTS.
+  // Beijing Daxing has an upstream row with a null timezone (derived from
+  // its coordinates, like IST); Berlin Brandenburg has no upstream row at
+  // all and comes from EXTRA_AIRPORTS.
   it('resolves PKX (Beijing Daxing)', () => {
     expect(getAirportTimezone('PKX')).toBe('Asia/Shanghai');
     expect(getAirportCountry('PKX')).toBe('CN');
@@ -172,5 +172,30 @@ describe('airports newer than OpenFlights', () => {
   it('keeps the airports BER replaced, for older trips', () => {
     expect(getAirportTimezone('TXL')).toBe('Europe/Berlin');
     expect(getAirportTimezone('SXF')).toBe('Europe/Berlin');
+  });
+});
+
+describe('timezones derived from coordinates', () => {
+  // Upstream leaves the zone blank on ~550 rows; the script fills it from
+  // the coordinates, and IATA_TZ_OVERRIDES corrects border cases.
+  it('resolves airports upstream had no zone for', () => {
+    expect(getAirportTimezone('DOH')).toBe('Asia/Qatar');
+    expect(getAirportCountry('DOH')).toBe('QA');
+    expect(getAirportTimezone('HYD')).toBe('Asia/Kolkata');
+    expect(getAirportCountry('HYD')).toBe('IN');
+    expect(getAirportTimezone('IKU')).toBe('Asia/Bishkek');
+    expect(getAirportCountry('IKU')).toBe('KG');
+  });
+
+  it("keeps a border airport in its own country's zone", () => {
+    // Tezu's coordinates fall on the Myanmar side of the lookup's boundary.
+    expect(getAirportTimezone('TEI')).toBe('Asia/Kolkata');
+    expect(getAirportCountry('TEI')).toBe('IN');
+    expect(getAirportTimezone('YXQ')).toBe('America/Whitehorse');
+  });
+
+  it("corrects a row that carries another airport's country", () => {
+    expect(getAirportCountry('OEL')).toBe('RU');
+    expect(getAirportTimezone('OEL')).toBe('Europe/Moscow');
   });
 });

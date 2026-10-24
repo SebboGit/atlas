@@ -1,5 +1,8 @@
-// Which IANA zone a place is in — for scheduling reminders only
-// (ADR-0020). Three sources, most precise first; the caller picks.
+// Which IANA zone a place is in — for scheduling reminders (ADR-0020).
+// Three sources, most precise first; the caller picks. `zoneAt` also
+// runs at build time in scripts/fetch-airports.ts, filling airport zones
+// upstream left blank; those reach the UI only as the airport's zone
+// label, never as a clock conversion (ADR-0016).
 //
 // - Airport: the committed airport table's zone (flights).
 // - Coordinates: an offline boundary lookup on a geocoded pin.
