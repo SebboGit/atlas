@@ -15,8 +15,10 @@
 //   dst, tz_database_time_zone, type, source
 //
 // We keep only type='airport' rows with a valid 3-letter IATA and a
-// non-empty IANA timezone. Heliports, closed airports, and bus/train
-// stations live in this file too — none of which we want.
+// timezone: upstream's, or — where upstream left it blank, as it does
+// for most airports opened since ~2015 — the zone the row's coordinates
+// fall in. Heliports, closed airports, and bus/train stations live in
+// this file too — none of which we want.
 //
 // We also resolve OpenFlights' free-text country name to an ISO 3166-1
 // alpha-2 code (via src/lib/countries/data.ts + a small alias map for
@@ -45,6 +47,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { ISO_COUNTRIES } from '../src/lib/countries/data';
+import { zoneAt } from '../src/lib/timezones/resolve';
 
 const SOURCE_URL =
   'https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat';
@@ -125,6 +128,7 @@ function cleanCity(raw: string | undefined, fixes: CityFixes): string | null {
 // audit of ~5,500 rows: add an entry when an airport someone flies reads
 // wrong on the stats page.
 const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
+  AMN: 'Alma', // upstream "Kamloops", a different airport's city
   BSL: 'Basel', // EuroAirport Basel-Mulhouse; upstream "Mulhouse"
   CJU: 'Jeju', // upstream "Cheju", the pre-2000 romanisation
   DAD: 'Da Nang', // upstream "Danang"
@@ -139,6 +143,7 @@ const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
   MAA: 'Chennai', // upstream "Madras", renamed 1996
   MXP: 'Milan', // upstream "Milano"; LIN already reads "Milan"
   NUE: 'Nuremberg', // upstream "Nuernberg"
+  OEL: 'Oryol', // upstream "Oakley", a different airport's city
   OKA: 'Naha', // upstream "Okinawa", the prefecture
   PNH: 'Phnom Penh', // upstream "Phnom-penh"
   PQC: 'Phu Quoc', // upstream "Phuquoc"
@@ -229,8 +234,12 @@ const COUNTRY_ALIASES: Readonly<Record<string, string>> = {
 // OpenFlights still tags them by a dissolved political entity. The
 // Dutch Caribbean is the only such cluster today: "Netherlands
 // Antilles" was dissolved in 2010 and the successor codes differ by
-// island, so a single name → ISO mapping cannot be right.
+// island, so a single name → ISO mapping cannot be right. A few single
+// rows carry another airport's city and country outright; those are
+// here too, with the city fixed in IATA_CITY_OVERRIDES.
 const IATA_COUNTRY_OVERRIDES: Readonly<Record<string, string>> = {
+  AMN: 'US', // Gratiot Community, Alma MI; upstream says Kamloops, Canada
+  OEL: 'RU', // Oryol Yuzhny; upstream says Oakley, United States
   BON: 'BQ', // Bonaire
   CUR: 'CW', // Curaçao
   EUX: 'BQ', // Sint Eustatius
@@ -238,18 +247,28 @@ const IATA_COUNTRY_OVERRIDES: Readonly<Record<string, string>> = {
   SXM: 'SX', // Sint Maarten
 };
 
-// Per-IATA timezone fallback for airports whose upstream row ships a
-// null or malformed `tz_database_time_zone`. OpenFlights leaves the new
-// Istanbul Airport (IST, opened 2018, ICAO LTFM) with a \N timezone even
-// though every other Turkish airport resolves to Europe/Istanbul; without
-// this the row is dropped and flights through IST get no zone label, map
-// pin, or distance. Only fills the tz — the row's own country and coords
-// still come from upstream. Add an entry when a refresh logs a dropped
-// IATA-coded airport you recognise (single-zone countries only, so the
-// mapping is unambiguous).
+// Per-IATA timezone for airports whose zone the script would otherwise
+// get wrong. Upstream leaves the zone blank on ~550 rows and the script
+// derives it from the coordinates (see `zoneAt` below); a boundary lookup
+// can land on the wrong side of a nearby border, so this map wins over
+// both upstream and the derived zone. Each entry below is a blank-zone
+// row whose derived zone belongs to the neighbouring country. Check a
+// refresh's new rows against their country before adding more (IST and
+// PKX used to live here; their derived zones are right).
 const IATA_TZ_OVERRIDES: Readonly<Record<string, string>> = {
-  IST: 'Europe/Istanbul',
-  PKX: 'Asia/Shanghai', // Beijing Daxing (opened 2019), \N upstream
+  // Derived zone is hours off.
+  CWJ: 'Asia/Shanghai', // Cangyuan, on the Myanmar border (derived Asia/Yangon)
+  OKL: 'Asia/Jayapura', // Oksibil, Papua (derived Pacific/Port_Moresby)
+  TEI: 'Asia/Kolkata', // Tezu, Arunachal Pradesh (derived Asia/Yangon)
+  YXQ: 'America/Whitehorse', // Beaver Creek, Yukon (derived America/Anchorage)
+  // Same offset, the neighbour's zone.
+  AOU: 'Asia/Vientiane', // Attapeu, Laos (derived Asia/Phnom_Penh)
+  BWW: 'America/Havana', // Cayo Santa María, Cuba (derived America/Nassau)
+  CQS: 'America/Porto_Velho', // Costa Marques, Rondônia (derived America/La_Paz)
+  ION: 'Africa/Brazzaville', // Impfondo, Republic of the Congo (derived Africa/Kinshasa)
+  KDA: 'Africa/Dakar', // Kolda, Senegal (derived Africa/Bissau)
+  SQX: 'America/Sao_Paulo', // São Miguel do Oeste, Santa Catarina (derived America/Argentina/Cordoba)
+  XIJ: 'Asia/Kuwait', // Ahmed Al Jaber Air Base, Kuwait (derived Asia/Riyadh)
 };
 
 // Airports OpenFlights has no row for at all — its data stops around
@@ -290,6 +309,7 @@ async function main(): Promise<void> {
   let collisions = 0;
   let withCountry = 0;
   let droppedNoTz = 0;
+  let tzFromCoords = 0;
   const cityFixes: CityFixes = { titleCased: 0, suffixDropped: 0 };
   let cityOverrides = 0;
   const unmappedCountries = new Map<string, number>();
@@ -316,17 +336,46 @@ async function main(): Promise<void> {
     const code = iata.toUpperCase();
     if (!/^[A-Z]{3}$/.test(code)) continue;
 
-    // Timezone. Prefer upstream's IANA zone; fall back to a per-IATA
-    // override when the row's zone is missing or malformed. IANA zones
-    // contain "/" (Asia/Saigon, America/New_York); OpenFlights occasionally
-    // puts "U" or other artefacts in this slot, so require the separator.
+    // Coords. Drop anything non-numeric or outside the WGS84 valid range;
+    // a row with an upstream zone is still kept (tz + country alone is
+    // useful for non-map callers), the coords just won't appear in the
+    // output so map callers fall through to "no pin" rather than
+    // mispinning to (0,0).
+    let lat: number | null = null;
+    let lng: number | null = null;
+    const latN = latRaw ? Number(latRaw) : NaN;
+    const lngN = lngRaw ? Number(lngRaw) : NaN;
+    if (
+      Number.isFinite(latN) &&
+      Number.isFinite(lngN) &&
+      Math.abs(latN) <= 90 &&
+      Math.abs(lngN) <= 180
+    ) {
+      lat = latN;
+      lng = lngN;
+    }
+
+    // Timezone. A per-IATA override wins, then upstream's IANA zone, then
+    // the zone the coordinates fall in. IANA zones contain "/"
+    // (Asia/Saigon, America/New_York); OpenFlights occasionally puts "U"
+    // or other artefacts in this slot, so require the separator. Upstream
+    // leaves the zone blank on ~550 rows, newer airports among them (Doha
+    // Hamad, Hyderabad); the boundary lookup the reminders use
+    // (`zoneAt`) fills those. An `Etc/` answer means the point is at sea,
+    // so it doesn't count.
     const upstreamTz = tzRaw && tzRaw !== '\\N' && tzRaw.includes('/') ? tzRaw : null;
-    const tz = upstreamTz ?? IATA_TZ_OVERRIDES[code] ?? null;
+    let tz = IATA_TZ_OVERRIDES[code] ?? upstreamTz;
+    if (!tz && lat !== null && lng !== null) {
+      const derived = zoneAt(lat, lng);
+      if (derived && !derived.startsWith('Etc/')) {
+        tz = derived;
+        tzFromCoords += 1;
+      }
+    }
     if (!tz) {
-      // Count IATA-coded airports dropped for a missing zone. Mostly
-      // tiny airfields, but the tally is the breadcrumb for the next
-      // IST-style gap: a flight through a code with no tz label is a
-      // candidate for IATA_TZ_OVERRIDES rather than a mystery.
+      // Count IATA-coded airports still dropped for a missing zone —
+      // upstream left it blank and the row has no usable coords. A
+      // flight through one of these is a candidate for IATA_TZ_OVERRIDES.
       droppedNoTz += 1;
       continue;
     }
@@ -341,24 +390,6 @@ async function main(): Promise<void> {
       if (!country) {
         unmappedCountries.set(countryRaw, (unmappedCountries.get(countryRaw) ?? 0) + 1);
       }
-    }
-
-    // Coords. Drop anything non-numeric or outside the WGS84 valid range;
-    // the row is still kept (tz + country alone is useful for non-map
-    // callers), the coords just won't appear in the output so map
-    // callers fall through to "no pin" rather than mispinning to (0,0).
-    let lat: number | null = null;
-    let lng: number | null = null;
-    const latN = latRaw ? Number(latRaw) : NaN;
-    const lngN = lngRaw ? Number(lngRaw) : NaN;
-    if (
-      Number.isFinite(latN) &&
-      Number.isFinite(lngN) &&
-      Math.abs(latN) <= 90 &&
-      Math.abs(lngN) <= 180
-    ) {
-      lat = latN;
-      lng = lngN;
     }
 
     const existing = byIata.get(code);
@@ -409,7 +440,7 @@ async function main(): Promise<void> {
   await fs.writeFile(citiesPath, `${JSON.stringify(cities, null, 2)}\n`, 'utf8');
 
   console.log(
-    `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, with coords: ${withCoords}, dropped for missing tz: ${droppedNoTz})`,
+    `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, with coords: ${withCoords}, tz from coords: ${tzFromCoords}, dropped for missing tz: ${droppedNoTz})`,
   );
   console.log(
     `Wrote ${CITIES_OUTPUT_REL}: ${Object.keys(cities).length} cities (title-cased: ${cityFixes.titleCased}, airport word dropped: ${cityFixes.suffixDropped}, overridden: ${cityOverrides})`,
@@ -417,8 +448,8 @@ async function main(): Promise<void> {
 
   if (droppedNoTz > 0) {
     console.log(
-      `Dropped ${droppedNoTz} IATA-coded airport(s) for a missing/malformed timezone — ` +
-        'mostly minor airfields. If a flight turns up an airport with no zone, add it to ' +
+      `Dropped ${droppedNoTz} IATA-coded airport(s) with no timezone and no usable coords. ` +
+        'If a flight turns up an airport with no zone, add it to ' +
         'IATA_TZ_OVERRIDES in scripts/fetch-airports.ts and re-run.',
     );
   }

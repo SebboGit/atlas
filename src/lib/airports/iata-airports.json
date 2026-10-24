@@ -29,6 +29,12 @@
     "lat": 50.82306,
     "lng": 6.18639
   },
+  "AAK": {
+    "tz": "Pacific/Tarawa",
+    "country": "KI",
+    "lat": 0.18528,
+    "lng": 173.63699
+  },
   "AAL": {
     "tz": "Europe/Copenhagen",
     "country": "DK",
@@ -76,6 +82,12 @@
     "country": "CN",
     "lat": 47.74989,
     "lng": 88.08581
+  },
+  "AAV": {
+    "tz": "Asia/Manila",
+    "country": "PH",
+    "lat": 6.36682,
+    "lng": 124.751
   },
   "AAX": {
     "tz": "America/Sao_Paulo",
@@ -130,6 +142,12 @@
     "country": "KI",
     "lat": 1.79861,
     "lng": 173.041
+  },
+  "ABH": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -23.6461,
+    "lng": 146.584
   },
   "ABI": {
     "tz": "America/Chicago",
@@ -287,6 +305,12 @@
     "lat": -0.5833,
     "lng": -72.4083
   },
+  "ACS": {
+    "tz": "Asia/Krasnoyarsk",
+    "country": "RU",
+    "lat": 56.2683,
+    "lng": 90.5708
+  },
   "ACT": {
     "tz": "America/Chicago",
     "country": "US",
@@ -352,6 +376,12 @@
     "country": "RU",
     "lat": 58.6028,
     "lng": 125.409
+  },
+  "ADI": {
+    "tz": "Africa/Windhoek",
+    "country": "NA",
+    "lat": -22.4622,
+    "lng": 14.98
   },
   "ADJ": {
     "tz": "Asia/Amman",
@@ -454,6 +484,12 @@
     "country": "TD",
     "lat": 13.847,
     "lng": 20.8443
+  },
+  "AEI": {
+    "tz": "Europe/Madrid",
+    "country": "ES",
+    "lat": 36.12888,
+    "lng": -5.44112
   },
   "AEO": {
     "tz": "Africa/Nouakchott",
@@ -665,6 +701,12 @@
     "lat": -14.4281,
     "lng": -146.257
   },
+  "AHJ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 32.53154,
+    "lng": 102.35224
+  },
   "AHN": {
     "tz": "America/New_York",
     "country": "US",
@@ -695,6 +737,12 @@
     "lat": 42.0532,
     "lng": -102.804
   },
+  "AID": {
+    "tz": "America/Indiana/Indianapolis",
+    "country": "US",
+    "lat": 40.1086,
+    "lng": -85.613
+  },
   "AIK": {
     "tz": "America/New_York",
     "country": "US",
@@ -706,6 +754,18 @@
     "country": "US",
     "lat": 70.638,
     "lng": -159.995
+  },
+  "AIP": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 31.4338,
+    "lng": 75.7588
+  },
+  "AIR": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -10.18828,
+    "lng": -59.45727
   },
   "AIS": {
     "tz": "Pacific/Tarawa",
@@ -929,6 +989,12 @@
     "lat": 38.2822,
     "lng": -0.55816
   },
+  "ALE": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 30.3842,
+    "lng": -103.684
+  },
   "ALF": {
     "tz": "Europe/Oslo",
     "country": "NO",
@@ -971,6 +1037,12 @@
     "lat": 32.8399,
     "lng": -105.991
   },
+  "ALN": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 38.8903,
+    "lng": -90.046
+  },
   "ALO": {
     "tz": "America/Chicago",
     "country": "US",
@@ -1006,6 +1078,12 @@
     "country": "US",
     "lat": 46.0949,
     "lng": -118.288
+  },
+  "ALX": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 32.9147,
+    "lng": -85.963
   },
   "ALY": {
     "tz": "Africa/Cairo",
@@ -1055,6 +1133,12 @@
     "lat": 31.7226,
     "lng": 35.9932
   },
+  "AMN": {
+    "tz": "America/Detroit",
+    "country": "US",
+    "lat": 43.3221,
+    "lng": -84.688
+  },
   "AMQ": {
     "tz": "Asia/Jayapura",
     "country": "ID",
@@ -1066,6 +1150,12 @@
     "country": "NL",
     "lat": 52.3086,
     "lng": 4.76389
+  },
+  "AMT": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -26.1083,
+    "lng": 131.207
   },
   "AMV": {
     "tz": "Europe/Moscow",
@@ -1253,6 +1343,12 @@
     "lat": 45.7385,
     "lng": 7.36872
   },
+  "AOU": {
+    "tz": "Asia/Vientiane",
+    "country": "LA",
+    "lat": 14.81472,
+    "lng": 106.8217
+  },
   "APA": {
     "tz": "America/Denver",
     "country": "US",
@@ -1277,6 +1373,12 @@
     "lat": 39.4662,
     "lng": -76.1688
   },
+  "API": {
+    "tz": "America/Bogota",
+    "country": "CO",
+    "lat": 4.07607,
+    "lng": -73.5627
+  },
   "APK": {
     "tz": "Pacific/Tahiti",
     "country": "PF",
@@ -1300,6 +1402,18 @@
     "country": "CO",
     "lat": 7.81196,
     "lng": -76.7164
+  },
+  "APQ": {
+    "tz": "America/Maceio",
+    "country": "BR",
+    "lat": -9.77536,
+    "lng": -36.6292
+  },
+  "APT": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 35.0607,
+    "lng": -85.5853
   },
   "APW": {
     "tz": "Pacific/Apia",
@@ -1439,6 +1553,12 @@
     "lat": 46.1766,
     "lng": 21.262
   },
+  "ARY": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -37.3094,
+    "lng": 142.989
+  },
   "ASA": {
     "tz": "Africa/Asmera",
     "country": "ER",
@@ -1499,6 +1619,12 @@
     "lat": 15.2919,
     "lng": 38.9107
   },
+  "ASN": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 33.5699,
+    "lng": -86.0509
+  },
   "ASO": {
     "tz": "Africa/Addis_Ababa",
     "country": "ET",
@@ -1516,6 +1642,12 @@
     "country": "TR",
     "lat": 38.7704,
     "lng": 35.4954
+  },
+  "ASS": {
+    "tz": "Africa/Johannesburg",
+    "country": "ZA",
+    "lat": -24.74416,
+    "lng": 31.5225
   },
   "AST": {
     "tz": "America/Los_Angeles",
@@ -1571,11 +1703,23 @@
     "lat": -1.21207,
     "lng": -78.5746
   },
+  "ATG": {
+    "tz": "Asia/Karachi",
+    "country": "PK",
+    "lat": 33.8691,
+    "lng": 72.4009
+  },
   "ATH": {
     "tz": "Europe/Athens",
     "country": "GR",
     "lat": 37.9364,
     "lng": 23.9445
+  },
+  "ATI": {
+    "tz": "America/Montevideo",
+    "country": "UY",
+    "lat": -30.4007,
+    "lng": -56.5079
   },
   "ATJ": {
     "tz": "Indian/Antananarivo",
@@ -1829,6 +1973,12 @@
     "lat": 40.8559,
     "lng": 25.9563
   },
+  "AXF": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 38.74831,
+    "lng": 105.58858
+  },
   "AXJ": {
     "tz": "Asia/Tokyo",
     "country": "JP",
@@ -1846,6 +1996,12 @@
     "country": "CO",
     "lat": 4.45278,
     "lng": -75.7664
+  },
+  "AXN": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 45.8663,
+    "lng": -95.3947
   },
   "AXP": {
     "tz": "America/Nassau",
@@ -1895,11 +2051,23 @@
     "lat": -25.1861,
     "lng": 130.976
   },
+  "AYS": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 31.2491,
+    "lng": -82.3955
+  },
   "AYT": {
     "tz": "Europe/Istanbul",
     "country": "TR",
     "lat": 36.8987,
     "lng": 30.8005
+  },
+  "AYW": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -1.1593,
+    "lng": 132.4633
   },
   "AZA": {
     "tz": "America/Phoenix",
@@ -1991,11 +2159,23 @@
     "lat": 10.8896,
     "lng": -74.7808
   },
+  "BAR": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 19.13824,
+    "lng": 110.45478
+  },
   "BAS": {
     "tz": "Pacific/Guadalcanal",
     "country": "SB",
     "lat": -6.99074,
     "lng": 155.88666
+  },
+  "BAT": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -20.5845,
+    "lng": -48.5941
   },
   "BAU": {
     "tz": "America/Sao_Paulo",
@@ -2032,6 +2212,18 @@
     "country": "CL",
     "lat": -45.9161,
     "lng": -71.6895
+  },
+  "BBC": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 28.9733,
+    "lng": -95.8635
+  },
+  "BBD": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 31.1793,
+    "lng": -99.3239
   },
   "BBG": {
     "tz": "Pacific/Tarawa",
@@ -2189,6 +2381,12 @@
     "lat": 26.3785,
     "lng": -80.1077
   },
+  "BCU": {
+    "tz": "Africa/Lagos",
+    "country": "NG",
+    "lat": 10.48283,
+    "lng": 9.744
+  },
   "BDA": {
     "tz": "Atlantic/Bermuda",
     "country": "BM",
@@ -2218,6 +2416,12 @@
     "country": "IR",
     "lat": 26.532,
     "lng": 54.8248
+  },
+  "BDI": {
+    "tz": "Indian/Mahe",
+    "country": "SC",
+    "lat": -3.72472,
+    "lng": 55.2053
   },
   "BDJ": {
     "tz": "Asia/Makassar",
@@ -2507,6 +2711,12 @@
     "lat": 32.4122,
     "lng": -80.6344
   },
+  "BFU": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 32.84773,
+    "lng": 117.32024
+  },
   "BFV": {
     "tz": "Asia/Bangkok",
     "country": "TH",
@@ -2537,6 +2747,12 @@
     "lat": 41.8578,
     "lng": -6.70713
   },
+  "BGD": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 35.7009,
+    "lng": -101.394
+  },
   "BGE": {
     "tz": "America/New_York",
     "country": "US",
@@ -2561,11 +2777,23 @@
     "lat": 13.0746,
     "lng": -59.4925
   },
+  "BGL": {
+    "tz": "Asia/Kathmandu",
+    "country": "NP",
+    "lat": 28.2128,
+    "lng": 83.6663
+  },
   "BGM": {
     "tz": "America/New_York",
     "country": "US",
     "lat": 42.2087,
     "lng": -75.9798
+  },
+  "BGN": {
+    "tz": "Asia/Srednekolymsk",
+    "country": "RU",
+    "lat": 68.5566,
+    "lng": 146.23151
   },
   "BGO": {
     "tz": "Europe/Oslo",
@@ -2729,6 +2957,12 @@
     "lat": 42.5527,
     "lng": 9.48373
   },
+  "BIB": {
+    "tz": "Africa/Mogadishu",
+    "country": "SO",
+    "lat": 3.10222,
+    "lng": 43.6286
+  },
   "BID": {
     "tz": "America/New_York",
     "country": "US",
@@ -2746,6 +2980,12 @@
     "country": "US",
     "lat": 63.9945,
     "lng": -145.722
+  },
+  "BIH": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 37.3731,
+    "lng": -118.364
   },
   "BIK": {
     "tz": "Asia/Jayapura",
@@ -2891,11 +3131,23 @@
     "lat": 37.2506,
     "lng": 27.6643
   },
+  "BJW": {
+    "tz": "Asia/Makassar",
+    "country": "ID",
+    "lat": -8.70743,
+    "lng": 121.05743
+  },
   "BJX": {
     "tz": "America/Mexico_City",
     "country": "MX",
     "lat": 20.9935,
     "lng": -101.481
+  },
+  "BJY": {
+    "tz": "Europe/Belgrade",
+    "country": "RS",
+    "lat": 44.9353,
+    "lng": 20.2575
   },
   "BJZ": {
     "tz": "Europe/Madrid",
@@ -2926,6 +3178,12 @@
     "country": "US",
     "lat": 32.719,
     "lng": -98.891
+  },
+  "BKE": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 44.8373,
+    "lng": -117.809
   },
   "BKG": {
     "tz": "America/Chicago",
@@ -3059,6 +3317,12 @@
     "lat": 55.7403,
     "lng": 9.15178
   },
+  "BLN": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -36.5519,
+    "lng": 146.007
+  },
   "BLQ": {
     "tz": "Europe/Rome",
     "country": "IT",
@@ -3094,6 +3358,12 @@
     "country": "SE",
     "lat": 59.3544,
     "lng": 17.9417
+  },
+  "BMB": {
+    "tz": "Africa/Kinshasa",
+    "country": "CG",
+    "lat": 2.18278,
+    "lng": 22.4817
   },
   "BMC": {
     "tz": "America/Denver",
@@ -3149,6 +3419,12 @@
     "lat": -20.8033,
     "lng": 149.27
   },
+  "BMR": {
+    "tz": "Europe/Berlin",
+    "country": "DE",
+    "lat": 53.72472,
+    "lng": 7.37333
+  },
   "BMT": {
     "tz": "America/Chicago",
     "country": "US",
@@ -3191,6 +3467,18 @@
     "lat": 36.1245,
     "lng": -86.6782
   },
+  "BNB": {
+    "tz": "Africa/Kinshasa",
+    "country": "CG",
+    "lat": -0.217,
+    "lng": 20.85
+  },
+  "BNC": {
+    "tz": "Africa/Lubumbashi",
+    "country": "CG",
+    "lat": 0.575,
+    "lng": 29.4739
+  },
   "BND": {
     "tz": "Asia/Tehran",
     "country": "IR",
@@ -3203,17 +3491,35 @@
     "lat": -27.3842,
     "lng": 153.117
   },
+  "BNG": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 33.9231,
+    "lng": -116.851
+  },
   "BNI": {
     "tz": "Africa/Lagos",
     "country": "NG",
     "lat": 6.31698,
     "lng": 5.5995
   },
+  "BNJ": {
+    "tz": "Europe/Berlin",
+    "country": "DE",
+    "lat": 50.76889,
+    "lng": 7.16333
+  },
   "BNK": {
     "tz": "Australia/Sydney",
     "country": "AU",
     "lat": -28.8339,
     "lng": 153.562
+  },
+  "BNM": {
+    "tz": "Pacific/Port_Moresby",
+    "country": "PG",
+    "lat": -9.10778,
+    "lng": 147.66672
   },
   "BNN": {
     "tz": "Europe/Oslo",
@@ -3341,6 +3647,12 @@
     "lat": 27.9434,
     "lng": -81.7834
   },
+  "BOX": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -16.0753,
+    "lng": 136.302
+  },
   "BOY": {
     "tz": "Africa/Ouagadougou",
     "country": "BF",
@@ -3370,6 +3682,24 @@
     "country": "BR",
     "lat": -15.8613,
     "lng": -52.3889
+  },
+  "BPH": {
+    "tz": "Asia/Manila",
+    "country": "PH",
+    "lat": 8.19595,
+    "lng": 126.322
+  },
+  "BPI": {
+    "tz": "America/Denver",
+    "country": "US",
+    "lat": 42.5851,
+    "lng": -110.111
+  },
+  "BPL": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 44.895,
+    "lng": 82.3
   },
   "BPM": {
     "tz": "Asia/Calcutta",
@@ -3418,6 +3748,18 @@
     "country": "AU",
     "lat": -33.68842,
     "lng": 115.4016
+  },
+  "BQE": {
+    "tz": "Africa/Bissau",
+    "country": "GW",
+    "lat": 11.29736,
+    "lng": -15.83808
+  },
+  "BQG": {
+    "tz": "Asia/Vladivostok",
+    "country": "RU",
+    "lat": 52.38,
+    "lng": 140.448
   },
   "BQH": {
     "tz": "Europe/London",
@@ -3629,6 +3971,12 @@
     "lat": 47.59,
     "lng": 7.52917
   },
+  "BSO": {
+    "tz": "Asia/Manila",
+    "country": "PH",
+    "lat": 20.4513,
+    "lng": 121.98
+  },
   "BSR": {
     "tz": "Asia/Baghdad",
     "country": "IQ",
@@ -3688,6 +4036,12 @@
     "country": "RU",
     "lat": 56.3706,
     "lng": 101.698
+  },
+  "BTL": {
+    "tz": "America/Detroit",
+    "country": "US",
+    "lat": 42.3073,
+    "lng": -85.2515
   },
   "BTM": {
     "tz": "America/Denver",
@@ -3779,6 +4133,12 @@
     "lat": 35.3325,
     "lng": 4.20639
   },
+  "BUL": {
+    "tz": "Pacific/Port_Moresby",
+    "country": "PG",
+    "lat": -7.21629,
+    "lng": 146.64954
+  },
   "BUN": {
     "tz": "America/Bogota",
     "country": "CO",
@@ -3815,11 +4175,35 @@
     "lat": 41.6103,
     "lng": 41.5997
   },
+  "BUT": {
+    "tz": "Asia/Thimphu",
+    "country": "BT",
+    "lat": 27.5622,
+    "lng": 90.7471
+  },
+  "BUU": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": -1.1278,
+    "lng": 102.135
+  },
+  "BUW": {
+    "tz": "Asia/Makassar",
+    "country": "ID",
+    "lat": -5.48688,
+    "lng": 122.569
+  },
   "BUX": {
     "tz": "Africa/Lubumbashi",
     "country": "CG",
     "lat": 1.56572,
     "lng": 30.2208
+  },
+  "BUY": {
+    "tz": "Australia/Perth",
+    "country": "AU",
+    "lat": -33.3783,
+    "lng": 115.677
   },
   "BUZ": {
     "tz": "Asia/Tehran",
@@ -3941,6 +4325,12 @@
     "lat": 51.8583,
     "lng": 47.7456
   },
+  "BWQ": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -29.9739,
+    "lng": 146.817
+  },
   "BWT": {
     "tz": "Australia/Melbourne",
     "country": "AU",
@@ -3952,6 +4342,18 @@
     "country": "AU",
     "lat": -33.9244,
     "lng": 150.98801
+  },
+  "BWW": {
+    "tz": "America/Havana",
+    "country": "CU",
+    "lat": 22.6213,
+    "lng": -79.1472
+  },
+  "BWX": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": -8.31015,
+    "lng": 114.3401
   },
   "BXB": {
     "tz": "Asia/Jayapura",
@@ -3995,6 +4397,12 @@
     "lat": 46.97444,
     "lng": 8.39694
   },
+  "BXP": {
+    "tz": "Europe/Warsaw",
+    "country": "PL",
+    "lat": 52.00078,
+    "lng": 23.13253
+  },
   "BXR": {
     "tz": "Asia/Tehran",
     "country": "IR",
@@ -4031,6 +4439,12 @@
     "lat": 35.9643,
     "lng": -89.944
   },
+  "BYI": {
+    "tz": "America/Boise",
+    "country": "US",
+    "lat": 42.5426,
+    "lng": -113.772
+  },
   "BYJ": {
     "tz": "Europe/Lisbon",
     "country": "PT",
@@ -4061,6 +4475,18 @@
     "lat": -21.2473,
     "lng": -56.4525
   },
+  "BYP": {
+    "tz": "Australia/Perth",
+    "country": "AU",
+    "lat": -22.6739,
+    "lng": 119.166
+  },
+  "BYQ": {
+    "tz": "Asia/Makassar",
+    "country": "ID",
+    "lat": 3.45572,
+    "lng": 117.867
+  },
   "BYR": {
     "tz": "Europe/Copenhagen",
     "country": "DK",
@@ -4090,6 +4516,18 @@
     "country": "NI",
     "lat": 13.95,
     "lng": -84.6
+  },
+  "BZC": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -22.771,
+    "lng": -41.9629
+  },
+  "BZD": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -34.6236,
+    "lng": 143.578
   },
   "BZE": {
     "tz": "America/Belize",
@@ -4307,6 +4745,12 @@
     "lat": 39.6154,
     "lng": -78.7609
   },
+  "CBF": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 41.2592,
+    "lng": -95.7606
+  },
   "CBG": {
     "tz": "Europe/London",
     "country": "GB",
@@ -4384,6 +4828,12 @@
     "country": "BO",
     "lat": -16.97683,
     "lng": -65.14557
+  },
+  "CCB": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 34.1116,
+    "lng": -117.688
   },
   "CCC": {
     "tz": "America/Havana",
@@ -4469,6 +4919,18 @@
     "lat": -16.265,
     "lng": 167.924
   },
+  "CCX": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -16.0436,
+    "lng": -57.6299
+  },
+  "CCY": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 43.0726,
+    "lng": -92.6108
+  },
   "CCZ": {
     "tz": "America/Nassau",
     "country": "BS",
@@ -4492,6 +4954,12 @@
     "country": "US",
     "lat": 37.701,
     "lng": -113.099
+  },
+  "CDE": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 41.1225,
+    "lng": 118.07389
   },
   "CDG": {
     "tz": "Europe/Paris",
@@ -4528,6 +4996,12 @@
     "country": "US",
     "lat": 34.4338,
     "lng": -100.288
+  },
+  "CDT": {
+    "tz": "Europe/Madrid",
+    "country": "ES",
+    "lat": 40.21389,
+    "lng": 0.07333
   },
   "CDU": {
     "tz": "Australia/Sydney",
@@ -4721,6 +5195,12 @@
     "lat": 39.6019,
     "lng": 19.9117
   },
+  "CFV": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 37.094,
+    "lng": -95.5719
+  },
   "CGB": {
     "tz": "America/Campo_Grande",
     "country": "BR",
@@ -4804,6 +5284,12 @@
     "country": "US",
     "lat": 41.8588,
     "lng": -87.6079
+  },
+  "CGY": {
+    "tz": "Asia/Manila",
+    "country": "PH",
+    "lat": 8.6122,
+    "lng": 124.4565
   },
   "CGZ": {
     "tz": "America/Phoenix",
@@ -5015,6 +5501,12 @@
     "lat": -22.4982,
     "lng": -68.9036
   },
+  "CJF": {
+    "tz": "Australia/Perth",
+    "country": "AU",
+    "lat": -22.9667,
+    "lng": 118.813
+  },
   "CJJ": {
     "tz": "Asia/Seoul",
     "country": "KR",
@@ -5074,6 +5566,12 @@
     "country": "RU",
     "lat": 70.6231,
     "lng": 147.90199
+  },
+  "CKI": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -11.165,
+    "lng": 132.483
   },
   "CKL": {
     "tz": "Europe/Moscow",
@@ -5153,6 +5651,12 @@
     "lat": 3.54322,
     "lng": -76.3816
   },
+  "CLP": {
+    "tz": "America/Anchorage",
+    "country": "US",
+    "lat": 58.8337,
+    "lng": -158.52901
+  },
   "CLQ": {
     "tz": "America/Mexico_City",
     "country": "MX",
@@ -5170,6 +5674,12 @@
     "country": "US",
     "lat": 35.214,
     "lng": -80.9431
+  },
+  "CLU": {
+    "tz": "America/Indiana/Indianapolis",
+    "country": "US",
+    "lat": 39.2619,
+    "lng": -85.8963
   },
   "CLV": {
     "tz": "America/Sao_Paulo",
@@ -5206,6 +5716,12 @@
     "country": "LK",
     "lat": 7.18076,
     "lng": 79.8841
+  },
+  "CMD": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -34.6239,
+    "lng": 148.028
   },
   "CME": {
     "tz": "America/Mexico_City",
@@ -5260,6 +5776,12 @@
     "country": "BR",
     "lat": -9.31997,
     "lng": -50.3285
+  },
+  "CMQ": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -22.7731,
+    "lng": 147.621
   },
   "CMR": {
     "tz": "Europe/Paris",
@@ -5339,6 +5861,18 @@
     "lat": 32.3375,
     "lng": -104.263
   },
+  "CNN": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 11.91861,
+    "lng": 75.54721
+  },
+  "CNO": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 33.9747,
+    "lng": -117.637
+  },
   "CNP": {
     "tz": "America/Scoresbysund",
     "country": "GL",
@@ -5351,11 +5885,23 @@
     "lat": -27.4455,
     "lng": -58.7619
   },
+  "CNR": {
+    "tz": "America/Santiago",
+    "country": "CL",
+    "lat": -26.3325,
+    "lng": -70.6073
+  },
   "CNS": {
     "tz": "Australia/Brisbane",
     "country": "AU",
     "lat": -16.8858,
     "lng": 145.755
+  },
+  "CNU": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 37.6688,
+    "lng": -95.4851
   },
   "CNW": {
     "tz": "America/Chicago",
@@ -5513,6 +6059,12 @@
     "lat": 55.6179,
     "lng": 12.656
   },
+  "CPO": {
+    "tz": "America/Santiago",
+    "country": "CL",
+    "lat": -27.2612,
+    "lng": -70.7792
+  },
   "CPQ": {
     "tz": "America/Sao_Paulo",
     "country": "BR",
@@ -5543,6 +6095,12 @@
     "lat": 18.31329,
     "lng": -65.30432
   },
+  "CQA": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -13.57444,
+    "lng": -52.27056
+  },
   "CQD": {
     "tz": "Asia/Tehran",
     "country": "IR",
@@ -5560,6 +6118,12 @@
     "country": "ES",
     "lat": 38.85639,
     "lng": -3.97
+  },
+  "CQS": {
+    "tz": "America/Porto_Velho",
+    "country": "BR",
+    "lat": -12.4211,
+    "lng": -64.2516
   },
   "CRA": {
     "tz": "Europe/Bucharest",
@@ -5584,6 +6148,12 @@
     "country": "US",
     "lat": 33.8117,
     "lng": -78.7239
+  },
+  "CRG": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 30.3363,
+    "lng": -81.5144
   },
   "CRI": {
     "tz": "America/Nassau",
@@ -5687,6 +6257,12 @@
     "lat": 51.8564,
     "lng": 11.4203
   },
+  "CSV": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 35.9513,
+    "lng": -85.085
+  },
   "CSX": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -5789,11 +6365,23 @@
     "lat": 25.0538,
     "lng": -111.615
   },
+  "CUB": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 33.9705,
+    "lng": -80.9952
+  },
   "CUC": {
     "tz": "America/Bogota",
     "country": "CO",
     "lat": 7.92757,
     "lng": -72.5115
+  },
+  "CUD": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -26.8,
+    "lng": 153.10001
   },
   "CUE": {
     "tz": "America/Guayaquil",
@@ -5866,6 +6454,18 @@
     "country": "PE",
     "lat": -13.5357,
     "lng": -71.9388
+  },
+  "CVC": {
+    "tz": "Australia/Adelaide",
+    "country": "AU",
+    "lat": -33.7097,
+    "lng": 136.505
+  },
+  "CVE": {
+    "tz": "America/Bogota",
+    "country": "CO",
+    "lat": 9.40092,
+    "lng": -75.6913
   },
   "CVF": {
     "tz": "Europe/Paris",
@@ -5957,6 +6557,12 @@
     "lat": 41.8311,
     "lng": -90.3291
   },
+  "CWJ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 23.27389,
+    "lng": 99.37361
+  },
   "CWL": {
     "tz": "Europe/London",
     "country": "GB",
@@ -5968,6 +6574,12 @@
     "country": "AU",
     "lat": -33.8447,
     "lng": 148.649
+  },
+  "CWW": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -35.9947,
+    "lng": 146.35699
   },
   "CXA": {
     "tz": "America/Caracas",
@@ -5986,6 +6598,12 @@
     "country": "CA",
     "lat": 49.2944,
     "lng": -123.111
+  },
+  "CXI": {
+    "tz": "Pacific/Kiritimati",
+    "country": "KI",
+    "lat": 1.98616,
+    "lng": -157.35001
   },
   "CXJ": {
     "tz": "America/Sao_Paulo",
@@ -6034,6 +6652,12 @@
     "country": "US",
     "lat": 60.1492,
     "lng": -164.286
+  },
+  "CYG": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -36.1828,
+    "lng": 147.888
   },
   "CYI": {
     "tz": "Asia/Taipei",
@@ -6143,6 +6767,12 @@
     "lat": 31.9197,
     "lng": 119.779
   },
+  "DAA": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 38.715,
+    "lng": -77.181
+  },
   "DAB": {
     "tz": "America/New_York",
     "country": "US",
@@ -6160,6 +6790,12 @@
     "country": "VN",
     "lat": 16.0439,
     "lng": 108.199
+  },
+  "DAG": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 34.8537,
+    "lng": -116.787
   },
   "DAL": {
     "tz": "America/Chicago",
@@ -6227,6 +6863,12 @@
     "lat": 30.9245,
     "lng": 28.4614
   },
+  "DBC": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 45.50528,
+    "lng": 123.01972
+  },
   "DBD": {
     "tz": "Asia/Calcutta",
     "country": "IN",
@@ -6293,11 +6935,23 @@
     "lat": 43.5563,
     "lng": 2.28918
   },
+  "DCN": {
+    "tz": "Australia/Perth",
+    "country": "AU",
+    "lat": -17.5814,
+    "lng": 123.828
+  },
   "DCT": {
     "tz": "America/Nassau",
     "country": "BS",
     "lat": 22.1818,
     "lng": -75.7295
+  },
+  "DCU": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 34.6527,
+    "lng": -86.9454
   },
   "DCY": {
     "tz": "Asia/Shanghai",
@@ -6341,6 +6995,12 @@
     "lat": 30.1897,
     "lng": 78.1803
   },
+  "DEE": {
+    "tz": "Asia/Magadan",
+    "country": "RU",
+    "lat": 43.9584,
+    "lng": 145.683
+  },
   "DEF": {
     "tz": "Asia/Tehran",
     "country": "IR",
@@ -6377,6 +7037,12 @@
     "lat": 42.4092,
     "lng": -83.0099
   },
+  "DEX": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -4.8557,
+    "lng": 139.48201
+  },
   "DEZ": {
     "tz": "Asia/Damascus",
     "country": "SY",
@@ -6406,6 +7072,12 @@
     "country": "MX",
     "lat": 24.1242,
     "lng": -104.528
+  },
+  "DGP": {
+    "tz": "Europe/Riga",
+    "country": "LV",
+    "lat": 55.94472,
+    "lng": 26.665
   },
   "DGT": {
     "tz": "Asia/Manila",
@@ -6503,6 +7175,12 @@
     "lat": 21.3975,
     "lng": 103.008
   },
+  "DIQ": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -20.1807,
+    "lng": -44.8709
+  },
   "DIR": {
     "tz": "Africa/Addis_Ababa",
     "country": "ET",
@@ -6581,6 +7259,12 @@
     "lat": 73.51781,
     "lng": 80.37967
   },
+  "DKV": {
+    "tz": "Australia/Perth",
+    "country": "AU",
+    "lat": -24.86,
+    "lng": 129.07001
+  },
   "DLA": {
     "tz": "Africa/Douala",
     "country": "CM",
@@ -6628,6 +7312,12 @@
     "country": "VN",
     "lat": 11.75,
     "lng": 108.367
+  },
+  "DLK": {
+    "tz": "Australia/Adelaide",
+    "country": "AU",
+    "lat": -29.0133,
+    "lng": 138.481
   },
   "DLM": {
     "tz": "Europe/Istanbul",
@@ -6695,6 +7385,12 @@
     "lat": 26.4712,
     "lng": 49.7979
   },
+  "DMN": {
+    "tz": "America/Denver",
+    "country": "US",
+    "lat": 32.2623,
+    "lng": -107.721
+  },
   "DMT": {
     "tz": "America/Campo_Grande",
     "country": "BR",
@@ -6749,6 +7445,12 @@
     "lat": 28.1111,
     "lng": 82.2942
   },
+  "DNQ": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -35.5594,
+    "lng": 144.946
+  },
   "DNR": {
     "tz": "Europe/Paris",
     "country": "FR",
@@ -6767,6 +7469,12 @@
     "lat": 37.7856,
     "lng": 29.7013
   },
+  "DOB": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -5.77222,
+    "lng": 134.21201
+  },
   "DOD": {
     "tz": "Africa/Dar_es_Salaam",
     "country": "TZ",
@@ -6778,6 +7486,12 @@
     "country": "SD",
     "lat": 19.1539,
     "lng": 30.4301
+  },
+  "DOH": {
+    "tz": "Asia/Qatar",
+    "country": "QA",
+    "lat": 25.27306,
+    "lng": 51.60806
   },
   "DOK": {
     "tz": "Europe/Kiev",
@@ -6851,6 +7565,18 @@
     "lat": 46.74639,
     "lng": 125.14056
   },
+  "DQM": {
+    "tz": "Asia/Muscat",
+    "country": "OM",
+    "lat": 19.50194,
+    "lng": 57.63417
+  },
+  "DRA": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 36.6194,
+    "lng": -116.033
+  },
   "DRB": {
     "tz": "Australia/Perth",
     "country": "AU",
@@ -6887,6 +7613,12 @@
     "lat": 8.71889,
     "lng": -83.6417
   },
+  "DRN": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -28.5917,
+    "lng": 148.217
+  },
   "DRO": {
     "tz": "America/Denver",
     "country": "US",
@@ -6904,6 +7636,12 @@
     "country": "US",
     "lat": 29.3742,
     "lng": -100.927
+  },
+  "DRV": {
+    "tz": "Indian/Maldives",
+    "country": "MV",
+    "lat": 5.1561,
+    "lng": 73.1302
   },
   "DRW": {
     "tz": "Australia/Darwin",
@@ -6959,6 +7697,12 @@
     "lat": 39.7452,
     "lng": 127.474
   },
+  "DSS": {
+    "tz": "Africa/Dakar",
+    "country": "SN",
+    "lat": 14.67,
+    "lng": -17.07333
+  },
   "DTA": {
     "tz": "America/Denver",
     "country": "US",
@@ -7000,6 +7744,12 @@
     "country": "US",
     "lat": 32.5402,
     "lng": -93.745
+  },
+  "DTU": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 48.445,
+    "lng": 126.133
   },
   "DTW": {
     "tz": "America/New_York",
@@ -7085,6 +7835,12 @@
     "lat": 33.6883,
     "lng": -112.083
   },
+  "DWA": {
+    "tz": "Africa/Blantyre",
+    "country": "MW",
+    "lat": -12.5183,
+    "lng": 34.1319
+  },
   "DWB": {
     "tz": "Indian/Antananarivo",
     "country": "MG",
@@ -7096,6 +7852,12 @@
     "country": "AE",
     "lat": 24.89636,
     "lng": 55.16139
+  },
+  "DWD": {
+    "tz": "Asia/Riyadh",
+    "country": "SA",
+    "lat": 24.4499,
+    "lng": 44.1212
   },
   "DWH": {
     "tz": "America/Chicago",
@@ -7114,6 +7876,12 @@
     "country": "US",
     "lat": 41.3715,
     "lng": -73.4822
+  },
+  "DYA": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -22.6222,
+    "lng": 148.364
   },
   "DYG": {
     "tz": "Asia/Shanghai",
@@ -7223,6 +7991,12 @@
     "lat": 7.59647,
     "lng": -74.8089
   },
+  "EBH": {
+    "tz": "Africa/Algiers",
+    "country": "DZ",
+    "lat": 33.72167,
+    "lng": 1.0925
+  },
   "EBJ": {
     "tz": "Europe/Copenhagen",
     "country": "DK",
@@ -7259,6 +8033,18 @@
     "lat": 36.2606,
     "lng": -76.1746
   },
+  "ECH": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -36.1572,
+    "lng": 144.76199
+  },
+  "ECI": {
+    "tz": "America/Managua",
+    "country": "NI",
+    "lat": 11.42754,
+    "lng": -86.03336
+  },
   "ECN": {
     "tz": "Asia/Nicosia",
     "country": "CY",
@@ -7270,6 +8056,18 @@
     "country": "US",
     "lat": 30.35711,
     "lng": -85.79541
+  },
+  "ECV": {
+    "tz": "Europe/Madrid",
+    "country": "ES",
+    "lat": 40.3707,
+    "lng": -3.78514
+  },
+  "EDD": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -25.2058,
+    "lng": 133.254
   },
   "EDF": {
     "tz": "America/Anchorage",
@@ -7313,6 +8111,12 @@
     "lat": 34.9054,
     "lng": -117.884
   },
+  "EED": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 34.7663,
+    "lng": -114.623
+  },
   "EEK": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -7330,6 +8134,12 @@
     "country": "US",
     "lat": 29.6073,
     "lng": -95.1588
+  },
+  "EFG": {
+    "tz": "Pacific/Port_Moresby",
+    "country": "PG",
+    "lat": -9.15381,
+    "lng": 147.65981
   },
   "EFL": {
     "tz": "Europe/Athens",
@@ -7354,6 +8164,12 @@
     "country": "EG",
     "lat": 31.06856,
     "lng": 34.12963
+  },
+  "EGI": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 30.6504,
+    "lng": -86.5229
   },
   "EGM": {
     "tz": "Pacific/Guadalcanal",
@@ -7457,11 +8273,29 @@
     "lat": 26.1986,
     "lng": 36.4764
   },
+  "EJN": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 42.0155,
+    "lng": 101.0005
+  },
+  "EKA": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 40.8034,
+    "lng": -124.113
+  },
   "EKB": {
     "tz": "Asia/Qyzylorda",
     "country": "KZ",
     "lat": 51.591,
     "lng": 75.215
+  },
+  "EKI": {
+    "tz": "America/Indiana/Indianapolis",
+    "country": "US",
+    "lat": 41.7194,
+    "lng": -86.0032
   },
   "EKN": {
     "tz": "America/New_York",
@@ -7474,6 +8308,12 @@
     "country": "US",
     "lat": 40.8249,
     "lng": -115.792
+  },
+  "EKS": {
+    "tz": "Asia/Sakhalin",
+    "country": "RU",
+    "lat": 49.1903,
+    "lng": 142.08299
   },
   "EKT": {
     "tz": "Europe/Stockholm",
@@ -7619,6 +8459,12 @@
     "lat": 38.3321,
     "lng": -96.1912
   },
+  "EMT": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 34.0861,
+    "lng": -118.035
+  },
   "ENA": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -7660,6 +8506,18 @@
     "country": "GB",
     "lat": 54.3989,
     "lng": -7.65167
+  },
+  "ENN": {
+    "tz": "America/Anchorage",
+    "country": "US",
+    "lat": 64.5473,
+    "lng": -149.07401
+  },
+  "ENO": {
+    "tz": "America/Asuncion",
+    "country": "PY",
+    "lat": -27.22737,
+    "lng": -55.83749
   },
   "ENS": {
     "tz": "Europe/Amsterdam",
@@ -7763,6 +8621,12 @@
     "lat": 39.7102,
     "lng": 39.527
   },
+  "ERD": {
+    "tz": "Europe/Kyiv",
+    "country": "UA",
+    "lat": 46.815,
+    "lng": 36.7581
+  },
   "ERF": {
     "tz": "Europe/Berlin",
     "country": "DE",
@@ -7786,6 +8650,12 @@
     "country": "US",
     "lat": 42.08313,
     "lng": -80.17387
+  },
+  "ERL": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 43.4225,
+    "lng": 112.09667
   },
   "ERM": {
     "tz": "America/Sao_Paulo",
@@ -7901,17 +8771,35 @@
     "lat": 31.3975,
     "lng": -9.68167
   },
+  "ETB": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 43.4222,
+    "lng": -88.1279
+  },
   "ETH": {
     "tz": "Asia/Jerusalem",
     "country": "IL",
     "lat": 29.5613,
     "lng": 34.9601
   },
+  "ETM": {
+    "tz": "Asia/Jerusalem",
+    "country": "IL",
+    "lat": 29.72369,
+    "lng": 35.01142
+  },
   "ETR": {
     "tz": "America/Guayaquil",
     "country": "EC",
     "lat": -3.44199,
     "lng": -79.99696
+  },
+  "ETS": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 31.2997,
+    "lng": -85.8999
   },
   "ETZ": {
     "tz": "Europe/Paris",
@@ -8075,6 +8963,12 @@
     "lat": 51.2758,
     "lng": -0.77633
   },
+  "FAC": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -16.6867,
+    "lng": -145.32899
+  },
   "FAE": {
     "tz": "Atlantic/Faeroe",
     "country": "FO",
@@ -8086,6 +8980,12 @@
     "country": "US",
     "lat": 37.1325,
     "lng": -76.6088
+  },
+  "FAH": {
+    "tz": "Asia/Kabul",
+    "country": "AF",
+    "lat": 32.367,
+    "lng": 62.183
   },
   "FAI": {
     "tz": "America/Anchorage",
@@ -8273,6 +9173,12 @@
     "lat": -3.85493,
     "lng": -32.4233
   },
+  "FET": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 41.4491,
+    "lng": -96.5202
+  },
   "FEZ": {
     "tz": "Africa/Casablanca",
     "country": "MA",
@@ -8345,6 +9251,12 @@
     "lat": -4.38575,
     "lng": 15.4446
   },
+  "FIK": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -25.5947,
+    "lng": 134.58299
+  },
   "FIZ": {
     "tz": "Australia/Perth",
     "country": "AU",
@@ -8399,6 +9311,12 @@
     "lat": 1.58919,
     "lng": -75.5644
   },
+  "FLB": {
+    "tz": "America/Fortaleza",
+    "country": "BR",
+    "lat": -6.84639,
+    "lng": -43.0773
+  },
   "FLD": {
     "tz": "America/Chicago",
     "country": "US",
@@ -8434,6 +9352,12 @@
     "country": "US",
     "lat": 34.1854,
     "lng": -79.7239
+  },
+  "FLP": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 36.2909,
+    "lng": -92.5903
   },
   "FLR": {
     "tz": "Europe/Rome",
@@ -8518,6 +9442,12 @@
     "country": "SL",
     "lat": 8.61644,
     "lng": -13.1955
+  },
+  "FNB": {
+    "tz": "Europe/Berlin",
+    "country": "DE",
+    "lat": 53.6022,
+    "lng": 13.306
   },
   "FNC": {
     "tz": "Europe/Lisbon",
@@ -8633,6 +9563,12 @@
     "lat": 50.03333,
     "lng": 8.57056
   },
+  "FRB": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -33.3636,
+    "lng": 147.935
+  },
   "FRC": {
     "tz": "America/Sao_Paulo",
     "country": "BR",
@@ -8746,6 +9682,12 @@
     "country": "PM",
     "lat": 46.7629,
     "lng": -56.1731
+  },
+  "FSS": {
+    "tz": "Europe/London",
+    "country": "GB",
+    "lat": 57.6494,
+    "lng": -3.56064
   },
   "FST": {
     "tz": "America/Chicago",
@@ -8872,6 +9814,18 @@
     "country": "MZ",
     "lat": -14.815,
     "lng": 36.53
+  },
+  "FYJ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 48.19949,
+    "lng": 134.36645
+  },
+  "FYN": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 46.80417,
+    "lng": 89.51201
   },
   "FYT": {
     "tz": "Africa/Ndjamena",
@@ -9005,6 +9959,12 @@
     "lat": -24.5552,
     "lng": 25.9182
   },
+  "GBG": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 40.938,
+    "lng": -90.4311
+  },
   "GBJ": {
     "tz": "America/Guadeloupe",
     "country": "GP",
@@ -9071,6 +10031,12 @@
     "lat": 35.9524,
     "lng": -112.147
   },
+  "GDC": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 34.7583,
+    "lng": -82.3764
+  },
   "GDE": {
     "tz": "Africa/Addis_Ababa",
     "country": "ET",
@@ -9136,6 +10102,12 @@
     "country": "NC",
     "lat": -22.2583,
     "lng": 166.47301
+  },
+  "GEC": {
+    "tz": "Asia/Famagusta",
+    "country": "CY",
+    "lat": 35.23595,
+    "lng": 33.72436
   },
   "GED": {
     "tz": "America/New_York",
@@ -9317,6 +10289,12 @@
     "lat": -9.23278,
     "lng": 142.218
   },
+  "GID": {
+    "tz": "Africa/Bujumbura",
+    "country": "BI",
+    "lat": -3.41721,
+    "lng": 29.91131
+  },
   "GIF": {
     "tz": "America/New_York",
     "country": "US",
@@ -9328,6 +10306,12 @@
     "country": "BR",
     "lat": -22.81,
     "lng": -43.25056
+  },
+  "GII": {
+    "tz": "Africa/Conakry",
+    "country": "GN",
+    "lat": 11.433,
+    "lng": -9.167
   },
   "GIL": {
     "tz": "Asia/Karachi",
@@ -9346,6 +10330,12 @@
     "country": "NZ",
     "lat": -38.6633,
     "lng": 177.978
+  },
+  "GIT": {
+    "tz": "Africa/Dar_es_Salaam",
+    "country": "TZ",
+    "lat": -2.81367,
+    "lng": 32.17247
   },
   "GIU": {
     "tz": "Asia/Colombo",
@@ -9461,6 +10451,12 @@
     "lat": 51.8942,
     "lng": -2.16722
   },
+  "GLR": {
+    "tz": "America/Detroit",
+    "country": "US",
+    "lat": 45.0135,
+    "lng": -84.7036
+  },
   "GLS": {
     "tz": "America/Chicago",
     "country": "US",
@@ -9473,11 +10469,23 @@
     "lat": -23.8697,
     "lng": 151.22301
   },
+  "GLU": {
+    "tz": "Asia/Thimphu",
+    "country": "BT",
+    "lat": 26.88456,
+    "lng": 90.46412
+  },
   "GLV": {
     "tz": "America/Anchorage",
     "country": "US",
     "lat": 64.5505,
     "lng": -163.007
+  },
+  "GLW": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 37.0318,
+    "lng": -85.9537
   },
   "GLZ": {
     "tz": "Europe/Amsterdam",
@@ -9515,17 +10523,35 @@
     "lat": 50.6035,
     "lng": 30.1919
   },
+  "GMO": {
+    "tz": "Africa/Lagos",
+    "country": "NG",
+    "lat": 10.29833,
+    "lng": 10.89639
+  },
   "GMP": {
     "tz": "Asia/Seoul",
     "country": "KR",
     "lat": 37.5583,
     "lng": 126.791
   },
+  "GMQ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 34.41807,
+    "lng": 100.30114
+  },
   "GMR": {
     "tz": "Pacific/Gambier",
     "country": "PF",
     "lat": -23.0799,
     "lng": -134.89
+  },
+  "GMU": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 34.8479,
+    "lng": -82.35
   },
   "GMV": {
     "tz": "America/Denver",
@@ -9647,6 +10673,12 @@
     "lat": 41.3301,
     "lng": -72.0451
   },
+  "GOO": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -28.5214,
+    "lng": 150.32001
+  },
   "GOP": {
     "tz": "Asia/Calcutta",
     "country": "IN",
@@ -9712,6 +10744,12 @@
     "country": "CR",
     "lat": 10.2172,
     "lng": -83.797
+  },
+  "GPN": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -11.4025,
+    "lng": 130.422
   },
   "GPO": {
     "tz": "America/Argentina/Salta",
@@ -9947,6 +10985,12 @@
     "lat": 30.2905,
     "lng": -87.6718
   },
+  "GUH": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -30.9611,
+    "lng": 150.25101
+  },
   "GUI": {
     "tz": "America/Caracas",
     "country": "VE",
@@ -10001,6 +11045,12 @@
     "lat": 51.9228,
     "lng": 8.30633
   },
+  "GUU": {
+    "tz": "Atlantic/Reykjavik",
+    "country": "IS",
+    "lat": 64.9914,
+    "lng": -23.2247
+  },
   "GUW": {
     "tz": "Asia/Oral",
     "country": "KZ",
@@ -10013,6 +11063,18 @@
     "lat": 24.6547,
     "lng": 77.3473
   },
+  "GUY": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 36.6851,
+    "lng": -101.508
+  },
+  "GUZ": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -20.6465,
+    "lng": -40.4919
+  },
   "GVA": {
     "tz": "Europe/Paris",
     "country": "CH",
@@ -10024,6 +11086,12 @@
     "country": "US",
     "lat": 34.2726,
     "lng": -83.8302
+  },
+  "GVN": {
+    "tz": "Asia/Vladivostok",
+    "country": "RU",
+    "lat": 48.927,
+    "lng": 140.034
   },
   "GVR": {
     "tz": "America/Sao_Paulo",
@@ -10103,6 +11171,12 @@
     "lat": -45.5942,
     "lng": -72.1061
   },
+  "GXY": {
+    "tz": "America/Denver",
+    "country": "US",
+    "lat": 40.4374,
+    "lng": -104.633
+  },
   "GYA": {
     "tz": "America/La_Paz",
     "country": "BO",
@@ -10181,6 +11255,12 @@
     "lat": 31.2464,
     "lng": 34.2761
   },
+  "GZI": {
+    "tz": "Asia/Kabul",
+    "country": "AF",
+    "lat": 33.5312,
+    "lng": 68.4129
+  },
   "GZM": {
     "tz": "Europe/Malta",
     "country": "MT",
@@ -10228,6 +11308,12 @@
     "country": "SE",
     "lat": 56.6911,
     "lng": 12.8202
+  },
+  "HAF": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 37.5134,
+    "lng": -122.501
   },
   "HAH": {
     "tz": "Indian/Comoro",
@@ -10331,6 +11417,12 @@
     "lat": 15.3617,
     "lng": 75.0849
   },
+  "HCJ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 24.805,
+    "lng": 107.6997
+  },
   "HCN": {
     "tz": "Asia/Taipei",
     "country": "TW",
@@ -10360,6 +11452,12 @@
     "country": "PK",
     "lat": 25.3181,
     "lng": 68.3661
+  },
+  "HDE": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 40.4521,
+    "lng": -99.3365
   },
   "HDF": {
     "tz": "Europe/Berlin",
@@ -10535,6 +11633,12 @@
     "lat": 30.2295,
     "lng": 120.434
   },
+  "HGI": {
+    "tz": "Africa/Juba",
+    "country": "SS",
+    "lat": 10.52917,
+    "lng": 32.50056
+  },
   "HGL": {
     "tz": "Europe/Berlin",
     "country": "DE",
@@ -10613,6 +11717,12 @@
     "lat": 33.9228,
     "lng": -118.335
   },
+  "HHZ": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -17.5447,
+    "lng": -142.614
+  },
   "HIA": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -10648,6 +11758,12 @@
     "country": "JP",
     "lat": 34.4361,
     "lng": 132.91901
+  },
+  "HIM": {
+    "tz": "Asia/Colombo",
+    "country": "LK",
+    "lat": 8.04981,
+    "lng": 80.9814
   },
   "HIN": {
     "tz": "Asia/Seoul",
@@ -10733,6 +11849,12 @@
     "lat": 49.205,
     "lng": 119.825
   },
+  "HLE": {
+    "tz": "Atlantic/St_Helena",
+    "country": "GB",
+    "lat": -15.95772,
+    "lng": -5.64594
+  },
   "HLF": {
     "tz": "Europe/Stockholm",
     "country": "SE",
@@ -10750,6 +11872,12 @@
     "country": "CN",
     "lat": 46.19533,
     "lng": 122.00833
+  },
+  "HLI": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 36.8933,
+    "lng": -121.41
   },
   "HLJ": {
     "tz": "Europe/Vilnius",
@@ -10805,6 +11933,12 @@
     "lat": 31.673,
     "lng": 6.14044
   },
+  "HMG": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -23.93,
+    "lng": 132.80499
+  },
   "HMI": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -10841,6 +11975,12 @@
     "lat": 65.8061,
     "lng": 15.0828
   },
+  "HMY": {
+    "tz": "Asia/Seoul",
+    "country": "KR",
+    "lat": 36.704,
+    "lng": 126.486
+  },
   "HNA": {
     "tz": "Asia/Tokyo",
     "country": "JP",
@@ -10876,6 +12016,12 @@
     "country": "US",
     "lat": 59.2438,
     "lng": -135.524
+  },
+  "HNY": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 26.9053,
+    "lng": 112.628
   },
   "HOA": {
     "tz": "Africa/Nairobi",
@@ -10918,6 +12064,12 @@
     "country": "AT",
     "lat": 47.385,
     "lng": 9.7
+  },
+  "HOI": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -18.0748,
+    "lng": -140.946
   },
   "HOK": {
     "tz": "Australia/Darwin",
@@ -10996,6 +12148,12 @@
     "country": "US",
     "lat": 61.5239,
     "lng": -166.147
+  },
+  "HPG": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 31.626,
+    "lng": 110.34
   },
   "HPH": {
     "tz": "Asia/Saigon",
@@ -11099,6 +12257,12 @@
     "lat": 65.6979,
     "lng": -156.351
   },
+  "HSM": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -36.6697,
+    "lng": 142.173
+  },
   "HSN": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -11159,11 +12323,35 @@
     "lat": 37.0385,
     "lng": 79.8649
   },
+  "HTR": {
+    "tz": "Asia/Tokyo",
+    "country": "JP",
+    "lat": 24.0589,
+    "lng": 123.806
+  },
   "HTS": {
     "tz": "America/New_York",
     "country": "US",
     "lat": 38.3667,
     "lng": -82.558
+  },
+  "HTT": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 38.20198,
+    "lng": 90.8415
+  },
+  "HTU": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -35.7153,
+    "lng": 142.36
+  },
+  "HTV": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 30.7469,
+    "lng": -95.5872
   },
   "HTY": {
     "tz": "Europe/Istanbul",
@@ -11212,6 +12400,12 @@
     "country": "TW",
     "lat": 24.0231,
     "lng": 121.618
+  },
+  "HUO": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 45.48722,
+    "lng": 119.40722
   },
   "HUQ": {
     "tz": "Africa/Tripoli",
@@ -11303,6 +12497,12 @@
     "lat": 48.543,
     "lng": -109.762
   },
+  "HVS": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 34.4031,
+    "lng": -80.1192
+  },
   "HWD": {
     "tz": "America/Los_Angeles",
     "country": "US",
@@ -11321,6 +12521,18 @@
     "lat": 26.0012,
     "lng": -80.2407
   },
+  "HXD": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 37.12529,
+    "lng": 97.26866
+  },
+  "HXX": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -34.5314,
+    "lng": 144.83
+  },
   "HYA": {
     "tz": "America/New_York",
     "country": "US",
@@ -11333,6 +12545,12 @@
     "lat": 51.6117,
     "lng": -0.80833
   },
+  "HYD": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 17.23132,
+    "lng": 78.42986
+  },
   "HYG": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -11344,6 +12562,12 @@
     "country": "CN",
     "lat": 28.5622,
     "lng": 121.429
+  },
+  "HYR": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 46.0252,
+    "lng": -91.4443
   },
   "HYS": {
     "tz": "America/Chicago",
@@ -11386,6 +12610,12 @@
     "country": "US",
     "lat": 40.9868,
     "lng": -75.9949
+  },
+  "HZP": {
+    "tz": "America/Edmonton",
+    "country": "CA",
+    "lat": 57.3817,
+    "lng": -111.701
   },
   "IAA": {
     "tz": "Asia/Krasnoyarsk",
@@ -11519,6 +12749,12 @@
     "lat": 43.5146,
     "lng": -112.071
   },
+  "IDP": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 37.1584,
+    "lng": -95.7784
+  },
   "IDR": {
     "tz": "Asia/Calcutta",
     "country": "IN",
@@ -11536,6 +12772,12 @@
     "country": "PL",
     "lat": 52.1385,
     "lng": 15.7986
+  },
+  "IEJ": {
+    "tz": "Asia/Tokyo",
+    "country": "JP",
+    "lat": 26.722,
+    "lng": 127.785
   },
   "IES": {
     "tz": "Europe/Berlin",
@@ -11578,6 +12820,12 @@
     "country": "UA",
     "lat": 48.8842,
     "lng": 24.6861
+  },
+  "IFU": {
+    "tz": "Indian/Maldives",
+    "country": "MV",
+    "lat": 5.7083,
+    "lng": 73.025
   },
   "IGA": {
     "tz": "America/Nassau",
@@ -11687,6 +12935,12 @@
     "lat": 41.0714,
     "lng": -87.8463
   },
+  "IKL": {
+    "tz": "Africa/Kinshasa",
+    "country": "CG",
+    "lat": -1.04811,
+    "lng": 23.3725
+  },
   "IKO": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -11704,6 +12958,18 @@
     "country": "RU",
     "lat": 52.268,
     "lng": 104.389
+  },
+  "IKU": {
+    "tz": "Asia/Bishkek",
+    "country": "KG",
+    "lat": 42.58792,
+    "lng": 76.71305
+  },
+  "ILA": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -3.97648,
+    "lng": 137.6225
   },
   "ILD": {
     "tz": "Europe/Madrid",
@@ -11819,6 +13085,12 @@
     "lat": 45.8184,
     "lng": -88.1145
   },
+  "INA": {
+    "tz": "Europe/Moscow",
+    "country": "RU",
+    "lat": 66.05483,
+    "lng": 60.11032
+  },
   "IND": {
     "tz": "America/New_York",
     "country": "US",
@@ -11920,6 +13192,12 @@
     "country": "IM",
     "lat": 54.0833,
     "lng": -4.62389
+  },
+  "ION": {
+    "tz": "Africa/Brazzaville",
+    "country": "CG",
+    "lat": 1.617,
+    "lng": 18.067
   },
   "IOR": {
     "tz": "Europe/Dublin",
@@ -12077,6 +13355,12 @@
     "lat": -20.6639,
     "lng": 139.489
   },
+  "ISB": {
+    "tz": "Asia/Karachi",
+    "country": "PK",
+    "lat": 33.56071,
+    "lng": 72.85161
+  },
   "ISC": {
     "tz": "Europe/London",
     "country": "GB",
@@ -12185,6 +13469,12 @@
     "lat": 19.7214,
     "lng": -155.048
   },
+  "ITP": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -21.2193,
+    "lng": -41.8759
+  },
   "ITR": {
     "tz": "America/Sao_Paulo",
     "country": "BR",
@@ -12232,6 +13522,12 @@
     "country": "JP",
     "lat": 34.6764,
     "lng": 131.78999
+  },
+  "IWK": {
+    "tz": "Asia/Tokyo",
+    "country": "JP",
+    "lat": 34.1439,
+    "lng": 132.23599
   },
   "IWO": {
     "tz": "Asia/Tokyo",
@@ -12335,6 +13631,12 @@
     "lat": 24.9129,
     "lng": 92.9787
   },
+  "IXT": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 28.0661,
+    "lng": 95.3356
+  },
   "IXU": {
     "tz": "Asia/Calcutta",
     "country": "IN",
@@ -12413,6 +13715,12 @@
     "lat": -32.0975,
     "lng": 115.881
   },
+  "JAE": {
+    "tz": "America/Lima",
+    "country": "PE",
+    "lat": -5.59248,
+    "lng": -78.774
+  },
   "JAF": {
     "tz": "Asia/Colombo",
     "country": "LK",
@@ -12443,6 +13751,12 @@
     "lat": 19.4751,
     "lng": -96.7975
   },
+  "JAM": {
+    "tz": "Europe/Sofia",
+    "country": "BG",
+    "lat": 42.4549,
+    "lng": 26.3522
+  },
   "JAN": {
     "tz": "America/Chicago",
     "country": "US",
@@ -12460,6 +13774,12 @@
     "country": "IR",
     "lat": 28.5867,
     "lng": 53.5791
+  },
+  "JAS": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 30.8857,
+    "lng": -94.0349
   },
   "JAU": {
     "tz": "America/Lima",
@@ -12520,6 +13840,12 @@
     "country": "BR",
     "lat": -6.23316,
     "lng": -57.7769
+  },
+  "JCT": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 30.5113,
+    "lng": -99.7635
   },
   "JDF": {
     "tz": "America/Sao_Paulo",
@@ -12659,11 +13985,23 @@
     "lat": 42.1534,
     "lng": -79.258
   },
+  "JIA": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -11.41944,
+    "lng": -58.70167
+  },
   "JIB": {
     "tz": "Africa/Djibouti",
     "country": "DJ",
     "lat": 11.5473,
     "lng": 43.1595
+  },
+  "JIC": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 38.54222,
+    "lng": 102.34833
   },
   "JIJ": {
     "tz": "Africa/Addis_Ababa",
@@ -12700,6 +14038,12 @@
     "country": "PK",
     "lat": 25.0678,
     "lng": 61.8054
+  },
+  "JJG": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -28.6753,
+    "lng": -49.0596
   },
   "JJI": {
     "tz": "America/Lima",
@@ -12760,6 +14104,12 @@
     "country": "IN",
     "lat": 23.1778,
     "lng": 80.052
+  },
+  "JMJ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 22.41583,
+    "lng": 99.78639
   },
   "JMK": {
     "tz": "Europe/Athens",
@@ -12857,6 +14207,12 @@
     "lat": -26.2245,
     "lng": -48.7974
   },
+  "JOJ": {
+    "tz": "America/Cambridge_Bay",
+    "country": "CA",
+    "lat": 68.12527,
+    "lng": -106.58528
+  },
   "JOK": {
     "tz": "Europe/Moscow",
     "country": "RU",
@@ -12935,6 +14291,12 @@
     "lat": 26.7315,
     "lng": 94.1755
   },
+  "JRN": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -10.30583,
+    "lng": -58.48944
+  },
   "JRO": {
     "tz": "Africa/Dar_es_Salaam",
     "country": "TZ",
@@ -12958,6 +14320,18 @@
     "country": "GR",
     "lat": 39.1771,
     "lng": 23.5037
+  },
+  "JSJ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 47.11,
+    "lng": 132.66028
+  },
+  "JSK": {
+    "tz": "Asia/Tehran",
+    "country": "IR",
+    "lat": 25.6536,
+    "lng": 57.7993
   },
   "JSM": {
     "tz": "America/Catamarca",
@@ -13006,6 +14380,12 @@
     "country": "GR",
     "lat": 36.5799,
     "lng": 26.3758
+  },
+  "JUA": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -11.2966,
+    "lng": -57.5495
   },
   "JUB": {
     "tz": "Africa/Juba",
@@ -13199,11 +14579,23 @@
     "lat": -27.69281,
     "lng": 114.25917
   },
+  "KAZ": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": 1.18528,
+    "lng": 127.896
+  },
   "KBL": {
     "tz": "Asia/Kabul",
     "country": "AF",
     "lat": 34.5659,
     "lng": 69.2123
+  },
+  "KBN": {
+    "tz": "Africa/Lubumbashi",
+    "country": "CG",
+    "lat": -6.133,
+    "lng": 24.483
   },
   "KBP": {
     "tz": "Europe/Kiev",
@@ -13247,6 +14639,12 @@
     "lat": 41.67786,
     "lng": 82.87292
   },
+  "KCF": {
+    "tz": "Asia/Karachi",
+    "country": "PK",
+    "lat": 27.1667,
+    "lng": 69.3167
+  },
   "KCH": {
     "tz": "Asia/Kuala_Lumpur",
     "country": "MY",
@@ -13271,6 +14669,12 @@
     "lat": 40.735,
     "lng": 30.0833
   },
+  "KCS": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -24.4233,
+    "lng": 131.83501
+  },
   "KCT": {
     "tz": "Asia/Colombo",
     "country": "LK",
@@ -13282,6 +14686,18 @@
     "country": "JP",
     "lat": 33.5461,
     "lng": 133.66901
+  },
+  "KDA": {
+    "tz": "Africa/Dakar",
+    "country": "SN",
+    "lat": 12.8985,
+    "lng": -14.9681
+  },
+  "KDC": {
+    "tz": "Africa/Porto-Novo",
+    "country": "BJ",
+    "lat": 11.14479,
+    "lng": 2.94038
   },
   "KDD": {
     "tz": "Asia/Karachi",
@@ -13385,6 +14801,12 @@
     "lat": 7.89129,
     "lng": -11.1766
   },
+  "KEO": {
+    "tz": "Africa/Abidjan",
+    "country": "CI",
+    "lat": 9.5,
+    "lng": -7.567
+  },
   "KEP": {
     "tz": "Asia/Katmandu",
     "country": "NP",
@@ -13396,6 +14818,12 @@
     "country": "IR",
     "lat": 30.2744,
     "lng": 56.9511
+  },
+  "KES": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 56.0375,
+    "lng": -96.5097
   },
   "KET": {
     "tz": "Asia/Rangoon",
@@ -13535,6 +14963,18 @@
     "lat": 30.1575,
     "lng": 101.73472
   },
+  "KGW": {
+    "tz": "Pacific/Port_Moresby",
+    "country": "PG",
+    "lat": -9.13592,
+    "lng": 147.66944
+  },
+  "KGY": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -26.5808,
+    "lng": 151.841
+  },
   "KHC": {
     "tz": "Europe/Simferopol",
     "country": "UA",
@@ -13625,6 +15065,12 @@
     "lat": 38.4275,
     "lng": 44.9736
   },
+  "KHZ": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -15.7808,
+    "lng": -145.12399
+  },
   "KID": {
     "tz": "Europe/Stockholm",
     "country": "SE",
@@ -13709,11 +15155,23 @@
     "lat": 34.4273,
     "lng": 135.244
   },
+  "KIY": {
+    "tz": "Africa/Dar_es_Salaam",
+    "country": "TZ",
+    "lat": -8.91123,
+    "lng": 39.50862
+  },
   "KJA": {
     "tz": "Asia/Krasnoyarsk",
     "country": "RU",
     "lat": 56.1729,
     "lng": 92.4933
+  },
+  "KJH": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 26.972,
+    "lng": 107.988
   },
   "KJI": {
     "tz": "Asia/Shanghai",
@@ -13828,6 +15286,12 @@
     "country": "CG",
     "lat": 4.15764,
     "lng": 21.6509
+  },
+  "KLJ": {
+    "tz": "Europe/Vilnius",
+    "country": "LT",
+    "lat": 55.7119,
+    "lng": 21.2428
   },
   "KLM": {
     "tz": "Asia/Tehran",
@@ -13979,6 +15443,12 @@
     "lat": 57.7969,
     "lng": 41.0194
   },
+  "KMX": {
+    "tz": "Asia/Riyadh",
+    "country": "SA",
+    "lat": 18.2973,
+    "lng": 42.8035
+  },
   "KNA": {
     "tz": "America/Santiago",
     "country": "CL",
@@ -14026,6 +15496,12 @@
     "country": "NC",
     "lat": -21.0543,
     "lng": 164.83701
+  },
+  "KNR": {
+    "tz": "Asia/Tehran",
+    "country": "IR",
+    "lat": 27.8205,
+    "lng": 52.3522
   },
   "KNS": {
     "tz": "Australia/Melbourne",
@@ -14087,6 +15563,12 @@
     "lat": 63.7212,
     "lng": 23.1431
   },
+  "KOO": {
+    "tz": "Africa/Lubumbashi",
+    "country": "CG",
+    "lat": -5.39444,
+    "lng": 26.99
+  },
   "KOP": {
     "tz": "Asia/Bangkok",
     "country": "TH",
@@ -14129,6 +15611,12 @@
     "lat": 25.85333,
     "lng": 114.77889
   },
+  "KOX": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -4.71075,
+    "lng": 136.43515
+  },
   "KPC": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -14147,6 +15635,12 @@
     "lat": 35.98796,
     "lng": 129.42038
   },
+  "KPS": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -31.0744,
+    "lng": 152.77
+  },
   "KPV": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -14159,17 +15653,35 @@
     "lat": 54.13377,
     "lng": -165.7789
   },
+  "KQH": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 26.60147,
+    "lng": 74.81415
+  },
   "KQT": {
     "tz": "Asia/Dushanbe",
     "country": "TJ",
     "lat": 37.8664,
     "lng": 68.8647
   },
+  "KRA": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -35.7514,
+    "lng": 143.939
+  },
   "KRB": {
     "tz": "Australia/Brisbane",
     "country": "AU",
     "lat": -17.4567,
     "lng": 140.83
+  },
+  "KRC": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": -2.093,
+    "lng": 101.4683
   },
   "KRF": {
     "tz": "Europe/Stockholm",
@@ -14218,6 +15730,12 @@
     "country": "DK",
     "lat": 56.2975,
     "lng": 9.12463
+  },
+  "KRQ": {
+    "tz": "Europe/Kyiv",
+    "country": "UA",
+    "lat": 48.7056,
+    "lng": 37.6289
   },
   "KRR": {
     "tz": "Europe/Moscow",
@@ -14272,6 +15790,12 @@
     "country": "SE",
     "lat": 59.4447,
     "lng": 13.3374
+  },
+  "KSE": {
+    "tz": "Africa/Kampala",
+    "country": "UG",
+    "lat": 0.183,
+    "lng": 30.1
   },
   "KSF": {
     "tz": "Europe/Berlin",
@@ -14603,6 +16127,12 @@
     "lat": 8.72012,
     "lng": 167.73199
   },
+  "KWB": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": -5.80091,
+    "lng": 110.47838
+  },
   "KWE": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -14740,6 +16270,12 @@
     "country": "KH",
     "lat": 12.2552,
     "lng": 104.564
+  },
+  "KZF": {
+    "tz": "Pacific/Port_Moresby",
+    "country": "PG",
+    "lat": -7.50025,
+    "lng": 146.03383
   },
   "KZG": {
     "tz": "Europe/Berlin",
@@ -15125,6 +16661,12 @@
     "lat": 58.4655,
     "lng": 13.1744
   },
+  "LDM": {
+    "tz": "America/Detroit",
+    "country": "US",
+    "lat": 43.9625,
+    "lng": -86.4079
+  },
   "LDN": {
     "tz": "Asia/Katmandu",
     "country": "NP",
@@ -15184,6 +16726,12 @@
     "country": "RU",
     "lat": 59.8003,
     "lng": 30.2625
+  },
+  "LEE": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 28.8231,
+    "lng": -81.8087
   },
   "LEH": {
     "tz": "Europe/Paris",
@@ -15293,6 +16841,12 @@
     "lat": 27.3727,
     "lng": 53.1888
   },
+  "LFQ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 36.13263,
+    "lng": 111.64124
+  },
   "LFR": {
     "tz": "America/Caracas",
     "country": "VE",
@@ -15328,6 +16882,12 @@
     "country": "US",
     "lat": 33.0089,
     "lng": -85.0726
+  },
+  "LGD": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 45.2902,
+    "lng": -118.007
   },
   "LGG": {
     "tz": "Europe/Brussels",
@@ -15406,6 +16966,12 @@
     "country": "AU",
     "lat": -29.4567,
     "lng": 147.98399
+  },
+  "LHK": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 32.3894,
+    "lng": 111.695
   },
   "LHR": {
     "tz": "Europe/London",
@@ -15623,6 +17189,12 @@
     "lat": 65.5438,
     "lng": 22.122
   },
+  "LLB": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 25.4525,
+    "lng": 107.96167
+  },
   "LLE": {
     "tz": "Africa/Johannesburg",
     "country": "ZA",
@@ -15713,6 +17285,12 @@
     "lat": 30.3781,
     "lng": 19.5764
   },
+  "LMR": {
+    "tz": "Africa/Johannesburg",
+    "country": "ZA",
+    "lat": -28.3601,
+    "lng": 23.4391
+  },
   "LMT": {
     "tz": "America/Los_Angeles",
     "country": "US",
@@ -15755,6 +17333,12 @@
     "lat": 40.851,
     "lng": -96.7592
   },
+  "LNL": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 33.788,
+    "lng": 105.797
+  },
   "LNN": {
     "tz": "America/New_York",
     "country": "US",
@@ -15778,6 +17362,12 @@
     "country": "US",
     "lat": 40.1217,
     "lng": -76.2961
+  },
+  "LNX": {
+    "tz": "Europe/Moscow",
+    "country": "RU",
+    "lat": 54.824,
+    "lng": 32.025
   },
   "LNY": {
     "tz": "Pacific/Honolulu",
@@ -15814,6 +17404,12 @@
     "country": "KE",
     "lat": 3.12197,
     "lng": 35.6087
+  },
+  "LOL": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 40.0664,
+    "lng": -118.565
   },
   "LOO": {
     "tz": "Africa/Algiers",
@@ -15880,6 +17476,12 @@
     "country": "CO",
     "lat": -1.32861,
     "lng": -69.5797
+  },
+  "LPF": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 26.60942,
+    "lng": 104.979
   },
   "LPG": {
     "tz": "America/Buenos_Aires",
@@ -16193,6 +17795,12 @@
     "lat": 27.6869,
     "lng": 86.7297
   },
+  "LUC": {
+    "tz": "Pacific/Fiji",
+    "country": "FJ",
+    "lat": -16.7481,
+    "lng": -179.66701
+  },
   "LUD": {
     "tz": "Africa/Windhoek",
     "country": "NA",
@@ -16397,6 +18005,12 @@
     "lat": 20.967,
     "lng": 101.4
   },
+  "LXN": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 40.791,
+    "lng": -99.7773
+  },
   "LXR": {
     "tz": "Africa/Cairo",
     "country": "EG",
@@ -16577,6 +18191,12 @@
     "lat": 39.8626,
     "lng": 4.21865
   },
+  "MAI": {
+    "tz": "Africa/Blantyre",
+    "country": "MW",
+    "lat": -14.483,
+    "lng": 35.267
+  },
   "MAJ": {
     "tz": "Pacific/Majuro",
     "country": "MH",
@@ -16673,11 +18293,23 @@
     "lat": 44.3039,
     "lng": 143.40401
   },
+  "MBG": {
+    "tz": "America/Denver",
+    "country": "US",
+    "lat": 45.5465,
+    "lng": -100.408
+  },
   "MBH": {
     "tz": "Australia/Brisbane",
     "country": "AU",
     "lat": -25.5133,
     "lng": 152.715
+  },
+  "MBI": {
+    "tz": "Africa/Dar_es_Salaam",
+    "country": "TZ",
+    "lat": -8.91994,
+    "lng": 33.27398
   },
   "MBJ": {
     "tz": "America/Jamaica",
@@ -16732,6 +18364,12 @@
     "country": "BR",
     "lat": -3.37217,
     "lng": -57.7248
+  },
+  "MCB": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 31.1785,
+    "lng": -90.4719
   },
   "MCC": {
     "tz": "America/Los_Angeles",
@@ -16871,6 +18509,12 @@
     "lat": 44.5241,
     "lng": 129.569
   },
+  "MDH": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 37.7781,
+    "lng": -89.252
+  },
   "MDI": {
     "tz": "Africa/Lagos",
     "country": "NG",
@@ -17008,6 +18652,12 @@
     "country": "US",
     "lat": 35.919,
     "lng": -75.6955
+  },
+  "MEQ": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": 4.25,
+    "lng": 96.217
   },
   "MER": {
     "tz": "America/Los_Angeles",
@@ -17230,6 +18880,12 @@
     "country": "IR",
     "lat": 36.2352,
     "lng": 59.641
+  },
+  "MHE": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 43.7748,
+    "lng": -98.0386
   },
   "MHG": {
     "tz": "Europe/Berlin",
@@ -17627,6 +19283,12 @@
     "lat": 64.9976,
     "lng": -150.644
   },
+  "MLZ": {
+    "tz": "America/Montevideo",
+    "country": "UY",
+    "lat": -32.3379,
+    "lng": -54.2167
+  },
   "MMB": {
     "tz": "Asia/Tokyo",
     "country": "JP",
@@ -17681,6 +19343,12 @@
     "lat": 15.1559,
     "lng": -23.2137
   },
+  "MMT": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 33.9208,
+    "lng": -80.8013
+  },
   "MMU": {
     "tz": "America/New_York",
     "country": "US",
@@ -17705,6 +19373,12 @@
     "lat": 35.9308,
     "lng": 64.7609
   },
+  "MNA": {
+    "tz": "Asia/Makassar",
+    "country": "ID",
+    "lat": 4.00694,
+    "lng": 126.673
+  },
   "MNB": {
     "tz": "Africa/Kinshasa",
     "country": "CG",
@@ -17728,6 +19402,12 @@
     "country": "AU",
     "lat": -12.0561,
     "lng": 134.23399
+  },
+  "MNH": {
+    "tz": "Asia/Muscat",
+    "country": "OM",
+    "lat": 23.64056,
+    "lng": 57.4875
   },
   "MNI": {
     "tz": "America/Montserrat",
@@ -17764,6 +19444,12 @@
     "country": "ZM",
     "lat": -15.2545,
     "lng": 23.1623
+  },
+  "MNS": {
+    "tz": "Africa/Lusaka",
+    "country": "ZM",
+    "lat": -11.137,
+    "lng": 28.8726
   },
   "MNU": {
     "tz": "Asia/Rangoon",
@@ -17927,6 +19613,12 @@
     "lat": -51.8228,
     "lng": -58.4472
   },
+  "MPO": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 41.1375,
+    "lng": -75.3789
+  },
   "MPV": {
     "tz": "America/New_York",
     "country": "US",
@@ -18046,6 +19738,18 @@
     "country": "KE",
     "lat": -1.40611,
     "lng": 35.00806
+  },
+  "MRF": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 30.3711,
+    "lng": -104.018
+  },
+  "MRG": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -17.0692,
+    "lng": 145.41901
   },
   "MRI": {
     "tz": "America/Anchorage",
@@ -18239,6 +19943,12 @@
     "lat": 6.9571,
     "lng": 35.5547
   },
+  "MTG": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -14.9942,
+    "lng": -59.9458
+  },
   "MTH": {
     "tz": "America/New_York",
     "country": "US",
@@ -18274,6 +19984,12 @@
     "country": "US",
     "lat": 39.3257,
     "lng": -76.4138
+  },
+  "MTP": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 41.0765,
+    "lng": -71.9208
   },
   "MTR": {
     "tz": "America/Bogota",
@@ -18467,6 +20183,12 @@
     "lat": 45.8208,
     "lng": 6.65222
   },
+  "MVW": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 48.4709,
+    "lng": -122.421
+  },
   "MVY": {
     "tz": "America/New_York",
     "country": "US",
@@ -18496,6 +20218,12 @@
     "country": "PK",
     "lat": 32.5631,
     "lng": 71.5707
+  },
+  "MWE": {
+    "tz": "Africa/Khartoum",
+    "country": "SD",
+    "lat": 18.44333,
+    "lng": 31.84333
   },
   "MWF": {
     "tz": "Pacific/Efate",
@@ -18556,6 +20284,12 @@
     "country": "PG",
     "lat": -6.36333,
     "lng": 143.23801
+  },
+  "MXI": {
+    "tz": "Asia/Manila",
+    "country": "PH",
+    "lat": 6.94909,
+    "lng": 126.27368
   },
   "MXJ": {
     "tz": "Africa/Lagos",
@@ -18719,6 +20453,12 @@
     "lat": 4.32201,
     "lng": 113.987
   },
+  "MYZ": {
+    "tz": "Africa/Blantyre",
+    "country": "MW",
+    "lat": -14.0836,
+    "lng": 34.9197
+  },
   "MZB": {
     "tz": "Africa/Maputo",
     "country": "MZ",
@@ -18821,6 +20561,12 @@
     "lat": -30.3192,
     "lng": 149.827
   },
+  "NAC": {
+    "tz": "Australia/Adelaide",
+    "country": "AU",
+    "lat": -36.9853,
+    "lng": 140.72501
+  },
   "NAG": {
     "tz": "Asia/Calcutta",
     "country": "IN",
@@ -18856,6 +20602,12 @@
     "country": "RU",
     "lat": 43.5129,
     "lng": 43.6366
+  },
+  "NAM": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -3.23557,
+    "lng": 127.1
   },
   "NAN": {
     "tz": "Pacific/Fiji",
@@ -18893,6 +20645,12 @@
     "lat": -5.76806,
     "lng": -35.37611
   },
+  "NAU": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -14.1768,
+    "lng": -141.267
+  },
   "NAV": {
     "tz": "Europe/Istanbul",
     "country": "TR",
@@ -18929,6 +20687,12 @@
     "lat": 29.8253,
     "lng": -90.035
   },
+  "NBN": {
+    "tz": "Africa/Malabo",
+    "country": "GQ",
+    "lat": -1.41028,
+    "lng": 5.62194
+  },
   "NBO": {
     "tz": "Africa/Nairobi",
     "country": "KE",
@@ -18940,6 +20704,12 @@
     "country": "CN",
     "lat": 42.06694,
     "lng": 127.60222
+  },
+  "NBW": {
+    "tz": "America/Havana",
+    "country": "CU",
+    "lat": 19.9065,
+    "lng": -75.2071
   },
   "NBX": {
     "tz": "Asia/Jayapura",
@@ -18964,6 +20734,12 @@
     "country": "MX",
     "lat": 30.3974,
     "lng": -107.875
+  },
+  "NCJ": {
+    "tz": "America/Argentina/Cordoba",
+    "country": "AR",
+    "lat": -30.9575,
+    "lng": -61.5283
   },
   "NCL": {
     "tz": "Europe/London",
@@ -19019,6 +20795,12 @@
     "lat": 19.1833,
     "lng": 77.3167
   },
+  "NDD": {
+    "tz": "Africa/Luanda",
+    "country": "AO",
+    "lat": -11.1679,
+    "lng": 13.8475
+  },
   "NDG": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -19030,6 +20812,12 @@
     "country": "TD",
     "lat": 12.1337,
     "lng": 15.034
+  },
+  "NDN": {
+    "tz": "Pacific/Port_Moresby",
+    "country": "PG",
+    "lat": -9.14356,
+    "lng": 147.68425
   },
   "NDR": {
     "tz": "Africa/Casablanca",
@@ -19109,11 +20897,23 @@
     "lat": -15.5708,
     "lng": -175.633
   },
+  "NGA": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -34.2556,
+    "lng": 148.248
+  },
   "NGB": {
     "tz": "Asia/Shanghai",
     "country": "CN",
     "lat": 29.8267,
     "lng": 121.462
+  },
+  "NGD": {
+    "tz": "America/Tortola",
+    "country": "VG",
+    "lat": 18.7272,
+    "lng": -64.3297
   },
   "NGE": {
     "tz": "Africa/Douala",
@@ -19132,6 +20932,12 @@
     "country": "FJ",
     "lat": -18.1156,
     "lng": 179.34
+  },
+  "NGK": {
+    "tz": "Asia/Sakhalin",
+    "country": "RU",
+    "lat": 51.7801,
+    "lng": 143.13901
   },
   "NGO": {
     "tz": "Asia/Tokyo",
@@ -19199,6 +21005,12 @@
     "lat": -8.7956,
     "lng": -140.229
   },
+  "NHZ": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 43.8922,
+    "lng": -69.9386
+  },
   "NIB": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -19228,6 +21040,12 @@
     "country": "US",
     "lat": 30.2358,
     "lng": -81.6806
+  },
+  "NIS": {
+    "tz": "Pacific/Port_Moresby",
+    "country": "PG",
+    "lat": -2.66222,
+    "lng": 151.99778
   },
   "NIT": {
     "tz": "Europe/Paris",
@@ -19264,6 +21082,12 @@
     "country": "US",
     "lat": 32.8292,
     "lng": -115.672
+  },
+  "NKB": {
+    "tz": "Australia/Perth",
+    "country": "AU",
+    "lat": -18.4947,
+    "lng": 124.852
   },
   "NKC": {
     "tz": "Africa/Nouakchott",
@@ -19330,6 +21154,18 @@
     "country": "US",
     "lat": 56.0075,
     "lng": -161.16
+  },
+  "NLH": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 27.5403,
+    "lng": 100.7593
+  },
+  "NLI": {
+    "tz": "Asia/Sakhalin",
+    "country": "RU",
+    "lat": 53.155,
+    "lng": 140.64999
   },
   "NLK": {
     "tz": "Pacific/Norfolk",
@@ -19559,6 +21395,12 @@
     "lat": -0.34887,
     "lng": 111.748
   },
+  "NPR": {
+    "tz": "America/Santarem",
+    "country": "BR",
+    "lat": -7.12583,
+    "lng": -55.40083
+  },
   "NQA": {
     "tz": "America/Chicago",
     "country": "US",
@@ -19607,11 +21449,23 @@
     "lat": -34.7022,
     "lng": 146.51199
   },
+  "NRB": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 30.3911,
+    "lng": -81.4247
+  },
   "NRD": {
     "tz": "Europe/Berlin",
     "country": "DE",
     "lat": 53.70694,
     "lng": 7.23
+  },
+  "NRE": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -3.8548,
+    "lng": 126.7012
   },
   "NRK": {
     "tz": "Europe/Stockholm",
@@ -19775,6 +21629,12 @@
     "lat": 70.21,
     "lng": -151.006
   },
+  "NUK": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -19.285,
+    "lng": -138.772
+  },
   "NUL": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -19895,6 +21755,12 @@
     "lat": 58.7886,
     "lng": 16.9122
   },
+  "NYR": {
+    "tz": "Asia/Yakutsk",
+    "country": "RU",
+    "lat": 63.295,
+    "lng": 118.337
+  },
   "NYT": {
     "tz": "Asia/Rangoon",
     "country": "MM",
@@ -19925,6 +21791,12 @@
     "lat": -14.854,
     "lng": -74.9615
   },
+  "NZE": {
+    "tz": "Africa/Conakry",
+    "country": "GN",
+    "lat": 7.80602,
+    "lng": -8.7018
+  },
   "NZH": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -19936,6 +21808,12 @@
     "country": "US",
     "lat": 33.6761,
     "lng": -117.731
+  },
+  "NZL": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 47.86583,
+    "lng": 122.7675
   },
   "NZY": {
     "tz": "America/Los_Angeles",
@@ -20093,6 +21971,12 @@
     "lat": 18.4042,
     "lng": -76.969
   },
+  "OCM": {
+    "tz": "Australia/Perth",
+    "country": "AU",
+    "lat": -22.54,
+    "lng": 117.275
+  },
   "OCN": {
     "tz": "America/Los_Angeles",
     "country": "AU",
@@ -20153,6 +22037,12 @@
     "lat": 20.6827,
     "lng": 101.994
   },
+  "OEL": {
+    "tz": "Europe/Moscow",
+    "country": "RU",
+    "lat": 52.9347,
+    "lng": 36.0022
+  },
   "OEM": {
     "tz": "America/Paramaribo",
     "country": "SR",
@@ -20176,6 +22066,18 @@
     "country": "US",
     "lat": 41.1183,
     "lng": -95.9125
+  },
+  "OFK": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 41.9855,
+    "lng": -97.4351
+  },
+  "OGB": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 33.4568,
+    "lng": -80.8595
   },
   "OGD": {
     "tz": "America/Denver",
@@ -20206,6 +22108,12 @@
     "country": "US",
     "lat": 44.6819,
     "lng": -75.4655
+  },
+  "OGU": {
+    "tz": "Europe/Istanbul",
+    "country": "TR",
+    "lat": 40.96605,
+    "lng": 38.08099
   },
   "OGX": {
     "tz": "Africa/Algiers",
@@ -20242,6 +22150,12 @@
     "country": "RU",
     "lat": 59.41006,
     "lng": 143.0565
+  },
+  "OHS": {
+    "tz": "Asia/Muscat",
+    "country": "OM",
+    "lat": 24.38604,
+    "lng": 56.62541
   },
   "OIA": {
     "tz": "America/Belem",
@@ -20315,6 +22229,18 @@
     "lat": 34.7569,
     "lng": 133.855
   },
+  "OKK": {
+    "tz": "America/Indiana/Indianapolis",
+    "country": "US",
+    "lat": 40.5282,
+    "lng": -86.059
+  },
+  "OKL": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -4.9071,
+    "lng": 140.6277
+  },
   "OKM": {
     "tz": "America/Chicago",
     "country": "US",
@@ -20380,6 +22306,12 @@
     "country": "VU",
     "lat": -14.8817,
     "lng": 166.558
+  },
+  "OLL": {
+    "tz": "Africa/Brazzaville",
+    "country": "CG",
+    "lat": -1.22667,
+    "lng": 15.91
   },
   "OLM": {
     "tz": "America/Los_Angeles",
@@ -20795,11 +22727,23 @@
     "lat": 2.04599,
     "lng": 128.325
   },
+  "OTJ": {
+    "tz": "Africa/Windhoek",
+    "country": "NA",
+    "lat": -20.4347,
+    "lng": 16.6608
+  },
   "OTK": {
     "tz": "America/Los_Angeles",
     "country": "US",
     "lat": 45.4182,
     "lng": -123.814
+  },
+  "OTM": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 41.1066,
+    "lng": -92.4479
   },
   "OTP": {
     "tz": "Europe/Bucharest",
@@ -21005,6 +22949,12 @@
     "lat": 37.1749,
     "lng": -5.61594
   },
+  "OZR": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 31.2757,
+    "lng": -85.7134
+  },
   "OZZ": {
     "tz": "Africa/Casablanca",
     "country": "MA",
@@ -21058,6 +23008,12 @@
     "country": "PK",
     "lat": 33.9021,
     "lng": 70.0716
+  },
+  "PAL": {
+    "tz": "America/Bogota",
+    "country": "CO",
+    "lat": 5.48361,
+    "lng": -74.6574
   },
   "PAM": {
     "tz": "America/Chicago",
@@ -21191,6 +23147,12 @@
     "lat": 9.85611,
     "lng": -85.3708
   },
+  "PBQ": {
+    "tz": "America/Porto_Velho",
+    "country": "BR",
+    "lat": -11.6416,
+    "lng": -61.1791
+  },
   "PBR": {
     "tz": "America/Guatemala",
     "country": "GT",
@@ -21214,6 +23176,12 @@
     "country": "ID",
     "lat": -6.33696,
     "lng": 106.765
+  },
+  "PCD": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 43.0193,
+    "lng": -91.1237
   },
   "PCF": {
     "tz": "Africa/Johannesburg",
@@ -21239,11 +23207,23 @@
     "lat": 1.66294,
     "lng": 7.41174
   },
+  "PCQ": {
+    "tz": "Asia/Vientiane",
+    "country": "LA",
+    "lat": 21.6475,
+    "lng": 101.9
+  },
   "PCR": {
     "tz": "America/Bogota",
     "country": "CO",
     "lat": 6.18472,
     "lng": -67.4932
+  },
+  "PCS": {
+    "tz": "America/Fortaleza",
+    "country": "BR",
+    "lat": -7.06206,
+    "lng": -41.5237
   },
   "PDA": {
     "tz": "America/Bogota",
@@ -21292,6 +23272,12 @@
     "country": "US",
     "lat": 45.6951,
     "lng": -118.841
+  },
+  "PDU": {
+    "tz": "America/Montevideo",
+    "country": "UY",
+    "lat": -32.3633,
+    "lng": -58.0619
   },
   "PDV": {
     "tz": "Europe/Sofia",
@@ -21503,6 +23489,12 @@
     "lat": 45.1981,
     "lng": 0.81556
   },
+  "PGZ": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -25.1847,
+    "lng": -50.1441
+  },
   "PHA": {
     "tz": "Asia/Saigon",
     "country": "VN",
@@ -21677,6 +23669,12 @@
     "lat": -5.20575,
     "lng": -80.6164
   },
+  "PIW": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 55.5889,
+    "lng": -97.1642
+  },
   "PIX": {
     "tz": "Atlantic/Azores",
     "country": "PT",
@@ -21761,6 +23759,12 @@
     "lat": -2.7052,
     "lng": 111.673
   },
+  "PKO": {
+    "tz": "Africa/Porto-Novo",
+    "country": "BJ",
+    "lat": 9.35769,
+    "lng": 2.60968
+  },
   "PKP": {
     "tz": "Pacific/Tahiti",
     "country": "PF",
@@ -21772,6 +23776,12 @@
     "country": "NP",
     "lat": 28.2009,
     "lng": 83.9821
+  },
+  "PKT": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -14.25,
+    "lng": 129.52901
   },
   "PKU": {
     "tz": "Asia/Jakarta",
@@ -21928,6 +23938,12 @@
     "country": "BR",
     "lat": -22.5496,
     "lng": -55.7026
+  },
+  "PMH": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 38.8405,
+    "lng": -82.8473
   },
   "PMI": {
     "tz": "Europe/Madrid",
@@ -22181,6 +24197,12 @@
     "lat": 18.1988,
     "lng": -76.5345
   },
+  "POU": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 41.6266,
+    "lng": -73.8842
+  },
   "POW": {
     "tz": "Europe/Ljubljana",
     "country": "SI",
@@ -22198,6 +24220,12 @@
     "country": "PL",
     "lat": 52.421,
     "lng": 16.8263
+  },
+  "PPA": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 35.613,
+    "lng": -100.996
   },
   "PPB": {
     "tz": "America/Sao_Paulo",
@@ -22217,11 +24245,23 @@
     "lat": 31.35199,
     "lng": -113.30518
   },
+  "PPF": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 37.3299,
+    "lng": -95.5062
+  },
   "PPG": {
     "tz": "Pacific/Pago_Pago",
     "country": "AS",
     "lat": -14.331,
     "lng": -170.71001
+  },
+  "PPI": {
+    "tz": "Australia/Adelaide",
+    "country": "AU",
+    "lat": -33.2389,
+    "lng": 137.995
   },
   "PPK": {
     "tz": "Asia/Qyzylorda",
@@ -22259,6 +24299,12 @@
     "lat": -40.9047,
     "lng": 174.989
   },
+  "PPR": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": 0.84543,
+    "lng": 100.37
+  },
   "PPS": {
     "tz": "Asia/Manila",
     "country": "PH",
@@ -22277,6 +24323,12 @@
     "lat": 59.3517,
     "lng": -2.90028
   },
+  "PPY": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -22.2892,
+    "lng": -45.9191
+  },
   "PQC": {
     "tz": "Asia/Saigon",
     "country": "VN",
@@ -22289,6 +24341,12 @@
     "lat": 46.689,
     "lng": -68.0448
   },
+  "PQM": {
+    "tz": "America/Mexico_City",
+    "country": "MX",
+    "lat": 17.53315,
+    "lng": -92.01548
+  },
   "PQQ": {
     "tz": "Australia/Sydney",
     "country": "AU",
@@ -22300,6 +24358,12 @@
     "country": "AR",
     "lat": -31.7948,
     "lng": -60.4804
+  },
+  "PRB": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 35.6729,
+    "lng": -120.627
   },
   "PRC": {
     "tz": "America/Phoenix",
@@ -22360,6 +24424,12 @@
     "country": "CZ",
     "lat": 49.4258,
     "lng": 17.4047
+  },
+  "PRX": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 33.6366,
+    "lng": -95.4508
   },
   "PRY": {
     "tz": "Africa/Johannesburg",
@@ -22535,6 +24605,12 @@
     "lat": 16.2653,
     "lng": -61.5318
   },
+  "PTT": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 37.7016,
+    "lng": -98.7469
+  },
   "PTU": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -22601,6 +24677,12 @@
     "lat": 18.5674,
     "lng": -68.3634
   },
+  "PUK": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -18.2956,
+    "lng": -137.017
+  },
   "PUQ": {
     "tz": "America/Santiago",
     "country": "CL",
@@ -22618,6 +24700,12 @@
     "country": "KR",
     "lat": 35.1795,
     "lng": 128.938
+  },
+  "PUT": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 14.1493,
+    "lng": 77.7911
   },
   "PUU": {
     "tz": "America/Bogota",
@@ -22715,6 +24803,12 @@
     "lat": 35.5342,
     "lng": -97.6471
   },
+  "PWE": {
+    "tz": "Asia/Anadyr",
+    "country": "RU",
+    "lat": 69.7833,
+    "lng": 170.597
+  },
   "PWK": {
     "tz": "America/Chicago",
     "country": "US",
@@ -22738,6 +24832,12 @@
     "country": "US",
     "lat": 47.4902,
     "lng": -122.765
+  },
+  "PWY": {
+    "tz": "America/Denver",
+    "country": "US",
+    "lat": 42.7955,
+    "lng": -109.807
   },
   "PXH": {
     "tz": "Australia/Adelaide",
@@ -22769,6 +24869,12 @@
     "lat": 14.0045,
     "lng": 108.017
   },
+  "PYB": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 18.88,
+    "lng": 82.552
+  },
   "PYE": {
     "tz": "Pacific/Rarotonga",
     "country": "CK",
@@ -22787,6 +24893,12 @@
     "lat": 66.4004,
     "lng": 112.03
   },
+  "PYK": {
+    "tz": "Asia/Tehran",
+    "country": "IR",
+    "lat": 35.7761,
+    "lng": 50.8267
+  },
   "PYM": {
     "tz": "America/New_York",
     "country": "US",
@@ -22804,6 +24916,12 @@
     "country": "TH",
     "lat": 19.372,
     "lng": 98.437
+  },
+  "PZA": {
+    "tz": "America/Bogota",
+    "country": "CO",
+    "lat": 5.87615,
+    "lng": -71.8866
   },
   "PZB": {
     "tz": "Africa/Johannesburg",
@@ -22828,6 +24946,12 @@
     "country": "CN",
     "lat": 26.54,
     "lng": 101.79852
+  },
+  "PZL": {
+    "tz": "Africa/Johannesburg",
+    "country": "ZA",
+    "lat": -27.8494,
+    "lng": 32.3097
   },
   "PZO": {
     "tz": "America/Caracas",
@@ -22883,17 +25007,35 @@
     "lat": 49.96,
     "lng": 8.64583
   },
+  "QFG": {
+    "tz": "America/Nuuk",
+    "country": "GL",
+    "lat": 60.61972,
+    "lng": -45.91406
+  },
   "QFO": {
     "tz": "Europe/London",
     "country": "GB",
     "lat": 52.0908,
     "lng": 0.13194
   },
+  "QGQ": {
+    "tz": "America/Nuuk",
+    "country": "GL",
+    "lat": 67.94066,
+    "lng": -53.62187
+  },
   "QGU": {
     "tz": "Asia/Tokyo",
     "country": "JP",
     "lat": 35.3941,
     "lng": 136.87
+  },
+  "QHP": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -23.0401,
+    "lng": -45.516
   },
   "QHR": {
     "tz": "Africa/Addis_Ababa",
@@ -22913,6 +25055,24 @@
     "lat": 27.039,
     "lng": 49.4051
   },
+  "QJE": {
+    "tz": "America/Nuuk",
+    "country": "GL",
+    "lat": 68.85793,
+    "lng": -53.1233
+  },
+  "QJI": {
+    "tz": "America/Nuuk",
+    "country": "GL",
+    "lat": 68.63425,
+    "lng": -51.83226
+  },
+  "QKX": {
+    "tz": "Europe/Oslo",
+    "country": "NO",
+    "lat": 69.0403,
+    "lng": 23.034
+  },
   "QLA": {
     "tz": "Europe/London",
     "country": "GB",
@@ -22930,6 +25090,12 @@
     "country": "FI",
     "lat": 61.1442,
     "lng": 25.6935
+  },
+  "QLP": {
+    "tz": "Europe/Rome",
+    "country": "IT",
+    "lat": 44.088,
+    "lng": 9.98795
   },
   "QLR": {
     "tz": "Europe/Lisbon",
@@ -22954,6 +25120,12 @@
     "country": "CH",
     "lat": 46.9575,
     "lng": 6.86472
+  },
+  "QND": {
+    "tz": "Europe/Belgrade",
+    "country": "RS",
+    "lat": 45.3858,
+    "lng": 19.8392
   },
   "QNJ": {
     "tz": "Europe/Paris",
@@ -22997,6 +25169,18 @@
     "lat": -21.9846,
     "lng": -47.3348
   },
+  "QPW": {
+    "tz": "America/Nuuk",
+    "country": "GL",
+    "lat": 68.31266,
+    "lng": -53.46021
+  },
+  "QQT": {
+    "tz": "America/Nuuk",
+    "country": "GL",
+    "lat": 69.99586,
+    "lng": -51.30092
+  },
   "QRA": {
     "tz": "Africa/Johannesburg",
     "country": "ZA",
@@ -23009,17 +25193,35 @@
     "lat": -34.1737,
     "lng": -70.7757
   },
+  "QRM": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -32.2147,
+    "lng": 148.22501
+  },
   "QRO": {
     "tz": "America/Mexico_City",
     "country": "MX",
     "lat": 20.6173,
     "lng": -100.186
   },
+  "QRR": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -31.7333,
+    "lng": 147.80299
+  },
   "QRW": {
     "tz": "Africa/Lagos",
     "country": "NG",
     "lat": 5.59611,
     "lng": 5.81778
+  },
+  "QRY": {
+    "tz": "America/Nuuk",
+    "country": "GL",
+    "lat": 68.14088,
+    "lng": -53.44146
   },
   "QSA": {
     "tz": "Europe/Madrid",
@@ -23039,11 +25241,35 @@
     "lat": 36.1781,
     "lng": 5.32449
   },
+  "QSI": {
+    "tz": "Africa/Dar_es_Salaam",
+    "country": "TZ",
+    "lat": -3.36333,
+    "lng": 37.3269
+  },
+  "QSN": {
+    "tz": "America/Havana",
+    "country": "CU",
+    "lat": 22.7561,
+    "lng": -81.9209
+  },
   "QSR": {
     "tz": "Europe/Rome",
     "country": "IT",
     "lat": 40.6204,
     "lng": 14.9113
+  },
+  "QSZ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 38.28106,
+    "lng": 77.07519
+  },
+  "QUG": {
+    "tz": "Europe/London",
+    "country": "GB",
+    "lat": 50.8594,
+    "lng": -0.75917
   },
   "QUO": {
     "tz": "Africa/Lagos",
@@ -23134,6 +25360,12 @@
     "country": "US",
     "lat": 44.0453,
     "lng": -103.057
+  },
+  "RAQ": {
+    "tz": "Asia/Makassar",
+    "country": "ID",
+    "lat": -4.76056,
+    "lng": 122.56937
   },
   "RAR": {
     "tz": "Pacific/Rarotonga",
@@ -23255,6 +25487,12 @@
     "lat": -15.472,
     "lng": 167.83501
   },
+  "RCM": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -20.7019,
+    "lng": 143.11501
+  },
   "RCO": {
     "tz": "Europe/Paris",
     "country": "FR",
@@ -23284,6 +25522,12 @@
     "country": "BS",
     "lat": 23.6844,
     "lng": -74.8362
+  },
+  "RDB": {
+    "tz": "America/Nome",
+    "country": "US",
+    "lat": 68.0321,
+    "lng": -162.899
   },
   "RDC": {
     "tz": "America/Belem",
@@ -23321,6 +25565,12 @@
     "lat": 51.3892,
     "lng": 21.2133
   },
+  "RDP": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 23.6225,
+    "lng": 87.243
+  },
   "RDR": {
     "tz": "America/Chicago",
     "country": "US",
@@ -23344,6 +25594,12 @@
     "country": "FR",
     "lat": 44.4079,
     "lng": 2.48267
+  },
+  "REA": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -18.4659,
+    "lng": -136.44
   },
   "REB": {
     "tz": "Europe/Berlin",
@@ -23416,6 +25672,12 @@
     "country": "BO",
     "lat": -14.3044,
     "lng": -67.3534
+  },
+  "REZ": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -22.4785,
+    "lng": -44.4803
   },
   "RFD": {
     "tz": "America/Chicago",
@@ -23513,6 +25775,18 @@
     "lat": 27.394,
     "lng": 86.0614
   },
+  "RHT": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 39.225,
+    "lng": 101.546
+  },
+  "RHV": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 37.3329,
+    "lng": -121.819
+  },
   "RIA": {
     "tz": "America/Sao_Paulo",
     "country": "BR",
@@ -23530,6 +25804,18 @@
     "country": "US",
     "lat": 37.5052,
     "lng": -77.3197
+  },
+  "RIH": {
+    "tz": "America/Panama",
+    "country": "PA",
+    "lat": 8.37588,
+    "lng": -80.1279
+  },
+  "RIJ": {
+    "tz": "America/Lima",
+    "country": "PE",
+    "lat": -6.06786,
+    "lng": -77.16
   },
   "RIL": {
     "tz": "America/Denver",
@@ -23573,11 +25859,23 @@
     "lat": 14.6626,
     "lng": 49.375
   },
+  "RIZ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 35.40503,
+    "lng": 119.3244
+  },
   "RJA": {
     "tz": "Asia/Calcutta",
     "country": "IN",
     "lat": 17.1104,
     "lng": 81.8182
+  },
+  "RJB": {
+    "tz": "Asia/Kathmandu",
+    "country": "NP",
+    "lat": 26.51007,
+    "lng": 86.7339
   },
   "RJH": {
     "tz": "Asia/Dhaka",
@@ -23620,6 +25918,12 @@
     "country": "US",
     "lat": 34.9878,
     "lng": -81.0572
+  },
+  "RKO": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": -2.09912,
+    "lng": 99.7007
   },
   "RKP": {
     "tz": "America/Chicago",
@@ -23717,6 +26021,18 @@
     "lat": 49.4369,
     "lng": 7.60028
   },
+  "RMT": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -22.63725,
+    "lng": -152.8059
+  },
+  "RMU": {
+    "tz": "Europe/Madrid",
+    "country": "ES",
+    "lat": 37.803,
+    "lng": -1.125
+  },
   "RMY": {
     "tz": "America/Los_Angeles",
     "country": "US",
@@ -23788,6 +26104,12 @@
     "country": "US",
     "lat": 47.4931,
     "lng": -122.216
+  },
+  "RNZ": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 40.9479,
+    "lng": -87.1826
   },
   "ROA": {
     "tz": "America/New_York",
@@ -23879,6 +26201,12 @@
     "lat": -14.73481,
     "lng": 134.52549
   },
+  "RPM": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -14.7228,
+    "lng": 134.74699
+  },
   "RPN": {
     "tz": "Asia/Jerusalem",
     "country": "IL",
@@ -23891,6 +26219,12 @@
     "lat": 21.1804,
     "lng": 81.7388
   },
+  "RQW": {
+    "tz": "Asia/Baghdad",
+    "country": "IQ",
+    "lat": 35.7672,
+    "lng": 43.1251
+  },
   "RRG": {
     "tz": "Indian/Mauritius",
     "country": "MU",
@@ -23902,6 +26236,12 @@
     "country": "IN",
     "lat": 22.2567,
     "lng": 84.8146
+  },
+  "RRR": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -16.045,
+    "lng": -142.47694
   },
   "RRS": {
     "tz": "Europe/Oslo",
@@ -23926,6 +26266,12 @@
     "country": "US",
     "lat": 61.77888,
     "lng": -161.31946
+  },
+  "RSL": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 38.8721,
+    "lng": -98.8118
   },
   "RSS": {
     "tz": "Africa/Khartoum",
@@ -23963,6 +26309,12 @@
     "lat": 16.3168,
     "lng": -86.523
   },
+  "RTC": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 17.0136,
+    "lng": 73.3278
+  },
   "RTG": {
     "tz": "Asia/Makassar",
     "country": "ID",
@@ -23974,6 +26326,12 @@
     "country": "NL",
     "lat": 51.9569,
     "lng": 4.43722
+  },
+  "RTN": {
+    "tz": "America/Denver",
+    "country": "US",
+    "lat": 36.7415,
+    "lng": -104.502
   },
   "RTS": {
     "tz": "Australia/Perth",
@@ -23998,6 +26356,12 @@
     "country": "IR",
     "lat": 36.4253,
     "lng": 55.1042
+  },
+  "RUG": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 32.25788,
+    "lng": 120.50166
   },
   "RUH": {
     "tz": "Asia/Riyadh",
@@ -24029,6 +26393,12 @@
     "lat": -20.8871,
     "lng": 55.5103
   },
+  "RUR": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -22.4341,
+    "lng": -151.36099
+  },
   "RUS": {
     "tz": "Pacific/Guadalcanal",
     "country": "SB",
@@ -24040,6 +26410,12 @@
     "country": "US",
     "lat": 43.5294,
     "lng": -72.9496
+  },
+  "RUV": {
+    "tz": "America/Guatemala",
+    "country": "GT",
+    "lat": 15.992,
+    "lng": -90.4453
   },
   "RVA": {
     "tz": "Indian/Antananarivo",
@@ -24094,6 +26470,12 @@
     "country": "UY",
     "lat": -30.9746,
     "lng": -55.4762
+  },
+  "RWF": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 44.5472,
+    "lng": -95.0823
   },
   "RWI": {
     "tz": "America/New_York",
@@ -24167,6 +26549,12 @@
     "lat": 36.9099,
     "lng": 50.6796
   },
+  "RZS": {
+    "tz": "Asia/Karachi",
+    "country": "PK",
+    "lat": 26.9662,
+    "lng": 68.8781
+  },
   "SAA": {
     "tz": "America/Denver",
     "country": "US",
@@ -24196,6 +26584,12 @@
     "country": "US",
     "lat": 35.6171,
     "lng": -106.089
+  },
+  "SAG": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 19.68861,
+    "lng": 74.37889
   },
   "SAH": {
     "tz": "Asia/Aden",
@@ -24281,6 +26675,12 @@
     "lat": 5.87413,
     "lng": 95.3397
   },
+  "SBH": {
+    "tz": "America/St_Barthelemy",
+    "country": "FR",
+    "lat": 17.9044,
+    "lng": -62.8436
+  },
   "SBK": {
     "tz": "Europe/Paris",
     "country": "FR",
@@ -24322,6 +26722,12 @@
     "country": "US",
     "lat": 40.5163,
     "lng": -106.866
+  },
+  "SBT": {
+    "tz": "Asia/Yekaterinburg",
+    "country": "RU",
+    "lat": 71.21917,
+    "lng": 72.05222
   },
   "SBU": {
     "tz": "Africa/Johannesburg",
@@ -24677,6 +27083,12 @@
     "lat": 47.6828,
     "lng": -117.323
   },
+  "SFG": {
+    "tz": "America/Marigot",
+    "country": "GP",
+    "lat": 18.0999,
+    "lng": -63.0472
+  },
   "SFH": {
     "tz": "America/Tijuana",
     "country": "MX",
@@ -24767,6 +27179,12 @@
     "lat": 39.8403,
     "lng": -83.8402
   },
+  "SGI": {
+    "tz": "Asia/Karachi",
+    "country": "PK",
+    "lat": 32.0486,
+    "lng": 72.665
+  },
   "SGN": {
     "tz": "Asia/Saigon",
     "country": "VN",
@@ -24778,6 +27196,12 @@
     "country": "AU",
     "lat": -28.0497,
     "lng": 148.595
+  },
+  "SGQ": {
+    "tz": "Asia/Makassar",
+    "country": "ID",
+    "lat": 0.3847,
+    "lng": 117.543
   },
   "SGR": {
     "tz": "America/Chicago",
@@ -24881,6 +27305,12 @@
     "lat": 47.2336,
     "lng": -123.148
   },
+  "SHO": {
+    "tz": "Africa/Mbabane",
+    "country": "SZ",
+    "lat": -26.35861,
+    "lng": 31.71694
+  },
   "SHP": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -24964,6 +27394,12 @@
     "country": "SG",
     "lat": 1.35019,
     "lng": 103.994
+  },
+  "SIO": {
+    "tz": "Australia/Hobart",
+    "country": "AU",
+    "lat": -40.835,
+    "lng": 145.084
   },
   "SIP": {
     "tz": "Europe/Simferopol",
@@ -25379,6 +27815,12 @@
     "lat": -17.0939,
     "lng": 49.8158
   },
+  "SMT": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -12.47918,
+    "lng": -55.67234
+  },
   "SMV": {
     "tz": "Europe/Zurich",
     "country": "CH",
@@ -25409,6 +27851,12 @@
     "lat": 33.6757,
     "lng": -117.868
   },
+  "SNB": {
+    "tz": "Australia/Darwin",
+    "country": "AU",
+    "lat": -11.4228,
+    "lng": 130.65401
+  },
   "SNC": {
     "tz": "America/Guayaquil",
     "country": "EC",
@@ -25426,6 +27874,12 @@
     "country": "VE",
     "lat": 10.2787,
     "lng": -68.7552
+  },
+  "SNJ": {
+    "tz": "America/Havana",
+    "country": "CU",
+    "lat": 22.0953,
+    "lng": -84.152
   },
   "SNN": {
     "tz": "Europe/Dublin",
@@ -25450,6 +27904,12 @@
     "country": "FR",
     "lat": 47.31056,
     "lng": -2.15667
+  },
+  "SNS": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 36.6628,
+    "lng": -121.606
   },
   "SNU": {
     "tz": "America/Havana",
@@ -25559,6 +28019,12 @@
     "lat": 50.9503,
     "lng": -1.3568
   },
+  "SOV": {
+    "tz": "America/Anchorage",
+    "country": "US",
+    "lat": 59.4424,
+    "lng": -151.70399
+  },
   "SOW": {
     "tz": "America/Phoenix",
     "country": "US",
@@ -25576,6 +28042,12 @@
     "country": "FR",
     "lat": 41.9244,
     "lng": 9.406
+  },
+  "SPA": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 34.9157,
+    "lng": -81.9565
   },
   "SPB": {
     "tz": "America/St_Thomas",
@@ -25667,6 +28139,18 @@
     "lat": 4.74672,
     "lng": -6.66082
   },
+  "SQA": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 34.6068,
+    "lng": -120.076
+  },
+  "SQD": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 28.3797,
+    "lng": 117.9643
+  },
   "SQG": {
     "tz": "Asia/Jakarta",
     "country": "ID",
@@ -25679,11 +28163,23 @@
     "lat": 21.217,
     "lng": 104.033
   },
+  "SQJ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 26.4263,
+    "lng": 117.8336
+  },
   "SQL": {
     "tz": "America/Los_Angeles",
     "country": "US",
     "lat": 37.5119,
     "lng": -122.25
+  },
+  "SQN": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -2.08051,
+    "lng": 125.967
   },
   "SQO": {
     "tz": "Europe/Stockholm",
@@ -25708,6 +28204,12 @@
     "country": "DK",
     "lat": 56.5502,
     "lng": 9.17298
+  },
+  "SQX": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -26.7816,
+    "lng": -53.5035
   },
   "SQZ": {
     "tz": "Europe/London",
@@ -25810,6 +28312,12 @@
     "country": "IN",
     "lat": 17.628,
     "lng": 75.9348
+  },
+  "SSF": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 29.337,
+    "lng": -98.4711
   },
   "SSG": {
     "tz": "Africa/Malabo",
@@ -26027,6 +28535,12 @@
     "lat": 47.7033,
     "lng": 22.8857
   },
+  "SUK": {
+    "tz": "Asia/Yakutsk",
+    "country": "RU",
+    "lat": 67.792,
+    "lng": 130.394
+  },
   "SUL": {
     "tz": "Asia/Karachi",
     "country": "PK",
@@ -26038,6 +28552,12 @@
     "country": "US",
     "lat": 43.5044,
     "lng": -114.296
+  },
+  "SUP": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": -7.0242,
+    "lng": 113.89023
   },
   "SUR": {
     "tz": "America/Toronto",
@@ -26177,6 +28697,12 @@
     "lat": 23.552,
     "lng": 116.5033
   },
+  "SWC": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -37.0717,
+    "lng": 142.741
+  },
   "SWD": {
     "tz": "America/Anchorage",
     "country": "US",
@@ -26188,6 +28714,12 @@
     "country": "US",
     "lat": 41.5041,
     "lng": -74.1048
+  },
+  "SWH": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -35.3758,
+    "lng": 143.533
   },
   "SWJ": {
     "tz": "Pacific/Efate",
@@ -26243,6 +28775,12 @@
     "lat": 48.5383,
     "lng": 7.62823
   },
+  "SXE": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -38.09083,
+    "lng": 146.96534
+  },
   "SXF": {
     "tz": "Europe/Berlin",
     "country": "DE",
@@ -26255,6 +28793,18 @@
     "lat": 25.9089,
     "lng": 54.5394
   },
+  "SXJ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 42.9117,
+    "lng": 90.2475
+  },
+  "SXK": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -7.98861,
+    "lng": 131.306
+  },
   "SXL": {
     "tz": "Europe/Dublin",
     "country": "IE",
@@ -26266,6 +28816,12 @@
     "country": "SX",
     "lat": 18.041,
     "lng": -63.1089
+  },
+  "SXN": {
+    "tz": "Africa/Gaborone",
+    "country": "BW",
+    "lat": -20.5534,
+    "lng": 26.1158
   },
   "SXO": {
     "tz": "America/Campo_Grande",
@@ -26477,6 +29033,12 @@
     "lat": 22.6393,
     "lng": 113.811
   },
+  "SZY": {
+    "tz": "Europe/Warsaw",
+    "country": "PL",
+    "lat": 53.4819,
+    "lng": 20.9377
+  },
   "SZZ": {
     "tz": "Europe/Warsaw",
     "country": "PL",
@@ -26585,6 +29147,12 @@
     "lat": 13.0496,
     "lng": 109.334
   },
+  "TBF": {
+    "tz": "Pacific/Tarawa",
+    "country": "KI",
+    "lat": -1.22447,
+    "lng": 174.776
+  },
   "TBG": {
     "tz": "Pacific/Port_Moresby",
     "country": "PG",
@@ -26626,6 +29194,12 @@
     "country": "PE",
     "lat": -3.55253,
     "lng": -80.3814
+  },
+  "TBR": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 32.4827,
+    "lng": -81.7369
   },
   "TBS": {
     "tz": "Asia/Tbilisi",
@@ -26777,6 +29351,12 @@
     "lat": -24.9933,
     "lng": 150.093
   },
+  "TDS": {
+    "tz": "Pacific/Port_Moresby",
+    "country": "PG",
+    "lat": -7.6217,
+    "lng": 142.868
+  },
   "TDX": {
     "tz": "Asia/Bangkok",
     "country": "TH",
@@ -26819,6 +29399,12 @@
     "lat": -21.715,
     "lng": 122.229
   },
+  "TEI": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 27.9412,
+    "lng": 96.1344
+  },
   "TEM": {
     "tz": "Australia/Sydney",
     "country": "AU",
@@ -26855,6 +29441,12 @@
     "lat": -45.5331,
     "lng": 167.64999
   },
+  "TEV": {
+    "tz": "Europe/Madrid",
+    "country": "ES",
+    "lat": 40.403,
+    "lng": -1.2183
+  },
   "TEX": {
     "tz": "America/Denver",
     "country": "US",
@@ -26872,6 +29464,12 @@
     "country": "BR",
     "lat": -3.38294,
     "lng": -64.7241
+  },
+  "TFL": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -17.8923,
+    "lng": -41.5136
   },
   "TFN": {
     "tz": "Atlantic/Canary",
@@ -26933,6 +29531,12 @@
     "lat": 46.4677,
     "lng": 24.4125
   },
+  "TGN": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -38.2072,
+    "lng": 146.47
+  },
   "TGO": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -26944,6 +29548,12 @@
     "country": "RU",
     "lat": 61.5897,
     "lng": 89.994
+  },
+  "TGQ": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -14.662,
+    "lng": -57.4435
   },
   "TGR": {
     "tz": "Africa/Algiers",
@@ -27161,6 +29771,12 @@
     "lat": -21.5557,
     "lng": -64.7013
   },
+  "TJB": {
+    "tz": "Asia/Jakarta",
+    "country": "ID",
+    "lat": 1.0527,
+    "lng": 103.3931
+  },
   "TJG": {
     "tz": "Asia/Makassar",
     "country": "ID",
@@ -27305,6 +29921,12 @@
     "lat": 60.5141,
     "lng": 22.2628
   },
+  "TKV": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -17.3553,
+    "lng": -138.44501
+  },
   "TKX": {
     "tz": "Pacific/Tahiti",
     "country": "PF",
@@ -27341,11 +29963,23 @@
     "lat": 30.3965,
     "lng": -84.3503
   },
+  "TLI": {
+    "tz": "Asia/Makassar",
+    "country": "ID",
+    "lat": 1.12343,
+    "lng": 120.79366
+  },
   "TLJ": {
     "tz": "America/Anchorage",
     "country": "US",
     "lat": 62.8944,
     "lng": -155.97701
+  },
+  "TLK": {
+    "tz": "Asia/Irkutsk",
+    "country": "RU",
+    "lat": 59.87639,
+    "lng": 111.04444
   },
   "TLL": {
     "tz": "Europe/Tallinn",
@@ -27389,6 +30023,12 @@
     "lat": 32.0114,
     "lng": 34.8867
   },
+  "TLX": {
+    "tz": "America/Santiago",
+    "country": "CL",
+    "lat": -35.3778,
+    "lng": -71.6017
+  },
   "TMA": {
     "tz": "America/New_York",
     "country": "US",
@@ -27413,11 +30053,23 @@
     "lat": 6.45108,
     "lng": -71.7603
   },
+  "TMF": {
+    "tz": "Indian/Maldives",
+    "country": "MV",
+    "lat": 2.211,
+    "lng": 73.1533
+  },
   "TMG": {
     "tz": "Asia/Kuala_Lumpur",
     "country": "MY",
     "lat": 5.40257,
     "lng": 118.65763
+  },
+  "TMH": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -6.09922,
+    "lng": 140.298
   },
   "TMI": {
     "tz": "Asia/Katmandu",
@@ -27575,6 +30227,12 @@
     "lat": 25.8618,
     "lng": -80.897
   },
+  "TNW": {
+    "tz": "America/Guayaquil",
+    "country": "EC",
+    "lat": -1.05972,
+    "lng": -77.58333
+  },
   "TNX": {
     "tz": "Asia/Phnom_Penh",
     "country": "KH",
@@ -27629,6 +30287,12 @@
     "lat": -13.328,
     "lng": 166.638
   },
+  "TOI": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 31.8604,
+    "lng": -86.0121
+  },
   "TOJ": {
     "tz": "Europe/Madrid",
     "country": "ES",
@@ -27658,6 +30322,12 @@
     "country": "US",
     "lat": 39.0687,
     "lng": -95.6225
+  },
+  "TOQ": {
+    "tz": "America/Santiago",
+    "country": "CL",
+    "lat": -22.1411,
+    "lng": -70.0629
   },
   "TOS": {
     "tz": "Europe/Oslo",
@@ -27707,6 +30377,18 @@
     "lat": 25.0777,
     "lng": 121.233
   },
+  "TPF": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 27.9156,
+    "lng": -82.4493
+  },
+  "TPH": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 38.0602,
+    "lng": -117.087
+  },
   "TPJ": {
     "tz": "Asia/Katmandu",
     "country": "NP",
@@ -27749,11 +30431,23 @@
     "lat": 33.3381,
     "lng": 43.5971
   },
+  "TQL": {
+    "tz": "Asia/Yekaterinburg",
+    "country": "RU",
+    "lat": 64.9308,
+    "lng": 77.8181
+  },
   "TQQ": {
     "tz": "Asia/Makassar",
     "country": "ID",
     "lat": -5.76457,
     "lng": 123.917
+  },
+  "TQS": {
+    "tz": "America/Bogota",
+    "country": "CO",
+    "lat": 0.7459,
+    "lng": -75.234
   },
   "TRA": {
     "tz": "Asia/Tokyo",
@@ -27905,6 +30599,12 @@
     "lat": 22.0383,
     "lng": -98.8065
   },
+  "TSM": {
+    "tz": "America/Denver",
+    "country": "US",
+    "lat": 36.4582,
+    "lng": -105.672
+  },
   "TSN": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -27959,6 +30659,12 @@
     "lat": 39.9188,
     "lng": 9.68298
   },
+  "TTC": {
+    "tz": "America/Santiago",
+    "country": "CL",
+    "lat": -25.5643,
+    "lng": -70.3759
+  },
   "TTD": {
     "tz": "America/Los_Angeles",
     "country": "US",
@@ -27994,6 +30700,12 @@
     "country": "JP",
     "lat": 35.5301,
     "lng": 134.16701
+  },
+  "TTL": {
+    "tz": "Pacific/Fiji",
+    "country": "FJ",
+    "lat": -16.966,
+    "lng": 177.368
   },
   "TTN": {
     "tz": "America/New_York",
@@ -28078,6 +30790,12 @@
     "country": "US",
     "lat": 36.1984,
     "lng": -95.8881
+  },
+  "TUM": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -35.2628,
+    "lng": 148.241
   },
   "TUN": {
     "tz": "Africa/Tunis",
@@ -28193,6 +30911,12 @@
     "lat": -44.235,
     "lng": 170.118
   },
+  "TXF": {
+    "tz": "America/Bahia",
+    "country": "BR",
+    "lat": -17.5245,
+    "lng": -39.6685
+  },
   "TXG": {
     "tz": "Asia/Taipei",
     "country": "TW",
@@ -28216,6 +30940,12 @@
     "country": "CN",
     "lat": 29.7333,
     "lng": 118.256
+  },
+  "TYB": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -29.4511,
+    "lng": 142.058
   },
   "TYF": {
     "tz": "Europe/Stockholm",
@@ -28349,6 +31079,18 @@
     "lat": 15.2513,
     "lng": 104.87
   },
+  "UBT": {
+    "tz": "America/Sao_Paulo",
+    "country": "BR",
+    "lat": -23.4411,
+    "lng": -45.0756
+  },
+  "UCB": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 41.12972,
+    "lng": 113.10806
+  },
   "UCK": {
     "tz": "Europe/Kiev",
     "country": "UA",
@@ -28433,6 +31175,12 @@
     "lat": -7.60307,
     "lng": 15.0278
   },
+  "UGU": {
+    "tz": "Asia/Jayapura",
+    "country": "ID",
+    "lat": -3.73956,
+    "lng": 137.032
+  },
   "UHE": {
     "tz": "Europe/Prague",
     "country": "CZ",
@@ -28499,6 +31247,18 @@
     "lat": 34.6328,
     "lng": 135.224
   },
+  "UKG": {
+    "tz": "Asia/Vladivostok",
+    "country": "RU",
+    "lat": 70.011,
+    "lng": 135.645
+  },
+  "UKI": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 39.126,
+    "lng": -123.201
+  },
   "UKK": {
     "tz": "Asia/Qyzylorda",
     "country": "KZ",
@@ -28510,6 +31270,12 @@
     "country": "UA",
     "lat": 44.689,
     "lng": 33.571
+  },
+  "UKT": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 40.4352,
+    "lng": -75.3819
   },
   "UKX": {
     "tz": "Asia/Irkutsk",
@@ -28673,11 +31439,23 @@
     "lat": 60.7472,
     "lng": -0.85385
   },
+  "UOL": {
+    "tz": "Asia/Makassar",
+    "country": "ID",
+    "lat": 1.1027,
+    "lng": 121.4141
+  },
   "UOS": {
     "tz": "America/Chicago",
     "country": "US",
     "lat": 35.2051,
     "lng": -85.8981
+  },
+  "UOX": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 34.3843,
+    "lng": -89.5368
   },
   "UPB": {
     "tz": "America/Havana",
@@ -28690,6 +31468,12 @@
     "country": "ID",
     "lat": -5.06163,
     "lng": 119.554
+  },
+  "UPL": {
+    "tz": "America/Costa_Rica",
+    "country": "CR",
+    "lat": 10.8922,
+    "lng": -85.0162
   },
   "UPN": {
     "tz": "America/Mexico_City",
@@ -28919,6 +31703,12 @@
     "lat": 70.3308,
     "lng": -149.59801
   },
+  "UUN": {
+    "tz": "Asia/Ulaanbaatar",
+    "country": "MN",
+    "lat": 46.6603,
+    "lng": 113.285
+  },
   "UUS": {
     "tz": "Asia/Srednekolymsk",
     "country": "RU",
@@ -28960,6 +31750,12 @@
     "country": "BO",
     "lat": -20.4463,
     "lng": -66.8484
+  },
+  "UZR": {
+    "tz": "Asia/Almaty",
+    "country": "KZ",
+    "lat": 47.09115,
+    "lng": 81.66521
   },
   "UZU": {
     "tz": "America/Cordoba",
@@ -29171,6 +31967,12 @@
     "lat": 17.515,
     "lng": 106.59056
   },
+  "VDI": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 32.1927,
+    "lng": -82.3712
+  },
   "VDM": {
     "tz": "America/Argentina/Salta",
     "country": "AR",
@@ -29194,6 +31996,12 @@
     "country": "NO",
     "lat": 70.0653,
     "lng": 29.8447
+  },
+  "VDY": {
+    "tz": "Asia/Kolkata",
+    "country": "IN",
+    "lat": 15.17497,
+    "lng": 76.63495
   },
   "VDZ": {
     "tz": "America/Anchorage",
@@ -29273,11 +32081,23 @@
     "lat": 64.5791,
     "lng": 16.8336
   },
+  "VHV": {
+    "tz": "Asia/Yakutsk",
+    "country": "RU",
+    "lat": 63.45806,
+    "lng": 120.26917
+  },
   "VHY": {
     "tz": "Europe/Paris",
     "country": "FR",
     "lat": 46.1697,
     "lng": 3.40374
+  },
+  "VHZ": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -18.78,
+    "lng": -138.853
   },
   "VIC": {
     "tz": "Europe/Rome",
@@ -29393,6 +32213,12 @@
     "lat": -17.6993,
     "lng": 168.32001
   },
+  "VLK": {
+    "tz": "Europe/Moscow",
+    "country": "RU",
+    "lat": 47.6821,
+    "lng": 42.0728
+  },
   "VLL": {
     "tz": "Europe/Madrid",
     "country": "ES",
@@ -29410,6 +32236,12 @@
     "country": "VE",
     "lat": 10.14973,
     "lng": -67.9284
+  },
+  "VLP": {
+    "tz": "America/Cuiaba",
+    "country": "BR",
+    "lat": -9.97944,
+    "lng": -51.14222
   },
   "VLR": {
     "tz": "America/Santiago",
@@ -29561,6 +32393,12 @@
     "lat": -19.1513,
     "lng": 33.429
   },
+  "VPZ": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 41.454,
+    "lng": -87.0071
+  },
   "VQQ": {
     "tz": "America/New_York",
     "country": "US",
@@ -29675,6 +32513,12 @@
     "lat": 31.2083,
     "lng": 35.0123
   },
+  "VTN": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 42.8578,
+    "lng": -100.548
+  },
   "VTU": {
     "tz": "America/Havana",
     "country": "CU",
@@ -29740,6 +32584,12 @@
     "country": "SE",
     "lat": 56.9291,
     "lng": 14.728
+  },
+  "VYI": {
+    "tz": "Asia/Yakutsk",
+    "country": "RU",
+    "lat": 63.75667,
+    "lng": 121.69334
   },
   "VYS": {
     "tz": "America/Chicago",
@@ -29861,6 +32711,12 @@
     "lat": 33.9829,
     "lng": -83.6674
   },
+  "WDS": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 32.59167,
+    "lng": 110.90778
+  },
   "WEF": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -29903,11 +32759,23 @@
     "lat": -30.0328,
     "lng": 148.12601
   },
+  "WGN": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 26.802,
+    "lng": 110.642
+  },
   "WGP": {
     "tz": "Asia/Makassar",
     "country": "ID",
     "lat": -9.66922,
     "lng": 120.302
+  },
+  "WGT": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -36.4158,
+    "lng": 146.30701
   },
   "WHF": {
     "tz": "Africa/Khartoum",
@@ -29927,6 +32795,12 @@
     "lat": 34.2593,
     "lng": -118.413
   },
+  "WHU": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 31.3906,
+    "lng": 118.409
+  },
   "WIC": {
     "tz": "Europe/London",
     "country": "GB",
@@ -29938,6 +32812,12 @@
     "country": "DE",
     "lat": 50.0498,
     "lng": 8.3254
+  },
+  "WIK": {
+    "tz": "Pacific/Auckland",
+    "country": "NZ",
+    "lat": -36.8089,
+    "lng": 175.086
   },
   "WIL": {
     "tz": "Africa/Nairobi",
@@ -29963,6 +32843,12 @@
     "lat": -39.0069,
     "lng": 177.407
   },
+  "WJF": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 34.7411,
+    "lng": -118.219
+  },
   "WJR": {
     "tz": "Africa/Nairobi",
     "country": "KE",
@@ -29981,11 +32867,23 @@
     "lat": -44.7222,
     "lng": 169.246
   },
+  "WKB": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -36.3211,
+    "lng": 142.41901
+  },
   "WKF": {
     "tz": "Africa/Johannesburg",
     "country": "ZA",
     "lat": -25.83,
     "lng": 28.2225
+  },
+  "WKI": {
+    "tz": "Africa/Harare",
+    "country": "ZW",
+    "lat": -18.36297,
+    "lng": 26.51979
   },
   "WKJ": {
     "tz": "Asia/Tokyo",
@@ -30004,6 +32902,12 @@
     "country": "US",
     "lat": 19.9205,
     "lng": -155.8607
+  },
+  "WKR": {
+    "tz": "America/Nassau",
+    "country": "BS",
+    "lat": 27.2667,
+    "lng": -78.3997
   },
   "WLD": {
     "tz": "America/Chicago",
@@ -30041,11 +32945,29 @@
     "lat": -15.83305,
     "lng": 48.83328
   },
+  "WMB": {
+    "tz": "Australia/Melbourne",
+    "country": "AU",
+    "lat": -38.2953,
+    "lng": 142.44701
+  },
+  "WMC": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 40.8966,
+    "lng": -117.806
+  },
   "WME": {
     "tz": "Australia/Perth",
     "country": "AU",
     "lat": -27.2864,
     "lng": 120.555
+  },
+  "WMH": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 36.3689,
+    "lng": -92.4705
   },
   "WMI": {
     "tz": "Europe/Warsaw",
@@ -30076,6 +32998,12 @@
     "country": "MG",
     "lat": -16.1639,
     "lng": 49.7738
+  },
+  "WMT": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 27.81638,
+    "lng": 106.33268
   },
   "WMX": {
     "tz": "Asia/Jayapura",
@@ -30131,6 +33059,12 @@
     "lat": -34.5611,
     "lng": 150.789
   },
+  "WOS": {
+    "tz": "Asia/Pyongyang",
+    "country": "KP",
+    "lat": 39.1668,
+    "lng": 127.486
+  },
   "WOT": {
     "tz": "Asia/Taipei",
     "country": "TW",
@@ -30142,6 +33076,12 @@
     "country": "MG",
     "lat": -15.58429,
     "lng": 47.62359
+  },
+  "WPC": {
+    "tz": "America/Edmonton",
+    "country": "CA",
+    "lat": 49.5206,
+    "lng": -113.997
   },
   "WPR": {
     "tz": "America/Santiago",
@@ -30317,6 +33257,12 @@
     "lat": 27.7019,
     "lng": 118.001
   },
+  "WUT": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 38.59746,
+    "lng": 112.96917
+  },
   "WUU": {
     "tz": "Africa/Juba",
     "country": "SD",
@@ -30341,6 +33287,12 @@
     "lat": -22.9799,
     "lng": 14.6453
   },
+  "WVI": {
+    "tz": "America/Los_Angeles",
+    "country": "US",
+    "lat": 36.9357,
+    "lng": -121.79
+  },
   "WVK": {
     "tz": "Indian/Antananarivo",
     "country": "MG",
@@ -30353,6 +33305,12 @@
     "lat": 53.50222,
     "lng": 8.05222
   },
+  "WWA": {
+    "tz": "America/Anchorage",
+    "country": "US",
+    "lat": 61.5717,
+    "lng": -149.53999
+  },
   "WWD": {
     "tz": "America/New_York",
     "country": "US",
@@ -30364,6 +33322,18 @@
     "country": "PG",
     "lat": -3.58383,
     "lng": 143.66901
+  },
+  "WWR": {
+    "tz": "America/Chicago",
+    "country": "US",
+    "lat": 36.438,
+    "lng": -99.52267
+  },
+  "WWY": {
+    "tz": "Australia/Sydney",
+    "country": "AU",
+    "lat": -33.9372,
+    "lng": 147.19099
   },
   "WXN": {
     "tz": "Asia/Shanghai",
@@ -30443,6 +33413,12 @@
     "lat": 49.7839,
     "lng": 4.64708
   },
+  "XEN": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 40.5803,
+    "lng": 120.698
+  },
   "XFN": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -30473,11 +33449,23 @@
     "lat": 27.9891,
     "lng": 102.184
   },
+  "XIJ": {
+    "tz": "Asia/Kuwait",
+    "country": "KW",
+    "lat": 28.9348,
+    "lng": 47.7919
+  },
   "XIL": {
     "tz": "Asia/Shanghai",
     "country": "CN",
     "lat": 43.9156,
     "lng": 115.964
+  },
+  "XIQ": {
+    "tz": "America/Nuuk",
+    "country": "GL",
+    "lat": 69.08092,
+    "lng": -51.11432
   },
   "XIY": {
     "tz": "Asia/Shanghai",
@@ -30581,6 +33569,24 @@
     "lat": 44.1405,
     "lng": 4.86672
   },
+  "XPK": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 55.7492,
+    "lng": -101.266
+  },
+  "XPL": {
+    "tz": "America/Tegucigalpa",
+    "country": "HN",
+    "lat": 14.3824,
+    "lng": -87.6212
+  },
+  "XPP": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 52.99653,
+    "lng": -97.27419
+  },
   "XQC": {
     "tz": "Asia/Baghdad",
     "country": "IQ",
@@ -30598,6 +33604,12 @@
     "country": "AU",
     "lat": -33.6006,
     "lng": 150.78101
+  },
+  "XRR": {
+    "tz": "America/Whitehorse",
+    "country": "CA",
+    "lat": 61.9706,
+    "lng": -132.423
   },
   "XRY": {
     "tz": "Europe/Madrid",
@@ -30647,6 +33659,12 @@
     "lat": 58.7061,
     "lng": -98.5122
   },
+  "XTO": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -25.8017,
+    "lng": 149.89999
+  },
   "XUZ": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -30658,6 +33676,12 @@
     "country": "FR",
     "lat": 50.3258,
     "lng": 3.46126
+  },
+  "XXN": {
+    "tz": "Asia/Riyadh",
+    "country": "SA",
+    "lat": 24.7098,
+    "lng": 46.7252
   },
   "XYA": {
     "tz": "Pacific/Guadalcanal",
@@ -30695,6 +33719,12 @@
     "lat": 48.6542,
     "lng": -93.4397
   },
+  "YAH": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 53.7547,
+    "lng": -73.6753
+  },
   "YAI": {
     "tz": "America/Santiago",
     "country": "CL",
@@ -30706,6 +33736,12 @@
     "country": "US",
     "lat": 59.5033,
     "lng": -139.66
+  },
+  "YAL": {
+    "tz": "America/Vancouver",
+    "country": "CA",
+    "lat": 50.5822,
+    "lng": -126.916
   },
   "YAM": {
     "tz": "America/Toronto",
@@ -30724,6 +33760,12 @@
     "country": "FM",
     "lat": 9.49891,
     "lng": 138.08299
+  },
+  "YAS": {
+    "tz": "Pacific/Fiji",
+    "country": "FJ",
+    "lat": -16.7589,
+    "lng": 177.545
   },
   "YAT": {
     "tz": "America/Toronto",
@@ -30748,6 +33790,12 @@
     "country": "CA",
     "lat": 49.07983,
     "lng": -125.77558
+  },
+  "YBA": {
+    "tz": "America/Edmonton",
+    "country": "CA",
+    "lat": 51.20734,
+    "lng": -115.54186
   },
   "YBB": {
     "tz": "America/Edmonton",
@@ -30809,6 +33857,12 @@
     "lat": 49.91,
     "lng": -99.9519
   },
+  "YBS": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 52.6067,
+    "lng": -90.3769
+  },
   "YBT": {
     "tz": "America/Winnipeg",
     "country": "CA",
@@ -30857,6 +33911,12 @@
     "lat": 49.05497,
     "lng": -123.86986
   },
+  "YCE": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 43.2856,
+    "lng": -81.5083
+  },
   "YCG": {
     "tz": "America/Vancouver",
     "country": "CA",
@@ -30898,6 +33958,12 @@
     "country": "CA",
     "lat": 67.8167,
     "lng": -115.144
+  },
+  "YCQ": {
+    "tz": "America/Dawson_Creek",
+    "country": "CA",
+    "lat": 55.6872,
+    "lng": -121.627
   },
   "YCR": {
     "tz": "America/Winnipeg",
@@ -30953,6 +34019,12 @@
     "lat": 49.2108,
     "lng": -57.3914
   },
+  "YDG": {
+    "tz": "America/Halifax",
+    "country": "CA",
+    "lat": 44.54585,
+    "lng": -65.78542
+  },
   "YDL": {
     "tz": "America/Vancouver",
     "country": "CA",
@@ -30964,6 +34036,12 @@
     "country": "CA",
     "lat": 51.1008,
     "lng": -100.052
+  },
+  "YDO": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 48.7785,
+    "lng": -72.375
   },
   "YDP": {
     "tz": "America/Halifax",
@@ -31060,6 +34138,12 @@
     "country": "CA",
     "lat": 68.3042,
     "lng": -133.483
+  },
+  "YEY": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 48.5639,
+    "lng": -78.2497
   },
   "YFA": {
     "tz": "America/Toronto",
@@ -31235,6 +34319,12 @@
     "lat": 49.8317,
     "lng": -92.7442
   },
+  "YHE": {
+    "tz": "America/Vancouver",
+    "country": "CA",
+    "lat": 49.3683,
+    "lng": -121.498
+  },
   "YHF": {
     "tz": "America/Toronto",
     "country": "CA",
@@ -31283,6 +34373,12 @@
     "lat": 50.4689,
     "lng": -59.6367
   },
+  "YHT": {
+    "tz": "America/Whitehorse",
+    "country": "CA",
+    "lat": 60.7892,
+    "lng": -137.54601
+  },
   "YHU": {
     "tz": "America/Toronto",
     "country": "CA",
@@ -31312,6 +34408,12 @@
     "country": "CN",
     "lat": 27.8025,
     "lng": 114.3062
+  },
+  "YIE": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 47.3106,
+    "lng": 119.9117
   },
   "YIF": {
     "tz": "America/Blanc-Sablon",
@@ -31361,11 +34463,23 @@
     "lat": 29.3447,
     "lng": 120.032
   },
+  "YJF": {
+    "tz": "America/Inuvik",
+    "country": "CA",
+    "lat": 60.2358,
+    "lng": -123.469
+  },
   "YJN": {
     "tz": "America/Toronto",
     "country": "CA",
     "lat": 45.2944,
     "lng": -73.2811
+  },
+  "YJP": {
+    "tz": "America/Edmonton",
+    "country": "CA",
+    "lat": 53.3192,
+    "lng": -117.753
   },
   "YJT": {
     "tz": "America/St_Johns",
@@ -31391,6 +34505,18 @@
     "lat": 60.0272,
     "lng": -69.9992
   },
+  "YKH": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 40.54252,
+    "lng": 122.3586
+  },
+  "YKJ": {
+    "tz": "America/Regina",
+    "country": "CA",
+    "lat": 57.2561,
+    "lng": -105.618
+  },
   "YKL": {
     "tz": "America/Toronto",
     "country": "CA",
@@ -31408,6 +34534,12 @@
     "country": "US",
     "lat": 42.9167,
     "lng": -97.3859
+  },
+  "YKO": {
+    "tz": "Europe/Istanbul",
+    "country": "TR",
+    "lat": 37.5497,
+    "lng": 44.2381
   },
   "YKQ": {
     "tz": "America/Toronto",
@@ -31493,6 +34625,12 @@
     "lat": 53.3092,
     "lng": -110.073
   },
+  "YLR": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 56.5133,
+    "lng": -99.9853
+  },
   "YLT": {
     "tz": "America/Toronto",
     "country": "CA",
@@ -31517,6 +34655,12 @@
     "lat": 63.6164,
     "lng": -135.868
   },
+  "YME": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 48.8569,
+    "lng": -67.4533
+  },
   "YMG": {
     "tz": "America/Toronto",
     "country": "CA",
@@ -31534,6 +34678,12 @@
     "country": "CA",
     "lat": 50.3303,
     "lng": -105.559
+  },
+  "YML": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 47.5975,
+    "lng": -70.2239
   },
   "YMM": {
     "tz": "America/Edmonton",
@@ -31721,6 +34871,12 @@
     "lat": 58.4914,
     "lng": -119.408
   },
+  "YOS": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 44.5903,
+    "lng": -80.8375
+  },
   "YOW": {
     "tz": "America/Toronto",
     "country": "CA",
@@ -31804,6 +34960,12 @@
     "country": "CA",
     "lat": 54.2861,
     "lng": -130.44501
+  },
+  "YPS": {
+    "tz": "America/Glace_Bay",
+    "country": "CA",
+    "lat": 45.6567,
+    "lng": -61.3681
   },
   "YPW": {
     "tz": "America/Vancouver",
@@ -31907,6 +35069,12 @@
     "lat": 50.4319,
     "lng": -104.666
   },
+  "YQS": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 42.77,
+    "lng": -81.1108
+  },
   "YQT": {
     "tz": "America/Toronto",
     "country": "CA",
@@ -31997,6 +35165,12 @@
     "lat": 52.4297,
     "lng": -114.904
   },
+  "YRO": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 45.4603,
+    "lng": -75.6461
+  },
   "YRQ": {
     "tz": "America/Toronto",
     "country": "CA",
@@ -32039,11 +35213,29 @@
     "lat": 50.2667,
     "lng": -111.183
   },
+  "YSE": {
+    "tz": "America/Vancouver",
+    "country": "CA",
+    "lat": 49.7817,
+    "lng": -123.162
+  },
   "YSF": {
     "tz": "America/Regina",
     "country": "CA",
     "lat": 59.2503,
     "lng": -105.841
+  },
+  "YSG": {
+    "tz": "America/Edmonton",
+    "country": "CA",
+    "lat": 62.4183,
+    "lng": -110.682
+  },
+  "YSH": {
+    "tz": "America/Toronto",
+    "country": "CA",
+    "lat": 44.9458,
+    "lng": -75.9406
   },
   "YSJ": {
     "tz": "America/Halifax",
@@ -32051,11 +35243,29 @@
     "lat": 45.3161,
     "lng": -65.8903
   },
+  "YSK": {
+    "tz": "America/Iqaluit",
+    "country": "CA",
+    "lat": 56.5378,
+    "lng": -79.2467
+  },
+  "YSL": {
+    "tz": "America/Moncton",
+    "country": "CA",
+    "lat": 47.1575,
+    "lng": -67.8347
+  },
   "YSM": {
     "tz": "America/Edmonton",
     "country": "CA",
     "lat": 60.0203,
     "lng": -111.962
+  },
+  "YSN": {
+    "tz": "America/Vancouver",
+    "country": "CA",
+    "lat": 50.6828,
+    "lng": -119.229
   },
   "YSO": {
     "tz": "America/Halifax",
@@ -32068,6 +35278,12 @@
     "country": "CA",
     "lat": 48.7553,
     "lng": -86.3444
+  },
+  "YSQ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 44.93811,
+    "lng": 124.55018
   },
   "YSR": {
     "tz": "America/Toronto",
@@ -32098,6 +35314,12 @@
     "country": "CA",
     "lat": 45.8644,
     "lng": -77.2517
+  },
+  "YTD": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 55.3189,
+    "lng": -97.7078
   },
   "YTE": {
     "tz": "America/Toronto",
@@ -32158,6 +35380,12 @@
     "country": "CA",
     "lat": 43.6275,
     "lng": -79.3962
+  },
+  "YUA": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 25.7375,
+    "lng": 101.882
   },
   "YUB": {
     "tz": "America/Edmonton",
@@ -32230,6 +35458,12 @@
     "country": "CA",
     "lat": 55.1514,
     "lng": -105.262
+  },
+  "YVE": {
+    "tz": "America/Vancouver",
+    "country": "CA",
+    "lat": 50.2481,
+    "lng": -119.331
   },
   "YVG": {
     "tz": "America/Edmonton",
@@ -32404,6 +35638,12 @@
     "country": "CA",
     "lat": 66.145,
     "lng": -65.7136
+  },
+  "YXQ": {
+    "tz": "America/Whitehorse",
+    "country": "CA",
+    "lat": 62.4103,
+    "lng": -140.867
   },
   "YXR": {
     "tz": "America/Toronto",
@@ -32717,11 +35957,23 @@
     "lat": 45.2908,
     "lng": -72.7414
   },
+  "ZBO": {
+    "tz": "Australia/Brisbane",
+    "country": "AU",
+    "lat": -20.0183,
+    "lng": 148.215
+  },
   "ZBR": {
     "tz": "Asia/Tehran",
     "country": "IR",
     "lat": 25.4433,
     "lng": 60.3821
+  },
+  "ZBY": {
+    "tz": "Asia/Vientiane",
+    "country": "LA",
+    "lat": 19.2436,
+    "lng": 101.7093
   },
   "ZCL": {
     "tz": "America/Mexico_City",
@@ -32734,6 +35986,12 @@
     "country": "DE",
     "lat": 52.5912,
     "lng": 10.0221
+  },
+  "ZCO": {
+    "tz": "America/Santiago",
+    "country": "CL",
+    "lat": -38.9259,
+    "lng": -72.6515
   },
   "ZEC": {
     "tz": "Africa/Johannesburg",
@@ -32776,6 +36034,12 @@
     "country": "CA",
     "lat": 64.9097,
     "lng": -125.573
+  },
+  "ZGF": {
+    "tz": "America/Vancouver",
+    "country": "CA",
+    "lat": 49.0156,
+    "lng": -118.431
   },
   "ZGI": {
     "tz": "America/Winnipeg",
@@ -32825,6 +36089,12 @@
     "lat": 55.5533,
     "lng": 38.15
   },
+  "ZIC": {
+    "tz": "America/Santiago",
+    "country": "CL",
+    "lat": -38.2456,
+    "lng": -72.3486
+  },
   "ZIG": {
     "tz": "Africa/Dakar",
     "country": "SN",
@@ -32842,6 +36112,24 @@
     "country": "CH",
     "lat": 46.6766,
     "lng": 7.87908
+  },
+  "ZIS": {
+    "tz": "Africa/Tripoli",
+    "country": "LY",
+    "lat": 31.77488,
+    "lng": 12.25006
+  },
+  "ZIX": {
+    "tz": "Asia/Yakutsk",
+    "country": "RU",
+    "lat": 66.7965,
+    "lng": 123.361
+  },
+  "ZJG": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 54.5189,
+    "lng": -98.0461
   },
   "ZJI": {
     "tz": "Europe/Zurich",
@@ -32987,6 +36275,12 @@
     "lat": 49.2094,
     "lng": 7.40056
   },
+  "ZQZ": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 40.7386,
+    "lng": 114.93
+  },
   "ZRH": {
     "tz": "Europe/Zurich",
     "country": "CH",
@@ -33017,11 +36311,23 @@
     "lat": 53.0642,
     "lng": -93.3444
   },
+  "ZST": {
+    "tz": "America/Vancouver",
+    "country": "CA",
+    "lat": 55.93541,
+    "lng": -129.98243
+  },
   "ZSW": {
     "tz": "America/Vancouver",
     "country": "CA",
     "lat": 54.3333,
     "lng": -130.283
+  },
+  "ZTA": {
+    "tz": "Pacific/Tahiti",
+    "country": "PF",
+    "lat": -20.7897,
+    "lng": -138.57001
   },
   "ZTB": {
     "tz": "America/Blanc-Sablon",
@@ -33052,6 +36358,12 @@
     "country": "AZ",
     "lat": 41.56222,
     "lng": 46.66722
+  },
+  "ZUC": {
+    "tz": "America/Winnipeg",
+    "country": "CA",
+    "lat": 49.4297,
+    "lng": -91.7178
   },
   "ZUH": {
     "tz": "Asia/Shanghai",
@@ -33089,6 +36401,12 @@
     "lat": 58.1069,
     "lng": -103.172
   },
+  "ZXT": {
+    "tz": "Asia/Baku",
+    "country": "AZ",
+    "lat": 40.49554,
+    "lng": 49.97681
+  },
   "ZYI": {
     "tz": "Asia/Shanghai",
     "country": "CN",
@@ -33106,5 +36424,11 @@
     "country": "MW",
     "lat": -11.4447,
     "lng": 34.0118
+  },
+  "ZZV": {
+    "tz": "America/New_York",
+    "country": "US",
+    "lat": 39.9444,
+    "lng": -81.8921
   }
 }
