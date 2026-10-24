@@ -21443,6 +21443,12 @@
     "lat": 50.4406,
     "lng": -4.99541
   },
+  "NQZ": {
+    "tz": "Asia/Almaty",
+    "country": "KZ",
+    "lat": 51.02704,
+    "lng": 71.46709
+  },
   "NRA": {
     "tz": "Australia/Sydney",
     "country": "AU",

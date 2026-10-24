@@ -50,8 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Newer airports** — flights to or from Berlin Brandenburg, Beijing Daxing,
-  Doha Hamad, Hyderabad and some 550 other airports the shipped airport list
-  had no time zone for now get their local times, map pins and countries.
+  Astana (NQZ), Doha Hamad, Hyderabad and some 550 other airports the shipped
+  airport list had no time zone for now get their local times, map pins and
+  countries.
 
 ## [1.9.0] - 2026-10-22
 

@@ -52,6 +52,7 @@ describe('getAirportCity', () => {
   it('names the city of an airport newer than OpenFlights', () => {
     expect(getAirportCity('BER')).toBe('Berlin');
     expect(getAirportCity('PKX')).toBe('Beijing');
+    expect(getAirportCity('NQZ')).toBe('Astana');
   });
 
   it('names the city of an airport upstream had no timezone for', () => {
