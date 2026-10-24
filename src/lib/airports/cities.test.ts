@@ -34,6 +34,9 @@ describe('getAirportCity', () => {
     expect(getAirportCity('SVQ')).toBe('Seville');
     expect(getAirportCity('KEF')).toBe('Reykjavík');
     expect(getAirportCity('TLL')).toBe('Tallinn');
+    expect(getAirportCity('KBP')).toBe('Kyiv');
+    expect(getAirportCity('SCN')).toBe('Saarbrücken');
+    expect(getAirportCity('CLJ')).toBe('Cluj-Napoca');
   });
 
   it('title-cases an all-caps upstream city', () => {
