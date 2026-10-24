@@ -3667,7 +3667,7 @@
   },
   "BPE": {
     "tz": "Asia/Shanghai",
-    "country": "MM",
+    "country": "CN",
     "lat": 39.66639,
     "lng": 119.05889
   },
@@ -8455,7 +8455,7 @@
   },
   "EMP": {
     "tz": "America/Chicago",
-    "country": "DE",
+    "country": "US",
     "lat": 38.3321,
     "lng": -96.1912
   },
@@ -17311,7 +17311,7 @@
   },
   "LND": {
     "tz": "America/Denver",
-    "country": "DE",
+    "country": "US",
     "lat": 42.8152,
     "lng": -108.73
   },
@@ -21985,7 +21985,7 @@
   },
   "OCN": {
     "tz": "America/Los_Angeles",
-    "country": "AU",
+    "country": "US",
     "lat": 33.2173,
     "lng": -117.354
   },

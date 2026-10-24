@@ -146,12 +146,14 @@ const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
   ALA: 'Almaty', // upstream "Alma-ata", the Soviet-era name
   AMN: 'Alma', // upstream "Kamloops", a different airport's city
   BIQ: 'Biarritz', // upstream "Biarritz-bayonne"
+  BPE: 'Qinhuangdao', // upstream "Bagan", a different airport's city
   BSL: 'Basel', // EuroAirport Basel-Mulhouse; upstream "Mulhouse"
   CFU: 'Corfu', // upstream "Kerkyra/corfu"
   CJU: 'Jeju', // upstream "Cheju", the pre-2000 romanisation
   CLJ: 'Cluj-Napoca', // upstream "Cluj-napoca"
   DAD: 'Da Nang', // upstream "Danang"
   DUS: 'Düsseldorf', // upstream "Duesseldorf"
+  EMP: 'Emporia', // upstream "Kempten", a different airport's city
   FDF: 'Fort-de-France', // upstream "Fort-de-france"
   FMO: 'Münster', // upstream "Munster"
   GIG: 'Rio de Janeiro', // upstream "Rio De Janeiro"
@@ -163,10 +165,12 @@ const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
   KBP: 'Kyiv', // upstream "Kiev"
   KEF: 'Reykjavík', // the town is Keflavík; the airport serves Reykjavík
   LBC: 'Lübeck', // upstream "Luebeck"
+  LND: 'Lander', // upstream "Lindau", a different airport's city
   LYR: 'Longyearbyen', // upstream "Svalbard", the archipelago
   MAA: 'Chennai', // upstream "Madras", renamed 1996
   MXP: 'Milan', // upstream "Milano"; LIN already reads "Milan"
   NUE: 'Nuremberg', // upstream "Nuernberg"
+  OCN: 'Oceanside', // upstream "Fraser Island", a different airport's city
   OEL: 'Oryol', // upstream "Oakley", a different airport's city
   OKA: 'Naha', // upstream "Okinawa", the prefecture
   PNH: 'Phnom Penh', // upstream "Phnom-penh"
@@ -272,6 +276,10 @@ const COUNTRY_ALIASES: Readonly<Record<string, string>> = {
 const IATA_COUNTRY_OVERRIDES: Readonly<Record<string, string>> = {
   AMN: 'US', // Gratiot Community, Alma MI; upstream says Kamloops, Canada
   OEL: 'RU', // Oryol Yuzhny; upstream says Oakley, United States
+  EMP: 'US', // Emporia Municipal, Emporia KS; upstream says Kempten, Germany
+  LND: 'US', // Hunt Field, Lander WY; upstream says Lindau, Germany
+  OCN: 'US', // Oceanside Municipal, Oceanside CA; upstream says Fraser Island, Australia
+  BPE: 'CN', // Qinhuangdao Beidaihe, Hebei; upstream says Bagan, Burma
   FTX: 'CG', // Owando (ICAO FCOO); upstream says Congo (Kinshasa)
   OUE: 'CG', // Ouesso (ICAO FCOU); upstream says Congo (Kinshasa)
   BON: 'BQ', // Bonaire
@@ -361,6 +369,7 @@ async function main(): Promise<void> {
   const cityOverrides: string[] = [];
   const usedCityOverrides = new Set<string>();
   const unmappedCountries = new Map<string, number>();
+  const qualifierConflicts = new Set<string>();
 
   type Entry = {
     tz: string;
@@ -470,10 +479,14 @@ async function main(): Promise<void> {
     if (!country && countryRaw && countryRaw !== '\\N' && countryRaw.trim().length > 0) {
       // Qualified form first ("Congo (Kinshasa)" → "congo kinshasa"),
       // then the bare name ("Cocos (Keeling) Islands" → "cocos islands").
-      country =
-        countryIndex[normaliseName(countryRaw, true)] ??
-        countryIndex[normaliseName(countryRaw)] ??
-        null;
+      // When both resolve and disagree, the qualified one wins; logged so
+      // a new upstream qualifier gets a look.
+      const qualified = countryIndex[normaliseName(countryRaw, true)];
+      const bare = countryIndex[normaliseName(countryRaw)];
+      if (qualified && bare && qualified !== bare) {
+        qualifierConflicts.add(`${countryRaw}: qualified ${qualified} vs bare ${bare}`);
+      }
+      country = qualified ?? bare ?? null;
       if (!country) {
         unmappedCountries.set(countryRaw, (unmappedCountries.get(countryRaw) ?? 0) + 1);
       }
@@ -578,6 +591,13 @@ async function main(): Promise<void> {
     if (unused.length > 0) {
       console.log(`${name} entries that matched no airport (drop them?): ${unused.join(', ')}`);
     }
+  }
+
+  if (qualifierConflicts.size > 0) {
+    console.log(
+      `Country names whose qualifier changes the match (${qualifierConflicts.size}) — the qualified one is used:`,
+    );
+    for (const line of qualifierConflicts) console.log(`  ${line}`);
   }
 
   if (unmappedCountries.size > 0) {

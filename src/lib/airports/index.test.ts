@@ -83,6 +83,7 @@ describe('getAirportCountry', () => {
     expect(getAirportCountry('BZV')).toBe('CG'); // Brazzaville
     // Tagged "Congo (Kinshasa)" upstream, but in the Republic of the Congo.
     expect(getAirportCountry('OUE')).toBe('CG'); // Ouesso
+    expect(getAirportCountry('FTX')).toBe('CG'); // Owando
   });
 
   it('returns null for non-IATA-shaped input', () => {
@@ -224,5 +225,9 @@ describe('timezones derived from coordinates', () => {
   it("corrects a row that carries another airport's country", () => {
     expect(getAirportCountry('OEL')).toBe('RU');
     expect(getAirportTimezone('OEL')).toBe('Europe/Moscow');
+    expect(getAirportCountry('EMP')).toBe('US'); // upstream Germany
+    expect(getAirportCountry('LND')).toBe('US'); // upstream Germany
+    expect(getAirportCountry('OCN')).toBe('US'); // upstream Australia
+    expect(getAirportCountry('BPE')).toBe('CN'); // upstream Burma
   });
 });
