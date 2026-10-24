@@ -308,11 +308,13 @@ const OFFSET_PROBES = [0, 6].map((month) => Date.UTC(new Date().getUTCFullYear()
 // snapshots after the upstream rows; an upstream row for the same code
 // wins and the refresh logs it, so the entry can be dropped. Coords are
 // OurAirports' (public domain), checked against Wikipedia. Keep the
-// predecessors (TXL, SXF): older trips still reference them.
+// predecessors (TXL, SXF, TSE): older trips still reference them.
 const EXTRA_AIRPORTS: Readonly<
   Record<string, { tz: string; country: string; lat: number; lng: number; city: string }>
 > = {
   BER: { tz: 'Europe/Berlin', country: 'DE', lat: 52.36174, lng: 13.50234, city: 'Berlin' },
+  // Astana's code since 2020; upstream still lists the airport as TSE.
+  NQZ: { tz: 'Asia/Almaty', country: 'KZ', lat: 51.02704, lng: 71.46709, city: 'Astana' },
 };
 
 // Build a normalised lookup from our authoritative list, then layer

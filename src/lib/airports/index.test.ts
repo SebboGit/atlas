@@ -169,6 +169,16 @@ describe('airports newer than OpenFlights', () => {
     expect(coords!.lng).toBeCloseTo(13.5, 1);
   });
 
+  it("resolves NQZ (Astana's code since 2020)", () => {
+    expect(getAirportTimezone('NQZ')).toBe('Asia/Almaty');
+    expect(getAirportCountry('NQZ')).toBe('KZ');
+    const coords = getAirportCoords('NQZ');
+    expect(coords!.lat).toBeCloseTo(51.03, 1);
+    expect(coords!.lng).toBeCloseTo(71.47, 1);
+    // The old code stays for older trips.
+    expect(getAirportCountry('TSE')).toBe('KZ');
+  });
+
   it('keeps the airports BER replaced, for older trips', () => {
     expect(getAirportTimezone('TXL')).toBe('Europe/Berlin');
     expect(getAirportTimezone('SXF')).toBe('Europe/Berlin');
