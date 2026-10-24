@@ -53,10 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Astana (NQZ), Doha Hamad, Hyderabad and some 550 other airports the shipped
   airport list had no time zone for now get their local times, map pins and
   countries.
-- **DR Congo airports** — Kinshasa, Lubumbashi, Goma and the country's other
+- **Airport countries** — Kinshasa, Lubumbashi, Goma and DR Congo's other
   airports now fill in DR Congo on a flight, not the Republic of the Congo.
-  Flights saved before keep the country they were given; edit the flight to
-  correct it.
+  Four airports the list placed in the wrong country now have the right
+  country and city: Emporia, Lander and Oceanside in the United States, and
+  Qinhuangdao in China. Flights saved before keep the country they were given;
+  edit the flight to correct it.
 
 ## [1.9.0] - 2026-10-22
 

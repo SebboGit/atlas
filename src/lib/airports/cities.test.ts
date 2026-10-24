@@ -63,6 +63,10 @@ describe('getAirportCity', () => {
   it('replaces a city that belongs to another airport', () => {
     expect(getAirportCity('AMN')).toBe('Alma');
     expect(getAirportCity('OEL')).toBe('Oryol');
+    expect(getAirportCity('EMP')).toBe('Emporia');
+    expect(getAirportCity('LND')).toBe('Lander');
+    expect(getAirportCity('OCN')).toBe('Oceanside');
+    expect(getAirportCity('BPE')).toBe('Qinhuangdao');
   });
 
   it('unescapes upstream backslash-escaped apostrophes', () => {
