@@ -58,7 +58,7 @@ test.describe('trip map — "Not pinned" chip', () => {
 
     await authedPage.goto(`/trips/${tripId}/map`);
 
-    const chip = authedPage.getByRole('button', { name: /segments? not on the map/i });
+    const chip = authedPage.getByRole('button', { name: /^not pinned\s*,\s*\d+ segments?$/i });
     await expect(chip).toBeVisible();
     await expect(chip).toContainText('Not pinned · 02');
   });
@@ -78,7 +78,7 @@ test.describe('trip map — "Not pinned" chip', () => {
 
     await authedPage.goto(`/trips/${tripId}/map`);
 
-    const chip = authedPage.getByRole('button', { name: /segment not on the map/i });
+    const chip = authedPage.getByRole('button', { name: /^not pinned\s*,\s*1 segment$/i });
     // The popover's scroll region carries the role + label so a
     // keyboard user can tab into it; the test asserts against the
     // same accessible name so the assertion doubles as a regression
@@ -118,7 +118,7 @@ test.describe('trip map — "Not pinned" chip', () => {
 
     await authedPage.goto(`/trips/${tripId}/map`);
 
-    await expect(authedPage.getByRole('button', { name: /not on the map/i })).toHaveCount(0);
+    await expect(authedPage.getByRole('button', { name: /^not pinned/i })).toHaveCount(0);
   });
 
   test('a train with an unfound departure station gets one entry', async ({
@@ -152,7 +152,7 @@ test.describe('trip map — "Not pinned" chip', () => {
 
     // One segment, one entry — the chip counts segments, not endpoints
     // (ADR-0019).
-    const chip = authedPage.getByRole('button', { name: /segments? not on the map/i });
+    const chip = authedPage.getByRole('button', { name: /^not pinned\s*,\s*\d+ segments?$/i });
     await expect(chip).toBeVisible();
     await expect(chip).toContainText('Not pinned · 01');
 
@@ -194,7 +194,7 @@ test.describe('trip map — "Not pinned" chip', () => {
 
     await authedPage.goto(`/trips/${tripId}/map`);
 
-    const chip = authedPage.getByRole('button', { name: /segments? not on the map/i });
+    const chip = authedPage.getByRole('button', { name: /^not pinned\s*,\s*\d+ segments?$/i });
     await expect(chip).toBeVisible();
     await expect(chip).toContainText('Not pinned · 01');
 
@@ -228,6 +228,6 @@ test.describe('trip map — "Not pinned" chip', () => {
 
     await authedPage.goto(`/trips/${tripId}/map`);
 
-    await expect(authedPage.getByRole('button', { name: /not on the map/i })).toHaveCount(0);
+    await expect(authedPage.getByRole('button', { name: /^not pinned/i })).toHaveCount(0);
   });
 });

@@ -62,7 +62,6 @@ export function PinLegendChip({ kinds, routeKinds = NO_ROUTES }: PinLegendChipPr
         <button
           type="button"
           aria-expanded={open}
-          aria-label="Map legend"
           className="border-foreground/20 bg-card/85 text-foreground/75 hover:border-foreground/30 hover:text-foreground inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 font-mono text-[10px] tracking-[0.06em] uppercase backdrop-blur-sm transition-colors [@media(hover:hover)]:min-h-9 [@media(hover:hover)]:px-3 [@media(hover:hover)]:py-1.5"
         >
           {/* A miniature stack of the present swatches doubles as the icon —
@@ -72,7 +71,11 @@ export function PinLegendChip({ kinds, routeKinds = NO_ROUTES }: PinLegendChipPr
               <LegendSwatch key={kind} kind={kind} size="xs" />
             ))}
           </span>
-          <span>Legend · {String(present.length).padStart(2, '0')}</span>
+          {/* "Legend" is the accessible name, as seen (WCAG 2.5.3); the
+              padded count is visual only. */}
+          <span>
+            Legend<span aria-hidden> · {String(present.length).padStart(2, '0')}</span>
+          </span>
           <ChevronUp
             aria-hidden
             className={cn(

@@ -48,6 +48,7 @@ export function VisitedPanel({ codes }: VisitedPanelProps) {
       <span className="font-display text-foreground text-base leading-none font-semibold tabular-nums">
         {total}
       </span>
+      <span className="sr-only">countries</span>
     </span>
   );
 
@@ -57,11 +58,7 @@ export function VisitedPanel({ codes }: VisitedPanelProps) {
   // No breakdown → a static, non-interactive plate. No chevron, no
   // popover machinery — just the swatch + count.
   if (!hasBreakdown) {
-    return (
-      <div aria-label={`${total} countries visited`} className={chipClasses}>
-        {chip}
-      </div>
-    );
+    return <div className={chipClasses}>{chip}</div>;
   }
 
   return (
@@ -70,7 +67,7 @@ export function VisitedPanel({ codes }: VisitedPanelProps) {
         <button
           type="button"
           aria-expanded={open}
-          aria-label={`${total} countries visited across ${tally.length} continents`}
+          aria-label={`Visited ${total} countries, across ${tally.length} continents`}
           className={cn(
             chipClasses,
             'text-foreground/75 hover:border-foreground/30 hover:text-foreground transition-colors',

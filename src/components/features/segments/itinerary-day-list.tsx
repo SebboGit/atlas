@@ -146,7 +146,6 @@ function CollapsedPastRow({
       type="button"
       onClick={onExpand}
       aria-expanded={false}
-      aria-label={`Show ${dayCount} past ${dayCount === 1 ? 'day' : 'days'}`}
       className={cn(
         'group bg-card border-border flex min-h-[52px] w-full items-center gap-3 rounded-[1.25rem] border px-4 py-3 text-left sm:px-5',
         '[@media(hover:hover)]:hover:bg-muted transition-colors',
@@ -164,7 +163,7 @@ function CollapsedPastRow({
         {rangeLabel}
       </span>
       <span className="text-muted-foreground ml-auto shrink-0 font-mono text-[11px] tracking-[0.06em] uppercase">
-        {dayCount} {dayCount === 1 ? 'day' : 'days'} · Show
+        {dayCount} {dayCount === 1 ? 'day' : 'days'} <span aria-hidden>·</span> Show
       </span>
     </button>
   );
@@ -201,11 +200,13 @@ function ExpandedPastGroup({
           type="button"
           onClick={onCollapse}
           aria-expanded={true}
-          aria-label="Collapse past days"
           className="group text-muted-foreground [@media(hover:hover)]:hover:text-foreground flex min-h-[44px] w-full items-center gap-3 px-1 py-2 text-left transition-colors"
         >
           <ChevronDown aria-hidden strokeWidth={2.25} className="size-4 shrink-0" />
-          <span className="font-mono text-[11px] tracking-[0.06em] uppercase">Earlier · Hide</span>
+          {/* The visible words are the name (WCAG 2.5.3), the dot is decoration. */}
+          <span className="font-mono text-[11px] tracking-[0.06em] uppercase">
+            Earlier <span aria-hidden>·</span> Hide
+          </span>
         </button>
       </header>
       {days.map((day) => (

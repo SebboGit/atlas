@@ -113,7 +113,6 @@ export function TimePicker({
             disabled={disabled}
             data-invalid={invalid || undefined}
             aria-haspopup="dialog"
-            aria-label="Time"
             className={cn(
               'hidden [@media(pointer:fine)]:flex',
               // Match DatePicker visuals so date + time read as one row.
@@ -133,6 +132,9 @@ export function TimePicker({
                 value ? 'text-foreground' : 'text-muted-foreground/70',
               )}
             >
+              {/* Named by what it shows (WCAG 2.5.3), like DatePicker, with a
+                  spoken "Time" so the placeholder isn't read bare. */}
+              <span className="sr-only">Time </span>
               {value || placeholder}
             </span>
             <Clock
