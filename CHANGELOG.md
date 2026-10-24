@@ -43,7 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Airport cities on the stats page** — the most-visited airport shows the
   city it serves under its code ("LHR", London), and the north–south line
   names airports as "Punta Arenas (PUQ)". An airport without a city still
-  shows its country.
+  shows its country. City names are tidied on the way in: Seville rather
+  than Sevilla, Reykjavík rather than Keflavik, and no "International"
+  after the name.
 
 ## [1.9.0] - 2026-10-22
 
