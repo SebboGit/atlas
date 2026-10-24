@@ -1,12 +1,12 @@
 // Work out which files MapLibre's tile-decoder worker needs on disk.
 //
-// MapLibre GL JS v6 ships the worker as an ES module that imports a shared
-// chunk by relative path, so staging the worker alone gets you a worker that
-// throws on its first import — the failure mode is a blank map canvas with
-// nothing in the console. Rather than hard-coding the sibling's name, we read
-// the worker's own import specifiers and follow them. A future release that
-// splits out another chunk is then staged automatically instead of silently
-// missed.
+// MapLibre GL JS v6 ships the worker as an ES module. Up to 6.12 it imported a
+// shared chunk by relative path, so staging the worker alone got you a worker
+// that throws on its first import — the failure mode is a blank map canvas
+// with nothing in the console. 6.13 bundles the worker into one file. Rather
+// than hard-coding either shape, we read the worker's own import specifiers
+// and follow them: a release that splits a chunk out again is staged
+// automatically instead of silently missed.
 //
 // The walk reads import and export specifiers only. An asset referenced as
 // `new URL('./x', import.meta.url)` would not be seen — MapLibre's worker uses
