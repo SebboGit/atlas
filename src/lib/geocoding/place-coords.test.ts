@@ -446,6 +446,7 @@ describe('getPlaceCoordsView — train, bus and ferry endpoints (ADR-0019)', () 
       lat: 34.9858,
       lng: 135.7588,
       city: 'Kyoto',
+      primaryEnd: 'destination',
       endpoints: {
         origin: { lat: 35.6812, lng: 139.7671, city: 'Chiyoda' },
         destination: { lat: 34.9858, lng: 135.7588, city: 'Kyoto' },
@@ -553,6 +554,7 @@ describe('getPlaceCoordsView — station guard (#164)', () => {
     expect(entry).toEqual({
       ...PUDETO,
       city: null,
+      primaryEnd: 'destination',
       endpoints: {
         // The coordinates stay — the edit form's located line shows them.
         origin: { ...LIMA, city: null, implausible: true },
@@ -587,6 +589,8 @@ describe('getPlaceCoordsView — station guard (#164)', () => {
     expect(entry).toEqual({
       ...LAGUNA_AMARGA,
       city: null,
+      // So the badge names the origin it points at, not the doubted destination.
+      primaryEnd: 'origin',
       endpoints: {
         origin: { ...LAGUNA_AMARGA, city: null },
         destination: { ...LIMA, city: null, implausible: true },
