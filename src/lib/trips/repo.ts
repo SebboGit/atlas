@@ -3,6 +3,7 @@ import { cache } from 'react';
 
 import { db } from '@/db/client';
 import { trips, type Trip } from '@/db/schema';
+import { isUuid } from '@/lib/validators/uuid';
 
 // Re-exported so the feature barrel can surface it without reaching
 // into @/db/* itself (which the architecture lint forbids outside
@@ -73,7 +74,12 @@ export async function listForUser(
 // household trip. This is the gate the trip-detail pages and (via the
 // segment/document repos) the content surfaces lean on, so a household
 // member can open a shared trip they didn't create.
+// The id usually comes straight from the URL: a malformed one answers like
+// an unknown trip (null → the route's notFound()) instead of reaching the
+// uuid column and throwing (#155). One guard here covers the layout and
+// every tab page, which render concurrently and each call this first.
 export const getByIdForUser = cache(async (userId: string, id: string): Promise<Trip | null> => {
+  if (!isUuid(id)) return null;
   const rows = await db
     .select()
     .from(trips)

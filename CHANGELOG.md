@@ -59,6 +59,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   country and city: Emporia, Lander and Oceanside in the United States, and
   Qinhuangdao in China. Flights saved before keep the country they were given;
   edit the flight to correct it.
+- **A mistyped trip link shows the not-found page** — a trip URL with a
+  malformed id used to land on "Something went wrong."; it now gets the same
+  404 as a trip that doesn't exist.
 
 ## [1.9.0] - 2026-10-22
 

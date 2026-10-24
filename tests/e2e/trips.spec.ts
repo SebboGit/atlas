@@ -85,6 +85,21 @@ test.describe('trips', () => {
     await expect(authedPage.getByRole('button', { name: /save changes/i })).toBeVisible();
   });
 
+  test('a malformed trip id answers 404 on every tab, not the error page', async ({
+    authedPage,
+  }) => {
+    // Layout and tab page render concurrently, so check more than one tab:
+    // each used to send the raw id to the uuid column and land on the
+    // error boundary (#155). The layout's notFound() renders the app-wide
+    // 404, the same page an unknown trip id gets.
+    for (const tab of ['itinerary', 'map', 'documents']) {
+      const res = await authedPage.goto(`/trips/not-a-uuid/${tab}`);
+      expect(res?.status()).toBe(404);
+      await expect(authedPage.getByRole('heading', { name: /could not be found/i })).toBeVisible();
+      await expect(authedPage.getByText('Something went wrong.')).toHaveCount(0);
+    }
+  });
+
   test('create a trip via the dialog', async ({ authedPage }) => {
     await authedPage.goto('/trips');
     await authedPage.getByRole('button', { name: /^new trip$/i }).click();

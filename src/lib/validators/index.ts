@@ -2,3 +2,4 @@
 // the feature; this folder is for the small set of cross-cutting ones.
 
 export * from './pagination';
+export * from './uuid';
