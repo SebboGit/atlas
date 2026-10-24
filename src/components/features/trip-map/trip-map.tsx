@@ -1096,6 +1096,9 @@ export function TripMap({
           // a responsive `mapHeightClassName` instead, so this inline
           // height is dropped when that's set.
           style={mapHeightClassName ? undefined : { height: 'min(calc(100svh - 320px), 520px)' }}
+          // A named region, so the map is a landmark a screen reader can
+          // jump to — `aria-label` on a role-less div is ignored.
+          role="region"
           aria-label="Trip map"
         />
         {plateLabel && (
