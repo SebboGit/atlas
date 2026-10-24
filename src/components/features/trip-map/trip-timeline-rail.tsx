@@ -318,7 +318,7 @@ function ExpandedPastHeader({ onCollapse }: { onCollapse: () => void }) {
 
 /**
  * The day-grouped timeline rail content. Shared by the laptop sidebar
- * and the mobile vaul sheet — the surrounding container differs, the
+ * and the mobile bottom sheet — the surrounding container differs, the
  * list does not.
  *
  * Reuses the itinerary's classification (`day-temporal.ts`) and
