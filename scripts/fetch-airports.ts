@@ -27,6 +27,10 @@
 // useful on its own) and log the unmapped name so the alias map can
 // grow over time.
 //
+// Derived zones come from `zoneAt` (src/lib/timezones/), so they depend
+// on the @photostructure/tz-lookup version: after bumping it, re-run this
+// script and diff the rows upstream had no zone for.
+//
 // Lat/lng come from the same row and feed the trip-detail map's
 // flight-destination pins. They're optional in the output (treated
 // the same as country): a row with malformed coords still keeps tz
@@ -47,6 +51,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { ISO_COUNTRIES } from '../src/lib/countries/data';
+import { tzOffsetMs } from '../src/lib/timezones/convert';
 import { zoneAt } from '../src/lib/timezones/resolve';
 
 const SOURCE_URL =
@@ -252,15 +257,19 @@ const IATA_COUNTRY_OVERRIDES: Readonly<Record<string, string>> = {
 // derives it from the coordinates (see `zoneAt` below); a boundary lookup
 // can land on the wrong side of a nearby border, so this map wins over
 // both upstream and the derived zone. Each entry below is a blank-zone
-// row whose derived zone belongs to the neighbouring country. Check a
-// refresh's new rows against their country before adding more (IST and
-// PKX used to live here; their derived zones are right).
+// row whose derived zone belongs to the neighbouring country or region.
+// A refresh logs derived zones whose offsets disagree with upstream's
+// `utc_offset` column; most of those are stale upstream offsets, but
+// check them, and new rows against their country, before adding more
+// (IST and PKX used to live here; their derived zones are right).
 const IATA_TZ_OVERRIDES: Readonly<Record<string, string>> = {
   // Derived zone is hours off.
   CWJ: 'Asia/Shanghai', // Cangyuan, on the Myanmar border (derived Asia/Yangon)
   OKL: 'Asia/Jayapura', // Oksibil, Papua (derived Pacific/Port_Moresby)
   TEI: 'Asia/Kolkata', // Tezu, Arunachal Pradesh (derived Asia/Yangon)
   YXQ: 'America/Whitehorse', // Beaver Creek, Yukon (derived America/Anchorage)
+  DKV: 'Australia/Darwin', // Docker River, just inside the NT (derived Australia/Perth)
+  TLK: 'Asia/Yakutsk', // Talakan, Sakha's Lensky district (derived Asia/Irkutsk)
   // Same offset, the neighbour's zone.
   AOU: 'Asia/Vientiane', // Attapeu, Laos (derived Asia/Phnom_Penh)
   BWW: 'America/Havana', // Cayo Santa María, Cuba (derived America/Nassau)
@@ -270,6 +279,10 @@ const IATA_TZ_OVERRIDES: Readonly<Record<string, string>> = {
   SQX: 'America/Sao_Paulo', // São Miguel do Oeste, Santa Catarina (derived America/Argentina/Cordoba)
   XIJ: 'Asia/Kuwait', // Ahmed Al Jaber Air Base, Kuwait (derived Asia/Riyadh)
 };
+
+// Mid-January and mid-July of the current year: a zone's winter and
+// summer offsets, for the upstream-offset sanity check.
+const OFFSET_PROBES = [0, 6].map((month) => Date.UTC(new Date().getUTCFullYear(), month, 15, 12));
 
 // Airports OpenFlights has no row for at all — its data stops around
 // 2019, before Berlin Brandenburg opened (2020). Merged into both
@@ -310,6 +323,9 @@ async function main(): Promise<void> {
   let withCountry = 0;
   let droppedNoTz = 0;
   let tzFromCoords = 0;
+  const offsetMismatches: string[] = [];
+  const usedTzOverrides = new Set<string>();
+  const usedCountryOverrides = new Set<string>();
   const cityFixes: CityFixes = { titleCased: 0, suffixDropped: 0 };
   let cityOverrides = 0;
   const unmappedCountries = new Map<string, number>();
@@ -328,7 +344,21 @@ async function main(): Promise<void> {
   for (const line of lines) {
     const cols = parseCsvLine(line);
     if (cols.length < 14) continue;
-    const [idRaw, , cityRaw, countryRaw, iata, , latRaw, lngRaw, , , , tzRaw, type] = cols;
+    const [
+      idRaw,
+      nameRaw,
+      cityRaw,
+      countryRaw,
+      iata,
+      ,
+      latRaw,
+      lngRaw,
+      ,
+      offsetRaw,
+      ,
+      tzRaw,
+      type,
+    ] = cols;
     if (type !== 'airport') continue;
     typeAirport += 1;
 
@@ -364,12 +394,32 @@ async function main(): Promise<void> {
     // (`zoneAt`) fills those. An `Etc/` answer means the point is at sea,
     // so it doesn't count.
     const upstreamTz = tzRaw && tzRaw !== '\\N' && tzRaw.includes('/') ? tzRaw : null;
-    let tz = IATA_TZ_OVERRIDES[code] ?? upstreamTz;
+    const tzOverride = IATA_TZ_OVERRIDES[code];
+    if (tzOverride) {
+      usedTzOverrides.add(code);
+      if (upstreamTz && upstreamTz !== tzOverride) {
+        console.log(`IATA_TZ_OVERRIDES shadows upstream: ${code} ${upstreamTz} → ${tzOverride}`);
+      }
+    }
+    let tz = tzOverride ?? upstreamTz;
     if (!tz && lat !== null && lng !== null) {
       const derived = zoneAt(lat, lng);
       if (derived && !derived.startsWith('Etc/')) {
         tz = derived;
         tzFromCoords += 1;
+        // Upstream's numeric `utc_offset` is often set where the zone
+        // isn't. When neither the winter nor the summer offset of the
+        // derived zone matches it, the lookup may have crossed a boundary
+        // — or upstream is stale. Logged for a human to judge.
+        const upstreamOffset = offsetRaw && offsetRaw !== '\\N' ? Number(offsetRaw) : NaN;
+        if (Number.isFinite(upstreamOffset)) {
+          const offsets = OFFSET_PROBES.map((at) => tzOffsetMs(derived, at) / 3_600_000);
+          if (!offsets.includes(upstreamOffset)) {
+            offsetMismatches.push(
+              `${code} ${nameRaw ?? ''}: derived ${derived} (${offsets.join('/')}), upstream offset ${upstreamOffset}`,
+            );
+          }
+        }
       }
     }
     if (!tz) {
@@ -384,6 +434,7 @@ async function main(): Promise<void> {
     if (Number.isNaN(sourceId)) continue;
 
     let country: string | null = IATA_COUNTRY_OVERRIDES[code] ?? null;
+    if (country) usedCountryOverrides.add(code);
     if (!country && countryRaw && countryRaw !== '\\N' && countryRaw.trim().length > 0) {
       const key = normaliseName(countryRaw);
       country = countryIndex[key] ?? null;
@@ -452,6 +503,24 @@ async function main(): Promise<void> {
         'If a flight turns up an airport with no zone, add it to ' +
         'IATA_TZ_OVERRIDES in scripts/fetch-airports.ts and re-run.',
     );
+  }
+
+  if (offsetMismatches.length > 0) {
+    console.log(
+      `Derived zones whose winter and summer offsets both differ from upstream's utc_offset (${offsetMismatches.length}) — ` +
+        'mostly stale upstream offsets; add a real boundary miss to IATA_TZ_OVERRIDES:',
+    );
+    for (const line of offsetMismatches) console.log(`  ${line}`);
+  }
+
+  for (const [name, map, used] of [
+    ['IATA_TZ_OVERRIDES', IATA_TZ_OVERRIDES, usedTzOverrides],
+    ['IATA_COUNTRY_OVERRIDES', IATA_COUNTRY_OVERRIDES, usedCountryOverrides],
+  ] as const) {
+    const unused = Object.keys(map).filter((code) => !used.has(code));
+    if (unused.length > 0) {
+      console.log(`${name} entries that matched no airport (drop them?): ${unused.join(', ')}`);
+    }
   }
 
   if (unmappedCountries.size > 0) {

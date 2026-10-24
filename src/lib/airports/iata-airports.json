@@ -7260,7 +7260,7 @@
     "lng": 80.37967
   },
   "DKV": {
-    "tz": "Australia/Perth",
+    "tz": "Australia/Darwin",
     "country": "AU",
     "lat": -24.86,
     "lng": 129.07001
@@ -29976,7 +29976,7 @@
     "lng": -155.97701
   },
   "TLK": {
-    "tz": "Asia/Irkutsk",
+    "tz": "Asia/Yakutsk",
     "country": "RU",
     "lat": 59.87639,
     "lng": 111.04444
