@@ -187,15 +187,27 @@ export interface PlaceCoords {
   city: string | null;
 }
 
+/**
+ * One end of a train / bus / ferry leg. `implausible` is the station
+ * guard's verdict (station-guard.ts): a bare station name that only the
+ * free-text fallback placed, implausibly far from the other end. The
+ * coordinates stay — the edit form's located line is how a user spots
+ * the guess — but nothing should point anyone at them.
+ */
+export interface TransitEndpointPlace extends PlaceCoords {
+  implausible?: boolean;
+}
+
 /** Each end of a train / bus / ferry leg, where resolved (ADR-0019). */
 export interface TransitEndpointCoords {
-  origin: PlaceCoords | null;
-  destination: PlaceCoords | null;
+  origin: TransitEndpointPlace | null;
+  destination: TransitEndpointPlace | null;
 }
 
 /**
  * What a segment card, inspector or edit form receives for one place:
- * its primary point (a transit leg's destination, else its origin) plus,
+ * its primary point (a transit leg's destination, else its origin — the
+ * origin also when only the destination is implausible) plus,
  * for train / bus / ferry, each end on its own. `city` is optional so a
  * bare `{ lat, lng }` still fits.
  */
@@ -203,5 +215,11 @@ export interface PlaceCoordsEntry {
   lat: number;
   lng: number;
   city?: string | null;
+  /**
+   * Set on a train / bus / ferry entry whose primary point is an end the
+   * station guard doubts — only when both ends are doubted, since a
+   * sound end is preferred as the primary point.
+   */
+  implausible?: boolean;
   endpoints?: TransitEndpointCoords;
 }

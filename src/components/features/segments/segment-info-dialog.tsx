@@ -29,7 +29,7 @@ import { getAirportTimezone } from '@/lib/airports';
 import { countryName } from '@/lib/countries';
 import type { LinkedDocument } from '@/lib/documents';
 import { formatTime, zoneAbbreviation } from '@/lib/format';
-import type { PlaceCoordsEntry } from '@/lib/geocoding/types';
+import type { PlaceCoordsEntry, TransitEndpointPlace } from '@/lib/geocoding/types';
 import type { Segment, TransitData } from '@/lib/segments';
 import {
   activityDataSchema,
@@ -713,8 +713,11 @@ function triggerLabel(segment: Segment): string {
 }
 
 // One end of a transit leg in the inspector: its name, a muted address
-// line, and its own Plus Code badge when that end is located. Null when
-// there's nothing to show, so the row disappears.
+// line, and its own Plus Code badge when that end is located. An end the
+// station guard flags as implausible gets no badge: the badge deep-links
+// Google Maps at the cached coordinates, and a far-off guess there is
+// what ADR-0019 keeps out of the Directions link. Null when there's
+// nothing to show, so the row disappears.
 function endpointValue({
   name,
   address,
@@ -722,16 +725,17 @@ function endpointValue({
 }: {
   name: string | undefined;
   address: string | undefined;
-  coords: { lat: number; lng: number } | null;
+  coords: Pick<TransitEndpointPlace, 'lat' | 'lng' | 'implausible'> | null;
 }): React.ReactNode {
   const title = name?.trim();
   const line = address?.trim();
-  if (!title && !line && !coords) return null;
+  const badge = coords && !coords.implausible ? coords : null;
+  if (!title && !line && !badge) return null;
   return (
     <span className="flex flex-col items-start gap-1">
       {title && <span>{title}</span>}
       {line && <span className="text-muted-foreground text-xs leading-snug">{line}</span>}
-      {coords && <PlusCodeBadge lat={coords.lat} lng={coords.lng} venue={title ?? null} />}
+      {badge && <PlusCodeBadge lat={badge.lat} lng={badge.lng} venue={title ?? null} />}
     </span>
   );
 }

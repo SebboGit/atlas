@@ -6,7 +6,17 @@ import { displayCarrier } from '@/lib/airlines';
 import { getAirportCoords } from '@/lib/airports/coords';
 import { countryName } from '@/lib/countries';
 import { listManualVisitedCountriesForUser } from '@/lib/countries/repo';
-import { buildGeocodeQuery, getCachedMany, normalizeQuery } from '@/lib/geocoding';
+import {
+  buildGeocodeQuery,
+  buildTransitEndpointQueries,
+  getCachedMany,
+  implausibleEnds,
+  isGuessedStation,
+  normalizeQuery,
+  tryParseStationQuery,
+  type GuardedEnd,
+  type TransitEndpointQueries,
+} from '@/lib/geocoding';
 import { startOfDayUtc } from '@/lib/maintenance/status';
 import { flightDataSchema } from '@/lib/segments/validators';
 import { tripVisibleToViewer } from '@/lib/trips/repo';
@@ -244,28 +254,71 @@ interface NonFlightPoint {
 /**
  * Read cached coordinates for every geocodable non-flight segment.
  * Mirrors the trip-map repo's resolution path: derive a per-type
- * query, batch-read the cache, keep only the rows that resolved to a
+ * query — or, for a train / bus / ferry leg, one per end (ADR-0019) —
+ * batch-read the cache, keep only the rows that resolved to a
  * coordinate. Cache misses and "couldn't find" entries are skipped —
  * the stats page makes no live geocode calls.
+ *
+ * A leg counts one point, its destination, else its origin — the same
+ * primary point its card and inspector use. With both ends resolved the
+ * station guard judges them as the trip map does, and an end it doubts
+ * never counts (#164): the leg falls back to its sound end, or to no
+ * point. With only one end to go on there is nothing to measure it
+ * against, and a record is a headline claim, so a station only the
+ * free-text fallback could place is left out.
  */
 async function resolveNonFlightPoints(segmentRows: SegmentRow[]): Promise<NonFlightPoint[]> {
-  const pending: Array<{ label: string; query: string }> = [];
+  const places: Array<{ label: string; query: string }> = [];
+  const legs: Array<{ label: string; ends: TransitEndpointQueries }> = [];
   for (const seg of segmentRows) {
     if (seg.type === 'flight' || seg.type === 'note') continue;
-    const raw = buildGeocodeQuery(seg);
-    const query = raw;
-    if (!query) continue;
-    pending.push({ label: nonFlightPointLabel(seg), query });
-  }
-  if (pending.length === 0) return [];
-
-  const cache = await getCachedMany(pending.map((p) => p.query));
-  const points: NonFlightPoint[] = [];
-  for (const { label, query } of pending) {
-    const cached = cache.get(normalizeQuery(query));
-    if (cached?.kind === 'hit') {
-      points.push({ label, lat: cached.result.lat, lng: cached.result.lng });
+    const label = nonFlightPointLabel(seg);
+    const ends = buildTransitEndpointQueries(seg);
+    if (ends) {
+      if (ends.origin || ends.destination) legs.push({ label, ends });
+      continue;
     }
+    const query = buildGeocodeQuery(seg);
+    if (!query) continue;
+    places.push({ label, query });
+  }
+  const legQueries = legs.flatMap(({ ends }) =>
+    [ends.origin, ends.destination].filter((q): q is string => q !== null),
+  );
+  if (places.length === 0 && legQueries.length === 0) return [];
+
+  // One batch SELECT for every place and every leg end.
+  const cache = await getCachedMany([...places.map((p) => p.query), ...legQueries]);
+  const hitFor = (query: string | null): (GuardedEnd & { query: string }) | null => {
+    if (query === null) return null;
+    const cached = cache.get(normalizeQuery(query));
+    if (cached?.kind !== 'hit') return null;
+    return {
+      query,
+      lat: cached.result.lat,
+      lng: cached.result.lng,
+      source: cached.result.source ?? null,
+      station: tryParseStationQuery(query) !== null,
+    };
+  };
+
+  const points: NonFlightPoint[] = [];
+  for (const { label, query } of places) {
+    const hit = hitFor(query);
+    if (hit) points.push({ label, lat: hit.lat, lng: hit.lng });
+  }
+  for (const { label, ends } of legs) {
+    const origin = hitFor(ends.origin);
+    const destination = hitFor(ends.destination);
+    let point: GuardedEnd | null;
+    if (origin && destination) {
+      const doubtful = implausibleEnds(ends.mode, origin, destination);
+      point = !doubtful.destination ? destination : !doubtful.origin ? origin : null;
+    } else {
+      const only = destination ?? origin;
+      point = only && !isGuessedStation(only.query, only.source) ? only : null;
+    }
+    if (point) points.push({ label, lat: point.lat, lng: point.lng });
   }
   return points;
 }

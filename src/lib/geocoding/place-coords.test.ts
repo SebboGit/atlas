@@ -517,3 +517,129 @@ describe('getPlaceCoordsView — train, bus and ferry endpoints (ADR-0019)', () 
     expect(dbState.enqueued).toEqual([]);
   });
 });
+
+describe('getPlaceCoordsView — station guard (#164)', () => {
+  // The dev fixture's Patagonia bus: the Pudeto dock placed by a tagged
+  // station rung, and "Laguna Amarga" guessed by the country-free
+  // free-text fallback — in Lima, 4,354 km north.
+  const bus = {
+    id: 'bus-1',
+    type: 'transit' as const,
+    data: { mode: 'bus', fromName: 'Laguna Amarga', toName: 'Pudeto' },
+    locationName: 'Torres del Paine',
+    countryCode: 'CL',
+  };
+  const LIMA = { lat: -12.0464, lng: -77.0428 };
+  const PUDETO = { lat: -51.0614, lng: -72.9899 };
+  const LAGUNA_AMARGA = { lat: -50.9761, lng: -72.7567 };
+  const row = (queryNormalized: string, p: { lat: number; lng: number }, source: string) => ({
+    queryNormalized,
+    ...p,
+    displayName: 'x',
+    source,
+    fetchedAt: new Date(),
+    expiresAt: FUTURE,
+    city: null,
+  });
+
+  it('flags the guessed far-off end and leaves the other one alone', async () => {
+    dbState.rows.push(
+      row('station:bus:cl:laguna amarga', LIMA, 'photon'),
+      row('station:bus:cl:pudeto', PUDETO, 'photon-station'),
+    );
+
+    const entry = (await getPlaceCoordsView([bus])).coordsById.get('bus-1');
+
+    expect(entry).toEqual({
+      ...PUDETO,
+      city: null,
+      endpoints: {
+        // The coordinates stay — the edit form's located line shows them.
+        origin: { ...LIMA, city: null, implausible: true },
+        destination: { ...PUDETO, city: null },
+      },
+    });
+  });
+
+  it('flags both ends when neither is better than a guess', async () => {
+    dbState.rows.push(
+      row('station:bus:cl:laguna amarga', LIMA, 'photon'),
+      row('station:bus:cl:pudeto', PUDETO, 'nominatim'),
+    );
+
+    const entry = (await getPlaceCoordsView([bus])).coordsById.get('bus-1');
+
+    expect(entry?.endpoints?.origin?.implausible).toBe(true);
+    expect(entry?.endpoints?.destination?.implausible).toBe(true);
+    // No sound end to fall back to: the flag rides up to the primary
+    // point, so a card badging it can tell.
+    expect(entry).toMatchObject({ ...PUDETO, implausible: true });
+  });
+
+  it('takes the sound origin as the primary point when the destination is the guess', async () => {
+    dbState.rows.push(
+      row('station:bus:cl:laguna amarga', LAGUNA_AMARGA, 'photon-station'),
+      row('station:bus:cl:pudeto', LIMA, 'photon'),
+    );
+
+    const entry = (await getPlaceCoordsView([bus])).coordsById.get('bus-1');
+
+    expect(entry).toEqual({
+      ...LAGUNA_AMARGA,
+      city: null,
+      endpoints: {
+        origin: { ...LAGUNA_AMARGA, city: null },
+        destination: { ...LIMA, city: null, implausible: true },
+      },
+    });
+  });
+
+  it('trusts a guess that lands near the other end', async () => {
+    dbState.rows.push(
+      row('station:bus:cl:laguna amarga', LAGUNA_AMARGA, 'photon'),
+      row('station:bus:cl:pudeto', PUDETO, 'photon-station'),
+    );
+
+    const endpoints = (await getPlaceCoordsView([bus])).coordsById.get('bus-1')?.endpoints;
+
+    expect(endpoints?.origin).toEqual({ ...LAGUNA_AMARGA, city: null });
+  });
+
+  it('trusts an end given an address, at any distance', async () => {
+    // The From address outranks the station key, so its free-text row
+    // is the ordinary path, not a guess.
+    dbState.rows.push(
+      row('av. abancay, lima', LIMA, 'nominatim'),
+      row('station:bus:cl:pudeto', PUDETO, 'photon-station'),
+    );
+
+    const endpoints = (
+      await getPlaceCoordsView([
+        { ...bus, data: { ...bus.data, fromAddress: 'Av. Abancay, Lima' } },
+      ])
+    ).coordsById.get('bus-1')?.endpoints;
+
+    expect(endpoints?.origin).toEqual({ ...LIMA, city: null });
+  });
+
+  it('judges a leg with the same verdict the trip map draws its line by', async () => {
+    // One rule behind both surfaces: the end the inspector flags is the
+    // end the trip map's Not-pinned entry names.
+    const { resolveTransitRoute, DEPARTURE_UNCERTAIN_REASON } =
+      await import('@/lib/trip-map/transit-route');
+    dbState.rows.push(
+      row('station:bus:cl:laguna amarga', LIMA, 'photon'),
+      row('station:bus:cl:pudeto', PUDETO, 'photon-station'),
+    );
+
+    const endpoints = (await getPlaceCoordsView([bus])).coordsById.get('bus-1')?.endpoints;
+    const route = resolveTransitRoute(
+      'bus',
+      { state: 'hit', ...LIMA, source: 'photon', station: true },
+      { state: 'hit', ...PUDETO, source: 'photon-station', station: true },
+    );
+
+    expect(endpoints?.origin?.implausible).toBe(true);
+    expect(route).toEqual({ drawRoute: false, reason: DEPARTURE_UNCERTAIN_REASON });
+  });
+});

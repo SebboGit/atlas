@@ -94,7 +94,10 @@ async function resolveZones(rows: readonly ReminderCandidateRow[]): Promise<Map<
         // zone — a wrong zone fires hours off, which is worse than
         // falling back to the country or to no reminder (ADR-0020). Car
         // and other legs have no separate origin, so they use the country.
-        point = coords?.endpoints?.origin ?? null;
+        // An origin the station guard doubts (#164) is a far-off guess, so
+        // its zone is no better than a wrong one: the country decides.
+        const origin = coords?.endpoints?.origin ?? null;
+        point = origin && !origin.implausible ? origin : null;
       } else {
         point = coords ?? null;
       }

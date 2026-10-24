@@ -64,7 +64,8 @@ export function SegmentCardTransit({
     ? subtitleWithChip({ parts, chip: <DirectionsChip href={directionsUrl} /> })
     : subtitleWithPlusCodeBadge({
         parts,
-        coords,
+        // Never badge a guess the station guard doubts (#164).
+        coords: coords?.implausible ? null : coords,
         // Destination is the venue Maps should land on when the user
         // taps the badge — origin is the boarding point, not the place.
         venue: data.toName ?? data.fromName ?? null,

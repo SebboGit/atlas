@@ -173,14 +173,6 @@ describe('resolveTransitRoute — fallback distance guard', () => {
     });
   });
 
-  it('trusts a row whose provider is unknown — old rows keep their lines', () => {
-    const legacy: EndpointLookup = { state: 'hit', ...PUERTO_MONTT, station: true, source: null };
-    expect(resolveTransitRoute('ferry', legacy, stationHit(PAINE_GRANDE))).toEqual({
-      drawRoute: true,
-      reason: null,
-    });
-  });
-
   it('trusts a free-text row that was not a station lookup — an address or Plus Code end', () => {
     const addressEnd: EndpointLookup = { state: 'hit', ...PUERTO_MONTT, source: 'nominatim' };
     expect(resolveTransitRoute('ferry', addressEnd, stationHit(PAINE_GRANDE))).toEqual({

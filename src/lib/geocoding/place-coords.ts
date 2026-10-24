@@ -10,12 +10,16 @@
 // wishlist cards on /wishlist) where the cards want to draw the Plus
 // Code badge but don't otherwise need the trip-map's pin shape.
 
+import type { TransitEndpointMode } from '@/lib/segments/transit-endpoints';
+
 import { getCachedMany } from './cache';
 import { enqueueGeocodeFetch } from './enqueue';
 import { normalizeQuery } from './normalize';
 import { decodePlusCode, tryParsePlusCode } from './plus-code';
 import { buildGeocodeQuery, buildTransitEndpointQueries, type PlaceLike } from './segment-query';
-import type { PlaceCoords, TransitEndpointCoords } from './types';
+import { implausibleEnds, type GuardedEnd } from './station-guard';
+import { tryParseStationQuery } from './station-query';
+import type { PlaceCoords, TransitEndpointCoords, TransitEndpointPlace } from './types';
 
 export type { PlaceCoords, PlaceCoordsEntry, TransitEndpointCoords } from './types';
 
@@ -40,9 +44,15 @@ export interface PlaceCoordsView {
   /**
    * Resolved id → primary `{ lat, lng, city }` (same shape
    * `getPlaceCoordsMap` returns). Train / bus / ferry entries also carry
-   * `endpoints`, and exist when either end resolved.
+   * `endpoints`, and exist when either end resolved. An end the station
+   * guard doubts carries `implausible` (station-guard.ts) — the same
+   * verdict that withholds the trip map's line for that leg — and so does
+   * the entry itself when its primary point is one.
    */
-  coordsById: Map<string, PlaceCoords & { endpoints?: TransitEndpointCoords }>;
+  coordsById: Map<
+    string,
+    PlaceCoords & { implausible?: boolean; endpoints?: TransitEndpointCoords }
+  >;
   /**
    * Count of geocodable lookups whose cache row is a miss (worker
    * hasn't filled yet) — one per unresolved transit end. Drives the
@@ -55,6 +65,9 @@ export interface PlaceCoordsView {
 }
 
 type Role = 'primary' | 'origin' | 'destination';
+
+/** A resolved place plus what the station guard needs to judge it. */
+type Resolved = PlaceCoords & Pick<GuardedEnd, 'source' | 'station'>;
 
 /**
  * Same lookup as {@link getPlaceCoordsMap}, plus a count of places
@@ -95,7 +108,9 @@ export async function getPlaceCoordsView(
     // reverse geocode of the same code) still supplies the city (#111).
     offline: { lat: number; lng: number } | null;
   }[] = [];
-  const endpointIds = new Set<string>();
+  // Train / bus / ferry place id → its mode, for the station guard's
+  // per-mode threshold.
+  const endpointModes = new Map<string, TransitEndpointMode>();
   const addLookup = (id: string, role: Role, key: string | null, fetchOnMiss: boolean) => {
     if (key === null || key === '') return;
     const parsed = tryParsePlusCode(key);
@@ -105,7 +120,7 @@ export async function getPlaceCoordsView(
   for (const place of places) {
     const endpoints = buildTransitEndpointQueries(place);
     if (endpoints) {
-      endpointIds.add(place.id);
+      endpointModes.set(place.id, endpoints.mode);
       addLookup(place.id, 'origin', endpoints.origin, true);
       addLookup(place.id, 'destination', endpoints.destination, true);
     } else {
@@ -116,7 +131,7 @@ export async function getPlaceCoordsView(
 
   const cache = await getCachedMany(lookups.map((l) => l.key));
   let pendingCount = 0;
-  const resolved = new Map<string, Partial<Record<Role, PlaceCoords>>>();
+  const resolved = new Map<string, Partial<Record<Role, Resolved>>>();
   for (const { id, role, key, fetchOnMiss, offline } of lookups) {
     const cached = cache.get(normalizeQuery(key));
     const byRole = resolved.get(id) ?? {};
@@ -136,6 +151,11 @@ export async function getPlaceCoordsView(
         lat: offline?.lat ?? cached.result.lat,
         lng: offline?.lng ?? cached.result.lng,
         city: cached.result.city ?? null,
+        // Which rung placed a bare station name — a tagged station hit
+        // or the country-free free-text guess. An offline-decoded code
+        // is no station key, so the guard never doubts it.
+        source: cached.result.source ?? null,
+        station: tryParseStationQuery(key) !== null,
       };
       continue;
     }
@@ -158,14 +178,39 @@ export async function getPlaceCoordsView(
 
   const coordsById: PlaceCoordsView['coordsById'] = new Map();
   for (const [id, byRole] of resolved) {
-    if (!endpointIds.has(id)) {
-      if (byRole.primary) coordsById.set(id, byRole.primary);
+    if (!endpointModes.has(id)) {
+      if (byRole.primary) coordsById.set(id, toPlaceCoords(byRole.primary));
       continue;
     }
-    const origin = byRole.origin ?? null;
-    const destination = byRole.destination ?? null;
-    const primary = destination ?? origin;
-    if (primary) coordsById.set(id, { ...primary, endpoints: { origin, destination } });
+    const mode = endpointModes.get(id);
+    if (!mode) continue;
+    const doubtful = implausibleEnds(mode, byRole.origin ?? null, byRole.destination ?? null);
+    const origin = toEndpoint(byRole.origin, doubtful.origin);
+    const destination = toEndpoint(byRole.destination, doubtful.destination);
+    // The destination, unless the guard doubts it and the origin is
+    // sound. With both ends doubted the flag rides up to the entry, so
+    // a card that badges the primary point can't badge a guess either.
+    const primary =
+      destination && destination.implausible && origin && !origin.implausible
+        ? origin
+        : (destination ?? origin);
+    if (primary) {
+      coordsById.set(id, {
+        ...toPlaceCoords(primary),
+        ...(primary.implausible && { implausible: true }),
+        endpoints: { origin, destination },
+      });
+    }
   }
   return { coordsById, pendingCount };
+}
+
+// The guard's inputs stay internal; callers get plain coordinates.
+function toPlaceCoords({ lat, lng, city }: PlaceCoords): PlaceCoords {
+  return { lat, lng, city };
+}
+
+function toEndpoint(end: Resolved | undefined, implausible: boolean): TransitEndpointPlace | null {
+  if (!end) return null;
+  return implausible ? { ...toPlaceCoords(end), implausible: true } : toPlaceCoords(end);
 }
