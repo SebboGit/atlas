@@ -95,33 +95,37 @@ function normaliseName(s: string): string {
     .trim();
 }
 
-type CityFixes = { titleCased: number; suffixDropped: number };
+// Before → after pairs for each generic rule, logged so a refresh's
+// changes can be read rather than just counted.
+type CityFixes = { titleCased: string[]; suffixDropped: string[] };
 
 // A trailing airport word some rows put in the city column ("Queenstown
-// International", "Al Ghaidah Intl", "Qeqertarsuaq Airport"). Only at the
-// end, so "International Falls" keeps its name.
+// International", "Al Ghaidah Intl", "Qeqertarsuaq Airport"), with the
+// separator before it and any punctuation after ("Foo, Intl."). Only at
+// the end, so "International Falls" keeps its name.
 const CITY_AIRPORT_SUFFIX =
-  /\s+(?:International Airport|Intl Airport|International|Intl|Airport)$/i;
+  /[\s,\-–]+(?:(?:International|Intl\.?)(?:\s+Airport)?|Airport)[\s.,]*$/i;
 
 // Trim and collapse whitespace ("Norfolk  Nebraska"), undo the
 // backslash-escaped apostrophes some rows carry, title-case a value that
 // is all capitals ("ST MARY'S" → "St Mary's") and drop a trailing airport
-// word. `\N` and blanks → null. Counts each rule's hits in `fixes`.
+// word. `\N` and blanks → null. Records each rule's hits in `fixes`.
 function cleanCity(raw: string | undefined, fixes: CityFixes): string | null {
   if (!raw || raw === '\\N') return null;
   let city = raw.replace(/\\'/g, "'").replace(/\s+/g, ' ').trim();
   if (/\p{Lu}/u.test(city) && city === city.toUpperCase()) {
     // Capitalise after a space, hyphen, slash or bracket — not after an
     // apostrophe, so the possessive stays lower-case.
-    city = city
+    const titled = city
       .toLowerCase()
       .replace(/(^|[\s\-/(])(\p{Ll})/gu, (_, sep: string, c: string) => sep + c.toUpperCase());
-    fixes.titleCased += 1;
+    fixes.titleCased.push(`${city} → ${titled}`);
+    city = titled;
   }
   const trimmed = city.replace(CITY_AIRPORT_SUFFIX, '');
   if (trimmed !== city && trimmed.length > 0) {
+    fixes.suffixDropped.push(`${city} → ${trimmed}`);
     city = trimmed;
-    fixes.suffixDropped += 1;
   }
   return city.length > 0 ? city : null;
 }
@@ -129,21 +133,33 @@ function cleanCity(raw: string | undefined, fixes: CityFixes): string | null {
 // Per-IATA city names, for popular airports where upstream's city is
 // misspelt, missing its diacritics, the region or the airport's own
 // district rather than the city it serves, or a non-English name where
-// English has its own. Wins over the cleaned upstream value. Not a full
-// audit of ~5,500 rows: add an entry when an airport someone flies reads
-// wrong on the stats page.
+// English has its own. Wins over the cleaned upstream value. Diacritics
+// appear only where an entry adds them; the long tail keeps upstream's
+// ASCII. Not a full audit of ~6,000 rows: add an entry when an airport
+// someone flies reads wrong on the stats page. A refresh logs each
+// override against the value it replaces, and entries that are redundant
+// or matched no airport.
 const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
+  ALA: 'Almaty', // upstream "Alma-ata", the Soviet-era name
   AMN: 'Alma', // upstream "Kamloops", a different airport's city
+  BIQ: 'Biarritz', // upstream "Biarritz-bayonne"
   BSL: 'Basel', // EuroAirport Basel-Mulhouse; upstream "Mulhouse"
+  CFU: 'Corfu', // upstream "Kerkyra/corfu"
   CJU: 'Jeju', // upstream "Cheju", the pre-2000 romanisation
+  CLJ: 'Cluj-Napoca', // upstream "Cluj-napoca"
   DAD: 'Da Nang', // upstream "Danang"
   DUS: 'Düsseldorf', // upstream "Duesseldorf"
+  FDF: 'Fort-de-France', // upstream "Fort-de-france"
   FMO: 'Münster', // upstream "Munster"
   GIG: 'Rio de Janeiro', // upstream "Rio De Janeiro"
   GOT: 'Gothenburg', // upstream "Gothenborg"
   GRU: 'São Paulo', // upstream "Sao Paulo"
+  IEV: 'Kyiv', // upstream "Kiev"
+  INT: 'Winston-Salem', // upstream "Winston-salem"
   JTR: 'Santorini', // upstream "Thira", the island's Greek name
+  KBP: 'Kyiv', // upstream "Kiev"
   KEF: 'Reykjavík', // the town is Keflavík; the airport serves Reykjavík
+  LBC: 'Lübeck', // upstream "Luebeck"
   LYR: 'Longyearbyen', // upstream "Svalbard", the archipelago
   MAA: 'Chennai', // upstream "Madras", renamed 1996
   MXP: 'Milan', // upstream "Milano"; LIN already reads "Milan"
@@ -153,6 +169,8 @@ const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
   PNH: 'Phnom Penh', // upstream "Phnom-penh"
   PQC: 'Phu Quoc', // upstream "Phuquoc"
   REP: 'Siem Reap', // upstream "Siem-reap"
+  RHO: 'Rhodes', // upstream "Rhodos"
+  SCN: 'Saarbrücken', // upstream "Saarbruecken"
   SDU: 'Rio de Janeiro', // upstream "Rio De Janeiro"
   SIA: "Xi'an", // upstream "Xi'AN" — mixed case, so not caught by the caps rule
   SVQ: 'Seville', // upstream "Sevilla"
@@ -160,6 +178,7 @@ const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
   TLL: 'Tallinn', // upstream "Tallinn-ulemiste International", the district
   TLV: 'Tel Aviv', // upstream "Tel-aviv"
   TOS: 'Tromsø', // upstream "Tromso"
+  TSE: 'Astana', // upstream "Tselinograd", the Soviet-era name; NQZ since 2020
   ZRH: 'Zürich', // upstream "Zurich"
 };
 
@@ -326,8 +345,9 @@ async function main(): Promise<void> {
   const offsetMismatches: string[] = [];
   const usedTzOverrides = new Set<string>();
   const usedCountryOverrides = new Set<string>();
-  const cityFixes: CityFixes = { titleCased: 0, suffixDropped: 0 };
-  let cityOverrides = 0;
+  const cityFixes: CityFixes = { titleCased: [], suffixDropped: [] };
+  const cityOverrides: string[] = [];
+  const usedCityOverrides = new Set<string>();
   const unmappedCountries = new Map<string, number>();
 
   type Entry = {
@@ -449,8 +469,19 @@ async function main(): Promise<void> {
       if (existing.sourceId <= sourceId) continue;
     }
     const cityOverride = IATA_CITY_OVERRIDES[code];
-    if (cityOverride) cityOverrides += 1;
-    const city = cityOverride ?? cleanCity(cityRaw, cityFixes);
+    let city: string | null;
+    if (cityOverride) {
+      usedCityOverrides.add(code);
+      const upstreamCity = cleanCity(cityRaw, { titleCased: [], suffixDropped: [] });
+      cityOverrides.push(
+        upstreamCity === cityOverride
+          ? `${code} ${cityOverride} (redundant: upstream already reads this)`
+          : `${code} ${upstreamCity ?? '(none)'} → ${cityOverride}`,
+      );
+      city = cityOverride;
+    } else {
+      city = cleanCity(cityRaw, cityFixes);
+    }
     byIata.set(code, { tz, country, lat, lng, city, sourceId });
   }
 
@@ -494,8 +525,17 @@ async function main(): Promise<void> {
     `Wrote ${OUTPUT_REL}: ${byIata.size} airports (type=airport rows: ${typeAirport}, collisions resolved: ${collisions}, with country: ${withCountry}, with coords: ${withCoords}, tz from coords: ${tzFromCoords}, dropped for missing tz: ${droppedNoTz})`,
   );
   console.log(
-    `Wrote ${CITIES_OUTPUT_REL}: ${Object.keys(cities).length} cities (title-cased: ${cityFixes.titleCased}, airport word dropped: ${cityFixes.suffixDropped}, overridden: ${cityOverrides})`,
+    `Wrote ${CITIES_OUTPUT_REL}: ${Object.keys(cities).length} cities (title-cased: ${cityFixes.titleCased.length}, airport word dropped: ${cityFixes.suffixDropped.length}, overridden: ${cityOverrides.length})`,
   );
+  for (const [label, pairs] of [
+    ['Title-cased', cityFixes.titleCased],
+    ['Airport word dropped', cityFixes.suffixDropped],
+    ['IATA_CITY_OVERRIDES', cityOverrides],
+  ] as const) {
+    if (pairs.length === 0) continue;
+    console.log(`${label}:`);
+    for (const pair of pairs) console.log(`  ${pair}`);
+  }
 
   if (droppedNoTz > 0) {
     console.log(
@@ -516,6 +556,7 @@ async function main(): Promise<void> {
   for (const [name, map, used] of [
     ['IATA_TZ_OVERRIDES', IATA_TZ_OVERRIDES, usedTzOverrides],
     ['IATA_COUNTRY_OVERRIDES', IATA_COUNTRY_OVERRIDES, usedCountryOverrides],
+    ['IATA_CITY_OVERRIDES', IATA_CITY_OVERRIDES, usedCityOverrides],
   ] as const) {
     const unused = Object.keys(map).filter((code) => !used.has(code));
     if (unused.length > 0) {
