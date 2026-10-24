@@ -128,9 +128,9 @@ const nextConfig: NextConfig = {
   // `typedRoutes` moved to top-level in Next 15.5 — `experimental` is
   // the deprecated location.
   typedRoutes: true,
-  // Next 16.3+ `next dev` appends a managed rules block to CLAUDE.md
-  // whenever it detects a coding agent in the environment. CLAUDE.md is
-  // hand-maintained here, so opt out rather than dirty every worktree.
+  // `next dev` writes a managed AGENTS.md (16.3 appended to CLAUDE.md)
+  // whenever it detects a coding agent in the environment. The agent docs
+  // here are hand-maintained, so opt out rather than dirty every worktree.
   agentRules: false,
   // pdfjs-dist's legacy build loads `pdf.worker.mjs` next to `pdf.mjs`
   // via a dynamic import. When Turbopack bundles the package into
@@ -154,6 +154,10 @@ const nextConfig: NextConfig = {
     ATLAS_UPLOAD_ENVELOPE_BYTES: String(storageMaxBytes),
   },
   experimental: {
+    // Next 16.4+ stops an agent-run `next dev` / `next build` with an upgrade
+    // prompt when an advisory covers the installed version. Upgrades here go
+    // through Dependabot and the release checklist, so don't block the build.
+    agentUpgrade: false,
     // See `serverActionBodyLimit` above — lifts the Server Action body cap
     // from its 1 MB default to just over STORAGE_MAX_BYTES so document
     // uploads aren't 413'd before the storage layer can size-check them.
