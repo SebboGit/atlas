@@ -46,6 +46,11 @@ describe('getAirportCity', () => {
     expect(getAirportCity('JGO')).toBe('Qeqertarsuaq');
   });
 
+  it('names the city of an airport newer than OpenFlights', () => {
+    expect(getAirportCity('BER')).toBe('Berlin');
+    expect(getAirportCity('PKX')).toBe('Beijing');
+  });
+
   it('unescapes upstream backslash-escaped apostrophes', () => {
     // airports.dat has `Fiti\'uta`.
     expect(getAirportCity('FTI')).toBe("Fiti'uta");

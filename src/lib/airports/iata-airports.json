@@ -2369,6 +2369,12 @@
     "lat": 52.3426,
     "lng": 0.77294
   },
+  "BER": {
+    "tz": "Europe/Berlin",
+    "country": "DE",
+    "lat": 52.36174,
+    "lng": 13.50234
+  },
   "BES": {
     "tz": "Europe/Paris",
     "country": "FR",
@@ -21784,6 +21790,12 @@
     "country": "BW",
     "lat": -22.0583,
     "lng": 27.8288
+  },
+  "PKX": {
+    "tz": "Asia/Shanghai",
+    "country": "CN",
+    "lat": 39.50995,
+    "lng": 116.41092
   },
   "PKY": {
     "tz": "Asia/Jakarta",
