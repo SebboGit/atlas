@@ -3,7 +3,7 @@ import { eq, getTableColumns } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { segments, trips } from '@/db/schema';
 import { displayCarrier } from '@/lib/airlines';
-import { getAirportCoords } from '@/lib/airports';
+import { getAirportCoords } from '@/lib/airports/coords';
 import { countryName } from '@/lib/countries';
 import { listManualVisitedCountriesForUser } from '@/lib/countries/repo';
 import { buildGeocodeQuery, getCachedMany, normalizeQuery } from '@/lib/geocoding';
