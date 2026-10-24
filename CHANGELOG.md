@@ -7,33 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [2.0.0] - 2026-10-24
 
-- **A new look** — the warm paper palette gives way to a cool grey ground,
-  white cards, near-black ink and a single coral accent, set in Bricolage
-  Grotesque with DM Mono for times and codes. Every segment type now has its
-  own colour, used the same way on its ticket, its map pin and its filter.
-- **Segments are tickets** — each one has a coloured stub with an icon, the
-  type and the time, joined to its details by a perforation. On a phone the
-  stub runs across the top, so the title gets the full width.
-- **Days are cards** — the itinerary shows one card per day, headed by the date,
-  the day number, a Today badge and a count of what is booked, with past days
-  folded into a single row.
-- **Trip banner with a route** — the trip header is a dark banner with the
-  dates, title and actions. On a laptop it also shows the route as a line
-  diagram: flights, trains and ferries between the stops, with "You're here"
-  on a trip in progress. The trip list and the home page's next trip use the
-  same ticket and banner styles, and the logo is redrawn to match.
-- **Stats as tickets** — the stats page opens with a lifetime pass: countries,
-  nights away, flights and distance flown (with laps around the Earth), your
-  name, and on a laptop a barcode with one bar per trip. Each year gets its own
-  ticket with trips, a nights bar and new countries, and the records are
-  tickets too, including a north–south line from your furthest south to your
-  furthest north.
-- **Smaller download for the segment forms** — airport coordinates are only
-  used on the server for map pins and distances, so they no longer ship to the
-  browser with the time zones and countries the forms need. That cuts about
-  two-thirds of the compressed airport data the pages download.
+A new look for the whole app — tickets, a cool grey palette and a dark mode —
+with a rebuilt stats page, dark maps, cleaner airport data and a round of
+accessibility fixes.
 
 ### Added
 
@@ -50,6 +28,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shows its country. City names are tidied on the way in: Seville rather
   than Sevilla, Reykjavík rather than Keflavik, and no "International"
   after the name.
+
+### Changed
+
+- **A new look** — the warm paper palette gives way to a cool grey ground,
+  white cards, near-black ink and a single coral accent, set in Bricolage
+  Grotesque with DM Mono for times and codes. Every segment type now has its
+  own colour, used the same way on its ticket, its map pin and its filter.
+- **Segments are tickets** — each one has a coloured stub with an icon, the
+  type and the time, joined to its details (by a perforation on the type
+  tabs). On a phone the stub runs across the top, so the title gets the full
+  width.
+- **Days are cards** — the itinerary shows one card per day, headed by the date,
+  the day number, a Today badge and a count of what is booked, with past days
+  folded into a single row.
+- **Trip banner with a route** — the trip header is a dark banner with the
+  dates, title and actions. On a laptop it also shows the route as a line
+  diagram: flights, trains and ferries between the stops, with "You're here"
+  on a trip in progress; a long route folds the far stops into "+N stops"
+  around where you are. The trip list and the home page's next trip use the
+  same ticket and banner styles, and the logo is redrawn to match.
+- **Stats as tickets** — the stats page opens with a lifetime pass: countries,
+  nights away, flights and distance flown (with laps around the Earth), your
+  name, and on a laptop a barcode with one bar per trip. Each year gets its own
+  ticket with trips, a nights bar and new countries, and the records are
+  tickets too, including a north–south line from your furthest south to your
+  furthest north.
+- **Smaller download for the segment forms** — airport coordinates are only
+  used on the server for map pins and distances, so they no longer ship to the
+  browser with the time zones and countries the forms need. That cuts about
+  two-thirds of the compressed airport data the pages download.
+- **Search fills the screen on a phone** — the search palette now takes the
+  whole screen on a phone instead of stopping short of the top.
 
 ### Fixed
 
@@ -70,10 +80,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now get the same words you see on the search button, the map's Legend,
   Not pinned and Wishlist chips, the past-days toggles and the time picker,
   which now also reads out the chosen time.
-- **A guessed station stays off the inspector, reminders and the stats page**
-  — when a train, bus or ferry stop is only a name and the map already says it
+- **A guessed station stays off the inspector, reminders and the stats page** —
+  when a train, bus or ferry stop is only a name and the map already says it
   looks wrong, its details no longer show a Plus Code for that end, so tapping
-  it can't open Google Maps somewhere far away. The other end keeps its badge.
+  it can't open Google Maps somewhere far away. The other end keeps its badge,
+  and a card's Maps link now names the stop it actually points at.
   A reminder for the leg no longer takes its time zone from a departure stop
   that looks wrong, and that stop no longer counts toward your furthest north
   or south. Adding the stop's address or Plus Code brings it back.
@@ -88,12 +99,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drag hint are easier to read, and the raised sheet now scrolls all the way
   to the last day.
 
+### Security
+
+- Next.js 16.4.2 fixes security issues in the image optimizer. `pnpm audit
+--prod` reports no known vulnerabilities.
+
 ### Upgrading
 
 Take a database backup first. This release updates pg-boss, whose first start
-migrates its job tables forward (schema 40 → 46) and cannot be undone by
-rolling back the image; restoring that backup is the way back. The update also
-brings Next.js 16.4.2, which fixes security issues in the image optimizer.
+migrates its job tables forward (schema 40 → 46); there is no app schema
+change. Rolling back the image does not undo the migration and 1.9.0 is not
+tested against the new job tables, so restoring that backup is the way back.
+There are no new environment variables and no compose changes.
+
+This is a major version, so the images also get a new `2` tag. Set
+`ATLAS_IMAGE_TAG=2.0.0` (or `2` to follow 2.x), then pull and bring the stack
+up as usual; a `1` or `1.9` pin stays on 1.9.0, and `latest` moves on its own.
+An installed home-screen app may show the old look until it is closed and
+reopened once.
 
 ## [1.9.0] - 2026-10-22
 
@@ -738,7 +761,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/SebboGit/atlas/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/SebboGit/atlas/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/SebboGit/atlas/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/SebboGit/atlas/compare/v1.7.0...v1.7.1
