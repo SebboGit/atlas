@@ -74,6 +74,17 @@ describe('getAirportCountry', () => {
     expect(getAirportCountry('BON')).toBe('BQ'); // Bonaire (BES)
   });
 
+  it('tells the two Congos apart', () => {
+    // OpenFlights writes "Congo (Kinshasa)" and "Congo (Brazzaville)";
+    // without the qualifier both read "Congo" (CG).
+    expect(getAirportCountry('FIH')).toBe('CD'); // Kinshasa
+    expect(getAirportCountry('FBM')).toBe('CD'); // Lubumbashi
+    expect(getAirportCountry('GOM')).toBe('CD'); // Goma
+    expect(getAirportCountry('BZV')).toBe('CG'); // Brazzaville
+    // Tagged "Congo (Kinshasa)" upstream, but in the Republic of the Congo.
+    expect(getAirportCountry('OUE')).toBe('CG'); // Ouesso
+  });
+
   it('returns null for non-IATA-shaped input', () => {
     expect(getAirportCountry('SG')).toBeNull();
     expect(getAirportCountry('SGNX')).toBeNull();

@@ -82,14 +82,17 @@ function parseCsvLine(line: string): string[] {
 }
 
 // Normalise a country name for fuzzy matching: lowercase, strip
-// diacritics, collapse whitespace, drop trailing parenthetical
-// qualifiers ("Falkland Islands (Malvinas)" → "falkland islands").
-function normaliseName(s: string): string {
+// diacritics, collapse whitespace, drop parenthetical qualifiers
+// ("Falkland Islands (Malvinas)" → "falkland islands"). With
+// `keepQualifier` the brackets go but their words stay
+// ("Congo (Kinshasa)" → "congo kinshasa"), for names the qualifier
+// tells apart.
+function normaliseName(s: string, keepQualifier = false): string {
   return s
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
-    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(keepQualifier ? /[()]/g : /\s*\([^)]*\)\s*/g, ' ')
     .replace(/[.,]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -185,6 +188,9 @@ const IATA_CITY_OVERRIDES: Readonly<Record<string, string>> = {
 // Aliases for OpenFlights' country names that don't match our
 // ISO_COUNTRIES display strings even after normalisation. Keys are the
 // normalised OpenFlights name; values are ISO 3166-1 alpha-2 codes.
+// A qualified name is looked up with its qualifier first, so a key can
+// keep it: "congo kinshasa" and "congo brazzaville" would both be
+// "congo" (CG) without it.
 // Add more entries when the script logs an unmapped country and you
 // want to start resolving it.
 const COUNTRY_ALIASES: Readonly<Record<string, string>> = {
@@ -260,10 +266,14 @@ const COUNTRY_ALIASES: Readonly<Record<string, string>> = {
 // Antilles" was dissolved in 2010 and the successor codes differ by
 // island, so a single name → ISO mapping cannot be right. A few single
 // rows carry another airport's city and country outright; those are
-// here too, with the city fixed in IATA_CITY_OVERRIDES.
+// here too, with the city fixed in IATA_CITY_OVERRIDES. Two Republic of
+// the Congo airports are tagged with the other Congo; their ICAO codes
+// (FC…, not the DRC's FZ…) and zones say otherwise.
 const IATA_COUNTRY_OVERRIDES: Readonly<Record<string, string>> = {
   AMN: 'US', // Gratiot Community, Alma MI; upstream says Kamloops, Canada
   OEL: 'RU', // Oryol Yuzhny; upstream says Oakley, United States
+  FTX: 'CG', // Owando (ICAO FCOO); upstream says Congo (Kinshasa)
+  OUE: 'CG', // Ouesso (ICAO FCOU); upstream says Congo (Kinshasa)
   BON: 'BQ', // Bonaire
   CUR: 'CW', // Curaçao
   EUX: 'BQ', // Sint Eustatius
@@ -458,8 +468,12 @@ async function main(): Promise<void> {
     let country: string | null = IATA_COUNTRY_OVERRIDES[code] ?? null;
     if (country) usedCountryOverrides.add(code);
     if (!country && countryRaw && countryRaw !== '\\N' && countryRaw.trim().length > 0) {
-      const key = normaliseName(countryRaw);
-      country = countryIndex[key] ?? null;
+      // Qualified form first ("Congo (Kinshasa)" → "congo kinshasa"),
+      // then the bare name ("Cocos (Keeling) Islands" → "cocos islands").
+      country =
+        countryIndex[normaliseName(countryRaw, true)] ??
+        countryIndex[normaliseName(countryRaw)] ??
+        null;
       if (!country) {
         unmappedCountries.set(countryRaw, (unmappedCountries.get(countryRaw) ?? 0) + 1);
       }
