@@ -33,8 +33,8 @@ export const metadata: Metadata = {
     // ?v matches manifest.ts ICON_REV — bump all three (and the precache entry
     // in public/sw.js) when the icon art changes, so the sticky favicon and
     // OS/home-screen icon caches re-fetch instead of serving the old one.
-    icon: '/favicon.svg?v=3',
-    apple: '/apple-touch-icon.png?v=3',
+    icon: '/favicon.svg?v=4',
+    apple: '/apple-touch-icon.png?v=4',
   },
   // Sets the iOS home-screen title and standalone status-bar style. The
   // standalone launch itself comes from the manifest's display:standalone.

@@ -8,8 +8,8 @@
 //
 // We render the (transparent) logo onto a solid ground-grey square so the icon
 // reads as a badge rather than a floating circle. "maskable" variants leave
-// extra padding so a launcher's circular/squircle crop can't clip the logo
-// (the maskable safe zone is the inner ~80%).
+// extra padding because launchers show only their middle ~two-thirds (see
+// ICONS below).
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -19,19 +19,20 @@ import sharp from 'sharp';
 const ROOT = process.cwd();
 const SOURCE = path.join(ROOT, 'public', 'atlas_logo.svg');
 
-// Matches --color-background / the layout themeColor (#e9ecf2).
+// Matches the light --color-background (THEME_COLOR.light).
 const GROUND = { r: 0xe9, g: 0xec, b: 0xf2, alpha: 1 };
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
 
 // `scale` is the globe's share of the canvas; the rest is ground-grey margin. The
 // plain/apple icons sit at ~0.72 so the globe reads as an inset glyph rather
-// than filling the tile edge-to-edge. Maskable variants go smaller (0.66) to
-// stay inside the launcher's ~80% safe-zone crop.
+// than filling the tile edge-to-edge. Android launchers show only the middle
+// ~two-thirds of a maskable icon, so those go down to 0.5: the globe then
+// fills about 0.72 of the visible tile, the same share as the plain icon.
 const ICONS = [
   { file: 'icons/icon-192.png', size: 192, scale: 0.72 },
   { file: 'icons/icon-512.png', size: 512, scale: 0.72 },
-  { file: 'icons/icon-maskable-192.png', size: 192, scale: 0.66 },
-  { file: 'icons/icon-maskable-512.png', size: 512, scale: 0.66 },
+  { file: 'icons/icon-maskable-192.png', size: 192, scale: 0.5 },
+  { file: 'icons/icon-maskable-512.png', size: 512, scale: 0.5 },
   { file: 'apple-touch-icon.png', size: 180, scale: 0.72 },
 ] as const;
 

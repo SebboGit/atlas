@@ -6,7 +6,7 @@ import { THEME_COLOR } from '@/lib/theme/preference';
 // entry in public/sw.js carry the same revision. Home-screen icon caches are
 // keyed by URL and extremely sticky — changing the file contents under the
 // same path isn't enough, so this query string forces a re-fetch.
-const ICON_REV = '3';
+const ICON_REV = '4';
 
 // Web app manifest — makes Atlas installable to the home screen and lets it
 // launch standalone (no browser chrome). Next serves this at
@@ -14,6 +14,8 @@ const ICON_REV = '3';
 // Colors use the dark palette. The manifest takes one colour, not one per
 // scheme, and Android paints the navigation bar and splash screen from it at
 // install time. The status bar follows the live theme-color meta instead.
+// Dark wins because that's the scheme in use; light mode gets a dark bar and
+// splash instead.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Atlas — Travel Companion',

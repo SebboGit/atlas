@@ -28,7 +28,7 @@ const MANIFEST_URL = '/manifest.webmanifest';
 // no offline support at all. The versioned icon PNGs are precached too, but
 // their URLs are read from the manifest at install time (see below) so the
 // list can't drift from ICON_REV in src/app/manifest.ts.
-const PRECACHE_URLS = [OFFLINE_URL, '/atlas_logo.svg', '/favicon.svg?v=3'];
+const PRECACHE_URLS = [OFFLINE_URL, '/atlas_logo.svg', '/favicon.svg?v=4'];
 
 // Same-origin static assets worth caching lazily (the offline page leans on
 // these too). Map tiles live under /api and are intentionally excluded.
