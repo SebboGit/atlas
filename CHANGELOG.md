@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-25
+
 ### Fixed
 
 - **The browser tab kept the old logo** — 2.0.0 redrew the favicon under the
@@ -15,7 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   app's offline cache is renewed once so the new logo shows everywhere.
 - **A light bar under the dark app on Android** — the installed app took its
   navigation bar colour from the light palette, so dark mode sat above a grey
-  strip. The app now installs with the dark colour.
+  strip. The app now installs with the dark colour, so in light mode the bar
+  and the launch screen are dark instead.
+- **The home-screen icon filled its tile on Android** — launchers show only
+  the middle of the icon, so the logo ran almost to the edge. It now sits
+  inset, like the other icons.
+
+### Upgrading
+
+There is no migration and no environment or compose change: set
+`ATLAS_IMAGE_TAG=2.0.1`, then pull and bring the stack up as usual. An app
+already on the home screen picks up the new icon and bar colour only when the
+browser refreshes it. Chrome does this every few days; most other browsers
+don't. Removing and re-adding the app applies both at once.
 
 ## [2.0.0] - 2026-10-24
 
@@ -771,7 +785,8 @@ First stable release. From this version on, Atlas follows Semantic Versioning.
   release, a hardened production compose overlay, and dedicated deployment and
   development guides.
 
-[Unreleased]: https://github.com/SebboGit/atlas/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/SebboGit/atlas/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/SebboGit/atlas/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/SebboGit/atlas/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/SebboGit/atlas/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/SebboGit/atlas/compare/v1.7.1...v1.8.0
