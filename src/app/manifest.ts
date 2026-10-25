@@ -1,8 +1,9 @@
 import type { MetadataRoute } from 'next';
 
-// Bump when the icon PNGs change. Home-screen icon caches are keyed by URL and
-// extremely sticky — changing the file contents under the same path isn't
-// enough, so this query string forces the OS/browser to re-fetch on reinstall.
+// Bump when the icon art changes; the favicon in layout.tsx and the precache
+// entry in public/sw.js carry the same revision. Home-screen icon caches are
+// keyed by URL and extremely sticky — changing the file contents under the
+// same path isn't enough, so this query string forces a re-fetch.
 const ICON_REV = '3';
 
 // Web app manifest — makes Atlas installable to the home screen and lets it

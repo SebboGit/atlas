@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The browser tab kept the old logo** — 2.0.0 redrew the favicon under the
+  same address, so browsers and the installed app went on showing the old one
+  until a hard refresh. The favicon address now carries a revision, and the
+  app's offline cache is renewed once so the new logo shows everywhere.
+
 ## [2.0.0] - 2026-10-24
 
 A new look for the whole app — tickets, a cool grey palette and a dark mode —

@@ -30,9 +30,10 @@ export const metadata: Metadata = {
   description: 'A self-hosted personal travel companion.',
   robots: { index: false, follow: false },
   icons: {
-    icon: '/favicon.svg',
-    // ?v matches manifest.ts ICON_REV — bump both when the icon art changes so
-    // sticky OS/home-screen icon caches re-fetch instead of serving the old one.
+    // ?v matches manifest.ts ICON_REV — bump all three (and the precache entry
+    // in public/sw.js) when the icon art changes, so the sticky favicon and
+    // OS/home-screen icon caches re-fetch instead of serving the old one.
+    icon: '/favicon.svg?v=3',
     apple: '/apple-touch-icon.png?v=3',
   },
   // Sets the iOS home-screen title and standalone status-bar style. The

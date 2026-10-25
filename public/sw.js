@@ -14,7 +14,9 @@
  * /maplibre/<version>/, and without it an offline map renders nothing at all.
  */
 
-const VERSION = 'atlas-v1';
+// Bump to drop every cache on activate — e.g. when a precached brand asset
+// like the top-bar logo changes under the same URL.
+const VERSION = 'atlas-v2';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGES_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = '/offline.html';
@@ -26,7 +28,7 @@ const MANIFEST_URL = '/manifest.webmanifest';
 // no offline support at all. The versioned icon PNGs are precached too, but
 // their URLs are read from the manifest at install time (see below) so the
 // list can't drift from ICON_REV in src/app/manifest.ts.
-const PRECACHE_URLS = [OFFLINE_URL, '/atlas_logo.svg', '/favicon.svg'];
+const PRECACHE_URLS = [OFFLINE_URL, '/atlas_logo.svg', '/favicon.svg?v=3'];
 
 // Same-origin static assets worth caching lazily (the offline page leans on
 // these too). Map tiles live under /api and are intentionally excluded.
