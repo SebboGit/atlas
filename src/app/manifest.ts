@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+import { THEME_COLOR } from '@/lib/theme/preference';
+
 // Bump when the icon art changes; the favicon in layout.tsx and the precache
 // entry in public/sw.js carry the same revision. Home-screen icon caches are
 // keyed by URL and extremely sticky — changing the file contents under the
@@ -9,7 +11,9 @@ const ICON_REV = '3';
 // Web app manifest — makes Atlas installable to the home screen and lets it
 // launch standalone (no browser chrome). Next serves this at
 // /manifest.webmanifest and injects the <link rel="manifest"> automatically.
-// Colors track the light palette (--color-background / themeColor).
+// Colors use the dark palette. The manifest takes one colour, not one per
+// scheme, and Android paints the navigation bar and splash screen from it at
+// install time. The status bar follows the live theme-color meta instead.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Atlas — Travel Companion',
@@ -19,8 +23,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     scope: '/',
     display: 'standalone',
-    background_color: '#e9ecf2',
-    theme_color: '#e9ecf2',
+    background_color: THEME_COLOR.dark,
+    theme_color: THEME_COLOR.dark,
     lang: 'en',
     dir: 'ltr',
     categories: ['travel'],

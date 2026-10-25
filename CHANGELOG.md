@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   same address, so browsers and the installed app went on showing the old one
   until a hard refresh. The favicon address now carries a revision, and the
   app's offline cache is renewed once so the new logo shows everywhere.
+- **A light bar under the dark app on Android** — the installed app took its
+  navigation bar colour from the light palette, so dark mode sat above a grey
+  strip. The app now installs with the dark colour.
 
 ## [2.0.0] - 2026-10-24
 
