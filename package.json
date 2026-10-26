@@ -101,7 +101,7 @@
     "eslint-config-next": "^16.4.2",
     "eslint-plugin-import": "^2.32.0",
     "fflate": "^0.8.3",
-    "happy-dom": "^20.14.0",
+    "happy-dom": "^21.0.4",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "pdf-lib": "^1.17.1",
